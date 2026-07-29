@@ -7,10 +7,6 @@ import {
     Settings, LogOut, BarChart
 } from 'lucide-react';
 import puacLogo from '../../assets/puaclogo.png';
-
-// import '../styles/secretaryAdminSidebar.css'; // Removed for Tailwind migration
-import { useTheme } from '../../context/ThemeContext';
-
 import API from '../../utils/api';
 import { processNewNotifications } from '../../utils/desktopNotify';
 import NotificationPrompt from '../../components/NotificationPrompt';
@@ -18,7 +14,6 @@ import NotificationPrompt from '../../components/NotificationPrompt';
 export default function SecretaryAdminSidebar() {
     const location = useLocation();
     const navigate = useNavigate();
-    const { theme, toggleTheme } = useTheme();
     const [showLogoutModal, setShowLogoutModal] = useState(false);
     const currentPath = location.pathname;
     const [unreadCount, setUnreadCount] = useState(0);

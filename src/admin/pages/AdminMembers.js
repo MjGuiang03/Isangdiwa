@@ -2,7 +2,7 @@ import { useState, useEffect, useRef, useMemo } from 'react';
 import useSWR from 'swr';
 import { useNavigate } from 'react-router-dom';
 import { toast } from 'sonner';
-import { Search, Plus, Filter, FileText, Download, MoreVertical, Edit, Trash2, Eye, MapPin, Phone, Mail, Calendar, CreditCard, User, UserPlus, Users as UsersIcon, XCircle, X, EyeOff, CheckCircle2, Loader2, Lock } from 'lucide-react';
+import { Search, MoreVertical, Edit, Trash2, Eye, CreditCard, User, UserPlus, Users as UsersIcon, XCircle, X, EyeOff, CheckCircle2, Loader2, Lock } from 'lucide-react';
 import Pagination from '../../components/Pagination';
 import useDebounce from '../../hooks/useDebounce';
 import React from 'react';

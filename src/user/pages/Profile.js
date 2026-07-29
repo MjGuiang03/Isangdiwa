@@ -7,7 +7,7 @@ import API from '../../utils/api';
 import {
   Heart, CalendarDays, PiggyBank, FileText, Award,
   MapPin, Mail, Phone, Clock, Shield, TrendingUp,
-  Star, Flame, Target, Edit2, XCircle, Edit, Camera
+  Star, Flame, Target, Edit2, XCircle, Camera
 } from 'lucide-react';
 import VerifyEmailModal from '../components/VerifyEmail';
 import { BarChart, Bar, XAxis, YAxis, CartesianGrid, Tooltip, ResponsiveContainer } from 'recharts';

@@ -161,9 +161,6 @@ export default function AdminDonationsNew() {
 
   /* ── Pagination math ── */
   const totalPages = Math.max(1, Math.ceil(totalCount / ITEMS_PER_PAGE));
-  const goTo   = (p) => setCurrentPage(Math.max(1, Math.min(p, totalPages)));
-  const goPrev = () => goTo(currentPage - 1);
-  const goNext = () => goTo(currentPage + 1);
 
   /* ── Render ── */
   return (

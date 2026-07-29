@@ -4,7 +4,7 @@ import { useNavigate } from 'react-router';
 import { useAuth } from '../../context/AuthContext';
 
 import API from '../../utils/api';
-import { Banknote, CalendarDays, CheckCircle, ChevronRight, ChevronLeft, Clock, Heart, MapPin, PiggyBank, Wallet, FileText, Megaphone, ArrowRight, BookOpen, Target, AlertCircle, X, Sparkles } from 'lucide-react';
+import { Banknote, CalendarDays, CheckCircle, ChevronRight, ChevronLeft, Clock, Heart, MapPin, PiggyBank, Wallet, FileText, BookOpen, Target, X, Sparkles } from 'lucide-react';
 import { isOfficerPosition } from '../../utils/officerPositions';
 
 const CAT_COLORS = {

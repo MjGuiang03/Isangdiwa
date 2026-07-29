@@ -107,26 +107,26 @@ export default function LandingPage() {
       <nav className={`fixed top-2 sm:top-4 left-0 right-0 z-[100] transition-all duration-300 ${scrolled ? 'top-0' : 'top-2 sm:top-4'}`}>
         <div className={`max-w-7xl mx-auto px-4 sm:px-8 transition-all duration-300`}>
           <div className={`flex items-center justify-between h-16 px-6 rounded-2xl transition-all duration-300 ${
-            scrolled ? 'bg-[#0D1F45]/90 backdrop-blur-md border border-white/10 shadow-xl text-white rounded-none sm:rounded-2xl mt-0' : 'bg-white/80 backdrop-blur-md border border-slate-200/80 shadow-sm text-[#0D1F45]'
+            scrolled ? 'bg-[#09172E]/95 backdrop-blur-md border border-white/10 shadow-xl text-white rounded-none sm:rounded-2xl mt-0' : 'bg-[#0E254A]/80 backdrop-blur-md border border-white/10 shadow-sm text-white'
           }`}>
             <a href="#" onClick={(e) => { e.preventDefault(); window.scrollTo({ top: 0, behavior: 'smooth' }); }} className="flex items-center gap-3 no-underline">
               <img src={puacLogo} alt="IsangDiwa Logo" className="w-9 h-9 object-contain shrink-0" />
               <div className="font-dm text-xl font-bold tracking-tight">
-                <span className={scrolled ? 'text-white' : 'text-[#0D1F45]'}>Isang</span>
+                <span className="text-white">Isang</span>
                 <span className="text-[#F5C800]">Diwa</span>
               </div>
             </a>
             
             <div className="hidden md:flex items-center gap-8 text-sm font-medium">
-              <a href="#features" onClick={(e) => scrollToSection(e, 'features')} className={`no-underline hover:text-[#F5C800] transition-all duration-300 transform hover:scale-105 ${scrolled ? 'text-white/80' : 'text-slate-600'}`}>Features</a>
-              <a href="#gallery" onClick={(e) => scrollToSection(e, 'gallery')} className={`no-underline hover:text-[#F5C800] transition-all duration-300 transform hover:scale-105 ${scrolled ? 'text-white/80' : 'text-slate-600'}`}>Events</a>
-              <a href="#gallery" onClick={(e) => scrollToSection(e, 'gallery')} className={`no-underline hover:text-[#F5C800] transition-all duration-300 transform hover:scale-105 ${scrolled ? 'text-white/80' : 'text-slate-600'}`}>Community</a>
+              <a href="#features" onClick={(e) => scrollToSection(e, 'features')} className="no-underline text-white/80 hover:text-[#F5C800] transition-all duration-300 transform hover:scale-105">Features</a>
+              <a href="#gallery" onClick={(e) => scrollToSection(e, 'gallery')} className="no-underline text-white/80 hover:text-[#F5C800] transition-all duration-300 transform hover:scale-105">Events</a>
+              <a href="#gallery" onClick={(e) => scrollToSection(e, 'gallery')} className="no-underline text-white/80 hover:text-[#F5C800] transition-all duration-300 transform hover:scale-105">Community</a>
             </div>
 
             <div className="flex items-center gap-3">
               <button 
                 onClick={handleOpenLogin}
-                className="bg-[#0D1F45] text-white hover:bg-[#1e3a5f] dark:bg-[#F5C800] dark:text-[#0D1F45] text-xs font-bold px-5 py-2.5 rounded-xl transition-all shadow-sm hover:shadow active:scale-95 flex items-center gap-1.5"
+                className="bg-[#1E3E6E] hover:bg-[#28508a] text-white text-xs font-bold px-5 py-2.5 rounded-xl border border-white/15 transition-all shadow-sm active:scale-95 flex items-center gap-1.5 cursor-pointer"
               >
                 Sign In <ChevronRight size={14} />
               </button>
@@ -135,70 +135,68 @@ export default function LandingPage() {
         </div>
       </nav>
 
-      {/* HERO SECTION — ASYMMETRIC & EDITORIAL */}
-      <section className="relative pt-28 pb-20 lg:pt-36 lg:pb-32 px-4 sm:px-8 max-w-7xl mx-auto overflow-hidden">
-        <div className="grid grid-cols-1 lg:grid-cols-12 gap-12 lg:gap-8 items-center">
+      {/* HERO SECTION — DARK NAVY EDITORIAL */}
+      <section className="relative bg-[#0E254A] text-white pt-32 pb-24 lg:pt-40 lg:pb-32 px-4 sm:px-8 border-b border-white/10 overflow-hidden">
+        
+        {/* Glow Effects */}
+        <div className="absolute top-1/4 left-1/2 -translate-x-1/2 w-[800px] h-[400px] bg-blue-600/10 rounded-full blur-[140px] pointer-events-none" />
+        <div className="absolute top-12 right-12 w-[350px] h-[350px] bg-[#F5C800]/10 rounded-full blur-[120px] pointer-events-none" />
+
+        <div className="max-w-7xl mx-auto grid grid-cols-1 lg:grid-cols-12 gap-12 lg:gap-8 items-center relative z-10">
           
           {/* Hero Left Content */}
           <div className="lg:col-span-7 space-y-6">
-            <div className="inline-flex items-center gap-2 px-3 py-1.5 rounded-full bg-[#0D1F45]/5 border border-[#0D1F45]/10 text-[#0D1F45] text-xs font-semibold">
-              <span className="w-2 h-2 rounded-full bg-[#F5C800] animate-pulse"></span>
-              Official Community Portal · PUAC Philippines
-            </div>
 
-            <h1 className="font-dm text-4xl sm:text-6xl lg:text-6xl font-extrabold tracking-tight leading-[1.08] text-[#0D1F45]">
-              Empowering Faith,<br />
-              <span className="text-[#000000] relative inline-block">
-                Strengthening Community
-                <svg className="absolute -bottom-2 left-0 w-full h-3 text-[#F5C800]/40 -z-10" viewBox="0 0 100 12" preserveAspectRatio="none">
-                  <path d="M0,0 Q50,12 100,0" stroke="currentColor" strokeWidth="8" fill="none" />
-                </svg>
-              </span>
-              <br />Together as One Body.
+            <h1 className="font-dm text-5xl sm:text-6xl lg:text-7xl font-extrabold tracking-tight leading-[1.05] text-white">
+              Empowering<br />
+              <span className="text-[#F5C800]">Faith</span><br />
+              Together
             </h1>
 
-            <p className="text-slate-600 font-inter text-base sm:text-lg leading-relaxed max-w-xl">
-              IsangDiwa brings members across 68 PUAC branches into a unified digital sanctuary. 
-              Track savings goals, manage service attendance, and stay connected across all branches with transparency.
+            <p className="text-slate-300 font-inter text-base sm:text-lg leading-relaxed max-w-xl">
+              IsangDiwa unites 68 PUAC branches and 3,400+ members across the Philippines. One platform. One vision. One spirit.
             </p>
 
-            <div className="flex flex-wrap gap-4 pt-2">
+            <div className="flex flex-wrap gap-4 pt-3">
               <button 
                 onClick={handleOpenSignup}
-                className="bg-[#0D1F45] hover:bg-[#1e3a5f] text-white font-bold text-sm px-7 py-3.5 rounded-xl shadow-md hover:shadow-lg transition-all flex items-center gap-2 group cursor-pointer"
+                className="bg-white hover:bg-slate-100 text-[#0E254A] font-bold text-sm px-7 py-3.5 rounded-xl shadow-lg hover:shadow-xl transition-all flex items-center gap-2 group cursor-pointer active:scale-95"
               >
                 Join Our Community 
                 <ArrowRight size={16} className="group-hover:translate-x-1 transition-transform" />
               </button>
+              <button 
+                onClick={(e) => scrollToSection(e, 'features')}
+                className="bg-white/10 hover:bg-white/20 text-white font-semibold text-sm px-7 py-3.5 rounded-xl border border-white/20 backdrop-blur-xs transition-all cursor-pointer active:scale-95"
+              >
+                Learn More
+              </button>
             </div>
 
             {/* Metrics Ribbon */}
-            <div className="grid grid-cols-3 gap-6 pt-8 border-t border-slate-200/80">
+            <div className="grid grid-cols-3 gap-6 pt-10 border-t border-white/15">
               <div>
-                <div className="font-dm text-2xl sm:text-3xl font-extrabold text-[#0D1F45]">68</div>
-                <div className="text-xs text-slate-500 font-medium mt-0.5">Active Branches</div>
+                <div className="font-dm text-3xl sm:text-4xl font-extrabold text-white">68</div>
+                <div className="text-xs text-slate-300 font-medium mt-1 uppercase tracking-wider">Branches</div>
               </div>
               <div>
-                <div className="font-dm text-2xl sm:text-3xl font-extrabold text-[#0D1F45]">3,400+</div>
-                <div className="text-xs text-slate-500 font-medium mt-0.5">Church Members</div>
+                <div className="font-dm text-3xl sm:text-4xl font-extrabold text-white">3,400+</div>
+                <div className="text-xs text-slate-300 font-medium mt-1 uppercase tracking-wider">Members</div>
               </div>
               <div>
-                <div className="font-dm text-2xl sm:text-3xl font-extrabold text-[#0D1F45]">100%</div>
-                <div className="text-xs text-slate-500 font-medium mt-0.5">Transparent Governance</div>
+                <div className="font-dm text-3xl sm:text-4xl font-extrabold text-white">100%</div>
+                <div className="text-xs text-slate-300 font-medium mt-1 uppercase tracking-wider">Transparent</div>
               </div>
             </div>
           </div>
 
-          {/* Hero Right Visual Stack */}
+          {/* Hero Right Visual Stack (Detailed Interactive Feature Cards) */}
           <div className="lg:col-span-5 relative">
             <div className="relative z-10 space-y-4">
               
-              {/* Feature Showcase Card 1 */}
-              <div className="bg-white p-5 rounded-2xl shadow-xl border border-slate-100 flex items-center gap-4 transform hover:-translate-y-1 transition-all duration-300">
-                <div className="w-12 h-12 rounded-xl bg-blue-50 text-[#0D1F45] flex items-center justify-center shrink-0">
-                  <PiggyBank size={24} />
-                </div>
-                <div className="flex-1 min-w-0">
+              {/* Card 1: Member Savings */}
+              <div className="bg-white/95 text-[#0D1F45] p-5 rounded-2xl shadow-xl border border-white/20 transform hover:-translate-y-1 transition-all duration-300">
+                <div className="w-full">
                   <div className="flex items-center justify-between mb-1">
                     <span className="text-xs font-bold text-slate-400 uppercase tracking-wider">Member Savings</span>
                     <span className="text-xs font-bold text-emerald-600 bg-emerald-50 px-2 py-0.5 rounded-md">+ ₱12,500</span>
@@ -208,18 +206,18 @@ export default function LandingPage() {
                   </div>
                   <div className="flex justify-between text-[11px] text-slate-500 mt-1 font-medium">
                     <span>Emergency Fund Goal</span>
-                    <span>75% Completed</span>
+                    <span className="text-[#0D1F45] font-bold">75% Completed</span>
                   </div>
                 </div>
               </div>
 
-              {/* Feature Showcase Card 2 */}
-              <div className="bg-[#0D1F45] text-white p-6 rounded-2xl shadow-2xl relative overflow-hidden transform lg:translate-x-6 hover:translate-x-4 transition-all duration-300 border border-white/10">
+              {/* Card 2: Nationwide PUAC Network */}
+              <div className="bg-[#142E54] text-white p-6 rounded-2xl shadow-2xl relative overflow-hidden transform lg:translate-x-6 hover:translate-x-4 transition-all duration-300 border border-white/15">
                 <div className="absolute top-0 right-0 w-32 h-32 bg-[#F5C800]/10 rounded-full blur-2xl pointer-events-none"></div>
                 <div className="flex items-start justify-between mb-4">
                   <div>
                     <span className="text-[10px] font-bold uppercase tracking-widest text-[#F5C800]">Church Fellowship</span>
-                    <h3 className="text-lg font-bold font-dm mt-0.5">Nationwide PUAC Network</h3>
+                    <h3 className="text-lg font-bold font-dm mt-0.5 text-white">Nationwide PUAC Network</h3>
                   </div>
                   <span className="px-2.5 py-1 rounded-full bg-emerald-500/20 text-emerald-300 text-xs font-semibold border border-emerald-500/30">Connected</span>
                 </div>
@@ -233,16 +231,11 @@ export default function LandingPage() {
                 </div>
               </div>
 
-              {/* Feature Showcase Card 3 */}
-              <div className="bg-white p-4 rounded-2xl shadow-lg border border-slate-100 flex items-center justify-between">
-                <div className="flex items-center gap-3">
-                  <div className="w-10 h-10 rounded-xl bg-amber-50 text-amber-600 flex items-center justify-center shrink-0">
-                    <Calendar size={20} />
-                  </div>
-                  <div>
-                    <div className="text-xs font-bold text-slate-900">Sunday Divine Service</div>
-                    <div className="text-[11px] text-slate-500">Attendance Logged via RFID / App</div>
-                  </div>
+              {/* Card 3: Attendance Logging */}
+              <div className="bg-white/95 text-[#0D1F45] p-4 rounded-2xl shadow-lg border border-white/20 flex items-center justify-between">
+                <div>
+                  <div className="text-xs font-bold text-slate-900">Sunday Divine Service</div>
+                  <div className="text-[11px] text-slate-500">Attendance Logged via RFID / App</div>
                 </div>
                 <span className="text-xs font-bold text-emerald-600 bg-emerald-50 px-2.5 py-1 rounded-lg flex items-center gap-1">
                   <CheckCircle2 size={14} /> Present
@@ -251,18 +244,18 @@ export default function LandingPage() {
 
             </div>
 
-            {/* Decorative background glow */}
+            {/* Background glow behind stack */}
             <div className="absolute inset-0 bg-gradient-to-tr from-[#F5C800]/20 to-[#0D1F45]/10 rounded-3xl blur-3xl -z-10 transform scale-110"></div>
           </div>
 
         </div>
       </section>
 
-      {/* EDITORIAL VERSE & PHILOSOPHY STRIP */}
-      <section className="bg-[#0D1F45] text-white py-16 px-4 sm:px-8 border-y border-white/10 relative overflow-hidden">
+      {/* EDITORIAL VERSE & PHILOSOPHY STRIP (SMOOTH COLOR TRANSITION) */}
+      <section className="bg-gradient-to-b from-[#0E254A] via-[#0A1A36] to-[#F8FAFC] text-white py-20 px-4 sm:px-8 relative overflow-hidden">
         <div className="max-w-4xl mx-auto text-center space-y-4 relative z-10">
           <span className="text-xs font-bold uppercase tracking-widest text-[#F5C800]">Philippine United Apostolic Church</span>
-          <blockquote className="font-cormorant text-2xl sm:text-4xl italic font-semibold text-white/90 leading-relaxed">
+          <blockquote className="font-cormorant text-2xl sm:text-4xl italic font-semibold text-white/95 leading-relaxed drop-shadow-sm">
             "Now all who believed were together, and had all things in common, and sold their possessions and goods, and divided them among all, as anyone had need."
           </blockquote>
           <cite className="block text-xs font-bold tracking-widest text-[#F5C800] uppercase not-italic">
@@ -359,8 +352,8 @@ export default function LandingPage() {
 
       </section>
 
-      {/* BENTO GRID GALLERY — REAL COMMUNITY MOMENTS */}
-      <section id="gallery" className="py-24 bg-slate-900 text-white px-4 sm:px-8">
+      {/* BENTO GRID GALLERY — REAL COMMUNITY MOMENTS (SMOOTH GRADIENT TRANSITION) */}
+      <section id="gallery" className="pt-24 pb-24 bg-gradient-to-b from-[#F8FAFC] via-[#0E254A] to-[#0E254A] text-white px-4 sm:px-8">
         <div className="max-w-7xl mx-auto space-y-12">
           
           <div className="flex flex-col md:flex-row md:items-end justify-between gap-6 border-b border-white/10 pb-8">
@@ -387,15 +380,7 @@ export default function LandingPage() {
             </div>
 
             <div className="relative group rounded-3xl overflow-hidden min-h-[340px] bg-slate-800 border border-white/10">
-              <img src={summerYouthCamp} alt="Summer Youth Camp" className="w-full h-full object-cover group-hover:scale-105 transition-transform duration-700 opacity-80" />
-              <div className="absolute inset-0 bg-gradient-to-t from-black/90 via-black/30 to-transparent p-6 flex flex-col justify-end">
-                <span className="text-xs font-bold uppercase tracking-wider text-[#F5C800]">Youth Ministry</span>
-                <h3 className="font-dm text-xl font-bold text-white mt-1">Summer Youth Camp</h3>
-              </div>
-            </div>
-
-            <div className="relative group rounded-3xl overflow-hidden min-h-[280px] bg-slate-800 border border-white/10">
-              <img src={bentoImg1} alt="Divine Worship Service" className="w-full h-full object-cover group-hover:scale-105 transition-transform duration-700 opacity-80" />
+              <img src={bentoImg1} alt="Sunday Worship" className="w-full h-full object-cover group-hover:scale-105 transition-transform duration-700 opacity-80" />
               <div className="absolute inset-0 bg-gradient-to-t from-black/90 via-black/30 to-transparent p-6 flex flex-col justify-end">
                 <span className="text-xs font-bold uppercase tracking-wider text-[#F5C800]">Worship Service</span>
                 <h3 className="font-dm text-xl font-bold text-white mt-1">Sunday Praise &amp; Prayer</h3>
@@ -403,10 +388,18 @@ export default function LandingPage() {
             </div>
 
             <div className="relative group rounded-3xl overflow-hidden min-h-[280px] bg-slate-800 border border-white/10">
-              <img src={missionImg} alt="Mission and Medical Outreach" className="w-full h-full object-cover group-hover:scale-105 transition-transform duration-700 opacity-80" />
+              <img src={missionImg} alt="Outreach Mission" className="w-full h-full object-cover group-hover:scale-105 transition-transform duration-700 opacity-80" />
               <div className="absolute inset-0 bg-gradient-to-t from-black/90 via-black/30 to-transparent p-6 flex flex-col justify-end">
                 <span className="text-xs font-bold uppercase tracking-wider text-[#F5C800]">Community Outreach</span>
                 <h3 className="font-dm text-xl font-bold text-white mt-1">Medical &amp; Feeding Mission</h3>
+              </div>
+            </div>
+
+            <div className="relative group rounded-3xl overflow-hidden min-h-[280px] bg-slate-800 border border-white/10">
+              <img src={summerYouthCamp} alt="Summer Youth Camp" className="w-full h-full object-cover group-hover:scale-105 transition-transform duration-700 opacity-80" />
+              <div className="absolute inset-0 bg-gradient-to-t from-black/90 via-black/30 to-transparent p-6 flex flex-col justify-end">
+                <span className="text-xs font-bold uppercase tracking-wider text-[#F5C800]">Youth Ministry</span>
+                <h3 className="font-dm text-xl font-bold text-white mt-1">Summer Youth Camp</h3>
               </div>
             </div>
 
@@ -422,8 +415,11 @@ export default function LandingPage() {
         </div>
       </section>
 
-      {/* CTA BANNER */}
-      <section className="py-24 px-4 sm:px-8 bg-gradient-to-br from-[#0D1F45] to-[#1e3a5f] text-white text-center relative overflow-hidden">
+      {/* CTA BANNER (UNIFIED DARK NAVY - SEAMLESS FLOW) */}
+      <section className="py-24 px-4 sm:px-8 bg-[#0E254A] text-white text-center relative overflow-hidden">
+        {/* Subtle Ambient Glow */}
+        <div className="absolute top-1/2 left-1/2 -translate-x-1/2 -translate-y-1/2 w-[500px] h-[500px] bg-[#F5C800]/10 rounded-full blur-3xl pointer-events-none"></div>
+
         <div className="max-w-4xl mx-auto space-y-6 relative z-10">
           <span className="text-xs font-bold uppercase tracking-widest text-[#F5C800]">Welcome To The Family</span>
           <h2 className="font-dm text-3xl sm:text-5xl font-extrabold leading-tight">
@@ -435,7 +431,7 @@ export default function LandingPage() {
           <div className="flex flex-wrap justify-center gap-4 pt-4">
             <button 
               onClick={handleOpenSignup}
-              className="bg-[#F5C800] hover:bg-amber-400 text-[#0D1F45] font-extrabold text-sm px-8 py-4 rounded-xl shadow-lg hover:shadow-xl transition-all flex items-center gap-2 cursor-pointer"
+              className="bg-[#F5C800] hover:bg-amber-400 text-[#0E254A] font-extrabold text-sm px-8 py-4 rounded-xl shadow-lg hover:shadow-xl transition-all flex items-center gap-2 cursor-pointer"
             >
               Register as Member <ArrowRight size={18} />
             </button>
@@ -449,8 +445,8 @@ export default function LandingPage() {
         </div>
       </section>
 
-      {/* FOOTER */}
-      <footer className="bg-[#08132b] text-white/70 py-16 px-4 sm:px-8 border-t border-white/10 text-xs">
+      {/* FOOTER (MATCHED DARK NAVY - SEAMLESS CONTINUATION) */}
+      <footer className="bg-[#0E254A] text-white/70 py-16 px-4 sm:px-8 text-xs">
         <div className="max-w-7xl mx-auto grid grid-cols-1 md:grid-cols-4 gap-10 pb-12 border-b border-white/10">
           <div className="space-y-4 md:col-span-1">
             <div className="flex items-center gap-3">

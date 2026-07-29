@@ -6,14 +6,7 @@ import { CheckCircle, X, ArrowDownRight, ArrowUpLeft, Repeat, History, CreditCar
 const fmt = (n) =>
     n != null ? `₱${Number(n).toLocaleString('en-PH', { minimumFractionDigits: 2 })}` : '₱0.00';
 
-const GOAL_COLORS = [
-    { key: 'blue', hex: '#1E3A8A', label: 'Blue' },
-    { key: 'green', hex: '#639922', label: 'Green' },
-    { key: 'amber', hex: '#ba7517', label: 'Amber' },
-    { key: 'teal', hex: '#1d9e75', label: 'Teal' },
-    { key: 'purple', hex: '#7f77dd', label: 'Purple' },
-    { key: 'pink', hex: '#d4537e', label: 'Pink' },
-];
+
 
 const GOAL_NAME_OPTIONS = [
     { value: 'Vacation Fund', label: '  Vacation Fund' },
@@ -349,7 +342,7 @@ function NewGoalModal({ onClose }) {
     const [nameOption, setNameOption] = useState('');
     const [customName, setCustomName] = useState('');
     const [targetAmount, setTarget] = useState('');
-    const [color, setColor] = useState('blue');
+    const [color] = useState('blue');
     const [iconType, setIcon] = useState('default');
     const [loading, setLoading] = useState(false);
     const [error, setError] = useState('');
@@ -782,7 +775,7 @@ function EditGoalModal({ goal, onClose }) {
     const [startDate, setStartDate] = useState(goal?.startDate ? goal.startDate.slice(0, 10) : new Date().toISOString().split('T')[0]);
     const [targetDate, setDate] = useState(goal?.targetDate ? goal.targetDate.slice(0, 10) : '');
     const [dateError, setDateError] = useState('');
-    const [color, setColor] = useState(goal?.color || 'blue');
+    const [color] = useState(goal?.color || 'blue');
     const [iconType, setIcon] = useState(goal?.iconType || 'default');
     const [loading, setLoading] = useState(false);
     const [error, setError] = useState('');
@@ -1321,11 +1314,10 @@ function TransactionInfoModal({ transaction, onClose }) {
     const isBank = transaction.paymentMethod === 'bank';
 
     let Icon = ArrowDownRight;
-    let iconClass = 'svm-tx-icon--in';
     let statusText = transaction.status === 'confirmed' ? 'Successful' : transaction.status === 'rejected' ? 'Failed' : 'Pending';
 
-    if (isOut) { Icon = ArrowUpLeft; iconClass = 'svm-tx-icon--out'; }
-    if (isTransfer) { Icon = Repeat; iconClass = 'svm-tx-icon--transfer'; }
+    if (isOut) { Icon = ArrowUpLeft; }
+    if (isTransfer) { Icon = Repeat; }
 
     return (
         <div className="svm-overlay" onClick={onClose}>

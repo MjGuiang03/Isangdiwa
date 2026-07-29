@@ -3,8 +3,6 @@ import API from '../../utils/api';
 import { ArrowLeft, CalendarDays, ChevronDown, Eye, EyeOff, Phone, User, Briefcase } from 'lucide-react';
 import { toast } from 'sonner';
 
-import imgPuacLogo from "../../assets/puaclogo.png";
-
 import VerifyEmailModal from '../components/VerifyEmail';
 import useSwipeDownToClose from '../hooks/useSwipeDownToClose';
 
@@ -324,7 +322,7 @@ export default function SignupModal({ isOpen, onClose, onSwitchToLogin }) {
     }
   };
 
-  const hasPasswordErrors = Array.isArray(errors.password) && errors.password.length > 0;
+
 
   const isOfficerFieldsValid = formData.role === 'member' || (
     formData.officerPosition && formData.churchId &&

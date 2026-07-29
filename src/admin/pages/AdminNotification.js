@@ -60,8 +60,6 @@ export default function AdminNotifications() {
   // Derive isRead from state set
   const enriched = notifications.map(n => ({ ...n, isRead: readIds.has(n.id) }));
 
-  const unreadCount = enriched.filter(n => !n.isRead).length;
-
   const filtered = enriched.filter(n => {
     if (typeFilter !== 'all' && n.type !== typeFilter) return false;
     return true;

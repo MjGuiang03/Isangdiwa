@@ -6,7 +6,7 @@ import { useAuth } from '../../context/AuthContext';
 import LoanApplicationModal from '../components/LoanApplicationModal';
 
 import API from '../../utils/api';
-import { Banknote, Lock as LockIcon, X, Wallet, ShieldAlert, Clock, CheckCircle2, Plus, HelpCircle, Sparkles, ShieldCheck, Layers, Zap, ArrowRight } from 'lucide-react';
+import { Banknote, Lock as LockIcon, X, Wallet, ShieldAlert, Clock, CheckCircle2, Plus, HelpCircle, ShieldCheck, Layers, Zap, ArrowRight } from 'lucide-react';
 import { isOfficerPosition } from '../../utils/officerPositions';
 
 const fmt = (n) =>
