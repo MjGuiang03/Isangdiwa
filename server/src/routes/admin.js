@@ -287,165 +287,60 @@ router.get('/branches', authenticateAdmin, async (req, res) => {
     const startOfCurrentMonth = new Date(now.getFullYear(), now.getMonth(), 1);
     const startOfPrevMonth = new Date(now.getFullYear(), now.getMonth() - 1, 1);
 
-    const [dbBranchesFull, totalServices, totalUsers, currentMonthUsers, prevMonthTotalUsers] = await Promise.all([
-      branches.find({}).sort({ name: 1 }).toArray(),
-      attendanceSessions.countDocuments({}),
-      users.countDocuments({ isDeleted: { $ne: true } }),
-      users.countDocuments({ 
-        createdAt: { $gte: startOfCurrentMonth },
-        isDeleted: { $ne: true }
-      }),
-      users.countDocuments({
-        createdAt: { $lt: startOfCurrentMonth },
-        isDeleted: { $ne: true }
-      })
-    ]);
-
-    // Calculate Month-over-Month growth rate
-    const growthRate = prevMonthTotalUsers > 0 ? ((currentMonthUsers / prevMonthTotalUsers) * 100).toFixed(1) : (currentMonthUsers > 0 ? 100 : 0);
-
-    // 2. Check if branches collection is empty or has very few entries, if so, auto-seed from hardcoded list
-    const count = await branches.countDocuments();
-    if (count < 10) {
-      if (count > 0) await branches.deleteMany({}); // Clear existing partial seed
-      const initialBranches = [
-        { name: 'Tabuk', region: 'CAR', province: 'Kalinga' },
-        { name: 'Zapote', region: 'CAR', province: 'Kalinga' },
-        { name: 'Bliss', region: 'CAR', province: 'Kalinga' },
-        { name: 'Libanon', region: 'CAR', province: 'Kalinga' },
-        { name: 'Batong Buhay', region: 'CAR', province: 'Kalinga' },
-        { name: 'Balatoc', region: 'CAR', province: 'Kalinga' },
-        { name: 'Lat-nog', region: 'CAR', province: 'Kalinga' },
-        { name: 'Lamao', region: 'CAR', province: 'Abra' },
-        { name: 'Lingey', region: 'CAR', province: 'Abra' },
-        { name: 'Cabaruyan', region: 'CAR', province: 'Abra' },
-        { name: 'Ducligan', region: 'CAR', province: 'Abra' },
-        { name: 'Gangal', region: 'CAR', province: 'Abra' },
-        { name: 'Bila-Bila', region: 'CAR', province: 'Abra' },
-        { name: 'Naguillian', region: 'CAR', province: 'Abra' },
-        { name: 'Ud-udiao', region: 'CAR', province: 'Abra' },
-        { name: 'Villa Conchita', region: 'CAR', province: 'Abra' },
-        { name: 'Ay-yeng Manabo', region: 'CAR', province: 'Abra' },
-        { name: 'Dao-angan', region: 'CAR', province: 'Abra' },
-        { name: 'Kilong-olao', region: 'CAR', province: 'Abra' },
-        { name: 'Bao-yan', region: 'CAR', province: 'Abra' },
-        { name: 'Amti', region: 'CAR', province: 'Abra' },
-        { name: 'Danac', region: 'CAR', province: 'Abra' },
-        { name: 'Bengued', region: 'CAR', province: 'Abra' },
-        { name: 'Sappaac', region: 'CAR', province: 'Abra' },
-        { name: 'Saccaang', region: 'CAR', province: 'Abra' },
-        { name: 'Baguio', region: 'CAR', province: 'Benguet' },
-        { name: 'Santiago City', region: 'Region II', province: 'Isabela' },
-        { name: 'Dagupan', region: 'Region I', province: 'Pangasinan' },
-        { name: 'Mangatarem', region: 'Region I', province: 'Pangasinan' },
-        { name: 'Laoak Langka', region: 'Region I', province: 'Pangasinan' },
-        { name: 'Orbiztondo', region: 'Region I', province: 'Pangasinan' },
-        { name: 'Malasique, Bolaoit', region: 'Region I', province: 'Pangasinan' },
-        { name: 'Taloyan', region: 'Region I', province: 'Pangasinan' },
-        { name: 'Binmaley', region: 'Region I', province: 'Pangasinan' },
-        { name: 'San Carlos', region: 'Region I', province: 'Pangasinan' },
-        { name: 'Manaoag', region: 'Region I', province: 'Pangasinan' },
-        { name: 'Pozorrobio', region: 'Region I', province: 'Pangasinan' },
-        { name: 'Alcala', region: 'Region I', province: 'Pangasinan' },
-        { name: 'Meycauayan City', region: 'Region III', province: 'Bulacan' },
-        { name: 'Camalig', region: 'Region III', province: 'Bulacan' },
-        { name: 'San Jose Del Monte', region: 'Region III', province: 'Bulacan' },
-        { name: 'Pacpaco, San Manuel', region: 'Region III', province: 'Tarlac' },
-        { name: 'Victoria', region: 'Region III', province: 'Tarlac' },
-        { name: 'Bambanaba, Cuyapo', region: 'Region III', province: 'Nueva Ecija' },
-        { name: 'Valenzuela City', region: 'NCR', province: 'NCR' },
-        { name: 'Tandang Sora, Quezon City', region: 'NCR', province: 'NCR' },
-        { name: 'COA, Quezon City', region: 'NCR', province: 'NCR' },
-        { name: 'Payatas, Quezon City', region: 'NCR', province: 'NCR' },
-        { name: 'Malaria, Caloocan', region: 'NCR', province: 'NCR' },
-        { name: 'Montalban', region: 'Region IV-A', province: 'Rizal' },
-        { name: 'Mandaue', region: 'Region VII', province: 'Cebu' },
-        { name: 'Li-loan', region: 'Region VII', province: 'Cebu' },
-        { name: 'Calero', region: 'Region VII', province: 'Cebu' },
-        { name: 'Compostela', region: 'Region VII', province: 'Cebu' },
-        { name: 'Butuan City', region: 'Region XIII', province: 'Agusan Del Norte' },
-        { name: 'RTR', region: 'Region XIII', province: 'Agusan Del Norte' },
-        { name: 'Jabonga, Bangonay', region: 'Region XIII', province: 'Agusan Del Norte' },
-        { name: 'Kasiklan', region: 'Region XIII', province: 'Agusan Del Norte' },
-        { name: 'San Mateo', region: 'Region XIII', province: 'Agusan Del Norte' },
-        { name: 'Fatima Kim.13', region: 'Region XIII', province: 'Agusan Del Norte' },
-        { name: 'Bayugan', region: 'Region XIII', province: 'Agusan Del Norte' },
-        { name: 'Ibuan', region: 'Region XIII', province: 'Agusan Del Norte' },
-        { name: 'Balubo', region: 'Region XIII', province: 'Agusan Del Norte' },
-        { name: 'Alegria', region: 'Region XIII', province: 'Surigao Del Norte' },
-        { name: 'Bonifacio', region: 'Region XIII', province: 'Surigao Del Norte' },
-        { name: 'Matin-ao', region: 'Region XIII', province: 'Surigao Del Norte' },
-        { name: 'Ipil', region: 'Region XIII', province: 'Surigao Del Norte' },
-        { name: 'Kinabigtasan Tago', region: 'Region XIII', province: 'Surigao Del Sur' },
-      ];
-      
-      const seedData = initialBranches.map(b => ({
-        name: b.name,
-        address: `${b.province}, ${b.region}`,
-        pastor: 'Lead Pastor',
-        status: 'Active',
-        createdAt: new Date()
-      }));
-      await branches.insertMany(seedData);
-    }
-
-    // 2. Get all formal branches from collection
+    // Build search query
     const query = {};
     if (search && search.trim()) {
       query.name = { $regex: search.trim(), $options: 'i' };
     }
-    
-    const dbBranches = await branches.find(query).sort({ name: 1 }).toArray();
-    
-    // 2. Aggregate member counts per branch from users
-    const userStats = await users.aggregate([
-      { $group: { _id: "$branch", count: { $sum: 1 } } }
-    ]).toArray();
+
+    const startOfYear = new Date(now.getFullYear(), 0, 1);
+    startOfYear.setHours(0,0,0,0);
+
+    // Run ALL queries in parallel for maximum speed
+    const [
+      totalServices,
+      currentMonthUsers,
+      prevMonthTotalUsers,
+      dbBranches,
+      userStats,
+      branchDonations,
+      branchAttendance
+    ] = await Promise.all([
+      attendanceSessions.countDocuments({}),
+      users.countDocuments({ createdAt: { $gte: startOfCurrentMonth }, isDeleted: { $ne: true } }),
+      users.countDocuments({ createdAt: { $lt: startOfCurrentMonth }, isDeleted: { $ne: true } }),
+      branches.find(query).sort({ name: 1 }).toArray(),
+      users.aggregate([
+        { $match: { isDeleted: { $ne: true } } },
+        { $group: { _id: "$branch", count: { $sum: 1 } } }
+      ]).toArray(),
+      donations.aggregate([
+        { $match: { status: 'confirmed' } },
+        { $lookup: { from: 'users', localField: 'email', foreignField: 'email', as: 'user' } },
+        { $unwind: { path: '$user', preserveNullAndEmptyArrays: true } },
+        { $addFields: { targetBranch: { $cond: [{ $ifNull: ['$community', false] }, '$community', '$user.branch'] } } },
+        { $group: {
+            _id: '$targetBranch',
+            totalAmount: { $sum: '$amount' },
+            sameCommunityAmount: { $sum: { $cond: [{ $eq: ['$targetBranch', '$user.branch'] }, '$amount', 0] } },
+            otherCommunityAmount: { $sum: { $cond: [{ $ne: ['$targetBranch', '$user.branch'] }, '$amount', 0] } }
+        }}
+      ]).toArray(),
+      attendance.aggregate([
+        { $match: { status: { $regex: /^(present|late)$/i } } },
+        { $addFields: { targetBranch: { $ifNull: ['$community', { $ifNull: ['$branch', '$userBranch'] }] }, actualDate: { $ifNull: ['$date', '$createdAt'] } } },
+        { $match: { actualDate: { $gte: startOfYear } } },
+        { $group: { _id: { branch: '$targetBranch', month: { $month: '$actualDate' }, year: { $year: '$actualDate' } }, count: { $sum: 1 } } }
+      ]).toArray()
+    ]);
+
+    // Calculate growth rate
+    const growthRate = prevMonthTotalUsers > 0 ? ((currentMonthUsers / prevMonthTotalUsers) * 100).toFixed(1) : (currentMonthUsers > 0 ? 100 : 0);
+
+    // Build lookup maps
     const statsMap = {};
     userStats.forEach(s => { if (s._id) statsMap[s._id] = s.count; });
 
-    // 2.5 Aggregate donations per branch from users
-    const branchDonations = await donations.aggregate([
-      { $match: { status: 'confirmed' } },
-      {
-        $lookup: {
-          from: 'users',
-          localField: 'email',
-          foreignField: 'email',
-          as: 'user'
-        }
-      },
-      { $unwind: { path: '$user', preserveNullAndEmptyArrays: true } },
-      {
-        $addFields: {
-           targetBranch: { $cond: [ { $ifNull: ['$community', false] }, '$community', '$user.branch' ] }
-        }
-      },
-      {
-        $group: {
-          _id: '$targetBranch',
-          totalAmount: { $sum: '$amount' },
-          sameCommunityAmount: {
-            $sum: {
-              $cond: [
-                { $eq: ['$targetBranch', '$user.branch'] },
-                '$amount',
-                0
-              ]
-            }
-          },
-          otherCommunityAmount: {
-            $sum: {
-              $cond: [
-                { $ne: ['$targetBranch', '$user.branch'] },
-                '$amount',
-                0
-              ]
-            }
-          }
-        }
-      }
-    ]).toArray();
     const donationStatsMap = {};
     branchDonations.forEach(d => { 
       if (d._id) {
@@ -456,49 +351,13 @@ router.get('/branches', authenticateAdmin, async (req, res) => {
         };
       }
     });
-    // 2.7 Aggregate attendance per branch for the current year
-    const startOfYear = new Date(new Date().getFullYear(), 0, 1);
-    startOfYear.setHours(0,0,0,0);
-
-    const branchAttendance = await attendance.aggregate([
-      { 
-        $match: { 
-          status: { $regex: /^(present|late)$/i }
-        } 
-      },
-      {
-        $addFields: {
-           targetBranch: { $ifNull: ['$community', { $ifNull: ['$branch', '$userBranch'] }] },
-           actualDate: { $ifNull: ['$date', '$createdAt'] }
-        }
-      },
-      {
-        $match: {
-           actualDate: { $gte: startOfYear }
-        }
-      },
-      {
-        $group: {
-          _id: {
-            branch: '$targetBranch',
-            month: { $month: '$actualDate' },
-            year: { $year: '$actualDate' }
-          },
-          count: { $sum: 1 }
-        }
-      }
-    ]).toArray();
 
     const attendanceStatsMap = {};
     branchAttendance.forEach(a => {
       const bName = a._id.branch;
       if (bName) {
         if (!attendanceStatsMap[bName]) attendanceStatsMap[bName] = [];
-        attendanceStatsMap[bName].push({
-          month: a._id.month,
-          year: a._id.year,
-          count: a.count
-        });
+        attendanceStatsMap[bName].push({ month: a._id.month, year: a._id.year, count: a.count });
       }
     });
 

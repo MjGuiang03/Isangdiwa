@@ -3,7 +3,7 @@ import { useNavigate } from 'react-router';
 import { useAuth } from '../../context/AuthContext';
 import { Mail, Lock, Eye, EyeOff, X, AlertTriangle } from 'lucide-react';
 import puacLogo from '../../assets/puaclogo.png';
-import '../styles/LoginModal.css';
+import useSwipeDownToClose from '../hooks/useSwipeDownToClose';
 
 // Valid email domains list
 const validDomains = [
@@ -48,17 +48,11 @@ const validateEmailAdvanced = (email) => {
   return '';
 };
 
-// ── FaithLy brand mark (cross SVG) ───────────────────────────────────────────
-const BrandMark = () => (
-  <div className="user-login-brand">
-    <img src={puacLogo} alt="IsangDiwa Logo" className="user-login-brand-mark-img" />
-    <span className="user-login-brand-name"><span className="brand-text-isang">Isang</span><span className="brand-text-diwa">Diwa</span></span>
-  </div>
-);
-
 export default function LoginModal({ isOpen = true, onClose, onSwitchToSignup, onSwitchToReset, embedded = false }) {
   const { signIn } = useAuth();
   const navigate = useNavigate();
+
+  const swipeProps = useSwipeDownToClose(onClose);
 
   const [email, setEmail] = useState('');
   const [password, setPassword] = useState('');
@@ -67,7 +61,6 @@ export default function LoginModal({ isOpen = true, onClose, onSwitchToSignup, o
   const [error, setError] = useState('');
   const [emailError, setEmailError] = useState('');
 
-  // Lock state — driven entirely by server responses
   const [isLocked, setIsLocked] = useState(false);
   const [isPermanentlyLocked, setIsPermanentlyLocked] = useState(false);
   const [recommendReset, setRecommendReset] = useState(false);
@@ -75,7 +68,6 @@ export default function LoginModal({ isOpen = true, onClose, onSwitchToSignup, o
 
   const timerRef = useRef(null);
 
-  // ── Start or refresh the countdown when a timed lock is received ──────────
   const startCountdown = (seconds) => {
     if (timerRef.current) clearInterval(timerRef.current);
 
@@ -97,12 +89,10 @@ export default function LoginModal({ isOpen = true, onClose, onSwitchToSignup, o
     }, 1000);
   };
 
-  // Cleanup timer on unmount
   useEffect(() => {
     return () => { if (timerRef.current) clearInterval(timerRef.current); };
   }, []);
 
-  // Format seconds as mm:ss for display
   const formatTime = (totalSeconds) => {
     const m = Math.floor(totalSeconds / 60);
     const s = totalSeconds % 60;
@@ -181,9 +171,8 @@ export default function LoginModal({ isOpen = true, onClose, onSwitchToSignup, o
     }
   };
 
-  // ── Derive button label ────────────────────────────────────────────────────
   const getButtonLabel = () => {
-    if (loading) return <span className="btn-spinner" />;
+    if (loading) return <span className="w-5 h-5 border-2 border-white border-t-transparent rounded-full animate-spin inline-block" />;
     if (isPermanentlyLocked) return 'Account Locked';
     if (isLocked) return `Locked (${formatTime(lockTimeRemaining)})`;
     return 'Login';
@@ -198,38 +187,36 @@ export default function LoginModal({ isOpen = true, onClose, onSwitchToSignup, o
     return 'Sign-in Failed';
   };
 
-  // ── Shared form JSX ────────────────────────────────────────────────────────
   const renderForm = () => (
-    <form onSubmit={handleSubmit} className="user-login-form">
-
+    <form onSubmit={handleSubmit} className="space-y-4">
       {/* EMAIL */}
-      <div className="user-login-form-group">
-        <label className="user-login-label">Email Address</label>
-        <div className="user-login-input-wrapper">
-          <Mail className="user-login-input-icon" />
+      <div className="space-y-1.5">
+        <label className="block text-xs font-semibold text-slate-700 dark:text-slate-300 uppercase tracking-wider">Email Address</label>
+        <div className="relative">
+          <Mail className="absolute left-3.5 top-1/2 -translate-y-1/2 text-slate-400 w-4 h-4" />
           <input
             type="email"
             value={email}
             onChange={handleEmailChange}
-            className={`user-login-input ${emailError ? 'user-login-input-error' : ''}`}
+            className={`w-full pl-10 pr-4 py-2.5 bg-slate-50 dark:bg-slate-800/60 border ${emailError ? 'border-red-500 focus:ring-red-500' : 'border-slate-200 dark:border-white/10 focus:ring-blue-600'} rounded-xl text-sm text-slate-900 dark:text-white outline-none focus:ring-2 transition-all`}
             placeholder="yourname@email.com"
             required
             disabled={inputDisabled}
           />
         </div>
-        {emailError && <span className="user-login-field-error">{emailError}</span>}
+        {emailError && <span className="text-xs text-red-500 font-medium block">{emailError}</span>}
       </div>
 
       {/* PASSWORD */}
-      <div className="user-login-form-group">
-        <label className="user-login-label">Password</label>
-        <div className="user-login-input-wrapper">
-          <Lock className="user-login-input-icon" />
+      <div className="space-y-1.5">
+        <label className="block text-xs font-semibold text-slate-700 dark:text-slate-300 uppercase tracking-wider">Password</label>
+        <div className="relative">
+          <Lock className="absolute left-3.5 top-1/2 -translate-y-1/2 text-slate-400 w-4 h-4" />
           <input
             type={showPassword ? 'text' : 'password'}
             value={password}
             onChange={(e) => setPassword(e.target.value)}
-            className="user-login-input user-login-password-input"
+            className="w-full pl-10 pr-10 py-2.5 bg-slate-50 dark:bg-slate-800/60 border border-slate-200 dark:border-white/10 rounded-xl text-sm text-slate-900 dark:text-white outline-none focus:ring-2 focus:ring-blue-600 transition-all"
             placeholder="••••••••"
             required
             disabled={inputDisabled}
@@ -237,53 +224,44 @@ export default function LoginModal({ isOpen = true, onClose, onSwitchToSignup, o
           <button
             type="button"
             onClick={() => setShowPassword(!showPassword)}
-            className="user-login-password-toggle"
+            className="absolute right-3.5 top-1/2 -translate-y-1/2 text-slate-400 hover:text-slate-600 dark:hover:text-white"
             disabled={inputDisabled}
           >
-            {showPassword
-              ? <EyeOff className="user-login-toggle-icon" />
-              : <Eye className="user-login-toggle-icon" />}
+            {showPassword ? <EyeOff className="w-4 h-4" /> : <Eye className="w-4 h-4" />}
           </button>
         </div>
       </div>
 
       {/* ALERT BANNER */}
       {error && (
-        <div className="user-login-alert-banner">
-          <div className="user-login-alert-body">
-            <div className="user-login-alert-icon">
-              <AlertTriangle />
-            </div>
-            <div className="user-login-alert-content">
-              <span className="user-login-alert-heading">{getAlertHeading()}</span>
-              <span className="user-login-alert-message">{error}</span>
-
-              {isLocked && lockTimeRemaining > 0 && (
-                <div className="user-login-alert-timer">
-                  <span className="user-login-alert-timer-dot" />
-                  Try again in {formatTime(lockTimeRemaining)}
-                </div>
-              )}
-
-              {(isPermanentlyLocked || recommendReset) && (
-                <button
-                  type="button"
-                  className="user-login-alert-reset-btn"
-                  onClick={handleForgotPassword}
-                >
-                  Reset your password
-                </button>
-              )}
-            </div>
+        <div className="p-3.5 rounded-xl bg-red-50 dark:bg-red-950/30 border border-red-200 dark:border-red-800/50 flex items-start gap-3">
+          <AlertTriangle className="w-5 h-5 text-red-600 shrink-0 mt-0.5" />
+          <div className="text-xs space-y-1 text-red-700 dark:text-red-300">
+            <span className="font-bold block">{getAlertHeading()}</span>
+            <p>{error}</p>
+            {isLocked && lockTimeRemaining > 0 && (
+              <div className="font-semibold text-red-800 dark:text-red-200 pt-1">
+                Try again in {formatTime(lockTimeRemaining)}
+              </div>
+            )}
+            {(isPermanentlyLocked || recommendReset) && (
+              <button
+                type="button"
+                className="underline font-bold text-red-800 dark:text-red-200 hover:text-red-900 pt-1 block"
+                onClick={handleForgotPassword}
+              >
+                Reset your password
+              </button>
+            )}
           </div>
         </div>
       )}
 
       {/* FORGOT PASSWORD */}
-      <div className="user-login-form-options">
+      <div className="flex justify-end">
         <button
           type="button"
-          className="user-login-forgot-password"
+          className="text-xs font-semibold text-blue-600 dark:text-blue-400 hover:underline"
           onClick={handleForgotPassword}
         >
           Forgot password?
@@ -293,24 +271,25 @@ export default function LoginModal({ isOpen = true, onClose, onSwitchToSignup, o
       {/* SUBMIT */}
       <button
         type="submit"
-        className="user-login-submit-btn"
+        className="w-full py-3 bg-blue-600 hover:bg-blue-700 active:bg-blue-800 disabled:opacity-50 text-white font-semibold rounded-xl shadow-md transition-all flex items-center justify-center"
         disabled={buttonDisabled}
       >
         {getButtonLabel()}
       </button>
 
       {/* DIVIDER */}
-      <div className="user-login-divider">
-        <span /><p>or</p><span />
+      <div className="relative my-4 text-center">
+        <div className="absolute inset-0 flex items-center"><div className="w-full border-t border-slate-200 dark:border-white/10"></div></div>
+        <span className="relative px-3 bg-white dark:bg-[#1E2130] text-xs text-slate-400 uppercase tracking-wider">or</span>
       </div>
 
       {/* SWITCH TO SIGN UP */}
-      <p className="user-login-switch-text">
+      <p className="text-center text-xs text-slate-600 dark:text-slate-400">
         Don't have an account?{' '}
         <button
           type="button"
           onClick={onSwitchToSignup}
-          className="user-login-switch-btn"
+          className="font-bold text-blue-600 dark:text-blue-400 hover:underline"
         >
           Sign Up
         </button>
@@ -318,34 +297,42 @@ export default function LoginModal({ isOpen = true, onClose, onSwitchToSignup, o
     </form>
   );
 
-  // ── Embedded (card) mode ───────────────────────────────────────────────────
   if (embedded) {
     return (
-      <div className="user-login-card-embedded">
-        <div className="user-login-header">
-          <BrandMark />
-          <h1 className="user-login-title">Welcome Back</h1>
-          <p className="user-login-subtitle">Sign in to access your account</p>
+      <div className="w-full bg-white dark:bg-[#1E2130] rounded-2xl p-6 sm:p-8 shadow-xl border border-slate-200 dark:border-white/10">
+        <div className="text-center mb-6">
+          <h1 className="text-xl font-bold text-slate-900 dark:text-white mt-3">Welcome Back</h1>
+          <p className="text-xs text-slate-500 dark:text-slate-400 mt-1">Sign in to access your account</p>
         </div>
         {renderForm()}
       </div>
     );
   }
 
-  // ── Modal mode ─────────────────────────────────────────────────────────────
   if (!isOpen) return null;
 
   return (
-    <div className="user-login-overlay" onClick={onClose}>
-      <div className="user-login-container" onClick={(e) => e.stopPropagation()}>
-        <button onClick={onClose} className="user-login-close-btn">
-          <X className="user-login-close-icon" />
+    <div className="fixed inset-0 z-[9999] bg-black/60 backdrop-blur-sm flex items-end sm:items-center justify-center p-0 sm:p-4 overflow-y-auto" onClick={onClose}>
+      <div 
+        ref={swipeProps.containerRef}
+        onTouchStart={swipeProps.handleTouchStart}
+        onTouchMove={swipeProps.handleTouchMove}
+        onTouchEnd={swipeProps.handleTouchEnd}
+        style={swipeProps.dragStyle}
+        className="relative w-full max-w-md bg-white dark:bg-[#1E2130] rounded-t-3xl rounded-b-none sm:rounded-2xl p-6 sm:p-8 shadow-2xl border-t sm:border border-slate-200 dark:border-white/10 my-0 sm:my-auto max-h-[85vh] sm:max-h-none overflow-y-auto [&::-webkit-scrollbar]:hidden [-ms-overflow-style:none] [scrollbar-width:none] animate-mobile-slide-up" 
+        onClick={(e) => e.stopPropagation()}
+      >
+        
+        {/* Mobile Pull Handle Indicator */}
+        <div className="w-12 h-1 bg-slate-300 dark:bg-slate-700 rounded-full mx-auto mb-3 sm:hidden" />
+
+        <button onClick={onClose} className="absolute top-4 right-4 text-slate-400 hover:text-slate-600 dark:hover:text-white p-2 rounded-full transition-colors">
+          <X className="w-5 h-5" />
         </button>
 
-        <div className="user-login-header">
-          <BrandMark />
-          <h1 className="user-login-title">Welcome Back</h1>
-          <p className="user-login-subtitle">Sign in to access your account</p>
+        <div className="text-center mb-6">
+          <h1 className="text-xl font-bold text-slate-900 dark:text-white mt-2">Welcome Back</h1>
+          <p className="text-xs text-slate-500 dark:text-slate-400 mt-1">Sign in to access your account</p>
         </div>
 
         {renderForm()}

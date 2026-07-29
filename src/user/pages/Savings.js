@@ -2,10 +2,8 @@ import { useState, useEffect } from 'react';
 import useSWR from 'swr';
 
 import SavingsModals from '../components/SavingsModal';
-import '../styles/Savings.css';
 import API from '../../utils/api';
-import { Circle, PiggyBank, ArrowDownLeft, ArrowUpRight, TrendingUp, Target, Banknote } from 'lucide-react';
-
+import { Circle, PiggyBank, ArrowDownLeft, ArrowUpRight, TrendingUp, Target, Banknote, X, Search } from 'lucide-react';
 
 const fmt = (n) =>
     n != null ? `₱${Number(n).toLocaleString('en-PH', { minimumFractionDigits: 2 })}` : '₱0.00';
@@ -14,29 +12,27 @@ const fmtDate = (d) =>
     d ? new Date(d).toLocaleDateString('en-PH', { month: 'short', day: 'numeric', year: 'numeric' }) : '—';
 
 const GOAL_COLORS = {
-    blue: { bg: '#e6f1fb', bar: '#1E3A8A', text: '#0c447c', pct: '#185fa5' },
-    green: { bg: '#eaf3de', bar: '#639922', text: '#27500a', pct: '#3b6d11' },
-    amber: { bg: '#faeeda', bar: '#ba7517', text: '#633806', pct: '#854f0b' },
-    teal: { bg: '#e1f5ee', bar: '#1d9e75', text: '#085041', pct: '#0f6e56' },
-    purple: { bg: '#eeedfe', bar: '#7f77dd', text: '#26215c', pct: '#534ab7' },
-    pink: { bg: '#fbeaf0', bar: '#d4537e', text: '#4b1528', pct: '#993556' },
+    blue: { bg: 'bg-blue-50 dark:bg-blue-950/40', bar: 'bg-[#1E3A8A] dark:bg-blue-500', text: 'text-blue-900 dark:text-blue-200' },
+    green: { bg: 'bg-emerald-50 dark:bg-emerald-950/40', bar: 'bg-emerald-600', text: 'text-emerald-900 dark:text-emerald-200' },
+    amber: { bg: 'bg-amber-50 dark:bg-amber-950/40', bar: 'bg-amber-600', text: 'text-amber-900 dark:text-amber-200' },
+    teal: { bg: 'bg-teal-50 dark:bg-teal-950/40', bar: 'bg-teal-600', text: 'text-teal-900 dark:text-teal-200' },
+    purple: { bg: 'bg-purple-50 dark:bg-purple-950/40', bar: 'bg-purple-600', text: 'text-purple-900 dark:text-purple-200' },
+    pink: { bg: 'bg-pink-50 dark:bg-pink-950/40', bar: 'bg-pink-600', text: 'text-pink-900 dark:text-pink-200' },
 };
 
-
 const TxnArrowIn = () => (
-    <ArrowDownLeft size={14} color="#0D1F45" />
+    <ArrowDownLeft size={14} className="text-[#0D1F45] dark:text-blue-400" />
 );
 
 const TxnArrowOut = () => (
-    <ArrowUpRight size={14} color="#0D1F45" />
+    <ArrowUpRight size={14} className="text-[#0D1F45] dark:text-amber-400" />
 );
 
 export default function Savings() {
-
-
     /* ── modal state ── */
-    const [modal, setModal] = useState(null); // 'deposit' | 'newGoal' | 'quickDeposit' | 'editGoal' | 'transfer'
+    const [modal, setModal] = useState(null);
     const [modalData, setModalData] = useState(null);
+    const [showAllTxnsModal, setShowAllTxnsModal] = useState(false);
 
     /* ── page data ── */
     const [goals, setGoals] = useState([]);
@@ -116,7 +112,6 @@ export default function Savings() {
             if (data.success) {
                 setGoals(prev => [...prev, ...data.goals]);
                 setGoalPage(nextPage);
-                // Also update stats if they were provided (e.g. totalCount)
                 if (data.totalCount !== undefined) {
                     setStats(prev => ({ ...prev, totalGoalCount: data.totalCount }));
                 }
@@ -128,7 +123,6 @@ export default function Savings() {
         }
     };
 
-
     const openDeposit = () => setModal('deposit');
     const openWithdraw = () => setModal('withdraw');
     const openNewGoal = () => setModal('newGoal');
@@ -136,173 +130,113 @@ export default function Savings() {
 
     const hasGoals = goals.length > 0;
 
-    /* ── skeleton ── */
-    const renderSkeleton = () => (
-        <>
-            <div className="sv-page-header">
-                <div>
-                    <div className="sv-skeleton" style={{ height: '26px', width: '130px', marginBottom: '8px' }} />
-                    <div className="sv-skeleton" style={{ height: '14px', width: '220px' }} />
-                </div>
-                <div className="sv-skeleton" style={{ height: '38px', width: '120px', borderRadius: '10px' }} />
-            </div>
-            <div className="sv-skeleton" style={{ height: '42px', borderRadius: '0 8px 8px 0', marginBottom: '20px' }} />
-            <div className="sv-stats">
-                {[1, 2, 3, 4].map(i => (
-                    <div key={i} className="sv-stat-card">
-                        <div className="sv-skeleton" style={{ height: '11px', width: '60%', marginBottom: '6px' }} />
-                        <div className="sv-skeleton" style={{ height: '28px', width: '80%', marginBottom: '4px' }} />
-                        <div className="sv-skeleton" style={{ height: '11px', width: '50%' }} />
-                    </div>
-                ))}
-            </div>
-            <div className="sv-section" style={{ marginBottom: '16px' }}>
-                <div className="sv-section-head">
-                    <div className="sv-skeleton" style={{ height: '15px', width: '110px' }} />
-                    <div className="sv-skeleton" style={{ height: '15px', width: '80px' }} />
-                </div>
-                {[1, 2, 3].map(i => (
-                    <div key={i} className="sv-goal-row">
-                        <div className="sv-skeleton" style={{ width: '38px', height: '38px', borderRadius: '10px', flexShrink: 0 }} />
-                        <div style={{ flex: 1, display: 'flex', flexDirection: 'column', gap: '6px' }}>
-                            <div className="sv-skeleton" style={{ height: '13px', width: '140px' }} />
-                            <div className="sv-skeleton" style={{ height: '11px', width: '200px' }} />
-                            <div className="sv-skeleton" style={{ height: '5px', width: '100%', borderRadius: '4px' }} />
-                        </div>
-                        <div style={{ display: 'flex', flexDirection: 'column', alignItems: 'flex-end', gap: '5px' }}>
-                            <div className="sv-skeleton" style={{ height: '13px', width: '70px' }} />
-                            <div className="sv-skeleton" style={{ height: '11px', width: '55px' }} />
-                            <div className="sv-skeleton" style={{ height: '11px', width: '35px' }} />
-                        </div>
-                    </div>
-                ))}
-                <div className="sv-skeleton" style={{ height: '52px', margin: 0, borderRadius: 0 }} />
-            </div>
-            <div className="sv-section">
-                <div className="sv-section-head">
-                    <div className="sv-skeleton" style={{ height: '15px', width: '140px' }} />
-                </div>
-                {[1, 2, 3, 4].map(i => (
-                    <div key={i} style={{ display: 'flex', alignItems: 'center', gap: '12px', padding: '12px 20px', borderBottom: i < 4 ? '0.8px solid var(--border)' : 'none' }}>
-                        <div className="sv-skeleton" style={{ width: '8px', height: '8px', borderRadius: '50%', flexShrink: 0 }} />
-                        <div style={{ flex: 1, display: 'flex', flexDirection: 'column', gap: '5px' }}>
-                            <div className="sv-skeleton" style={{ height: '13px', width: '180px' }} />
-                            <div className="sv-skeleton" style={{ height: '11px', width: '120px' }} />
-                        </div>
-                        <div className="sv-skeleton" style={{ height: '13px', width: '80px' }} />
-                    </div>
-                ))}
-            </div>
-        </>
-    );
-
-    /* ── loanable banner ── */
-    const renderLoanableBanner = () => {
-        const bal = stats.totalSavings || 0;
-        if (bal <= 0) return (
-            <div className="sv-loanable-banner sv-loanable-banner--empty">
-                <div className="sv-loanable-text">
-                    <strong>Your current loanable amounts</strong>
-                    <span>Start saving to unlock loan eligibility</span>
-                </div>
-                <div className="sv-loanable-pills">
-                    <span className="sv-loanable-pill sv-loanable-pill--muted">Personal — ₱0</span>
-                    <span className="sv-loanable-pill sv-loanable-pill--muted">Emergency — ₱0</span>
-                    <span className="sv-loanable-pill sv-loanable-pill--muted">Short-Term — ₱0</span>
-                </div>
-            </div>
-        );
-        return (
-            <div className="sv-loanable-banner">
-                <div className="sv-loanable-text">
-                    <strong>Your current loanable amounts</strong>
-                    <span>Based on {fmt(bal)} savings balance</span>
-                </div>
-                <div className="sv-loanable-pills">
-                    <span className="sv-loanable-pill sv-loanable-pill--blue">Personal — up to {fmt(bal * 2)}</span>
-                    <span className="sv-loanable-pill sv-loanable-pill--amber">Emergency — up to {fmt(bal * 1.5)}</span>
-                    <span className="sv-loanable-pill sv-loanable-pill--teal">Short-Term — up to {fmt(bal)}</span>
-                </div>
-            </div>
-        );
-    };
-
     const handleViewLess = () => {
         setGoals(prev => prev.slice(0, GOAL_LIMIT));
         setGoalPage(1);
     };
 
+    /* ── loanable banner ── */
+    const renderLoanableBanner = () => {
+        const bal = stats.totalSavings || 0;
+        if (bal <= 0) return (
+            <div className="p-4 rounded-xl bg-slate-50 dark:bg-white/5 border border-slate-200 dark:border-white/10 flex flex-col md:flex-row md:items-center justify-between gap-3 text-xs font-inter mt-4">
+                <div>
+                    <strong className="block text-slate-800 dark:text-white">Your current loanable amounts</strong>
+                    <span className="text-slate-500 dark:text-slate-400">Start saving to unlock loan eligibility</span>
+                </div>
+                <div className="flex flex-wrap gap-2">
+                    <span className="px-2.5 py-1 rounded-md bg-slate-200 dark:bg-slate-800 text-slate-600 dark:text-slate-400 font-semibold">Personal — ₱0</span>
+                    <span className="px-2.5 py-1 rounded-md bg-slate-200 dark:bg-slate-800 text-slate-600 dark:text-slate-400 font-semibold">Emergency — ₱0</span>
+                    <span className="px-2.5 py-1 rounded-md bg-slate-200 dark:bg-slate-800 text-slate-600 dark:text-slate-400 font-semibold">Short-Term — ₱0</span>
+                </div>
+            </div>
+        );
+        return (
+            <div className="p-4 rounded-xl bg-blue-50/50 dark:bg-blue-950/20 border border-blue-100 dark:border-blue-900/30 flex flex-col md:flex-row md:items-center justify-between gap-3 text-xs font-inter mt-4">
+                <div>
+                    <strong className="block text-slate-900 dark:text-white">Your current loanable amounts</strong>
+                    <span className="text-slate-500 dark:text-slate-400">Based on {fmt(bal)} savings balance</span>
+                </div>
+                <div className="flex flex-wrap gap-2">
+                    <span className="px-2.5 py-1 rounded-md bg-blue-100 dark:bg-blue-900/40 text-blue-800 dark:text-blue-300 font-semibold">Personal — up to {fmt(bal * 2)}</span>
+                    <span className="px-2.5 py-1 rounded-md bg-amber-100 dark:bg-amber-900/40 text-amber-800 dark:text-amber-300 font-semibold">Emergency — up to {fmt(bal * 1.5)}</span>
+                    <span className="px-2.5 py-1 rounded-md bg-teal-100 dark:bg-teal-900/40 text-teal-800 dark:text-teal-300 font-semibold">Short-Term — up to {fmt(bal)}</span>
+                </div>
+            </div>
+        );
+    };
+
     /* ── goals list ── */
     const renderGoals = () => {
         if (!hasGoals) return (
-            <div className="sv-goals-empty">
-                <div className="sv-goals-empty-icon">
-                    <PiggyBank size={26} />
+            <div className="text-center py-6 px-4 bg-slate-50 dark:bg-white/5 rounded-2xl border border-dashed border-slate-200 dark:border-white/10 my-3">
+                <div className="w-10 h-10 rounded-full bg-blue-50 dark:bg-blue-950/40 text-blue-600 dark:text-blue-400 flex items-center justify-center mx-auto mb-2">
+                    <PiggyBank size={20} />
                 </div>
-                <div className="sv-goals-empty-title">No savings goals yet</div>
-                <p className="sv-goals-empty-sub">Set a goal to start saving — whether it's an emergency fund, a big purchase, or anything in between.</p>
-                <button className="sv-goals-empty-btn" onClick={openNewGoal}>+ Create your first goal</button>
+                <h4 className="text-xs font-bold text-slate-900 dark:text-white font-inter mb-0.5">No savings goals yet</h4>
+                <p className="text-[11px] text-slate-500 dark:text-slate-400 font-inter max-w-xs mx-auto mb-3">
+                    Set a goal to start saving for emergency funds or big purchases.
+                </p>
+                <button 
+                    onClick={openNewGoal}
+                    className="h-8 px-3.5 rounded-xl bg-[#1E3A8A] hover:bg-[#2B4EAF] text-white text-xs font-semibold font-inter transition-all cursor-pointer border-none"
+                >
+                    + Create goal
+                </button>
             </div>
         );
 
         return (
-            <div className="sv-goals-list sv-fade-in">
-                {goals.map((goal) => {
-                    const colorKey = goal.color || 'blue';
-                    const colors = GOAL_COLORS[colorKey] || GOAL_COLORS.blue;
-                    const pct = goal.targetAmount > 0
-                        ? Math.min(100, Math.round((goal.savedAmount / goal.targetAmount) * 100))
-                        : 0;
-                    const isDone = goal.status === 'completed' || pct >= 100;
-                    return (
-                        <div key={goal._id} className="sv-goal-row">
-                            <div className="sv-goal-clickable-data" onClick={() => { setModal('goalInfo'); setModalData(goal); }}>
-                                <div className="sv-goal-info">
-                                    <div className="sv-goal-name">{goal.name}</div>
-                                    <div className="sv-goal-detail">
+            <div className="mt-3 mb-1">
+                <div className="space-y-2 max-h-[290px] overflow-y-auto pr-1">
+                    {goals.map((goal) => {
+                        const colorKey = goal.color || 'blue';
+                        const colors = GOAL_COLORS[colorKey] || GOAL_COLORS.blue;
+                        const pct = goal.targetAmount > 0
+                            ? Math.min(100, Math.round((goal.savedAmount / goal.targetAmount) * 100))
+                            : 0;
+                        const isDone = goal.status === 'completed' || pct >= 100;
+                        return (
+                            <div 
+                                key={goal._id} 
+                                onClick={() => { setModal('goalInfo'); setModalData(goal); }}
+                                className="p-3.5 rounded-xl bg-white dark:bg-[#1E2130] border border-slate-200 dark:border-white/10 hover:border-slate-300 dark:hover:border-white/20 transition-all cursor-pointer flex items-center justify-between gap-3"
+                            >
+                                <div className="flex-1 min-w-0">
+                                    <div className="text-xs font-bold text-slate-900 dark:text-white font-inter truncate mb-0.5">{goal.name}</div>
+                                    <div className="text-[11px] text-slate-500 dark:text-slate-400 font-inter truncate mb-1.5">
                                         Target {fmt(goal.targetAmount)}
                                         {goal.monthlyContribution > 0 && ` · Monthly ${fmt(goal.monthlyContribution)}`}
                                         {isDone && ' · Completed'}
                                         {goal.targetDate && !isDone && ` · Due ${fmtDate(goal.targetDate)}`}
                                     </div>
-                                    <div className="sv-goal-bar-wrap">
-                                        <div className="sv-goal-bar-track">
-                                            <div
-                                                className="sv-goal-bar-fill"
-                                                style={{ width: `${Math.max(isDone ? 100 : 2, pct)}%`, background: colors.bar }}
-                                            />
-                                        </div>
+                                    <div className="w-full bg-slate-100 dark:bg-slate-800 h-1.5 rounded-full overflow-hidden">
+                                        <div className={`h-full rounded-full transition-all duration-500 ${colors.bar}`} style={{ width: `${Math.max(isDone ? 100 : 2, pct)}%` }} />
                                     </div>
                                 </div>
-                                <div className="sv-goal-right">
-                                    <div className="sv-goal-saved">{fmt(goal.savedAmount)}</div>
-                                    <div className="sv-goal-target">of {fmt(goal.targetAmount)}</div>
-                                    {isDone
-                                        ? <div className="sv-goal-pct sv-goal-pct--done">Completed</div>
-                                        : <div className="sv-goal-pct" style={{ color: colors.pct }}>{pct}%</div>
-                                    }
+
+                                <div className="text-right shrink-0 flex flex-col items-end gap-0.5">
+                                    <div className="text-xs font-bold font-dm text-slate-900 dark:text-white">{fmt(goal.savedAmount)}</div>
+                                    <div className="text-[10px] text-slate-400 dark:text-slate-500 font-inter">
+                                        <span className={`font-semibold ${isDone ? 'text-emerald-600 dark:text-emerald-400' : 'text-blue-600 dark:text-blue-400'}`}>
+                                            {isDone ? 'Completed' : `${pct}%`}
+                                        </span>
+                                    </div>
                                 </div>
                             </div>
-                        </div>
-                    );
-                })}
+                        );
+                    })}
+                </div>
 
                 {(stats.totalGoalCount > goals.length || goalPage > 1) && (
-                    <div style={{ display: 'flex', justifyContent: 'center', gap: '16px', padding: '16px 0' }}>
+                    <div className="flex justify-center gap-4 py-1.5 font-inter text-[11px] font-semibold">
                         {goalPage > 1 && (
-                            <button 
-                                className="sv-section-link" 
-                                onClick={handleViewLess}
-                            >
+                            <button onClick={handleViewLess} className="text-slate-500 hover:text-slate-800 dark:hover:text-white">
                                 View less
                             </button>
                         )}
                         {stats.totalGoalCount > goals.length && (
-                            <button 
-                                className="sv-section-link" 
-                                onClick={fetchMoreGoals} 
-                                disabled={loadingMoreGoals}
-                            >
+                            <button onClick={fetchMoreGoals} disabled={loadingMoreGoals} className="text-[#1E3A8A] dark:text-blue-400 hover:underline">
                                 {loadingMoreGoals ? 'Loading...' : 'View more goals'}
                             </button>
                         )}
@@ -312,211 +246,234 @@ export default function Savings() {
         );
     };
 
-
     /* ── transactions ── */
     const renderTransactions = () => {
         if (transactions.length === 0) return (
-            <div className="sv-txn-empty">
-                <div className="sv-txn-empty-icon">
-                    <Circle size={20} />
-                </div>
-                <div className="sv-txn-empty-title">No transactions yet</div>
-                <div className="sv-txn-empty-sub">Your deposits and withdrawals will appear here.</div>
+            <div className="text-center py-8 text-slate-400 dark:text-slate-500 font-inter">
+                <Circle size={20} className="mx-auto mb-2 opacity-50" />
+                <div className="text-xs font-semibold">No transactions yet</div>
+                <div className="text-[11px]">Your deposits and withdrawals will appear here.</div>
             </div>
         );
 
         return (
-            <div className="sv-txn-list sv-fade-in">
-                {transactions.map((txn) => {
-                    const isIn = txn.type === 'deposit';
-                    return (
-                        <div key={txn._id} className="sv-txn-row" onClick={() => { setModal('transactionInfo'); setModalData(txn); }}>
-                            <div className={`sv-txn-dot-wrap ${isIn ? 'sv-txn-dot-wrap--in' : 'sv-txn-dot-wrap--out'}`}>
-                                {isIn ? <TxnArrowIn /> : <TxnArrowOut />}
-                            </div>
-                            <div className="sv-txn-info">
-                                <div className="sv-txn-label">{txn.description || (isIn ? 'Deposit' : 'Withdrawal')}{txn.goalName ? ` — ${txn.goalName}` : ''}</div>
-                                <div className="sv-txn-date-row">
-                                    <span className="sv-txn-date">{fmtDate(txn.date)}{txn.source ? ` · ${txn.source}` : ''}</span>
-                                    <span className={`sv-txn-status-badge sv-txn-status--${txn.status || 'pending'}`}>
+            <div className="mt-3 mb-1">
+                <div className="space-y-2 max-h-[290px] overflow-y-auto pr-1">
+                    {transactions.map((txn) => {
+                        const isIn = txn.type === 'deposit';
+                        return (
+                            <div 
+                                key={txn._id} 
+                                onClick={() => { setModal('transactionInfo'); setModalData(txn); }}
+                                className="flex items-center justify-between p-3.5 rounded-xl bg-white dark:bg-[#1E2130] border border-slate-200 dark:border-white/10 hover:border-slate-300 dark:hover:border-white/20 transition-all cursor-pointer gap-3"
+                            >
+                                <div className="flex items-center gap-3 min-w-0 flex-1">
+                                    <div className={`w-8 h-8 rounded-lg flex items-center justify-center shrink-0 ${
+                                        isIn ? 'bg-emerald-50 dark:bg-emerald-950/40 text-emerald-600' : 'bg-rose-50 dark:bg-rose-950/40 text-rose-600'
+                                    }`}>
+                                        {isIn ? <TxnArrowIn /> : <TxnArrowOut />}
+                                    </div>
+                                    <div className="min-w-0 flex-1">
+                                        <div className="text-xs font-semibold text-slate-900 dark:text-white font-inter truncate">
+                                            {txn.description || (isIn ? 'Deposit' : 'Withdrawal')}{txn.goalName ? ` — ${txn.goalName}` : ''}
+                                        </div>
+                                        <div className="text-[11px] text-slate-400 dark:text-slate-500 font-inter truncate">
+                                            {fmtDate(txn.date)}{txn.source ? ` · ${txn.source}` : ''}
+                                        </div>
+                                    </div>
+                                </div>
+
+                                <div className="text-right shrink-0 flex flex-col items-end gap-1">
+                                    <div className={`text-xs font-bold font-dm ${isIn ? 'text-emerald-600 dark:text-emerald-400' : 'text-slate-900 dark:text-white'}`}>
+                                        {isIn ? '+' : '-'}{fmt(txn.amount)}
+                                    </div>
+                                    <span className={`px-1.5 py-0.5 rounded font-semibold uppercase text-[9px] tracking-wider leading-none ${
+                                        txn.status === 'confirmed' 
+                                            ? 'bg-emerald-50 dark:bg-emerald-950/60 text-emerald-700 dark:text-emerald-300 border border-emerald-100 dark:border-emerald-900/30' 
+                                            : 'bg-amber-50 dark:bg-amber-950/60 text-amber-700 dark:text-amber-300 border border-amber-100 dark:border-amber-900/30'
+                                    }`}>
                                         {txn.status === 'confirmed' ? 'Successful' : txn.status === 'rejected' ? 'Failed' : 'Incomplete'}
                                     </span>
                                 </div>
                             </div>
-                            <div className={`sv-txn-amt ${isIn ? 'sv-txn-amt--in' : 'sv-txn-amt--out'}`}>
-                                {isIn ? '+' : '-'}{fmt(txn.amount)}
-                            </div>
-                        </div>
-                    );
-                })}
+                        );
+                    })}
+                </div>
             </div>
         );
     };
 
     return (
         <>
-            <div className="user-savings-container">
-
-                {dataLoading && renderSkeleton()}
+            <div className="space-y-2.5 w-full pb-8">
 
                 {!dataLoading && (
                     <>
-                        {/* Header */}
-                        <div className="sv-page-header">
+                        {/* Savings Page Header */}
+                        <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-3 pb-2.5 border-b border-slate-200/80 dark:border-white/10">
                             <div>
-                                <h1 className="sv-page-title">My Savings</h1>
-                                <p className="sv-page-subtitle">Build your goals and grow your funds</p>
+                                <p className="text-[11px] font-bold text-blue-600 dark:text-blue-400 uppercase tracking-widest font-inter mb-0.5">Personal Savings</p>
+                                <h1 className="text-2xl sm:text-[26px] font-extrabold text-slate-900 dark:text-white font-dm leading-none tracking-tight">My Savings</h1>
+                                <p className="text-xs text-slate-500 dark:text-slate-400 font-inter mt-1">Goals, deposits &amp; transactions</p>
                             </div>
-                            <div className="sv-header-actions">
+
+                            {/* Right: action buttons */}
+                            <div className="flex items-center gap-2.5 shrink-0">
                                 {stats.totalSavings <= 0 && (
-                                    <button className="sv-instruction-header-btn" onClick={() => setShowInstruction(true)}>
-                                        See Instructions
+                                    <button
+                                        onClick={() => setShowInstruction(true)}
+                                        className="h-10 px-4 rounded-xl bg-slate-100 dark:bg-white/10 hover:bg-slate-200 dark:hover:bg-white/15 text-slate-600 dark:text-slate-300 text-xs font-semibold font-inter transition-all cursor-pointer border-none"
+                                    >
+                                        How it works
                                     </button>
                                 )}
-                                <button className="sv-withdraw-header-btn" onClick={openWithdraw}>
-                                    <ArrowUpRight size={16} />
-                                    Withdraw
+                                <button
+                                    onClick={openWithdraw}
+                                    className="h-10 px-4 rounded-xl bg-slate-100 dark:bg-white/10 hover:bg-slate-200 dark:hover:bg-white/15 text-slate-700 dark:text-slate-200 text-xs font-semibold font-inter flex items-center gap-2 transition-all cursor-pointer border-none"
+                                >
+                                    <ArrowUpRight size={15} /> Withdraw
                                 </button>
-                                <button className="sv-deposit-header-btn" onClick={openDeposit}>
-                                    + Deposit
+                                <button
+                                    onClick={openDeposit}
+                                    className="h-10 px-4 rounded-xl bg-[#1E3A8A] hover:bg-[#2B4EAF] text-white text-xs font-bold font-inter flex items-center gap-2 transition-all cursor-pointer border-none shadow-md active:scale-95"
+                                >
+                                    <span className="text-base leading-none">+</span> Deposit
                                 </button>
+                            </div>
+                        </div>
+
+                        {/* Separate Loan Eligibility Card */}
+                        <div className="bg-white dark:bg-[#1E2130] border border-slate-200/80 dark:border-white/10 rounded-2xl p-4 shadow-md shadow-slate-200/50 dark:shadow-none flex flex-col sm:flex-row sm:items-center justify-between gap-3 font-inter">
+                            <div className="flex items-center gap-2">
+                                <span className="text-xs font-bold text-slate-900 dark:text-white uppercase tracking-wider">Loan Eligibility</span>
+                                <span className="text-[11px] text-slate-400 dark:text-slate-500 font-normal">Based on savings balance</span>
+                            </div>
+                            <div className="flex flex-wrap items-center gap-2">
+                                <span className="px-3 py-1 rounded-full bg-blue-50 dark:bg-blue-950/40 text-blue-700 dark:text-blue-300 text-xs font-semibold border border-blue-100 dark:border-blue-900/30">
+                                    Personal up to {fmt((stats.totalSavings || 0) * 2)}
+                                </span>
+                                <span className="px-3 py-1 rounded-full bg-amber-50 dark:bg-amber-950/40 text-amber-700 dark:text-amber-300 text-xs font-semibold border border-amber-100 dark:border-amber-900/30">
+                                    Emergency up to {fmt((stats.totalSavings || 0) * 1.5)}
+                                </span>
+                                <span className="px-3 py-1 rounded-full bg-teal-50 dark:bg-teal-950/40 text-teal-700 dark:text-teal-300 text-xs font-semibold border border-teal-100 dark:border-teal-900/30">
+                                    Short-Term up to {fmt(stats.totalSavings || 0)}
+                                </span>
                             </div>
                         </div>
 
                         {/* Error */}
                         {error && (
-                            <div className="sv-error-banner">
+                            <div className="p-4 rounded-xl bg-rose-50 dark:bg-rose-950/40 text-rose-700 dark:text-rose-300 border border-rose-200 dark:border-rose-900/40 text-xs flex justify-between items-center font-inter">
                                 <span>{error}</span>
-                                <button onClick={() => { mutateOverview(); mutateTxn(); }} className="sv-retry-btn">Retry</button>
+                                <button onClick={() => { mutateOverview(); mutateTxn(); }} className="font-bold underline">Retry</button>
                             </div>
                         )}
 
                         {!error && (
                             <>
-                                {/* Nudge bar */}
-                                <div className="sv-nudge-bar">
-                                    <div className="sv-nudge-text">
-                                        <strong>Your savings determine your loanable amount.</strong> Grow your savings to unlock higher loan limits — Personal (2x), Emergency (1.5x), and Short-Term (1x) loans are based on your total balance.
-                                    </div>
-                                </div>
-
-                                {/* Stats */}
-                                <div className="sv-stats">
-                                    <div className="sv-stat-card sv-stat-card--primary">
-                                        <div className="sv-stat-header">
-                                            <label className="sv-stat-label">Total savings</label>
-                                            <PiggyBank size={20} color="white" />
+                                {/* Stats Cards */}
+                                <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-4">
+                                    {/* Total Savings */}
+                                    <div className="bg-white dark:bg-[#1E2130] border border-slate-200/80 dark:border-white/10 rounded-2xl p-4 shadow-md shadow-slate-200/50 dark:shadow-none flex flex-col gap-2.5 group hover:shadow-lg hover:-translate-y-0.5 transition-all duration-200">
+                                        <div className="flex justify-between items-center">
+                                            <span className="text-xs font-semibold text-slate-500 dark:text-slate-400 font-inter">Total Savings</span>
+                                            <div className="w-8 h-8 rounded-lg bg-emerald-50 dark:bg-emerald-950/50 text-emerald-600 dark:text-emerald-400 flex items-center justify-center border border-emerald-100/60 dark:border-emerald-900/30 shrink-0 group-hover:scale-105 transition-transform">
+                                                <PiggyBank size={16} />
+                                            </div>
                                         </div>
-                                        <div className={`sv-stat-value ${stats.totalSavings <= 0 ? 'sv-stat-value--muted' : ''}`}>
+                                        <div className="text-xl sm:text-2xl font-extrabold font-dm text-slate-900 dark:text-white tracking-tight">
                                             {fmt(stats.totalSavings)}
                                         </div>
-                                        <div className="sv-stat-sub">{stats.totalSavings > 0 ? 'Current balance' : 'No balance yet'}</div>
+                                        <p className="text-xs text-slate-500 dark:text-slate-400 font-inter">
+                                            {stats.totalSavings > 0 ? 'Current balance' : 'No balance yet'}
+                                        </p>
                                     </div>
-                                    <div className="sv-stat-card sv-stat-card--blue-text">
-                                        <div className="sv-stat-header">
-                                            <label className="sv-stat-label">This month</label>
-                                            <TrendingUp size={20} color="#0D1F45" />
+
+                                    {/* This Month */}
+                                    <div className="bg-white dark:bg-[#1E2130] border border-slate-200/80 dark:border-white/10 rounded-2xl p-4 shadow-md shadow-slate-200/50 dark:shadow-none flex flex-col gap-2.5 group hover:shadow-lg hover:-translate-y-0.5 transition-all duration-200">
+                                        <div className="flex justify-between items-center">
+                                            <span className="text-xs font-semibold text-slate-500 dark:text-slate-400 font-inter">This Month</span>
+                                            <div className="w-8 h-8 rounded-lg bg-blue-50 dark:bg-blue-950/50 text-blue-600 dark:text-blue-400 flex items-center justify-center border border-blue-100/60 dark:border-blue-900/30 shrink-0 group-hover:scale-105 transition-transform">
+                                                <TrendingUp size={16} />
+                                            </div>
                                         </div>
-                                        <div className={`sv-stat-value ${!stats.thisMonth ? 'sv-stat-value--muted' : ''}`}>
+                                        <div className="text-xl sm:text-2xl font-extrabold font-dm text-slate-900 dark:text-white tracking-tight">
                                             {stats.thisMonth > 0 ? fmt(stats.thisMonth) : '₱0.00'}
                                         </div>
-                                        <div className="sv-stat-sub">
-                                            {stats.thisMonth > 0
-                                                ? `Deposited in ${new Date().toLocaleDateString('en-PH', { month: 'short', year: 'numeric' })}`
-                                                : `No deposits in ${new Date().toLocaleDateString('en-PH', { month: 'short', year: 'numeric' })}`}
-                                        </div>
+                                        <p className="text-xs text-slate-500 dark:text-slate-400 font-inter">
+                                            {stats.thisMonth > 0 ? `Deposited in ${new Date().toLocaleDateString('en-PH', { month: 'short' })}` : 'No deposits this month'}
+                                        </p>
                                     </div>
-                                    <div className="sv-stat-card sv-stat-card--blue-text">
-                                        <div className="sv-stat-header">
-                                            <label className="sv-stat-label">Active goals</label>
-                                            <Target size={20} color="#0D1F45" />
-                                        </div>
-                                        <div className={`sv-stat-value ${(stats.totalGoalCount || 0) <= 0 ? 'sv-stat-value--muted' : ''}`}>
-                                            {(stats.totalGoalCount || 0) > 0 
-                                                ? (stats.activeGoals || 0)
-                                                : '—'}
-                                        </div>
-                                        <div className="sv-stat-sub">
-                                            {(stats.totalGoalCount || 0) > 0
-                                                ? `${stats.activeGoals || 0} in progress · ${stats.completedGoals || 0} done`
-                                                : 'No goals set'}
-                                        </div>
-                                    </div>
-                                    <div className="sv-stat-card sv-stat-card--blue-text sv-tooltip-container">
-                                        <div className="sv-stat-header">
-                                            <label className="sv-stat-label">Max loanable</label>
-                                            <Banknote size={20} color="#0D1F45" />
-                                        </div>
-                                        <div className={`sv-stat-value ${stats.totalSavings <= 0 ? 'sv-stat-value--muted' : ''}`}>
-                                            {stats.totalSavings > 0 ? fmt(stats.totalSavings * 2) : '—'}
-                                        </div>
-                                        <div className="sv-stat-sub">
-                                            {stats.totalSavings > 0 ? 'Hover or click for details' : 'Deposit to unlock'}
-                                        </div>
-                                        {stats.totalSavings > 0 && (
-                                            <div className="sv-tooltip-content">
-                                                <div className="sv-tooltip-title">Max Loanable Amounts</div>
-                                                <div className="sv-tooltip-row">
-                                                    <span>Personal (2x)</span>
-                                                    <strong>{fmt(stats.totalSavings * 2)}</strong>
-                                                </div>
-                                                <div className="sv-tooltip-row">
-                                                    <span>Emergency (1.5x)</span>
-                                                    <strong>{fmt(stats.totalSavings * 1.5)}</strong>
-                                                </div>
-                                                <div className="sv-tooltip-row">
-                                                    <span>Short-Term (1x)</span>
-                                                    <strong>{fmt(stats.totalSavings)}</strong>
-                                                </div>
+
+                                    {/* Active Goals */}
+                                    <div className="bg-white dark:bg-[#1E2130] border border-slate-200/80 dark:border-white/10 rounded-2xl p-4 shadow-md shadow-slate-200/50 dark:shadow-none flex flex-col gap-2.5 group hover:shadow-lg hover:-translate-y-0.5 transition-all duration-200">
+                                        <div className="flex justify-between items-center">
+                                            <span className="text-xs font-semibold text-slate-500 dark:text-slate-400 font-inter">Active Goals</span>
+                                            <div className="w-8 h-8 rounded-lg bg-indigo-50 dark:bg-indigo-950/50 text-indigo-600 dark:text-indigo-400 flex items-center justify-center border border-indigo-100/60 dark:border-indigo-900/30 shrink-0 group-hover:scale-105 transition-transform">
+                                                <Target size={16} />
                                             </div>
-                                        )}
+                                        </div>
+                                        <div className="text-xl sm:text-2xl font-extrabold font-dm text-slate-900 dark:text-white tracking-tight">
+                                            {(stats.totalGoalCount || 0) > 0 ? (stats.activeGoals || 0) : '0'}
+                                        </div>
+                                        <p className="text-xs text-slate-500 dark:text-slate-400 font-inter">
+                                            {(stats.totalGoalCount || 0) > 0 ? `${stats.activeGoals || 0} in progress · ${stats.completedGoals || 0} done` : 'No goals set'}
+                                        </p>
+                                    </div>
+
+                                    {/* Max Loanable */}
+                                    <div className="bg-white dark:bg-[#1E2130] border border-slate-200/80 dark:border-white/10 rounded-2xl p-4 shadow-md shadow-slate-200/50 dark:shadow-none flex flex-col gap-2.5 group hover:shadow-lg hover:-translate-y-0.5 transition-all duration-200">
+                                        <div className="flex justify-between items-center">
+                                            <span className="text-xs font-semibold text-slate-500 dark:text-slate-400 font-inter">Max Loanable</span>
+                                            <div className="w-8 h-8 rounded-lg bg-amber-50 dark:bg-amber-950/50 text-amber-600 dark:text-amber-400 flex items-center justify-center border border-amber-100/60 dark:border-amber-900/30 shrink-0 group-hover:scale-105 transition-transform">
+                                                <Banknote size={16} />
+                                            </div>
+                                        </div>
+                                        <div className="text-xl sm:text-2xl font-extrabold font-dm text-slate-900 dark:text-white tracking-tight">
+                                            {stats.totalSavings > 0 ? fmt(stats.totalSavings * 2) : '₱0.00'}
+                                        </div>
+                                        <p className="text-xs text-slate-500 dark:text-slate-400 font-inter">
+                                            {stats.totalSavings > 0 ? 'Personal Loan limit' : 'Deposit to unlock'}
+                                        </p>
                                     </div>
                                 </div>
 
-                                {/* Goals section */}
-                                <div className="sv-section">
-                                    <div className="sv-section-head">
-                                        <div className="sv-section-title">Savings goals</div>
-                                        <button className="sv-section-link" onClick={openNewGoal}>+ New goal</button>
-                                    </div>
-
-                                    {renderGoals()}
-                                    {renderLoanableBanner()}
-                                </div>
-
-                                {/* Transaction history */}
-                                <div className="sv-section">
-                                    <div className="sv-section-head">
-                                        <div className="sv-section-title">Transaction history</div>
-                                        {txnTotal > TXN_LIMIT && (
-                                            <div className="sv-pagination-info">
-                                                Showing {((txnPage - 1) * TXN_LIMIT) + 1}–{Math.min(txnPage * TXN_LIMIT, txnTotal)} of {txnTotal}
-                                            </div>
-                                        )}
-                                    </div>
-
-                                    {renderTransactions()}
-
-                                    {txnTotal > TXN_LIMIT && (
-                                        <div className="sv-pagination">
-                                            <button
-                                                className="sv-page-btn"
-                                                onClick={() => setTxnPage(p => Math.max(1, p - 1))}
-                                                disabled={txnPage === 1}
-                                            >
-                                                Previous
-                                            </button>
-                                            {Array.from({ length: Math.ceil(txnTotal / TXN_LIMIT) }, (_, i) => (
-                                                <button
-                                                    key={i + 1}
-                                                    className={`sv-page-btn ${txnPage === i + 1 ? 'sv-page-btn--active' : ''}`}
-                                                    onClick={() => setTxnPage(i + 1)}
-                                                >
-                                                    {i + 1}
+                                {/* Goals & Transaction History 60/40 Grid */}
+                                <div className="grid grid-cols-1 lg:grid-cols-5 gap-4">
+                                    {/* Goals section (60%) */}
+                                    <div className="lg:col-span-3 bg-white dark:bg-[#1E2130] border border-slate-200/80 dark:border-white/10 rounded-2xl p-5 shadow-md shadow-slate-200/50 dark:shadow-none flex flex-col justify-between">
+                                        <div>
+                                            <div className="flex justify-between items-center mb-4">
+                                                <h2 className="text-sm font-bold text-slate-900 dark:text-white uppercase tracking-wider font-inter">
+                                                    Savings Goals
+                                                </h2>
+                                                <button onClick={openNewGoal} className="text-xs font-semibold text-[#1E3A8A] dark:text-blue-400 hover:underline">
+                                                    + New Goal
                                                 </button>
-                                            ))}
+                                            </div>
+
+                                            {renderGoals()}
                                         </div>
-                                    )}
+                                    </div>
+
+                                    {/* Transaction history (40%) */}
+                                    <div className="lg:col-span-2 bg-white dark:bg-[#1E2130] border border-slate-200/80 dark:border-white/10 rounded-2xl p-5 shadow-md shadow-slate-200/50 dark:shadow-none flex flex-col justify-between">
+                                        <div>
+                                            <div className="flex justify-between items-center mb-3">
+                                                <h2 className="text-sm font-bold text-slate-900 dark:text-white uppercase tracking-wider font-inter">
+                                                    Transaction History
+                                                </h2>
+                                                <button 
+                                                    onClick={() => setShowAllTxnsModal(true)} 
+                                                    className="text-xs font-semibold text-blue-600 dark:text-blue-400 hover:underline flex items-center gap-1 border-none bg-transparent cursor-pointer"
+                                                >
+                                                    View All →
+                                                </button>
+                                            </div>
+
+                                            {renderTransactions()}
+                                        </div>
+                                    </div>
                                 </div>
                             </>
                         )}
@@ -543,6 +500,15 @@ export default function Savings() {
                 }}
             />
 
+            <AllTransactionsModal
+                isOpen={showAllTxnsModal}
+                onClose={() => setShowAllTxnsModal(false)}
+                onSelectTxn={(txn) => {
+                    setModal('transactionInfo');
+                    setModalData(txn);
+                }}
+            />
+
             <SavingsInstructionModal 
                 isOpen={showInstruction} 
                 onClose={() => {
@@ -556,49 +522,218 @@ export default function Savings() {
     );
 }
 
+function AllTransactionsModal({ isOpen, onClose, onSelectTxn }) {
+    const [transactions, setTransactions] = useState([]);
+    const [loading, setLoading] = useState(true);
+    const [filter, setFilter] = useState('all');
+    const [search, setSearch] = useState('');
+    const [page, setPage] = useState(1);
+    const [total, setTotal] = useState(0);
+    const LIMIT = 5;
+
+    const fetchTxns = async (p = 1) => {
+        setLoading(true);
+        try {
+            const token = localStorage.getItem('token');
+            const res = await fetch(`${API}/api/savings/transactions?page=${p}&limit=${LIMIT}`, {
+                headers: { 'Content-Type': 'application/json', Authorization: `Bearer ${token}` }
+            });
+            const data = await res.json();
+            if (data.success) {
+                setTransactions(data.transactions || []);
+                setTotal(data.totalCount || 0);
+                setPage(p);
+            }
+        } catch (err) {
+            console.error('Failed to fetch transactions modal data', err);
+        } finally {
+            setLoading(false);
+        }
+    };
+
+    useEffect(() => {
+        if (isOpen) {
+            fetchTxns(1);
+        }
+    }, [isOpen]);
+
+    if (!isOpen) return null;
+
+    const filtered = transactions.filter(t => {
+        const matchesFilter = filter === 'all' || t.type === filter;
+        const matchesSearch = !search.trim() || 
+            (t.description || '').toLowerCase().includes(search.toLowerCase()) ||
+            (t.goalName || '').toLowerCase().includes(search.toLowerCase()) ||
+            String(t.amount || '').includes(search);
+        return matchesFilter && matchesSearch;
+    });
+
+    const totalPages = Math.max(1, Math.ceil(total / LIMIT));
+
+    return (
+        <div className="fixed inset-0 bg-black/60 backdrop-blur-xs z-[1000] flex items-end sm:items-center justify-center p-0 sm:p-4 overflow-hidden sm:overflow-y-auto transition-all duration-300" onClick={onClose}>
+            <div className="bg-white dark:bg-[#1E2130] rounded-t-3xl sm:rounded-2xl w-full h-auto max-h-[92dvh] sm:max-h-[85vh] sm:max-w-2xl overflow-hidden border-t sm:border border-slate-200 dark:border-white/10 shadow-2xl flex flex-col font-inter mobile-slide-up-modal" onClick={e => e.stopPropagation()}>
+                {/* Modal Header */}
+                <div className="p-4 sm:p-5 border-b border-slate-100 dark:border-white/10 flex items-center justify-between bg-slate-50/50 dark:bg-white/5 shrink-0">
+                    <div>
+                        <h2 className="text-base font-bold text-slate-900 dark:text-white font-dm">All Transactions</h2>
+                        <p className="text-xs text-slate-500 dark:text-slate-400">Complete record of your deposits and withdrawals</p>
+                    </div>
+                    <button onClick={onClose} className="w-8 h-8 rounded-full flex items-center justify-center text-slate-400 hover:text-slate-600 dark:hover:text-white bg-slate-100 dark:bg-white/10 border-none cursor-pointer transition-colors">
+                        <X size={16} />
+                    </button>
+                </div>
+
+                {/* Search & Filter Bar */}
+                <div className="p-3.5 sm:p-4 border-b border-slate-100 dark:border-white/5 flex flex-col sm:flex-row gap-3 items-center justify-between bg-white dark:bg-[#1E2130] shrink-0">
+                    <div className="flex bg-slate-100 dark:bg-white/5 p-1 rounded-xl w-full sm:w-auto">
+                        {['all', 'deposit', 'withdrawal'].map((t) => (
+                            <button
+                                key={t}
+                                onClick={() => setFilter(t)}
+                                className={`px-3 py-1.5 rounded-lg text-xs font-semibold capitalize transition-all border-none cursor-pointer ${
+                                    filter === t 
+                                        ? 'bg-white dark:bg-[#1E3A8A] text-slate-900 dark:text-white shadow-xs' 
+                                        : 'text-slate-500 dark:text-slate-400 hover:text-slate-800 dark:hover:text-slate-200'
+                                }`}
+                            >
+                                {t === 'all' ? 'All Types' : t + 's'}
+                            </button>
+                        ))}
+                    </div>
+                    <div className="relative w-full sm:w-60">
+                        <Search size={14} className="absolute left-3 top-1/2 -translate-y-1/2 text-slate-400" />
+                        <input
+                            type="text"
+                            placeholder="Search transactions..."
+                            value={search}
+                            onChange={(e) => setSearch(e.target.value)}
+                            className="w-full pl-8 pr-3 py-1.5 rounded-xl border border-slate-200 dark:border-white/10 bg-slate-50 dark:bg-white/5 text-xs text-slate-900 dark:text-white outline-none focus:border-blue-500"
+                        />
+                    </div>
+                </div>
+
+                {/* List Container - Scrollable */}
+                <div className="p-4 space-y-2.5 flex-1 overflow-y-auto min-h-0">
+                    {loading ? (
+                        <div className="py-12 text-center text-xs text-slate-400 font-medium">Loading transactions...</div>
+                    ) : filtered.length === 0 ? (
+                        <div className="py-12 text-center text-xs text-slate-400 font-medium">No transactions found</div>
+                    ) : (
+                        filtered.map((txn) => {
+                            const isIn = txn.type === 'deposit';
+                            return (
+                                <div
+                                    key={txn._id}
+                                    onClick={() => { onSelectTxn(txn); }}
+                                    className="flex items-center justify-between p-3 rounded-xl bg-slate-50/80 dark:bg-white/5 border border-slate-200/60 dark:border-white/10 hover:border-blue-500/50 transition-all cursor-pointer gap-3"
+                                >
+                                    <div className="flex items-center gap-3 min-w-0 flex-1">
+                                        <div className={`w-8 h-8 rounded-lg flex items-center justify-center shrink-0 ${
+                                            isIn ? 'bg-emerald-50 dark:bg-emerald-950/40 text-emerald-600' : 'bg-rose-50 dark:bg-rose-950/40 text-rose-600'
+                                        }`}>
+                                            {isIn ? <TxnArrowIn /> : <TxnArrowOut />}
+                                        </div>
+                                        <div className="min-w-0 flex-1">
+                                            <div className="text-xs font-semibold text-slate-900 dark:text-white font-inter truncate">
+                                                {txn.description || (isIn ? 'Deposit' : 'Withdrawal')}{txn.goalName ? ` — ${txn.goalName}` : ''}
+                                            </div>
+                                            <div className="text-[11px] text-slate-400 dark:text-slate-500 font-inter truncate">
+                                                {fmtDate(txn.date)}{txn.source ? ` · ${txn.source}` : ''}
+                                            </div>
+                                        </div>
+                                    </div>
+
+                                    <div className="text-right shrink-0 flex flex-col items-end gap-1">
+                                        <div className={`text-xs font-bold font-dm ${isIn ? 'text-emerald-600 dark:text-emerald-400' : 'text-slate-900 dark:text-white'}`}>
+                                            {isIn ? '+' : '-'}{fmt(txn.amount)}
+                                        </div>
+                                        <span className={`px-1.5 py-0.5 rounded font-semibold uppercase text-[9px] tracking-wider leading-none ${
+                                            txn.status === 'confirmed' 
+                                                ? 'bg-emerald-50 dark:bg-emerald-950/60 text-emerald-700 dark:text-emerald-300 border border-emerald-100 dark:border-emerald-900/30' 
+                                                : 'bg-amber-50 dark:bg-amber-950/60 text-amber-700 dark:text-amber-300 border border-amber-100 dark:border-amber-900/30'
+                                        }`}>
+                                            {txn.status === 'confirmed' ? 'Successful' : txn.status === 'rejected' ? 'Failed' : 'Incomplete'}
+                                        </span>
+                                    </div>
+                                </div>
+                            );
+                        })
+                    )}
+                </div>
+
+                {/* Footer Controls */}
+                <div className="p-3 sm:px-5 border-t border-slate-100 dark:border-white/10 flex items-center justify-between text-xs text-slate-500 dark:text-slate-400 bg-slate-50/50 dark:bg-white/5 shrink-0">
+                    <span>Page {page} of {totalPages} ({total} total)</span>
+                    <div className="flex gap-2">
+                        <button
+                            onClick={() => fetchTxns(page - 1)}
+                            disabled={page <= 1}
+                            className="px-3.5 py-1.5 rounded-lg border border-slate-200 dark:border-white/10 text-xs font-semibold hover:bg-slate-100 dark:hover:bg-white/10 disabled:opacity-40 cursor-pointer transition-all"
+                        >
+                            Previous
+                        </button>
+                        <button
+                            onClick={() => fetchTxns(page + 1)}
+                            disabled={page >= totalPages}
+                            className="px-3.5 py-1.5 rounded-lg border border-slate-200 dark:border-white/10 text-xs font-semibold hover:bg-slate-100 dark:hover:bg-white/10 disabled:opacity-40 cursor-pointer transition-all"
+                        >
+                            Next
+                        </button>
+                    </div>
+                </div>
+            </div>
+        </div>
+    );
+}
+
 function SavingsInstructionModal({ isOpen, onClose, onDeposit, onGoal }) {
     if (!isOpen) return null;
 
     return (
-        <div className="user-savings-modal-overlay">
-            <div className="user-savings-modal-content sv-instruction-modal user-fade-in" style={{ maxWidth: '700px', padding: 0, overflow: 'hidden' }}>
-                <div className="sv-inst-header">
-                    <h2>Welcome to Savings</h2>
-                    <p>Start building your financial future with IsangDiwa. Follow these simple steps to begin growing your funds.</p>
+        <div className="fixed inset-0 bg-black/60 backdrop-blur-xs z-[1000] flex items-end sm:items-center justify-center p-0 sm:p-4 overflow-hidden sm:overflow-y-auto transition-all duration-300" onClick={onClose}>
+            <div className="bg-white dark:bg-[#1E2130] rounded-t-3xl sm:rounded-2xl w-full h-auto sm:max-w-lg overflow-hidden border-t sm:border border-slate-200 dark:border-white/10 shadow-2xl flex flex-col font-inter mobile-slide-up-modal" onClick={e => e.stopPropagation()}>
+                <div className="p-6 bg-gradient-to-br from-[#0D1F45] to-[#1E3A8A] text-white flex justify-between items-start">
+                    <div>
+                        <h2 className="text-xl font-bold font-dm mb-1">Welcome to Savings</h2>
+                        <p className="text-xs text-white/80 leading-relaxed">Follow these simple steps to begin growing your funds.</p>
+                    </div>
+                    <button onClick={onClose} className="text-white/70 hover:text-white">
+                        <X size={18} />
+                    </button>
                 </div>
                 
-                <div className="sv-inst-body" style={{ padding: '32px 24px' }}>
-                    <div className="sv-timeline">
-                        <div className="sv-timeline-item sv-timeline-item--left">
-                            <div className="sv-timeline-dot"></div>
-                            <div className="sv-timeline-content">
-                                <h3>Set a Savings Goal</h3>
-                                <p>Give your savings a purpose. Whether it's an emergency fund or a new laptop, tracking a specific goal keeps you motivated.</p>
-                                <button className="sv-inst-action-link" onClick={() => { onClose(); onGoal(); }}>Create your first goal →</button>
-                            </div>
+                <div className="p-6 space-y-4 text-xs">
+                    <div className="flex gap-3">
+                        <div className="w-7 h-7 rounded-full bg-blue-100 dark:bg-blue-900/50 text-[#1E3A8A] dark:text-blue-300 font-bold flex items-center justify-center shrink-0">1</div>
+                        <div>
+                            <h4 className="font-bold text-slate-900 dark:text-white mb-0.5">Set a Savings Goal</h4>
+                            <p className="text-slate-500 dark:text-slate-400 mb-1.5">Give your savings a purpose like an emergency fund or purchase.</p>
+                            <button onClick={() => { onClose(); onGoal(); }} className="text-xs font-semibold text-[#1E3A8A] dark:text-blue-400 hover:underline">
+                                Create your first goal →
+                            </button>
                         </div>
-                        
-                        <div className="sv-timeline-item sv-timeline-item--right">
-                            <div className="sv-timeline-dot"></div>
-                            <div className="sv-timeline-content">
-                                <h3>Deposit Funds</h3>
-                                <p>Click the "+ Deposit" button, enter your amount, and upload your proof of payment. Our admins will verify and confirm your deposit quickly.</p>
-                                <button className="sv-inst-action-link" onClick={() => { onClose(); onDeposit(); }}>Make a deposit now →</button>
-                            </div>
-                        </div>
-                        
-                        <div className="sv-timeline-item sv-timeline-item--left">
-                            <div className="sv-timeline-dot"></div>
-                            <div className="sv-timeline-content">
-                                <h3>Unlock Loan Privileges</h3>
-                                <p>Once you reach <strong>₱1,000</strong> in confirmed savings, you automatically unlock access to personal, emergency, and short-term loans!</p>
-                            </div>
+                    </div>
+
+                    <div className="flex gap-3">
+                        <div className="w-7 h-7 rounded-full bg-emerald-100 dark:bg-emerald-900/50 text-emerald-800 dark:text-emerald-300 font-bold flex items-center justify-center shrink-0">2</div>
+                        <div>
+                            <h4 className="font-bold text-slate-900 dark:text-white mb-0.5">Deposit Funds</h4>
+                            <p className="text-slate-500 dark:text-slate-400 mb-1.5">Click "+ Deposit", enter your amount, and upload proof of payment.</p>
+                            <button onClick={() => { onClose(); onDeposit(); }} className="text-xs font-semibold text-emerald-600 dark:text-emerald-400 hover:underline">
+                                Make a deposit now →
+                            </button>
                         </div>
                     </div>
                 </div>
                 
-                <div className="sv-inst-footer">
-                    <button className="sv-inst-close-btn" onClick={onClose}>I understand, let's start!</button>
+                <div className="p-4 border-t border-slate-100 dark:border-white/5 flex justify-end">
+                    <button 
+                        onClick={onClose}
+                        className="h-10 px-5 rounded-xl bg-[#1E3A8A] hover:bg-[#2B4EAF] text-white text-xs font-semibold"
+                    >
+                        Got it, let's start!
+                    </button>
                 </div>
             </div>
         </div>

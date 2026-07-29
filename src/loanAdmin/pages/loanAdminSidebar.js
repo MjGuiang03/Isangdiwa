@@ -1,26 +1,32 @@
 /* eslint-disable no-unused-vars */
 import { useNavigate, useLocation } from 'react-router-dom';
 import { useEffect, useState, useRef } from 'react';
+import { createPortal } from 'react-dom';
 import { toast } from 'sonner';
 import {
   LayoutGrid, Bell, FileText, CreditCard, AlertTriangle, Settings, LogOut, PiggyBank, BarChart
 } from 'lucide-react';
 import puacLogo from '../../assets/puaclogo.png';
-import '../styles/loanAdminSidebar.css';
-
-
+import { useTheme } from '../../context/ThemeContext';
 import API from '../../utils/api';
 import { processNewNotifications } from '../../utils/desktopNotify';
 import NotificationPrompt from '../../components/NotificationPrompt';
 
 export default function LoanAdminSidebar() {
-
   const navigate  = useNavigate();
   const location  = useLocation();
+  const { theme, toggleTheme } = useTheme();
   const [unreadCount, setUnreadCount] = useState(0);
   const prevNotifIdsRef = useRef(new Set());
   const [showLogoutModal, setShowLogoutModal] = useState(false);
   const [adminName, setAdminName] = useState(localStorage.getItem('adminName') || 'Loan Admin');
+  const [mobileOpen, setMobileOpen] = useState(false);
+  const currentPath = location.pathname;
+
+  const handleNav = (path) => {
+    navigate(path);
+    setMobileOpen(false);
+  };
 
   useEffect(() => {
     const handleStorage = () => {
@@ -29,7 +35,6 @@ export default function LoanAdminSidebar() {
     window.addEventListener('storage', handleStorage);
     return () => window.removeEventListener('storage', handleStorage);
   }, []);
-
 
   const handleSignOut = () => {
     localStorage.removeItem('adminToken');
@@ -40,9 +45,8 @@ export default function LoanAdminSidebar() {
     navigate('/');
   };
 
-  const isActive = (path) => location.pathname === path;
+  const isActive = (path) => currentPath === path || (path === '/loan-admin/payments/loans' && currentPath === '/loan-admin/payments');
 
-  /* ── Fetch admin unread count ── */
   useEffect(() => {
     const token = localStorage.getItem('adminToken');
     if (!token) return;
@@ -60,7 +64,6 @@ export default function LoanAdminSidebar() {
           const count = loanNotifs.filter(n => !readIds.has(n.id)).length;
           setUnreadCount(count);
 
-          /* ── Desktop push notifications ── */
           const unreadNotifs = loanNotifs.filter(n => !readIds.has(n.id));
           prevNotifIdsRef.current = processNewNotifications(
             prevNotifIdsRef.current,
@@ -76,8 +79,6 @@ export default function LoanAdminSidebar() {
 
     const onUpdate = () => calcUnread();
     window.addEventListener('admin-notif-read-update', onUpdate);
-    
-    // Poll every 30 seconds for live updates
     const intervalId = setInterval(calcUnread, 60000);
     
     return () => {
@@ -88,125 +89,155 @@ export default function LoanAdminSidebar() {
   }, []);
 
   return (
-    <div className="loan-admin-sidebar">
-      <div className="loan-admin-sidebar-logo">
-        <div className="loan-admin-sidebar-logo-content">
-          <div className="loan-admin-sidebar-logo-image">
-            <img alt="IsangDiwa Logo" src={puacLogo} />
-          </div>
-          <div className="loan-admin-sidebar-logo-text">
-            <h1><span className="brand-text-isang">Isang</span><span className="brand-text-diwa">Diwa</span></h1>
-            <p>Loan Admin Portal</p>
-          </div>
+    <>
+      {/* Mobile Top Bar */}
+      <div className="md:hidden flex items-center justify-between p-3.5 bg-navy text-white border-b border-white/10 sticky top-0 z-30 dark:bg-[#2C2F36]">
+        <div className="flex items-center gap-3">
+          <img src={puacLogo} alt="IsangDiwa Logo" className="w-8 h-8 rounded-full overflow-hidden bg-white object-cover" />
+          <h1 className="text-lg font-semibold m-0 text-white font-cormorant tracking-[0.02em]"><span className="brand-text-isang">Isang</span><span className="brand-text-diwa">Diwa</span></h1>
         </div>
-      </div>
-
-      <div className="loan-admin-sidebar-nav">
-        <span className="loan-admin-sidebar-group-label">Core</span>
         <button
-          onClick={() => navigate('/loan-admin/dashboard')}
-          className={`loan-admin-sidebar-nav-button ${isActive('/loan-admin/dashboard') ? 'active' : ''}`}
+          className="p-2 rounded-lg bg-white/10 text-white border-none cursor-pointer flex items-center justify-center"
+          onClick={() => setMobileOpen(!mobileOpen)}
+          aria-label="Toggle menu"
         >
           <LayoutGrid size={20} />
-          <span>Dashboard</span>
+        </button>
+      </div>
+
+      {/* Mobile Backdrop */}
+      {mobileOpen && (
+        <div 
+          className="md:hidden fixed inset-0 bg-black/60 z-40 backdrop-blur-xs" 
+          onClick={() => setMobileOpen(false)}
+        />
+      )}
+
+      <div className={`fixed md:sticky top-0 left-0 z-50 md:z-20 w-64 min-w-[256px] h-screen bg-navy text-white flex flex-col overflow-y-auto overflow-x-hidden dark:bg-[#2C2F36] dark:border-r dark:border-white/5 scrollbar-none transition-transform duration-300 ${
+        mobileOpen ? 'translate-x-0' : '-translate-x-full md:translate-x-0'
+      }`}>
+        <div className="p-[16px_20px] border-b border-white/5 shrink-0 flex items-center justify-between gap-3">
+          <div className="flex items-center gap-3">
+            <img src={puacLogo} alt="IsangDiwa Logo" className="w-11 h-11 rounded-full overflow-hidden bg-white object-cover shrink-0" />
+            <div className="flex flex-col gap-0">
+              <h1 className="text-2xl font-semibold m-0 text-white font-cormorant tracking-[0.02em]"><span className="brand-text-isang">Isang</span><span className="brand-text-diwa">Diwa</span></h1>
+              <p className="text-xs text-white/60 m-0 font-inter leading-4">Loan Admin Portal</p>
+            </div>
+          </div>
+        </div>
+
+      <nav className="flex-1 py-2 flex flex-col gap-1">
+        <span className="p-0 m-[14px_0_2px_20px] text-[9px] font-semibold text-white/20 uppercase tracking-[0.08em] font-inter leading-none">Core</span>
+        
+        <button
+          className={`flex items-center gap-3 pl-5 h-10 bg-transparent border-none text-white/70 text-sm font-inter rounded-lg cursor-pointer transition-all w-full text-left leading-5 whitespace-nowrap relative hover:bg-white/10 dark:hover:bg-white/5 ${isActive('/loan-admin/dashboard') ? 'bg-white/10 text-white font-semibold dark:bg-[#363940]' : ''}`}
+          onClick={() => handleNav('/loan-admin/dashboard')}
+        >
+          <span ><LayoutGrid size={18} className="w-5 h-5 flex items-center justify-center shrink-0 w-5 h-5 shrink-0" /></span>
+          <span className="font-inter text-sm leading-5">Dashboard</span>
         </button>
 
         <button
-          onClick={() => navigate('/loan-admin/notifications')}
-          className={`loan-admin-sidebar-nav-button ${isActive('/loan-admin/notifications') ? 'active' : ''}`}
+          className={`flex items-center gap-3 pl-5 h-10 bg-transparent border-none text-white/70 text-sm font-inter rounded-lg cursor-pointer transition-all w-full text-left leading-5 whitespace-nowrap relative hover:bg-white/10 dark:hover:bg-white/5 ${isActive('/loan-admin/notifications') ? 'bg-white/10 text-white font-semibold dark:bg-[#363940]' : ''}`}
+          onClick={() => handleNav('/loan-admin/notifications')}
         >
-          <Bell size={20} />
-          <span>Notifications</span>
+          <span ><Bell size={18} className="w-5 h-5 flex items-center justify-center shrink-0 w-5 h-5 shrink-0" /></span>
+          <span className="font-inter text-sm leading-5">Notifications</span>
           {unreadCount > 0 && (
-            <span className="sidebar-notif-badge">{unreadCount > 99 ? '99+' : unreadCount}</span>
+            <span className="ml-auto bg-red-500 text-white p-[2px_6px] rounded-[10px] text-xs font-inter font-bold leading-none min-w-[20px] h-5 flex items-center justify-center shrink-0 animate-badgePop mr-4">
+              {unreadCount > 99 ? '99+' : unreadCount}
+            </span>
           )}
         </button>
 
-        <span className="loan-admin-sidebar-group-label">Management</span>
+        <span className="p-0 m-[14px_0_2px_20px] text-[9px] font-semibold text-white/20 uppercase tracking-[0.08em] font-inter leading-none">Management</span>
+        
         <button
-          onClick={() => navigate('/loan-admin/loan-management')}
-          className={`loan-admin-sidebar-nav-button ${isActive('/loan-admin/loan-management') ? 'active' : ''}`}
+          className={`flex items-center gap-3 pl-5 h-10 bg-transparent border-none text-white/70 text-sm font-inter rounded-lg cursor-pointer transition-all w-full text-left leading-5 whitespace-nowrap relative hover:bg-white/10 dark:hover:bg-white/5 ${isActive('/loan-admin/loan-management') ? 'bg-white/10 text-white font-semibold dark:bg-[#363940]' : ''}`}
+          onClick={() => handleNav('/loan-admin/loan-management')}
         >
-          <FileText size={20} />
-          <span>Loan Management</span>
+          <span ><FileText size={18} className="w-5 h-5 flex items-center justify-center shrink-0 w-5 h-5 shrink-0" /></span>
+          <span className="font-inter text-sm leading-5">Loan Management</span>
         </button>
 
         <button
-          onClick={() => navigate('/loan-admin/payments/loans')}
-          className={`loan-admin-sidebar-nav-button ${isActive('/loan-admin/payments/loans') || isActive('/loan-admin/payments') ? 'active' : ''}`}
+          className={`flex items-center gap-3 pl-5 h-10 bg-transparent border-none text-white/70 text-sm font-inter rounded-lg cursor-pointer transition-all w-full text-left leading-5 whitespace-nowrap relative hover:bg-white/10 dark:hover:bg-white/5 ${isActive('/loan-admin/payments/loans') ? 'bg-white/10 text-white font-semibold dark:bg-[#363940]' : ''}`}
+          onClick={() => handleNav('/loan-admin/payments/loans')}
         >
-          <CreditCard size={20} />
-          <span>Payments</span>
+          <span ><CreditCard size={18} className="w-5 h-5 flex items-center justify-center shrink-0 w-5 h-5 shrink-0" /></span>
+          <span className="font-inter text-sm leading-5">Payments</span>
         </button>
 
         <button
-          onClick={() => navigate('/loan-admin/payments/savings')}
-          className={`loan-admin-sidebar-nav-button ${isActive('/loan-admin/payments/savings') ? 'active' : ''}`}
+          className={`flex items-center gap-3 pl-5 h-10 bg-transparent border-none text-white/70 text-sm font-inter rounded-lg cursor-pointer transition-all w-full text-left leading-5 whitespace-nowrap relative hover:bg-white/10 dark:hover:bg-white/5 ${isActive('/loan-admin/payments/savings') ? 'bg-white/10 text-white font-semibold dark:bg-[#363940]' : ''}`}
+          onClick={() => handleNav('/loan-admin/payments/savings')}
         >
-          <PiggyBank size={20} />
-          <span>Savings</span>
+          <span ><PiggyBank size={18} className="w-5 h-5 flex items-center justify-center shrink-0 w-5 h-5 shrink-0" /></span>
+          <span className="font-inter text-sm leading-5">Savings</span>
         </button>
 
-        <span className="loan-admin-sidebar-group-label">Analysis</span>
+        <span className="p-0 m-[14px_0_2px_20px] text-[9px] font-semibold text-white/20 uppercase tracking-[0.08em] font-inter leading-none">Analysis</span>
+        
         <button
-          onClick={() => navigate('/loan-admin/delinquency')}
-          className={`loan-admin-sidebar-nav-button ${isActive('/loan-admin/delinquency') ? 'active' : ''}`}
+          className={`flex items-center gap-3 pl-5 h-10 bg-transparent border-none text-white/70 text-sm font-inter rounded-lg cursor-pointer transition-all w-full text-left leading-5 whitespace-nowrap relative hover:bg-white/10 dark:hover:bg-white/5 ${isActive('/loan-admin/delinquency') ? 'bg-white/10 text-white font-semibold dark:bg-[#363940]' : ''}`}
+          onClick={() => handleNav('/loan-admin/delinquency')}
         >
-          <AlertTriangle size={20} />
-          <span>Delinquency Reports</span>
+          <span ><AlertTriangle size={18} className="w-5 h-5 flex items-center justify-center shrink-0 w-5 h-5 shrink-0" /></span>
+          <span className="font-inter text-sm leading-5">Delinquency Reports</span>
         </button>
 
         <button
-          onClick={() => navigate('/admin/financial-report')}
-          className={`loan-admin-sidebar-nav-button ${isActive('/admin/financial-report') ? 'active' : ''}`}
+          className={`flex items-center gap-3 pl-5 h-10 bg-transparent border-none text-white/70 text-sm font-inter rounded-lg cursor-pointer transition-all w-full text-left leading-5 whitespace-nowrap relative hover:bg-white/10 dark:hover:bg-white/5 ${isActive('/admin/financial-report') ? 'bg-white/10 text-white font-semibold dark:bg-[#363940]' : ''}`}
+          onClick={() => handleNav('/admin/financial-report')}
         >
-          <BarChart size={20} />
-          <span>Automated Reports</span>
+          <span ><BarChart size={18} className="w-5 h-5 flex items-center justify-center shrink-0 w-5 h-5 shrink-0" /></span>
+          <span className="font-inter text-sm leading-5">Automated Reports</span>
         </button>
 
-        <span className="loan-admin-sidebar-group-label">Admin</span>
+        <span className="p-0 m-[14px_0_2px_20px] text-[9px] font-semibold text-white/20 uppercase tracking-[0.08em] font-inter leading-none">Admin</span>
+        
         <button
-          onClick={() => navigate('/loan-admin/settings')}
-          className={`loan-admin-sidebar-nav-button ${isActive('/loan-admin/settings') ? 'active' : ''}`}
+          className={`flex items-center gap-3 pl-5 h-10 bg-transparent border-none text-white/70 text-sm font-inter rounded-lg cursor-pointer transition-all w-full text-left leading-5 whitespace-nowrap relative hover:bg-white/10 dark:hover:bg-white/5 ${isActive('/loan-admin/settings') ? 'bg-white/10 text-white font-semibold dark:bg-[#363940]' : ''}`}
+          onClick={() => handleNav('/loan-admin/settings')}
         >
-          <Settings size={20} />
-          <span>Settings</span>
+          <span ><Settings size={18} className="w-5 h-5 flex items-center justify-center shrink-0 w-5 h-5 shrink-0" /></span>
+          <span className="font-inter text-sm leading-5">Settings</span>
         </button>
-      </div>
+      </nav>
 
-
-      <div className="loan-admin-sidebar-profile">
-        <div className="loan-admin-sidebar-profile-info">
-          <div className="loan-admin-sidebar-profile-avatar">
+      <div className="p-[12px_16px] border-t border-white/5 shrink-0">
+        <div className="flex items-center gap-3 mb-3">
+          <div className="w-8 h-8 rounded-full bg-navy flex items-center justify-center font-bold text-white text-[13px] font-inter shrink-0">
             <p>{adminName.slice(0, 2).toUpperCase()}</p>
           </div>
-          <div className="loan-admin-sidebar-profile-details">
-            <p className="loan-admin-sidebar-profile-name">{adminName}</p>
-            <p className="loan-admin-sidebar-profile-email">
+          <div className="flex-1 min-w-0">
+            <p className="text-[13px] font-semibold text-white m-0 font-inter leading-[18px]">{adminName}</p>
+            <p className="text-[11px] text-white/50 m-0 overflow-hidden text-ellipsis whitespace-nowrap font-inter leading-[14px]">
               {localStorage.getItem('adminEmail') || 'loans@isangdiwa.com'}
             </p>
           </div>
         </div>
-        <button onClick={() => setShowLogoutModal(true)} className="loan-admin-sidebar-profile-signout">
-          <LogOut size={20} />
+        <button onClick={() => setShowLogoutModal(true)} className="w-full flex items-center justify-center gap-[6px] p-[8px_12px] bg-transparent border border-white/[0.06] text-white/70 text-[13px] font-inter rounded-lg cursor-pointer transition-all hover:bg-red-500/10 hover:border-red-500 hover:text-red-300">
+          <LogOut size={20} className="w-[18px] h-[18px]" />
           Sign Out
         </button>
       </div>
 
-      {/* Logout Modal */}
-      {showLogoutModal && (
-        <div className="logout-modal-overlay">
-          <div className="logout-modal-content">
-            <h2 className="logout-modal-title">Confirm Logout</h2>
-            <p className="logout-modal-message">Are you sure you want to log out?</p>
-            <div className="logout-modal-actions">
-              <button className="logout-modal-cancel" onClick={() => setShowLogoutModal(false)}>Cancel</button>
-              <button className="logout-modal-confirm" onClick={handleSignOut}>Sign Out</button>
-            </div>
-          </div>
-        </div>
+      {showLogoutModal && createPortal(
+          <div className="fixed inset-0 bg-black/50 backdrop-blur-sm flex items-center justify-center z-[99999] p-4">
+              <div className="bg-white dark:bg-[#1E2130] rounded-2xl p-8 max-w-[400px] w-full shadow-2xl border border-slate-200 dark:border-white/10">
+                  <h2 className="font-inter text-xl font-bold text-slate-900 dark:text-white m-[0_0_12px_0]">Confirm Logout</h2>
+                  <p className="font-inter text-base text-slate-600 dark:text-slate-400 leading-[1.6] m-[0_0_24px_0]">Are you sure you want to log out?</p>
+                  <div className="flex gap-3 justify-end">
+                      <button className="py-2.5 px-5 border-none rounded-lg font-inter text-sm font-semibold cursor-pointer transition-all bg-slate-100 dark:bg-white/5 text-slate-600 dark:text-slate-300 hover:bg-slate-200 dark:hover:bg-white/10" onClick={() => setShowLogoutModal(false)}>Cancel</button>
+                      <button className="py-2.5 px-5 border-none rounded-lg font-inter text-sm font-semibold cursor-pointer transition-all bg-red-500 text-white hover:bg-red-600" onClick={handleSignOut}>Sign Out</button>
+                  </div>
+              </div>
+          </div>,
+          document.body
       )}
       <NotificationPrompt />
     </div>
+    </>
   );
 }

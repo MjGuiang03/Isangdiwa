@@ -53,6 +53,8 @@ const SecretaryAdminLoanProcess = lazy(() => import('./secretaryAdmin/pages/secr
 const SecretaryAdminRecords = lazy(() => import('./secretaryAdmin/pages/secretaryAdminRecords'));
 const SecretaryAdminSettings = lazy(() => import('./secretaryAdmin/pages/secretaryAdminSettings'));
 const WelcomePage = lazy(() => import('./user/pages/WelcomePage'));
+const LandingPage = lazy(() => import('./user/pages/LandingPage'));
+
 
 const GlobalLoader = () => (
   <div style={{ display: 'flex', justifyContent: 'center', alignItems: 'center', height: '100vh', width: '100vw', backgroundColor: '#f8fafc', color: '#1e3a8a', fontFamily: 'Inter, sans-serif' }}>
@@ -99,8 +101,9 @@ export default function App() {
           <Suspense fallback={<GlobalLoader />}>
             <Routes>
               {/* ========== PUBLIC ROUTES ========== */}
-              <Route path="/" element={<WelcomePage />} />
-              <Route path="/reset-password" element={<WelcomePage />} />
+              <Route path="/" element={<LandingPage />} />
+              <Route path="/reset-password" element={<LandingPage />} />
+              <Route path="/old-welcome" element={<WelcomePage />} />
               <Route path="/update-password" element={<UpdatePassword />} />
               <Route path="/verify-email" element={<VerifyEmail />} />
 

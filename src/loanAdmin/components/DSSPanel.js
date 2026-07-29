@@ -1,7 +1,7 @@
 import React, { useRef, useState } from 'react';
 import { CheckCircle, XCircle, Info, AlertCircle, RefreshCw, Download } from 'lucide-react';
 
-import '../styles/DSSPanel.css';
+
 
 const fmt = (n) =>
   n != null ? `₱${Number(n).toLocaleString('en-PH', { minimumFractionDigits: 2 })}` : '₱0.00';
@@ -33,9 +33,9 @@ const DSSPanel = ({ analysis, loading, onRefresh, memberName }) => {
 
   if (loading) {
     return (
-      <div className="dss-panel loading">
-        <div className="dss-spinner"></div>
-        <p>Analyzing loan application...</p>
+      <div className="bg-white dark:bg-[#252836] border border-slate-200 dark:border-white/5 rounded-xl p-6 flex flex-col items-center justify-center min-h-[300px] h-full shadow-sm">
+        <div className="w-10 h-10 border-4 border-slate-100 dark:border-white/5 border-t-blue-500 rounded-full animate-spin mb-4"></div>
+        <p className="font-inter text-sm text-slate-500 dark:text-slate-400 m-0 animate-pulse">Analyzing loan application...</p>
       </div>
     );
   }
@@ -45,105 +45,105 @@ const DSSPanel = ({ analysis, loading, onRefresh, memberName }) => {
   const { eligibility, capacity, risk, recommendation, isEligible } = analysis;
 
   return (
-    <div className="dss-panel" ref={panelRef}>
-      <div className="dss-header">
-        <h3 className="dss-title">Decision Support Analysis</h3>
+    <div className="bg-white dark:bg-[#252836] border border-slate-200 dark:border-white/5 rounded-xl shadow-sm h-full flex flex-col" ref={panelRef}>
+      <div className="flex items-start justify-between p-4 lg:p-6 border-b border-slate-200 dark:border-white/5 shrink-0">
+        <h3 className="font-inter text-[15px] font-bold text-slate-800 dark:text-white m-0 tracking-tight">Decision Support Analysis</h3>
         <div style={{ display: 'flex', alignItems: 'center', gap: '8px' }}>
           {!exporting && (
             <button 
               onClick={handleDownloadPDF} 
-              className="dss-download-btn"
+              className="w-7 h-7 rounded-lg bg-slate-50 dark:bg-white/5 text-slate-500 dark:text-slate-400 flex items-center justify-center cursor-pointer hover:bg-slate-100 dark:hover:bg-white/10 transition-colors border-none"
               title="Download analysis as PDF"
             >
               <Download size={14} />
             </button>
           )}
-          <div className={`dss-risk-badge ${risk.color}`}>
+          <div className={`px-2.5 py-1 rounded-md text-[11px] font-bold tracking-wider uppercase ${risk.color === 'green' ? 'bg-emerald-50 text-emerald-600 dark:bg-emerald-500/10 dark:text-emerald-400' : risk.color === 'orange' ? 'bg-amber-50 text-amber-600 dark:bg-amber-500/10 dark:text-amber-400' : 'bg-rose-50 text-rose-600 dark:bg-rose-500/10 dark:text-rose-400'}`}>
             {risk.tier}
           </div>
         </div>
       </div>
 
       {/* Eligibility Checklist */}
-      <div className="dss-section">
-        <h4 className="dss-section-title">Eligibility Verification</h4>
-        <div className="dss-checklist">
-          <div className="dss-check-item">
-            {eligibility.isActiveMember ? <CheckCircle className="icon pass" size={18} /> : <XCircle className="icon fail" size={18} />}
+      <div className="px-4 lg:px-6 py-5 border-b border-slate-200 dark:border-white/5">
+        <h4 className="font-inter text-[12px] font-semibold uppercase tracking-wider text-slate-500 dark:text-slate-400 m-0 mb-4">Eligibility Verification</h4>
+        <div className="flex flex-col gap-3">
+          <div className="flex items-start gap-3 font-inter text-[13px] text-slate-700 dark:text-slate-300">
+            {eligibility.isActiveMember ? <CheckCircle  size={18} /> : <XCircle className="text-emerald-500 shrink-0 mt-0.5 text-rose-500 shrink-0 mt-0.5" size={18} />}
             <span>Active Member (Attendance)</span>
           </div>
-          <div className="dss-check-item">
-            {eligibility.savingsOk ? <CheckCircle className="icon pass" size={18} /> : <XCircle className="icon fail" size={18} />}
+          <div className="flex items-start gap-3 font-inter text-[13px] text-slate-700 dark:text-slate-300">
+            {eligibility.savingsOk ? <CheckCircle  size={18} /> : <XCircle className="text-emerald-500 shrink-0 mt-0.5 text-rose-500 shrink-0 mt-0.5" size={18} />}
             <span>Savings ≥ ₱1,000 ({fmt(capacity.totalSavings)})</span>
           </div>
-          <div className="dss-check-item">
-            {eligibility.noActiveLoan ? <CheckCircle className="icon pass" size={18} /> : <XCircle className="icon fail" size={18} />}
+          <div className="flex items-start gap-3 font-inter text-[13px] text-slate-700 dark:text-slate-300">
+            {eligibility.noActiveLoan ? <CheckCircle  size={18} /> : <XCircle className="text-emerald-500 shrink-0 mt-0.5 text-rose-500 shrink-0 mt-0.5" size={18} />}
             <span>No Active Loans (One at a time)</span>
           </div>
-          <div className="dss-check-item">
-            {eligibility.infoValid ? <CheckCircle className="icon pass" size={18} /> : <XCircle className="icon fail" size={18} />}
+          <div className="flex items-start gap-3 font-inter text-[13px] text-slate-700 dark:text-slate-300">
+            {eligibility.infoValid ? <CheckCircle  size={18} /> : <XCircle className="text-emerald-500 shrink-0 mt-0.5 text-rose-500 shrink-0 mt-0.5" size={18} />}
             <span>Valid Identity Documents</span>
           </div>
         </div>
       </div>
 
       {/* Loan Capacity */}
-      <div className="dss-section">
-        <div className="dss-capacity-header">
-          <h4 className="dss-section-title">Loan Capacity</h4>
-          <span className={`dss-capacity-status ${capacity.requestedOk ? 'pass' : 'fail'}`}>
+      <div className="px-4 lg:px-6 py-5 border-b border-slate-200 dark:border-white/5">
+        <div className="flex items-center justify-between mb-4">
+          <h4 className="font-inter text-[12px] font-semibold uppercase tracking-wider text-slate-500 dark:text-slate-400 m-0 mb-4">Loan Capacity</h4>
+          <span className={`text-[12px] font-bold uppercase tracking-wider ${capacity.requestedOk ? 'text-emerald-600 dark:text-emerald-400' : 'text-rose-600 dark:text-rose-400'}`}>
             {capacity.requestedOk ? 'Within Limit' : 'Over Limit'}
           </span>
         </div>
-        <div className="dss-capacity-bar-container">
-          <div className="dss-capacity-labels">
+        <div className="flex flex-col gap-2">
+          <div className="flex items-center justify-between font-inter text-[12px] text-slate-600 dark:text-slate-400 font-medium">
             <span>Requested: {fmt(capacity.requestedAmount)}</span>
             <span>Max: {fmt(capacity.maxLoanable)}</span>
           </div>
-          <div className="dss-progress-bg">
+          <div className="w-full h-2.5 bg-slate-100 dark:bg-black/20 rounded-full overflow-hidden">
             <div 
-              className={`dss-progress-fill ${capacity.requestedOk ? 'pass' : 'fail'}`} 
+              className={`h-full rounded-full transition-all duration-500 ${capacity.requestedOk ? 'bg-emerald-500' : 'bg-rose-500'}`} 
               style={{ width: `${Math.min(100, (capacity.requestedAmount / Math.max(1, capacity.maxLoanable)) * 100)}%` }}
             ></div>
           </div>
-          <p className="dss-capacity-hint">
+          <p className="font-inter text-[11px] text-slate-500 dark:text-slate-400 m-0 mt-1">
             Limit: {capacity.multiplier}x Savings
           </p>
         </div>
       </div>
 
       {/* Recommendation */}
-      <div className={`dss-recommendation-box ${isEligible ? 'pass' : 'warn'}`}>
-        <div className="dss-rec-header">
-          {isEligible ? <Info size={18} className="icon pass" /> : <AlertCircle size={18} className="icon warn" />}
+      <div className={`m-4 lg:m-6 p-4 rounded-xl border ${isEligible ? 'bg-emerald-50 border-emerald-200 dark:bg-emerald-500/10 dark:border-emerald-500/20' : 'bg-amber-50 border-amber-200 dark:bg-amber-500/10 dark:border-amber-500/20'}`}>
+        <div className="flex items-center gap-2 mb-2 font-inter text-[13px] font-bold text-slate-800 dark:text-white">
+          {isEligible ? <Info size={18}  /> : <AlertCircle size={18} className="text-emerald-500 shrink-0 mt-0.5 text-amber-500 shrink-0 mt-0.5" />}
           <span>System Recommendation</span>
         </div>
-        <p className="dss-rec-text">{recommendation}</p>
+        <p className="font-inter text-[13px] text-slate-700 dark:text-slate-300 m-0 leading-relaxed">{recommendation}</p>
       </div>
 
       {/* AI-Powered Analysis */}
       {analysis.aiSummary && (
-        <div className="dss-ai-summary">
-          <div className="dss-ai-header" style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
-            <div className="dss-ai-badge">
-              <span className="dss-ai-sparkle">✨</span>
+        <div className="mx-4 lg:mx-6 mb-4 p-4 bg-gradient-to-br from-indigo-50 to-blue-50 dark:from-indigo-900/20 dark:to-blue-900/20 border border-indigo-100 dark:border-indigo-500/20 rounded-xl">
+          <div className="flex items-center justify-between mb-3">
+            <div className="inline-flex items-center gap-1.5 px-2 py-1 bg-white/60 dark:bg-black/20 rounded text-[11px] font-bold text-indigo-700 dark:text-indigo-400 uppercase tracking-wider">
+              <span className="text-indigo-500 dark:text-indigo-400">✨</span>
               AI Analysis
             </div>
             {onRefresh && (
               <button 
                 onClick={onRefresh} 
-                style={{ background: 'none', border: 'none', cursor: 'pointer', fontSize: '12px', color: '#6B7280', display: 'flex', alignItems: 'center', gap: '4px' }}
+                className="bg-transparent border-none cursor-pointer font-inter text-[11px] font-medium text-slate-500 dark:text-slate-400 flex items-center gap-1 hover:text-indigo-600 dark:hover:text-indigo-400 transition-colors p-0"
                 title="Force refresh AI analysis"
               >
                 <RefreshCw size={12} /> Refresh
               </button>
             )}
           </div>
-          <p className="dss-ai-text">{analysis.aiSummary}</p>
+          <p className="font-inter text-[12px] text-slate-700 dark:text-slate-300 mt-3 m-0 leading-relaxed">{analysis.aiSummary}</p>
         </div>
       )}
 
-      <p className="dss-disclaimer">
+      <p className="px-4 lg:px-6 pb-6 pt-2 font-inter text-[11px] text-slate-400 dark:text-slate-500 italic m-0 mt-auto text-center">
         * This analysis is advisory only based on system policy and AI assessment. Final decision remains with the Loan Admin.
       </p>
     </div>

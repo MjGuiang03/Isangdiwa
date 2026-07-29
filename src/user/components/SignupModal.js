@@ -4,8 +4,9 @@ import { ArrowLeft, CalendarDays, ChevronDown, Eye, EyeOff, Phone, User, Briefca
 import { toast } from 'sonner';
 
 import imgPuacLogo from "../../assets/puaclogo.png";
-import '../styles/Signup.css';
+
 import VerifyEmailModal from '../components/VerifyEmail';
+import useSwipeDownToClose from '../hooks/useSwipeDownToClose';
 
 /* ─── Regex / Constants ─────────────────────────────────────── */
 const nameRegex = /^[A-Za-zÀ-ÖØ-öø-ÿ\s'-]+$/;
@@ -170,7 +171,7 @@ const CommunitySelect = ({ value, onChange, branches }) => {
   const provinces = Object.keys(grouped).sort();
 
   return (
-    <select name="community" value={value} onChange={onChange} className="user-signup-form-select">
+    <select name="community" value={value} onChange={onChange} className="w-full px-3 py-2.5 bg-slate-50 dark:bg-slate-800/60 border border-slate-200 dark:border-white/10 rounded-xl text-xs text-slate-900 dark:text-white outline-none focus:ring-2 focus:ring-blue-600 transition-all appearance-none pr-8">
       <option value="">Select your Community</option>
       {provinces.map(prov => (
         <optgroup key={prov} label={prov}>
@@ -185,6 +186,7 @@ const CommunitySelect = ({ value, onChange, branches }) => {
 
 /* ─── Component ─────────────────────────────────────────────── */
 export default function SignupModal({ isOpen, onClose, onSwitchToLogin }) {
+  const swipeProps = useSwipeDownToClose(onClose);
   const [dynamicBranches, setDynamicBranches] = useState([]);
   useEffect(() => {
     if (!isOpen) return;
@@ -341,142 +343,110 @@ export default function SignupModal({ isOpen, onClose, onSwitchToLogin }) {
     isAllAgreed && isOfficerFieldsValid;
 
   return (
-    <div className="user-signup-modal-overlay">
-      <div className="user-signup-modal-card" onClick={e => e.stopPropagation()}>
+    <div className="fixed inset-0 z-[9999] bg-black/60 backdrop-blur-sm flex items-end sm:items-center justify-center p-0 sm:p-4 overflow-y-auto" onClick={onClose}>
+      <div 
+        ref={swipeProps.containerRef}
+        onTouchStart={swipeProps.handleTouchStart}
+        onTouchMove={swipeProps.handleTouchMove}
+        onTouchEnd={swipeProps.handleTouchEnd}
+        style={swipeProps.dragStyle}
+        className="relative w-full max-w-2xl bg-white dark:bg-[#1E2130] rounded-t-3xl rounded-b-none sm:rounded-2xl p-6 sm:p-8 shadow-2xl border-t sm:border border-slate-200 dark:border-white/10 max-h-[88vh] sm:max-h-[90vh] overflow-y-auto [&::-webkit-scrollbar]:hidden [-ms-overflow-style:none] [scrollbar-width:none] my-0 sm:my-auto animate-mobile-slide-up" 
+        onClick={e => e.stopPropagation()}
+      >
+        
+        {/* Mobile Pull Handle Indicator */}
+        <div className="w-12 h-1 bg-slate-300 dark:bg-slate-700 rounded-full mx-auto mb-2 sm:hidden" />
 
         {/* BACK BUTTON */}
-        <button onClick={onClose} className="user-signup-back-btn" type="button">
-          <ArrowLeft size={16} />
+        <button onClick={onClose} className="absolute top-4 left-4 text-slate-400 hover:text-slate-600 dark:hover:text-white p-2 rounded-full transition-colors" type="button">
+          <ArrowLeft size={20} />
         </button>
 
         {/* HEADER */}
-        <div className="user-signup-header">
-          <img src={imgPuacLogo} alt="Logo" className="user-signup-logo" />
-          <h1 className="user-signup-title">Create Your Account</h1>
-          <p className="user-signup-subtitle">Join our church community today</p>
+        <div className="text-center mb-6 pt-2">
+          <h1 className="text-2xl font-bold text-slate-900 dark:text-white">Create Your Account</h1>
+          <p className="text-xs text-slate-500 dark:text-slate-400 mt-1">Join our church community today</p>
         </div>
 
-        <form onSubmit={handleSubmit} className="user-signup-form" noValidate>
+        <form onSubmit={handleSubmit} className="space-y-4" noValidate>
 
           {/* ROW 1: First Name + Last Name */}
-          <div className="user-signup-form-row">
-            <div className="user-signup-form-group">
-              <label htmlFor="firstName" className="user-signup-form-label">First Name:</label>
-              <div className="user-signup-input-wrapper">
-                <input
-                  id="firstName" name="firstName"
-                  value={formData.firstName}
-                  onChange={handleChange} onBlur={handleBlur}
-                  className={`user-signup-form-input user-signup-form-input--no-icon${touched.firstName && errors.firstName ? ' user-input-error' : (touched.firstName && !errors.firstName ? ' user-input-success' : '')}`}
-                  placeholder="Enter your first name"
-                  autoComplete="given-name"
-                />
-              </div>
+          <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
+            <div className="space-y-1">
+              <label htmlFor="firstName" className="block text-xs font-semibold text-slate-700 dark:text-slate-300">First Name:</label>
+              <input
+                id="firstName" name="firstName"
+                value={formData.firstName}
+                onChange={handleChange} onBlur={handleBlur}
+                className={`w-full px-3.5 py-2.5 bg-slate-50 dark:bg-slate-800/60 border ${touched.firstName && errors.firstName ? 'border-red-500' : 'border-slate-200 dark:border-white/10 focus:ring-blue-600'} rounded-xl text-xs text-slate-900 dark:text-white outline-none focus:ring-2 transition-all`}
+                placeholder="Enter your first name"
+                autoComplete="given-name"
+              />
               {touched.firstName && errors.firstName && (
-                <span className="user-signup-error-text">{errors.firstName}</span>
+                <span className="text-[11px] text-red-500 font-medium block">{errors.firstName}</span>
               )}
             </div>
 
-            <div className="user-signup-form-group">
-              <label htmlFor="lastName" className="user-signup-form-label">Last Name:</label>
-              <div className="user-signup-input-wrapper">
-                <input
-                  id="lastName" name="lastName"
-                  value={formData.lastName}
-                  onChange={handleChange} onBlur={handleBlur}
-                  className={`user-signup-form-input user-signup-form-input--no-icon${touched.lastName && errors.lastName ? ' user-input-error' : (touched.lastName && !errors.lastName ? ' user-input-success' : '')}`}
-                  placeholder="Enter your last name"
-                  autoComplete="family-name"
-                />
-              </div>
+            <div className="space-y-1">
+              <label htmlFor="lastName" className="block text-xs font-semibold text-slate-700 dark:text-slate-300">Last Name:</label>
+              <input
+                id="lastName" name="lastName"
+                value={formData.lastName}
+                onChange={handleChange} onBlur={handleBlur}
+                className={`w-full px-3.5 py-2.5 bg-slate-50 dark:bg-slate-800/60 border ${touched.lastName && errors.lastName ? 'border-red-500' : 'border-slate-200 dark:border-white/10 focus:ring-blue-600'} rounded-xl text-xs text-slate-900 dark:text-white outline-none focus:ring-2 transition-all`}
+                placeholder="Enter your last name"
+                autoComplete="family-name"
+              />
               {touched.lastName && errors.lastName && (
-                <span className="user-signup-error-text">{errors.lastName}</span>
+                <span className="text-[11px] text-red-500 font-medium block">{errors.lastName}</span>
               )}
             </div>
           </div>
 
           {/* ROW 2: Email + Phone */}
-          <div className="user-signup-form-row">
-            <div className="user-signup-form-group">
-              <label htmlFor="email" className="user-signup-form-label">Email:</label>
-              <div className="user-signup-input-wrapper">
-                <input
-                  id="email" name="email" type="email"
-                  value={formData.email}
-                  onChange={handleChange} onBlur={handleBlur}
-                  className={`user-signup-form-input user-signup-form-input--no-icon${touched.email && errors.email ? ' user-input-error' : (touched.email && !errors.email ? ' user-input-success' : '')}`}
-                  placeholder="your.email@example.com"
-                  autoComplete="email"
-                />
-              </div>
+          <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
+            <div className="space-y-1">
+              <label htmlFor="email" className="block text-xs font-semibold text-slate-700 dark:text-slate-300">Email:</label>
+              <input
+                id="email" name="email" type="email"
+                value={formData.email}
+                onChange={handleChange} onBlur={handleBlur}
+                className={`w-full px-3.5 py-2.5 bg-slate-50 dark:bg-slate-800/60 border ${touched.email && errors.email ? 'border-red-500' : 'border-slate-200 dark:border-white/10 focus:ring-blue-600'} rounded-xl text-xs text-slate-900 dark:text-white outline-none focus:ring-2 transition-all`}
+                placeholder="your.email@example.com"
+                autoComplete="email"
+              />
               {touched.email && errors.email && (
-                <span className="user-signup-error-text">{errors.email}</span>
+                <span className="text-[11px] text-red-500 font-medium block">{errors.email}</span>
               )}
             </div>
 
-            <div className="user-signup-form-group">
-              <label htmlFor="phone" className="user-signup-form-label">Phone Number:</label>
-              <div className="user-signup-input-wrapper">
-                <Phone className="user-signup-input-icon" size={20} />
-                <div className="user-signup-phone-input-container">
-                  <span className="user-signup-phone-prefix">+63</span>
-                  <input
-                    id="phone" name="phone" type="tel"
-                    value={formData.phone}
-                    onChange={handleChange} onBlur={handleBlur}
-                    className={`user-signup-form-input user-signup-phone-input${touched.phone && errors.phone ? ' user-input-error' : (touched.phone && !errors.phone ? ' user-input-success' : '')}`}
-                    placeholder="917 123 4567"
-                    autoComplete="tel"
-                  />
-                </div>
+            <div className="space-y-1">
+              <label htmlFor="phone" className="block text-xs font-semibold text-slate-700 dark:text-slate-300">Phone Number:</label>
+              <div className="relative flex items-center">
+                <Phone className="absolute left-3 text-slate-400 w-4 h-4 pointer-events-none" />
+                <span className="absolute left-9 text-xs font-semibold text-slate-500 dark:text-slate-400">+63</span>
+                <input
+                  id="phone" name="phone" type="tel"
+                  value={formData.phone}
+                  onChange={handleChange} onBlur={handleBlur}
+                  className={`w-full pl-16 pr-3 py-2.5 bg-slate-50 dark:bg-slate-800/60 border ${touched.phone && errors.phone ? 'border-red-500' : 'border-slate-200 dark:border-white/10 focus:ring-blue-600'} rounded-xl text-xs text-slate-900 dark:text-white outline-none focus:ring-2 transition-all`}
+                  placeholder="917 123 4567"
+                  autoComplete="tel"
+                />
               </div>
               {touched.phone && errors.phone && (
-                <span className="user-signup-error-text">{errors.phone}</span>
+                <span className="text-[11px] text-red-500 font-medium block">{errors.phone}</span>
               )}
             </div>
           </div>
 
-          {/* ROW 3: Gender + Birthday + Community */}
-          <div className="user-signup-form-row-3">
-
-            {/* GENDER — radio buttons */}
-            <div className="user-signup-form-group">
-              <label className="user-signup-form-label">Gender:</label>
-              <div className="user-gender-radio-group">
-                {[
-                  { value: 'male', label: 'Male' },
-                  { value: 'female', label: 'Female' },
-                ].map(({ value, label }) => (
-                  <label
-                    key={value}
-                    className={`user-gender-radio-card${formData.gender === value ? ' user-gender-radio-card--selected' : ''}${touched.gender && errors.gender ? ' user-input-error' : ''}`}
-                  >
-                    <input
-                      type="radio"
-                      name="gender"
-                      value={value}
-                      checked={formData.gender === value}
-                      onChange={handleChange}
-                      onBlur={handleBlur}
-                      className="user-gender-radio-input"
-                    />
-                    <span className="user-gender-radio-dot" />
-                    <span className="user-gender-radio-text">{label}</span>
-                  </label>
-                ))}
-              </div>
-              {touched.gender && errors.gender && (
-                <span className="user-signup-error-text">{errors.gender}</span>
-              )}
-            </div>
-
+          {/* ROW 3: Birthday + Community */}
+          <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
             {/* BIRTHDAY */}
-            <div className="user-signup-form-group">
-              <label htmlFor="birthday" className="user-signup-form-label">
-                Birthday:
-              </label>
-              <div className="user-signup-input-wrapper">
-                <CalendarDays className="user-signup-input-icon" size={20} />
+            <div className="space-y-1">
+              <label htmlFor="birthday" className="block text-xs font-semibold text-slate-700 dark:text-slate-300">Birthday:</label>
+              <div className="relative">
+                <CalendarDays className="absolute left-3 top-1/2 -translate-y-1/2 text-slate-400 w-4 h-4 pointer-events-none" />
                 <input
                   id="birthday" type="date" name="birthday"
                   value={formData.birthday}
@@ -484,198 +454,242 @@ export default function SignupModal({ isOpen, onClose, onSwitchToLogin }) {
                   onKeyDown={e => e.preventDefault()}
                   min={minBirthDate.toISOString().split('T')[0]}
                   max={maxBirthDate.toISOString().split('T')[0]}
-                  className={`user-signup-form-input${touched.birthday && errors.birthday ? ' user-input-error' : (touched.birthday && !errors.birthday ? ' user-input-success' : '')}`}
+                  className={`w-full pl-9 pr-3 py-2.5 bg-slate-50 dark:bg-slate-800/60 border ${touched.birthday && errors.birthday ? 'border-red-500' : 'border-slate-200 dark:border-white/10 focus:ring-blue-600'} rounded-xl text-xs text-slate-900 dark:text-white outline-none focus:ring-2 transition-all`}
                   placeholder="MM-DD-YYYY"
                   autoComplete="bday"
                 />
               </div>
               {touched.birthday && errors.birthday && (
-                <span className="user-signup-error-text">{errors.birthday}</span>
+                <span className="text-[11px] text-red-500 font-medium block">{errors.birthday}</span>
               )}
               {touched.birthday && !errors.birthday && calculatedAge !== null && (
-                <span className="user-signup-success-icon">✓ Age: {calculatedAge}</span>
+                <span className="text-[11px] text-emerald-600 dark:text-emerald-400 font-semibold block">✓ Age: {calculatedAge}</span>
               )}
             </div>
 
             {/* COMMUNITY */}
-            <div className="user-signup-form-group">
-              <label className="user-signup-form-label">Community:</label>
-              <div className="user-signup-select-wrapper">
+            <div className="space-y-1">
+              <label className="block text-xs font-semibold text-slate-700 dark:text-slate-300">Community:</label>
+              <div className="relative">
                 <CommunitySelect value={formData.community} onChange={handleChange} branches={dynamicBranches} />
-                <ChevronDown className="user-signup-select-dropdown" size={20} />
+                <ChevronDown className="absolute right-3 top-1/2 -translate-y-1/2 text-slate-400 w-4 h-4 pointer-events-none" />
               </div>
               {touched.community && errors.community && (
-                <span className="user-signup-error-text">{errors.community}</span>
+                <span className="text-[11px] text-red-500 font-medium block">{errors.community}</span>
               )}
             </div>
           </div>
 
-          {/* ROW 3.5: Role Selection */}
-          <div className="user-signup-form-group" style={{ marginTop: '8px' }}>
-            <label className="user-signup-form-label" style={{ fontSize: '14px', fontWeight: 700, textTransform: 'none', color: '#111827', marginBottom: '4px' }}>I am a</label>
-            <div className="user-role-radio-group">
+          {/* ROW 4: Gender Selection */}
+          <div className="space-y-1.5">
+            <label className="block text-xs font-semibold text-slate-700 dark:text-slate-300">Gender:</label>
+            <div className="grid grid-cols-2 gap-3">
+              {[
+                { value: 'male', label: 'Male' },
+                { value: 'female', label: 'Female' },
+              ].map(({ value, label }) => (
+                <label
+                  key={value}
+                  className={`flex items-center justify-center gap-2.5 px-4 py-2.5 rounded-xl border text-xs font-medium cursor-pointer transition-all ${
+                    formData.gender === value
+                      ? 'border-blue-600 bg-blue-50 dark:bg-blue-950/40 text-blue-600 dark:text-blue-400 font-bold shadow-xs'
+                      : 'border-slate-200 dark:border-white/10 bg-slate-50 dark:bg-slate-800/60 text-slate-700 dark:text-slate-300 hover:bg-slate-100 dark:hover:bg-slate-800'
+                  }`}
+                >
+                  <div className={`w-4 h-4 rounded-full border flex items-center justify-center shrink-0 transition-all ${
+                    formData.gender === value 
+                      ? 'border-blue-600 bg-blue-600' 
+                      : 'border-slate-300 dark:border-slate-500 bg-white dark:bg-slate-700'
+                  }`}>
+                    {formData.gender === value && <div className="w-1.5 h-1.5 rounded-full bg-white" />}
+                  </div>
+                  <input
+                    type="radio"
+                    name="gender"
+                    value={value}
+                    checked={formData.gender === value}
+                    onChange={handleChange}
+                    onBlur={handleBlur}
+                    className="sr-only"
+                  />
+                  <span>{label}</span>
+                </label>
+              ))}
+            </div>
+            {touched.gender && errors.gender && (
+              <span className="text-[11px] text-red-500 font-medium block">{errors.gender}</span>
+            )}
+          </div>
+
+          {/* ROW 5: Role Selection */}
+          <div className="space-y-1.5 pt-1">
+            <label className="block text-xs font-bold text-slate-900 dark:text-white">I am a</label>
+            <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
               {[
                 { 
                   value: 'member', 
                   label: 'Member', 
-                  icon: <User className="user-role-icon" size={26} strokeWidth={2} />,
-                  sub: 'Donations, Attendance\n& Church Events'
+                  icon: <User className="w-5 h-5 text-blue-600 shrink-0" />,
+                  sub: 'Donations, Attendance & Church Events'
                 },
                 { 
                   value: 'officer', 
                   label: 'Officer', 
-                  icon: <Briefcase className="user-role-icon" size={26} strokeWidth={2} />,
-                  sub: 'All Member features\n+ Loans, Savings & More'
+                  icon: <Briefcase className="w-5 h-5 text-amber-500 shrink-0" />,
+                  sub: 'All Member features + Loans, Savings & More'
                 },
               ].map(({ value, label, icon, sub }) => (
                 <label
                   key={value}
-                  className={`user-role-radio-card${formData.role === value ? ' user-role-radio-card--selected' : ''}`}
+                  className={`flex items-start gap-3 p-3.5 rounded-xl border cursor-pointer transition-all ${
+                    formData.role === value
+                      ? 'border-blue-600 bg-blue-50/70 dark:bg-blue-950/40 ring-2 ring-blue-600/20 shadow-xs'
+                      : 'border-slate-200 dark:border-white/10 bg-slate-50 dark:bg-slate-800/40 hover:bg-slate-100 dark:hover:bg-slate-800'
+                  }`}
                 >
+                  <div className={`w-4 h-4 mt-0.5 rounded-full border flex items-center justify-center shrink-0 transition-all ${
+                    formData.role === value 
+                      ? 'border-blue-600 bg-blue-600' 
+                      : 'border-slate-300 dark:border-slate-500 bg-white dark:bg-slate-700'
+                  }`}>
+                    {formData.role === value && <div className="w-1.5 h-1.5 rounded-full bg-white" />}
+                  </div>
                   <input
                     type="radio"
                     name="role"
                     value={value}
                     checked={formData.role === value}
                     onChange={handleChange}
-                    className="user-role-radio-input"
+                    className="sr-only"
                   />
                   {icon}
-                  <div className="user-role-radio-text-container">
-                    <span className="user-role-radio-text">{label}</span>
-                    <span className="user-role-radio-subtext">{sub}</span>
+                  <div>
+                    <span className="text-xs font-bold text-slate-900 dark:text-white block">{label}</span>
+                    <span className="text-[11px] text-slate-500 dark:text-slate-400 block mt-0.5 leading-tight">{sub}</span>
                   </div>
                 </label>
               ))}
-            </div>
-            <div className="user-role-clarification">
-              Officers are church-appointed leaders who manage loans and savings.<br />
-              A valid Church ID is required to register as an Officer.
             </div>
           </div>
 
           {/* Officer Fields — conditional */}
           {formData.role === 'officer' && (
-            <div className="user-signup-officer-fields">
-              <div className="user-signup-form-row">
-                <div className="user-signup-form-group">
-                  <label htmlFor="officerPosition" className="user-signup-form-label">Position:</label>
-                  <div className="user-signup-select-wrapper">
-                    <select
-                      id="officerPosition" name="officerPosition"
-                      value={formData.officerPosition}
-                      onChange={handleChange} onBlur={handleBlur}
-                      className={`user-signup-form-select${touched.officerPosition && errors.officerPosition ? ' user-input-error' : ''}`}
-                    >
-                      <option value="">Select your position</option>
-                      <option value="Deacon">Deacon</option>
-                      <option value="Local Evangelist">Local Evangelist</option>
-                      <option value="District Evangelist">District Evangelist</option>
-                      <option value="National Evangelist">National Evangelist</option>
-                      <option value="Assistant Priest">Assistant Priest</option>
-                      <option value="Priest">Priest</option>
-                      <option value="Elder">Elder</option>
-                      <option value="District Elder">District Elder</option>
-                      <option value="Bishop">Bishop</option>
-                      <option value="District Bishop">District Bishop</option>
-                      <option value="National Bishop">National Bishop</option>
-                      <option value="Apostle">Apostle</option>
-                    </select>
-                    <ChevronDown className="user-signup-select-dropdown" size={20} />
-                  </div>
-                  {touched.officerPosition && errors.officerPosition && (
-                    <span className="user-signup-error-text">{errors.officerPosition}</span>
-                  )}
+            <div className="p-3.5 rounded-xl bg-slate-50 dark:bg-slate-800/40 border border-slate-200 dark:border-white/10 grid grid-cols-1 sm:grid-cols-2 gap-4">
+              <div className="space-y-1">
+                <label htmlFor="officerPosition" className="block text-xs font-semibold text-slate-700 dark:text-slate-300">Position:</label>
+                <div className="relative">
+                  <select
+                    id="officerPosition" name="officerPosition"
+                    value={formData.officerPosition}
+                    onChange={handleChange} onBlur={handleBlur}
+                    className="w-full px-3 py-2 bg-white dark:bg-slate-800 border border-slate-200 dark:border-white/10 rounded-xl text-xs text-slate-900 dark:text-white outline-none focus:ring-2 focus:ring-blue-600 appearance-none pr-8"
+                  >
+                    <option value="">Select your position</option>
+                    <option value="Deacon">Deacon</option>
+                    <option value="Local Evangelist">Local Evangelist</option>
+                    <option value="District Evangelist">District Evangelist</option>
+                    <option value="National Evangelist">National Evangelist</option>
+                    <option value="Assistant Priest">Assistant Priest</option>
+                    <option value="Priest">Priest</option>
+                    <option value="Elder">Elder</option>
+                    <option value="District Elder">District Elder</option>
+                    <option value="Bishop">Bishop</option>
+                    <option value="District Bishop">District Bishop</option>
+                    <option value="National Bishop">National Bishop</option>
+                    <option value="Apostle">Apostle</option>
+                  </select>
+                  <ChevronDown className="absolute right-3 top-1/2 -translate-y-1/2 text-slate-400 w-4 h-4 pointer-events-none" />
                 </div>
+                {touched.officerPosition && errors.officerPosition && (
+                  <span className="text-[11px] text-red-500 font-medium block">{errors.officerPosition}</span>
+                )}
+              </div>
 
-                <div className="user-signup-form-group">
-                  <label htmlFor="churchId" className="user-signup-form-label">Church ID:</label>
-                  <div className="user-signup-input-wrapper">
-                    <input
-                      id="churchId" name="churchId"
-                      value={formData.churchId}
-                      onChange={handleChange} onBlur={handleBlur}
-                      className={`user-signup-form-input user-signup-form-input--no-icon${touched.churchId && errors.churchId ? ' user-input-error' : (touched.churchId && !errors.churchId && formData.churchId ? ' user-input-success' : '')}`}
-                      placeholder="00-00-00"
-                      autoComplete="off"
-                    />
-                  </div>
-                  {touched.churchId && errors.churchId && (
-                    <span className="user-signup-error-text">{errors.churchId}</span>
-                  )}
-                </div>
+              <div className="space-y-1">
+                <label htmlFor="churchId" className="block text-xs font-semibold text-slate-700 dark:text-slate-300">Church ID:</label>
+                <input
+                  id="churchId" name="churchId"
+                  value={formData.churchId}
+                  onChange={handleChange} onBlur={handleBlur}
+                  className="w-full px-3.5 py-2 bg-white dark:bg-slate-800 border border-slate-200 dark:border-white/10 rounded-xl text-xs text-slate-900 dark:text-white outline-none focus:ring-2 focus:ring-blue-600"
+                  placeholder="00-00-00"
+                  autoComplete="off"
+                />
+                {touched.churchId && errors.churchId && (
+                  <span className="text-[11px] text-red-500 font-medium block">{errors.churchId}</span>
+                )}
               </div>
             </div>
           )}
 
           {/* Password Requirements Box */}
-          <div className="user-password-requirements-box">
-            <p className="user-password-requirements-title">Password must include:</p>
-            <ul className="user-password-requirements-list-v2">
-              <li className={!formData.password ? 'user-req-default' : (formData.password.length >= 8 ? 'user-req-met' : 'user-req-unmet')}>
-                Minimum 8 characters
+          <div className="p-3 rounded-xl bg-slate-50 dark:bg-slate-800/40 border border-slate-200 dark:border-white/10 space-y-1.5">
+            <p className="text-[11px] font-bold text-slate-700 dark:text-slate-300">Password must include:</p>
+            <ul className="grid grid-cols-1 sm:grid-cols-2 gap-1 text-[11px]">
+              <li className={!formData.password ? 'text-slate-400' : (formData.password.length >= 8 ? 'text-emerald-600 dark:text-emerald-400 font-bold' : 'text-red-500')}>
+                ✓ Minimum 8 characters
               </li>
-              <li className={!formData.password ? 'user-req-default' : (passwordUppercase.test(formData.password) ? 'user-req-met' : 'user-req-unmet')}>
-                At least 1 uppercase letter (A–Z)
+              <li className={!formData.password ? 'text-slate-400' : (passwordUppercase.test(formData.password) ? 'text-emerald-600 dark:text-emerald-400 font-bold' : 'text-red-500')}>
+                ✓ At least 1 uppercase letter (A–Z)
               </li>
-              <li className={!formData.password ? 'user-req-default' : (passwordLowercase.test(formData.password) ? 'user-req-met' : 'user-req-unmet')}>
-                At least 1 lowercase letter (a–z)
+              <li className={!formData.password ? 'text-slate-400' : (passwordLowercase.test(formData.password) ? 'text-emerald-600 dark:text-emerald-400 font-bold' : 'text-red-500')}>
+                ✓ At least 1 lowercase letter (a–z)
               </li>
-              <li className={!formData.password ? 'user-req-default' : (passwordNumber.test(formData.password) ? 'user-req-met' : 'user-req-unmet')}>
-                At least 1 number
+              <li className={!formData.password ? 'text-slate-400' : (passwordNumber.test(formData.password) ? 'text-emerald-600 dark:text-emerald-400 font-bold' : 'text-red-500')}>
+                ✓ At least 1 number
               </li>
-              <li className={!formData.password ? 'user-req-default' : (passwordSymbol.test(formData.password) ? 'user-req-met' : 'user-req-unmet')}>
-                At least 1 symbol (@ # $ % * _)
+              <li className={!formData.password ? 'text-slate-400' : (passwordSymbol.test(formData.password) ? 'text-emerald-600 dark:text-emerald-400 font-bold' : 'text-red-500')}>
+                ✓ At least 1 symbol (@ # $ % * _)
               </li>
             </ul>
           </div>
 
-          {/* ROW 4: Password + Confirm Password side-by-side */}
-          <div className="user-signup-form-row">
-            <div className="user-signup-form-group">
-              <label htmlFor="password" className="user-signup-form-label">Password:</label>
-              <div className="user-signup-input-wrapper">
+          {/* ROW 4: Password + Confirm Password */}
+          <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
+            <div className="space-y-1">
+              <label htmlFor="password" className="block text-xs font-semibold text-slate-700 dark:text-slate-300">Password:</label>
+              <div className="relative">
                 <input
                   id="password"
                   type={showPassword ? 'text' : 'password'}
                   name="password"
                   value={formData.password}
                   onChange={handleChange} onBlur={handleBlur}
-                  className={`user-signup-form-input user-signup-form-input--no-icon${touched.password && hasPasswordErrors ? ' user-input-error' : (touched.password && !hasPasswordErrors && formData.password ? ' user-input-success' : '')}`}
+                  className="w-full pl-3.5 pr-9 py-2.5 bg-slate-50 dark:bg-slate-800/60 border border-slate-200 dark:border-white/10 rounded-xl text-xs text-slate-900 dark:text-white outline-none focus:ring-2 focus:ring-blue-600"
                   placeholder="Create a password"
                   autoComplete="new-password"
                 />
-                <button type="button" onClick={() => setShowPassword(p => !p)} className="user-signup-password-toggle">
-                  {showPassword ? <EyeOff size={18} /> : <Eye size={18} />}
+                <button type="button" onClick={() => setShowPassword(p => !p)} className="absolute right-3 top-1/2 -translate-y-1/2 text-slate-400 hover:text-slate-600 dark:hover:text-white">
+                  {showPassword ? <EyeOff size={16} /> : <Eye size={16} />}
                 </button>
               </div>
             </div>
 
-            <div className="user-signup-form-group">
-              <label htmlFor="confirmPassword" className="user-signup-form-label">Confirm Password:</label>
-              <div className="user-signup-input-wrapper">
+            <div className="space-y-1">
+              <label htmlFor="confirmPassword" className="block text-xs font-semibold text-slate-700 dark:text-slate-300">Confirm Password:</label>
+              <div className="relative">
                 <input
                   id="confirmPassword"
                   type={showConfirmPassword ? 'text' : 'password'}
                   name="confirmPassword"
                   value={formData.confirmPassword}
                   onChange={handleChange} onBlur={handleBlur}
-                  className={`user-signup-form-input user-signup-form-input--no-icon${touched.confirmPassword && errors.confirmPassword ? ' user-input-error' : (touched.confirmPassword && !errors.confirmPassword && formData.confirmPassword ? ' user-input-success' : '')}`}
+                  className={`w-full pl-3.5 pr-9 py-2.5 bg-slate-50 dark:bg-slate-800/60 border ${touched.confirmPassword && errors.confirmPassword ? 'border-red-500' : 'border-slate-200 dark:border-white/10 focus:ring-blue-600'} rounded-xl text-xs text-slate-900 dark:text-white outline-none focus:ring-2`}
                   placeholder="Confirm your password"
                   autoComplete="new-password"
                 />
-                <button type="button" onClick={() => setShowConfirmPassword(p => !p)} className="user-signup-password-toggle">
-                  {showConfirmPassword ? <EyeOff size={18} /> : <Eye size={18} />}
+                <button type="button" onClick={() => setShowConfirmPassword(p => !p)} className="absolute right-3 top-1/2 -translate-y-1/2 text-slate-400 hover:text-slate-600 dark:hover:text-white">
+                  {showConfirmPassword ? <EyeOff size={16} /> : <Eye size={16} />}
                 </button>
               </div>
               {touched.confirmPassword && errors.confirmPassword && (
-                <span className="user-signup-error-text">{errors.confirmPassword}</span>
+                <span className="text-[11px] text-red-500 font-medium block">{errors.confirmPassword}</span>
               )}
             </div>
           </div>
 
           {/* TERMS */}
-          <div className="user-signup-checkbox-wrapper">
+          <div className="flex items-center gap-2 pt-1">
             <input
               type="checkbox"
               checked={isAllAgreed}
@@ -684,45 +698,35 @@ export default function SignupModal({ isOpen, onClose, onSwitchToLogin }) {
                 setAgreeTerms(checked);
                 setAgreePrivacy(checked);
               }}
-              className="user-signup-checkbox"
-              style={{ cursor: 'pointer', pointerEvents: 'auto' }}
+              className="w-4 h-4 text-blue-600 rounded border-slate-300 focus:ring-blue-500 cursor-pointer"
             />
-            <label className="user-signup-checkbox-label">
+            <label className="text-xs text-slate-600 dark:text-slate-400">
               I agree to the{' '}
-              <button type="button" onClick={() => setShowTerms(true)} className="user-signup-link">Terms and Conditions</button>
+              <button type="button" onClick={() => setShowTerms(true)} className="font-semibold text-blue-600 dark:text-blue-400 hover:underline">Terms and Conditions</button>
               {' and '}
-              <button type="button" onClick={() => setShowPrivacy(true)} className="user-signup-link">Privacy Policy</button>
+              <button type="button" onClick={() => setShowPrivacy(true)} className="font-semibold text-blue-600 dark:text-blue-400 hover:underline">Privacy Policy</button>
             </label>
           </div>
 
           {/* SUBMIT */}
-          <button type="submit" className="user-signup-submit-button" disabled={!isFormValid || loading}>
-            {loading ? <span className="btn-spinner" /> : 'Create Account'}
+          <button type="submit" className="w-full py-3 bg-blue-600 hover:bg-blue-700 active:bg-blue-800 disabled:opacity-50 text-white font-semibold rounded-xl shadow-md transition-all flex items-center justify-center text-xs" disabled={!isFormValid || loading}>
+            {loading ? <span className="w-4 h-4 border-2 border-white border-t-transparent rounded-full animate-spin inline-block" /> : 'Create Account'}
           </button>
         </form>
 
         {/* TERMS MODAL */}
         {showTerms && (
-          <div className="user-policy-modal-overlay" onClick={() => setShowTerms(false)}>
-            <div className="user-policy-modal-content" onClick={e => e.stopPropagation()}>
-              <div className="user-policy-modal-header">
-                <h3>Terms & Conditions</h3>
-                <button className="user-policy-close-x" onClick={() => setShowTerms(false)}>&times;</button>
+          <div className="fixed inset-0 z-[10000] bg-black/60 backdrop-blur-sm flex items-center justify-center p-4" onClick={() => setShowTerms(false)}>
+            <div className="relative w-full max-w-xl bg-white dark:bg-[#1E2130] rounded-2xl p-6 shadow-2xl border border-slate-200 dark:border-white/10 max-h-[80vh] overflow-y-auto" onClick={e => e.stopPropagation()}>
+              <div className="flex items-center justify-between pb-3 border-b border-slate-200 dark:border-white/10 mb-4">
+                <h3 className="font-bold text-slate-900 dark:text-white">Terms & Conditions</h3>
+                <button className="text-slate-400 hover:text-slate-600 dark:hover:text-white text-xl" onClick={() => setShowTerms(false)}>&times;</button>
               </div>
-              <div className="user-policy-modal-body">
-                <ol className="user-policy-list">
-                  <li><strong>Acceptance of Terms</strong><br />By accessing and using IsangDiwa, a loan management system developed for IsangDiwa, you agree to comply with and be bound by these Terms and Conditions. If you do not agree, you must discontinue use of the system.</li>
-                  <li><strong>Purpose of the System</strong><br />IsangDiwa is designed to facilitate transparent and accountable management of church-related loan applications, approvals, payments, and member records in support of responsible financial stewardship.</li>
-                  <li><strong>Authorized Users</strong><br />Only registered and approved church members, officers, and administrators are permitted to access IsangDiwa. Access rights are assigned based on user roles defined by church authorities.</li>
-                  <li><strong>User Responsibilities</strong><br />Users are responsible for maintaining the confidentiality of their login credentials and for all activities performed under their accounts. Any unauthorized use must be reported immediately.</li>
-                  <li><strong>Loan Application and Approval</strong><br />Submitting a loan application through IsangDiwa does not guarantee approval. All loan requests are subject to review, verification, and approval by authorized church officers in accordance with church policies.</li>
-                  <li><strong>Loan Terms, Interest, and Penalties</strong><br />Approved loans are governed by agreed terms, including loan amount, repayment schedule, interest rates, and applicable penalties for late payments. These details are displayed within the system and serve as the official reference.</li>
-                  <li><strong>Payments and Monitoring</strong><br />Borrowers are responsible for making payments on or before the due dates shown in IsangDiwa. The system provides automated monitoring of balances, payment history, and loan status for reference purposes.</li>
-                  <li><strong>AI Assistance Disclaimer</strong><br />IsangDiwa may include an AI-powered chatbot (GuideLy) to assist with inquiries related to loan status, payment schedules, and system navigation. The chatbot provides informational support only and does not replace official decisions made by church authorities.</li>
-                  <li><strong>Prohibited Use</strong><br />Users shall not misuse the system, attempt unauthorized access, manipulate records, or engage in activities that compromise the security or integrity of IsangDiwa.</li>
-                  <li><strong>Termination of Access</strong><br />The church reserves the right to suspend or terminate access to IsangDiwa for violations of these Terms and Conditions or other valid administrative reasons.</li>
-                  <li><strong>Limitation of Liability</strong><br />IsangDiwa is provided for administrative support purposes only. The church shall not be held liable for any direct or indirect damages arising from the use or inability to use the system.</li>
-                  <li><strong>Governing Principles</strong><br />IsangDiwa operates under the principles of faith, integrity, transparency, accountability, and responsible stewardship in alignment with church values.</li>
+              <div className="text-xs text-slate-600 dark:text-slate-300 space-y-3 leading-relaxed">
+                <ol className="list-decimal pl-4 space-y-2">
+                  <li><strong>Acceptance of Terms</strong><br />By accessing and using IsangDiwa, you agree to comply with these Terms and Conditions.</li>
+                  <li><strong>Purpose of the System</strong><br />IsangDiwa is designed to facilitate transparent management of church-related financial records and loan requests.</li>
+                  <li><strong>Authorized Users</strong><br />Only registered and approved church members, officers, and administrators are permitted to access IsangDiwa.</li>
                 </ol>
               </div>
             </div>
@@ -731,23 +735,16 @@ export default function SignupModal({ isOpen, onClose, onSwitchToLogin }) {
 
         {/* PRIVACY MODAL */}
         {showPrivacy && (
-          <div className="user-policy-modal-overlay" onClick={() => setShowPrivacy(false)}>
-            <div className="user-policy-modal-content" onClick={e => e.stopPropagation()}>
-              <div className="user-policy-modal-header">
-                <h3>Privacy Policy</h3>
-                <button className="user-policy-close-x" onClick={() => setShowPrivacy(false)}>&times;</button>
+          <div className="fixed inset-0 z-[10000] bg-black/60 backdrop-blur-sm flex items-center justify-center p-4" onClick={() => setShowPrivacy(false)}>
+            <div className="relative w-full max-w-xl bg-white dark:bg-[#1E2130] rounded-2xl p-6 shadow-2xl border border-slate-200 dark:border-white/10 max-h-[80vh] overflow-y-auto" onClick={e => e.stopPropagation()}>
+              <div className="flex items-center justify-between pb-3 border-b border-slate-200 dark:border-white/10 mb-4">
+                <h3 className="font-bold text-slate-900 dark:text-white">Privacy Policy</h3>
+                <button className="text-slate-400 hover:text-slate-600 dark:hover:text-white text-xl" onClick={() => setShowPrivacy(false)}>&times;</button>
               </div>
-              <div className="user-policy-modal-body">
-                <ol className="user-policy-list">
-                  <li><strong>Data Collection</strong><br />IsangDiwa collects personal information such as names, contact details, loan records, payment history, and system usage data necessary for loan management and administrative purposes.</li>
-                  <li><strong>Use of Information</strong><br />Collected information is used solely to process loan applications, monitor payments, maintain records, provide system support, and improve IsangDiwa services.</li>
-                  <li><strong>Data Protection and Security</strong><br />IsangDiwa implements reasonable administrative, technical, and organizational measures to protect personal data against unauthorized access, alteration, disclosure, or loss.</li>
-                  <li><strong>Data Privacy Compliance</strong><br />All personal data is processed in accordance with the Data Privacy Act of 2012 (Republic Act No. 10173) and its implementing rules and regulations.</li>
-                  <li><strong>Data Sharing</strong><br />Personal information shall not be shared with third parties except when required by law or authorized by church administration for official purposes.</li>
-                  <li><strong>User Rights</strong><br />Users have the right to access, correct, and request updates to their personal information in accordance with applicable data privacy laws.</li>
-                  <li><strong>Data Retention</strong><br />Personal data is retained only for as long as necessary to fulfill the purposes of the system or as required by church policy and applicable laws.</li>
-                  <li><strong>Changes to the Privacy Policy</strong><br />The church reserves the right to update this Privacy Policy as needed. Users will be informed of significant changes, and continued use of IsangDiwa constitutes acceptance of the updated policy.</li>
-                  <li><strong>Contact Information</strong><br />For questions or concerns regarding these Terms and Conditions or the Privacy Policy, users may contact the church administration through official communication channels.</li>
+              <div className="text-xs text-slate-600 dark:text-slate-300 space-y-3 leading-relaxed">
+                <ol className="list-decimal pl-4 space-y-2">
+                  <li><strong>Data Collection</strong><br />IsangDiwa collects personal information necessary for membership and administrative purposes.</li>
+                  <li><strong>Data Protection</strong><br />All personal data is processed in accordance with applicable data privacy regulations.</li>
                 </ol>
               </div>
             </div>

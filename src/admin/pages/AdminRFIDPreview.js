@@ -4,7 +4,6 @@ import { toast } from 'sonner';
 import API from '../../utils/api';
 import { Play, Square, XCircle, ArrowLeft } from 'lucide-react';
 import QRCode from 'react-qr-code';
-import '../styles/AdminRFIDPreview.css';
 
 function StartServiceModal({ onClose, onSave }) {
   const [form, setForm] = useState({
@@ -46,22 +45,22 @@ function StartServiceModal({ onClose, onSave }) {
   };
 
   return (
-    <div className="admin-att-modal-overlay" onClick={onClose}>
-      <div className="admin-att-modal" onClick={e => e.stopPropagation()}>
-        <div className="admin-att-modal-header">
-          <div className="admin-att-modal-icon bg-green-100 text-green-600">
+    <div className="fixed inset-0 bg-black/50 backdrop-blur-sm z-[1000] flex items-center justify-center p-4" onClick={onClose}>
+      <div className="bg-white dark:bg-[#1E2130] rounded-2xl w-full max-w-[500px] shadow-2xl border border-slate-200 dark:border-white/10 flex flex-col overflow-hidden" onClick={e => e.stopPropagation()}>
+        <div className="flex flex-col items-center p-6 border-b border-slate-200 dark:border-white/10 shrink-0 relative">
+          <div className="w-14 h-14 rounded-2xl bg-emerald-100 text-emerald-600 dark:bg-emerald-500/20 dark:text-emerald-400 flex items-center justify-center shadow-sm mx-auto mb-4">
             <Play size={20} />
           </div>
-          <div className="admin-att-modal-title-group">
-            <h2 className="admin-att-modal-title">Start Service Session</h2>
-            <p className="admin-att-modal-subtitle">Initialize a new check-in period</p>
+          <div className="flex flex-col text-center">
+            <h2 className="m-0 font-inter text-lg font-bold text-slate-800 dark:text-white">Start Service Session</h2>
+            <p className="m-0 font-inter text-[13px] text-slate-500 dark:text-slate-400 mt-1">Initialize a new check-in period</p>
           </div>
-          <button className="admin-att-modal-close" onClick={onClose}><XCircle size={20} color="#6B7280" /></button>
+          <button className="absolute top-4 right-4 w-8 h-8 flex items-center justify-center rounded-lg bg-transparent text-slate-400 hover:bg-slate-100 dark:hover:bg-white/5 transition-colors border-none cursor-pointer" onClick={onClose}><XCircle size={20} color="#6B7280" /></button>
         </div>
-        <div className="admin-att-modal-body">
-          <div className="admin-att-form-group">
-            <label className="admin-att-label">Branch</label>
-            <select name="branch" value={form.branch} onChange={handleChange} className="admin-att-select">
+        <div className="p-6 flex flex-col gap-5">
+          <div className="flex flex-col gap-1.5">
+            <label className="font-inter text-[13px] font-semibold text-slate-700 dark:text-slate-300">Branch</label>
+            <select name="branch" value={form.branch} onChange={handleChange} className="h-10 px-3 pr-8 appearance-none bg-white dark:bg-[#161922] border border-slate-300 dark:border-white/10 rounded-lg text-sm font-inter text-slate-800 dark:text-white outline-none focus:border-blue-500 transition-colors bg-[url('data:image/svg+xml;charset=US-ASCII,%3Csvg%20xmlns%3D%22http%3A%2F%2Fwww.w3.org%2F2000%2Fsvg%22%20width%3D%2216%22%20height%3D%2216%22%20viewBox%3D%220%200%2024%2024%22%20fill%3D%22none%22%20stroke%3D%22%236B7280%22%20stroke-width%3D%222%22%20stroke-linecap%3D%22round%22%20stroke-linejoin%3D%22round%22%3E%3Cpolyline%20points%3D%226%209%2012%2015%2018%209%22%3E%3C%2Fpolyline%3E%3C%2Fsvg%3E')] bg-[length:16px] bg-[position:right_12px_center] bg-no-repeat w-full">
               <optgroup label="Kalinga">
                 <option>Tabuk</option><option>Zapote</option><option>Bliss</option>
                 <option>Libanon</option><option>Batong Buhay</option><option>Balatoc</option><option>Lat-nog</option>
@@ -107,26 +106,26 @@ function StartServiceModal({ onClose, onSave }) {
               <optgroup label="Surigao Del Sur"><option>Kinabigtasan, Tago</option></optgroup>
             </select>
           </div>
-          <div className="admin-att-form-group">
-            <label className="admin-att-label">Service Type</label>
-            <select name="serviceType" value={form.serviceType} onChange={handleChange} className="admin-att-select">
+          <div className="flex flex-col gap-1.5">
+            <label className="font-inter text-[13px] font-semibold text-slate-700 dark:text-slate-300">Service Type</label>
+            <select name="serviceType" value={form.serviceType} onChange={handleChange} className="h-10 px-3 pr-8 appearance-none bg-white dark:bg-[#161922] border border-slate-300 dark:border-white/10 rounded-lg text-sm font-inter text-slate-800 dark:text-white outline-none focus:border-blue-500 transition-colors bg-[url('data:image/svg+xml;charset=US-ASCII,%3Csvg%20xmlns%3D%22http%3A%2F%2Fwww.w3.org%2F2000%2Fsvg%22%20width%3D%2216%22%20height%3D%2216%22%20viewBox%3D%220%200%2024%2024%22%20fill%3D%22none%22%20stroke%3D%22%236B7280%22%20stroke-width%3D%222%22%20stroke-linecap%3D%22round%22%20stroke-linejoin%3D%22round%22%3E%3Cpolyline%20points%3D%226%209%2012%2015%2018%209%22%3E%3C%2Fpolyline%3E%3C%2Fsvg%3E')] bg-[length:16px] bg-[position:right_12px_center] bg-no-repeat w-full">
               {serviceTypes.map(s => <option key={s} value={s}>{s}</option>)}
             </select>
           </div>
-          <div className="admin-att-form-row">
-            <div className="admin-att-form-group">
-              <label className="admin-att-label">Date</label>
-              <input type="date" name="date" value={form.date} onChange={handleChange} min={new Date().toISOString().split('T')[0]} className="admin-att-input" />
+          <div className="grid grid-cols-2 gap-4">
+            <div className="flex flex-col gap-1.5">
+              <label className="font-inter text-[13px] font-semibold text-slate-700 dark:text-slate-300">Date</label>
+              <input type="date" name="date" value={form.date} onChange={handleChange} min={new Date().toISOString().split('T')[0]} className="h-10 px-3 bg-white dark:bg-[#161922] border border-slate-300 dark:border-white/10 rounded-lg text-sm font-inter text-slate-800 dark:text-white outline-none focus:border-blue-500 transition-all w-full" />
             </div>
-            <div className="admin-att-form-group">
-              <label className="admin-att-label">Time</label>
-              <input type="time" name="time" value={form.time} onChange={handleChange} className="admin-att-input" />
+            <div className="flex flex-col gap-1.5">
+              <label className="font-inter text-[13px] font-semibold text-slate-700 dark:text-slate-300">Time</label>
+              <input type="time" name="time" value={form.time} onChange={handleChange} className="h-10 px-3 bg-white dark:bg-[#161922] border border-slate-300 dark:border-white/10 rounded-lg text-sm font-inter text-slate-800 dark:text-white outline-none focus:border-blue-500 transition-all w-full" />
             </div>
           </div>
         </div>
-        <div className="admin-att-modal-footer">
-          <button className="admin-att-btn-cancel" onClick={onClose} disabled={saving}>Cancel</button>
-          <button className="admin-att-btn-submit" onClick={handleSubmit} disabled={saving}>
+        <div className="p-5 border-t border-slate-200 dark:border-white/10 bg-slate-50 dark:bg-black/20 flex items-center justify-end gap-3 shrink-0">
+          <button className="h-10 px-4 rounded-lg font-inter text-sm font-semibold transition-all border border-slate-300 dark:border-white/10 bg-white dark:bg-[#1E2130] text-slate-700 dark:text-slate-300 hover:bg-slate-50 dark:hover:bg-white/5 cursor-pointer min-w-[100px]" onClick={onClose} disabled={saving}>Cancel</button>
+          <button className="h-10 px-4 rounded-lg font-inter text-sm font-semibold transition-all border-none bg-emerald-600 text-white hover:bg-emerald-700 cursor-pointer flex items-center justify-center min-w-[100px] gap-2" onClick={handleSubmit} disabled={saving}>
             {saving ? 'Starting...' : 'Start Session'}
           </button>
         </div>
@@ -137,25 +136,25 @@ function StartServiceModal({ onClose, onSave }) {
 
 function EndSessionModal({ onClose, onConfirm }) {
   return (
-    <div className="admin-att-modal-overlay" onClick={onClose}>
-      <div className="admin-att-modal" onClick={e => e.stopPropagation()}>
-        <div className="admin-att-modal-header">
-          <div className="admin-att-modal-icon admin-rfid-modal-icon-danger">
+    <div className="fixed inset-0 bg-black/50 backdrop-blur-sm z-[1000] flex items-center justify-center p-4" onClick={onClose}>
+      <div className="bg-white dark:bg-[#1E2130] rounded-2xl w-full max-w-[500px] shadow-2xl border border-slate-200 dark:border-white/10 flex flex-col overflow-hidden" onClick={e => e.stopPropagation()}>
+        <div className="flex flex-col items-center p-6 border-b border-slate-200 dark:border-white/10 shrink-0 relative">
+          <div className="w-14 h-14 rounded-2xl bg-rose-100 text-rose-600 dark:bg-rose-500/20 dark:text-rose-400 flex items-center justify-center shadow-sm mx-auto mb-4">
             <Square size={20} />
           </div>
-          <div className="admin-att-modal-title-group">
-            <h2 className="admin-att-modal-title">End Service Session</h2>
-            <p className="admin-att-modal-subtitle">Are you sure you want to end this session?</p>
+          <div className="flex flex-col text-center">
+            <h2 className="m-0 font-inter text-lg font-bold text-slate-800 dark:text-white">End Service Session</h2>
+            <p className="m-0 font-inter text-[13px] text-slate-500 dark:text-slate-400 mt-1">Are you sure you want to end this session?</p>
           </div>
         </div>
-        <div className="admin-att-modal-body">
-          <p className="admin-rfid-modal-warning-text">
+        <div className="p-6 flex flex-col gap-5">
+          <p className="text-slate-600 dark:text-slate-400 text-sm font-inter text-center leading-relaxed">
             Ending this session will stop accepting new check-ins. All unregistered members from this branch will automatically be marked as <strong>Absent</strong>. This action cannot be undone.
           </p>
         </div>
-        <div className="admin-att-modal-footer">
-          <button className="admin-att-btn-cancel" onClick={onClose}>Cancel</button>
-          <button className="admin-att-btn-danger admin-rfid-modal-btn-small" onClick={onConfirm}>End Session</button>
+        <div className="p-5 border-t border-slate-200 dark:border-white/10 bg-slate-50 dark:bg-black/20 flex items-center justify-end gap-3 shrink-0">
+          <button className="h-10 px-4 rounded-lg font-inter text-sm font-semibold transition-all border border-slate-300 dark:border-white/10 bg-white dark:bg-[#1E2130] text-slate-700 dark:text-slate-300 hover:bg-slate-50 dark:hover:bg-white/5 cursor-pointer min-w-[100px]" onClick={onClose}>Cancel</button>
+          <button className="h-10 px-4 rounded-lg font-inter text-sm font-semibold transition-all border-none bg-rose-600 text-white hover:bg-rose-700 cursor-pointer min-w-[100px]" onClick={onConfirm}>End Session</button>
         </div>
       </div>
     </div>
@@ -326,44 +325,44 @@ export default function AdminRFIDPreview() {
   };
 
   return (
-    <div className="admin-rfid-container">
+    <div className="min-h-screen bg-slate-100 dark:bg-[#161922] flex flex-col items-center pt-[10vh] px-4">
       {showStartModal && <StartServiceModal onClose={() => setShowStartModal(false)} onSave={() => { setShowStartModal(false); fetchActiveSessions(); }} />}
       {showEndModal && <EndSessionModal onClose={() => setShowEndModal(false)} onConfirm={endSession} />}
 
-      <div className="admin-rfid-header">
+      <div className="flex flex-col items-center mb-8">
         <h2>IsangDiwa RFID System</h2>
-        <button className="admin-rfid-logout" style={{ display: 'flex', alignItems: 'center' }} onClick={handleBack}>
+        <button className="absolute top-6 right-6 h-10 px-4 rounded-lg font-inter text-sm font-semibold transition-all border border-slate-300 dark:border-white/10 bg-white dark:bg-[#1E2130] text-slate-700 dark:text-slate-300 hover:bg-slate-50 dark:hover:bg-white/5 cursor-pointer flex items-center gap-2" style={{ display: 'flex', alignItems: 'center' }} onClick={handleBack}>
           <ArrowLeft size={16} style={{ marginRight: '6px' }} />
           Back
         </button>
       </div>
 
-      <div className="admin-rfid-content">
+      <div className="bg-white dark:bg-[#1E2130] w-full max-w-[500px] rounded-2xl shadow-xl border border-slate-200 dark:border-white/10 p-8 flex flex-col items-center text-center">
         {selectedSession && (
           <div style={{ display: 'flex', gap: '24px', alignItems: 'stretch', marginBottom: '24px' }}>
-            <div className="admin-rfid-tapped-user" style={{ flex: 1, margin: 0 }}>
+            <div className="flex flex-col items-center animate-in fade-in zoom-in duration-300" style={{ flex: 1, margin: 0 }}>
               {lastTappedUser ? (
                 <>
                   <img
                     src={lastTappedUser.profilePicture ? `${API}${lastTappedUser.profilePicture}` : `https://ui-avatars.com/api/?name=${encodeURIComponent(lastTappedUser.name)}&background=0D1F45&color=fff`}
                     alt="User"
-                    className="admin-rfid-user-avatar"
+                    className="w-24 h-24 rounded-full mb-4 object-cover border-4 border-white dark:border-[#1E2130] shadow-md"
                     onError={(e) => { e.target.src = `https://ui-avatars.com/api/?name=${encodeURIComponent(lastTappedUser.name)}&background=0D1F45&color=fff` }}
                   />
-                  <div className="admin-rfid-user-details">
-                    <h3 className="admin-rfid-user-name">{lastTappedUser.name}</h3>
-                    <span className="admin-rfid-user-branch">{lastTappedUser.branch}</span>
-                    <span className={`admin-rfid-user-status ${lastTappedUser.alreadyLogged ? 'status-already' : (lastTappedUser.status === 'Present' ? 'status-present' : 'status-late')}`}>
+                  <div className="flex flex-col items-center">
+                    <h3 className="m-0 font-inter text-2xl font-bold text-slate-800 dark:text-white">{lastTappedUser.name}</h3>
+                    <span className="m-0 font-inter text-sm text-slate-500 dark:text-slate-400 mt-1">{lastTappedUser.branch}</span>
+                    <span className={`inline-flex items-center px-2.5 py-1 rounded-full text-[11px] font-bold tracking-wide uppercase ${lastTappedUser.alreadyLogged ? 'bg-blue-100 text-blue-700 dark:bg-blue-500/20 dark:text-blue-400' : (lastTappedUser.status === 'Present' ? 'bg-emerald-100 text-emerald-700 dark:bg-emerald-500/20 dark:text-emerald-400' : 'bg-amber-100 text-amber-700 dark:bg-amber-500/20 dark:text-amber-400')}`}>
                       {lastTappedUser.alreadyLogged ? 'Already Checked In' : `Checked in as ${lastTappedUser.status}`}
                     </span>
                   </div>
                 </>
               ) : (
-                <div className="admin-rfid-empty-state">
-                  <div className="admin-rfid-empty-avatar">
-                    <span className="admin-rfid-empty-icon">?</span>
+                <div className="flex flex-col items-center text-center py-8">
+                  <div className="w-24 h-24 rounded-full mb-4 bg-blue-100 dark:bg-blue-500/20 text-blue-600 dark:text-blue-400 flex items-center justify-center text-3xl font-bold border-4 border-white dark:border-[#1E2130] shadow-md">
+                    <span className="w-20 h-20 bg-slate-50 dark:bg-white/5 rounded-full flex items-center justify-center text-slate-300 dark:text-slate-600 mb-6">?</span>
                   </div>
-                  <span className="admin-rfid-empty-text">Waiting for next tap...</span>
+                  <span className="m-0 font-inter text-lg font-semibold text-slate-600 dark:text-slate-400">Waiting for next tap...</span>
                 </div>
               )}
             </div>
@@ -375,7 +374,7 @@ export default function AdminRFIDPreview() {
           </div>
         )}
 
-        <div className={`admin-att-scanner-panel ${selectedSession ? 'active' : 'idle'}`}>
+        <div className={`flex flex-col items-center justify-center p-10 bg-white dark:bg-[#1E2130] rounded-xl border border-slate-200 dark:border-white/10 shadow-lg w-full max-w-[600px] gap-6 transition-all ${selectedSession ? 'ring-2 ring-blue-500/50 shadow-blue-500/10' : 'opacity-80'}`}>
           <div className="scanner-status">
             <div className="pulse-indicator"></div>
             <h3>{selectedSession ? 'Scanner Active. Ready for Taps.' : 'Scanner Idle. Start a service to scan cards.'}</h3>
@@ -395,13 +394,13 @@ export default function AdminRFIDPreview() {
           )}
         </div>
 
-        <div className="admin-rfid-actions">
+        <div className="mt-8 flex items-center gap-4">
           {selectedSession ? (
-            <button className="admin-att-btn-danger admin-rfid-action-btn" onClick={() => confirmEndSession(selectedSession.sessionId)}>
+            <button className="h-12 px-6 rounded-xl font-inter text-base font-semibold transition-all border-none bg-rose-600 text-white hover:bg-rose-700 cursor-pointer shadow-sm w-full sm:w-auto" onClick={() => confirmEndSession(selectedSession.sessionId)}>
               <Square size={20} /> End Session
             </button>
           ) : (
-            <button className="admin-att-btn-primary admin-rfid-action-btn" onClick={() => setShowStartModal(true)}>
+            <button className="h-12 px-6 rounded-xl font-inter text-base font-semibold transition-all border-none bg-emerald-600 text-white hover:bg-emerald-700 cursor-pointer shadow-sm w-full sm:w-auto" onClick={() => setShowStartModal(true)}>
               <Play size={20} /> Start Service
             </button>
           )}

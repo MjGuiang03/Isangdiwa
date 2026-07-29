@@ -2,10 +2,8 @@ import { useState, useEffect } from 'react';
 import { useNavigate } from 'react-router';
 import { toast } from 'sonner';
 import SecretaryAdminSidebar from '../components/secretaryAdminSidebar';
-
-import '../../admin/styles/AdminSettings.css';
-import '../styles/secretaryAdminSettings.css';
-import { User, Lock, Bell, LogOut, Eye, EyeOff } from 'lucide-react';
+import { useTheme } from '../../context/ThemeContext';
+import { User, Lock, Bell, Moon, LogOut, Eye, EyeOff, Save, CheckCircle2 } from 'lucide-react';
 import API from '../../utils/api';
 
 /* ── Password strength helper ────────────────────────────────────────────── */
@@ -24,16 +22,15 @@ function getStrength(pw) {
 function StrengthBar({ password }) {
     const { level, label } = getStrength(password);
     if (!password) return null;
-    const cls = level === 1 ? 'weak' : level === 2 ? 'medium' : 'strong';
     return (
-        <>
-            <div className="sec-settings-strength-bar">
-                <div className={`sec-settings-strength-seg ${level >= 1 ? cls : ''}`} />
-                <div className={`sec-settings-strength-seg ${level >= 2 ? cls : ''}`} />
-                <div className={`sec-settings-strength-seg ${level >= 3 ? cls : ''}`} />
+        <div className="mt-2">
+            <div className="flex gap-1.5 h-1.5 mb-1">
+                <div className={`flex-1 rounded-full transition-colors ${level >= 1 ? (level === 1 ? 'bg-rose-500' : level === 2 ? 'bg-amber-500' : 'bg-emerald-500') : 'bg-slate-200 dark:bg-white/10'}`} />
+                <div className={`flex-1 rounded-full transition-colors ${level >= 2 ? (level === 1 ? 'bg-rose-500' : level === 2 ? 'bg-amber-500' : 'bg-emerald-500') : 'bg-slate-200 dark:bg-white/10'}`} />
+                <div className={`flex-1 rounded-full transition-colors ${level >= 3 ? (level === 1 ? 'bg-rose-500' : level === 2 ? 'bg-amber-500' : 'bg-emerald-500') : 'bg-slate-200 dark:bg-white/10'}`} />
             </div>
-            <p className="sec-settings-strength-label">{label} password</p>
-        </>
+            <p className="text-[11px] font-semibold text-slate-500 dark:text-slate-400 uppercase tracking-wider m-0">{label} password</p>
+        </div>
     );
 }
 
@@ -65,6 +62,7 @@ const NOTIF_META = [
 /* ── Main Component ──────────────────────────────────────────────────────── */
 export default function SecretaryLoanSettings() {
     const navigate = useNavigate();
+    const { theme, toggleTheme } = useTheme();
 
     const token = localStorage.getItem('secretaryToken')
                || localStorage.getItem('adminToken')
@@ -93,7 +91,6 @@ export default function SecretaryLoanSettings() {
             return NOTIF_DEFAULTS;
         }
     });
-    const [notifSaving, setNotifSaving] = useState(false);
 
     /* ── Load profile from API ─────────────────────────────────────────── */
     useEffect(() => {
@@ -109,7 +106,6 @@ export default function SecretaryLoanSettings() {
                 }
             })
             .catch(() => {
-                // Fallback to localStorage
                 setSecName(localStorage.getItem('adminName') || '');
                 setSecEmail(localStorage.getItem('adminEmail') || '');
             });
@@ -178,20 +174,13 @@ export default function SecretaryLoanSettings() {
         }
     };
 
-    const handleSaveNotifPrefs = () => {
-        setNotifSaving(true);
-        try {
-            localStorage.setItem('sec_notif_prefs', JSON.stringify(notifPrefs));
-            toast.success('Notification preferences saved');
-        } catch {
-            toast.error('Could not save preferences');
-        } finally {
-            setNotifSaving(false);
-        }
-    };
-
     const toggleNotif = (key) => {
-        setNotifPrefs(prev => ({ ...prev, [key]: !prev[key] }));
+        setNotifPrefs(prev => {
+            const updated = { ...prev, [key]: !prev[key] };
+            localStorage.setItem('sec_notif_prefs', JSON.stringify(updated));
+            toast.success('Notification preferences saved');
+            return updated;
+        });
     };
 
     const handleLogout = () => {
@@ -200,95 +189,93 @@ export default function SecretaryLoanSettings() {
         localStorage.removeItem('adminToken');
         localStorage.removeItem('adminEmail');
         localStorage.removeItem('adminName');
+        toast.success('Signed out successfully');
         navigate('/');
     };
 
     /* ── Render ────────────────────────────────────────────────────────── */
     return (
-        <div className="sec-settings-page">
+        <div className="flex h-screen overflow-hidden bg-slate-100 dark:bg-[#161922]">
             <SecretaryAdminSidebar />
 
-            <div className="sec-settings-content">
-                <div className="admin-settings-main">
+            <div className="flex-1 overflow-y-auto p-6 bg-slate-100 dark:bg-[#161922]">
+                <div className="flex flex-col gap-6 max-w-[1000px] mx-auto w-full min-h-screen">
 
                     {/* Header */}
-                    <div className="admin-settings-header">
-                        <h1 className="admin-settings-title">Settings</h1>
-                        <p className="admin-settings-subtitle">Manage your profile, security, and notification preferences</p>
+                    <div className="flex flex-col gap-1">
+                        <h1 className="m-0 font-inter text-2xl font-bold text-slate-800 dark:text-white">Secretary Settings</h1>
+                        <p className="m-0 font-inter text-sm text-slate-500 dark:text-slate-400">Manage your profile, security credentials, appearance, and notification preferences</p>
                     </div>
 
                     {/* ── 1. Personal Profile ──────────────────────────────── */}
-                    <div className="admin-settings-section">
-                        <div className="admin-settings-section-header">
-                            <div className="admin-settings-section-icon admin-settings-section-icon-blue">
-                                <User size={18} />
+                    <div className="bg-white dark:bg-[#1E2130] border border-slate-200 dark:border-white/10 rounded-2xl p-6 shadow-sm flex flex-col gap-6 relative">
+                        <div className="flex items-center gap-4 pb-4 border-b border-slate-100 dark:border-white/5">
+                            <div className="w-12 h-12 rounded-xl flex items-center justify-center shrink-0 bg-blue-50 text-blue-600 dark:bg-blue-500/20 dark:text-blue-400 border border-blue-200/50 dark:border-blue-500/30">
+                                <User size={22} />
                             </div>
-                            <div className="admin-settings-section-title-wrapper">
-                                <h3 className="admin-settings-section-title">Personal Profile</h3>
-                                <p className="admin-settings-section-description">Update your display name and email address</p>
+                            <div className="flex flex-col">
+                                <h2 className="m-0 font-inter text-base font-bold text-slate-800 dark:text-white">Personal Profile</h2>
+                                <p className="m-0 font-inter text-xs text-slate-500 dark:text-slate-400 mt-0.5">Update your display name and registered email address</p>
                             </div>
                         </div>
 
-                        <div className="admin-settings-form-row">
-                            <div className="admin-settings-form-group">
-                                <label className="admin-settings-form-label">Full Name</label>
+                        <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+                            <div className="flex flex-col gap-1">
+                                <label className="font-inter text-xs font-semibold text-slate-700 dark:text-slate-300 uppercase tracking-wider mb-1">Full Name</label>
                                 <input
                                     type="text"
-                                    className="admin-settings-form-input"
+                                    className="h-10 px-3.5 bg-slate-50 dark:bg-[#161922] border border-slate-200 dark:border-white/10 rounded-xl text-sm font-inter text-slate-800 dark:text-white outline-none focus:border-blue-500 focus:bg-white dark:focus:bg-[#161922] transition-all w-full"
                                     placeholder="Your full name"
                                     value={secName}
                                     onChange={(e) => setSecName(e.target.value)}
                                 />
                             </div>
-                            <div className="admin-settings-form-group">
-                                <label className="admin-settings-form-label">Email Address</label>
+                            <div className="flex flex-col gap-1">
+                                <label className="font-inter text-xs font-semibold text-slate-700 dark:text-slate-300 uppercase tracking-wider mb-1">Email Address</label>
                                 <input
                                     type="email"
-                                    className="admin-settings-form-input"
-                                    placeholder="you@church.com"
+                                    className="h-10 px-3.5 bg-slate-100 dark:bg-white/5 border border-slate-200 dark:border-white/10 rounded-xl text-sm font-inter text-slate-500 dark:text-slate-400 outline-none w-full opacity-70 cursor-not-allowed"
                                     value={secEmail}
                                     disabled
-                                    title="Email cannot be changed here"
                                 />
                             </div>
                         </div>
 
-                        <div className="sec-settings-actions">
-                            <button
-                                className="admin-settings-save-btn"
-                                onClick={handleSaveProfile}
-                                disabled={profileSaving}
-                            >
-                                {profileSaving ? 'Saving…' : 'Save Profile'}
-                            </button>
-                        </div>
+                        <button
+                            className="h-10 px-6 rounded-xl font-inter text-sm font-semibold transition-all border-none bg-blue-600 text-white hover:bg-blue-700 cursor-pointer shadow-sm flex items-center justify-center gap-2 w-fit mt-1"
+                            onClick={handleSaveProfile}
+                            disabled={profileSaving}
+                        >
+                            <Save size={16} />
+                            {profileSaving ? 'Saving…' : 'Save Profile'}
+                        </button>
                     </div>
 
-                    {/* ── 2. Change Password ───────────────────────────────── */}
-                    <div className="admin-settings-section">
-                        <div className="admin-settings-section-header">
-                            <div className="admin-settings-section-icon admin-settings-section-icon-purple">
-                                <Lock size={18} />
+                    {/* ── 2. Security & Password ───────────────────────────────── */}
+                    <div className="bg-white dark:bg-[#1E2130] border border-slate-200 dark:border-white/10 rounded-2xl p-6 shadow-sm flex flex-col gap-6 relative">
+                        <div className="flex items-center gap-4 pb-4 border-b border-slate-100 dark:border-white/5">
+                            <div className="w-12 h-12 rounded-xl flex items-center justify-center shrink-0 bg-emerald-50 text-emerald-600 dark:bg-emerald-500/20 dark:text-emerald-400 border border-emerald-200/50 dark:border-emerald-500/30">
+                                <Lock size={22} />
                             </div>
-                            <div className="admin-settings-section-title-wrapper">
-                                <h3 className="admin-settings-section-title">Change Password</h3>
-                                <p className="admin-settings-section-description">Choose a strong password to keep your account secure</p>
+                            <div className="flex flex-col">
+                                <h2 className="m-0 font-inter text-base font-bold text-slate-800 dark:text-white">Security & Password</h2>
+                                <p className="m-0 font-inter text-xs text-slate-500 dark:text-slate-400 mt-0.5">Choose a strong password to keep your account protected</p>
                             </div>
                         </div>
 
-                        <div className="admin-settings-form-group">
-                            <label className="admin-settings-form-label">Current Password</label>
-                            <div className="sec-settings-pw-wrap">
+                        <div className="flex flex-col gap-1">
+                            <label className="font-inter text-xs font-semibold text-slate-700 dark:text-slate-300 uppercase tracking-wider mb-1">Current Password</label>
+                            <div className="relative w-full">
                                 <input
                                     type={showCurrent ? 'text' : 'password'}
-                                    className="admin-settings-form-input"
+                                    className="h-10 pl-3.5 pr-10 bg-slate-50 dark:bg-[#161922] border border-slate-200 dark:border-white/10 rounded-xl text-sm font-inter text-slate-800 dark:text-white outline-none focus:border-blue-500 focus:bg-white dark:focus:bg-[#161922] transition-all w-full"
                                     placeholder="Enter current password"
                                     value={currentPw}
                                     onChange={(e) => setCurrentPw(e.target.value)}
                                 />
                                 <button
                                     type="button"
-                                    className="sec-settings-pw-eye"
+                                    className="absolute right-3 top-1/2 -translate-y-1/2 bg-transparent border-none text-slate-400 cursor-pointer hover:text-slate-600 dark:hover:text-slate-300 p-0 flex items-center justify-center"
                                     onClick={() => setShowCurrent(v => !v)}
                                 >
                                     {showCurrent ? <EyeOff size={16} /> : <Eye size={16} />}
@@ -296,20 +283,20 @@ export default function SecretaryLoanSettings() {
                             </div>
                         </div>
 
-                        <div className="admin-settings-form-row">
-                            <div className="admin-settings-form-group">
-                                <label className="admin-settings-form-label">New Password</label>
-                                <div className="sec-settings-pw-wrap">
+                        <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+                            <div className="flex flex-col gap-1">
+                                <label className="font-inter text-xs font-semibold text-slate-700 dark:text-slate-300 uppercase tracking-wider mb-1">New Password</label>
+                                <div className="relative w-full">
                                     <input
                                         type={showNew ? 'text' : 'password'}
-                                        className="admin-settings-form-input"
+                                        className="h-10 pl-3.5 pr-10 bg-slate-50 dark:bg-[#161922] border border-slate-200 dark:border-white/10 rounded-xl text-sm font-inter text-slate-800 dark:text-white outline-none focus:border-blue-500 focus:bg-white dark:focus:bg-[#161922] transition-all w-full"
                                         placeholder="Min. 8 characters"
                                         value={newPw}
                                         onChange={(e) => setNewPw(e.target.value)}
                                     />
                                     <button
                                         type="button"
-                                        className="sec-settings-pw-eye"
+                                        className="absolute right-3 top-1/2 -translate-y-1/2 bg-transparent border-none text-slate-400 cursor-pointer hover:text-slate-600 dark:hover:text-slate-300 p-0 flex items-center justify-center"
                                         onClick={() => setShowNew(v => !v)}
                                     >
                                         {showNew ? <EyeOff size={16} /> : <Eye size={16} />}
@@ -318,106 +305,120 @@ export default function SecretaryLoanSettings() {
                                 <StrengthBar password={newPw} />
                             </div>
 
-                            <div className="admin-settings-form-group">
-                                <label className="admin-settings-form-label">Confirm New Password</label>
-                                <div className="sec-settings-pw-wrap">
+                            <div className="flex flex-col gap-1">
+                                <label className="font-inter text-xs font-semibold text-slate-700 dark:text-slate-300 uppercase tracking-wider mb-1">Confirm New Password</label>
+                                <div className="relative w-full">
                                     <input
                                         type={showConfirm ? 'text' : 'password'}
-                                        className="admin-settings-form-input"
+                                        className="h-10 pl-3.5 pr-10 bg-slate-50 dark:bg-[#161922] border border-slate-200 dark:border-white/10 rounded-xl text-sm font-inter text-slate-800 dark:text-white outline-none focus:border-blue-500 focus:bg-white dark:focus:bg-[#161922] transition-all w-full"
                                         placeholder="Repeat new password"
                                         value={confirmPw}
                                         onChange={(e) => setConfirmPw(e.target.value)}
                                     />
                                     <button
                                         type="button"
-                                        className="sec-settings-pw-eye"
+                                        className="absolute right-3 top-1/2 -translate-y-1/2 bg-transparent border-none text-slate-400 cursor-pointer hover:text-slate-600 dark:hover:text-slate-300 p-0 flex items-center justify-center"
                                         onClick={() => setShowConfirm(v => !v)}
                                     >
                                         {showConfirm ? <EyeOff size={16} /> : <Eye size={16} />}
                                     </button>
                                 </div>
                                 {confirmPw && newPw !== confirmPw && (
-                                    <p className="sec-settings-hint error">Passwords do not match</p>
+                                    <p className="text-[11px] font-semibold text-rose-500 m-0 mt-1">Passwords do not match</p>
                                 )}
                                 {confirmPw && newPw === confirmPw && (
-                                    <p className="sec-settings-hint success">Passwords match ✓</p>
+                                    <p className="text-[11px] font-semibold text-emerald-500 m-0 mt-1 flex items-center gap-1"><CheckCircle2 size={12} /> Passwords match</p>
                                 )}
                             </div>
                         </div>
 
-                        <div className="sec-settings-actions">
-                            <button
-                                className="admin-settings-reset-btn"
-                                onClick={() => { setCurrentPw(''); setNewPw(''); setConfirmPw(''); }}
-                            >
-                                Clear
-                            </button>
-                            <button
-                                className="admin-settings-save-btn"
-                                onClick={handleChangePassword}
-                                disabled={pwSaving}
-                            >
-                                {pwSaving ? 'Updating…' : 'Update Password'}
-                            </button>
-                        </div>
+                        <button
+                            className="h-10 px-6 rounded-xl font-inter text-sm font-semibold transition-all border-none bg-blue-600 text-white hover:bg-blue-700 cursor-pointer shadow-sm flex items-center justify-center gap-2 w-fit mt-1"
+                            onClick={handleChangePassword}
+                            disabled={pwSaving}
+                        >
+                            <Lock size={16} />
+                            {pwSaving ? 'Updating…' : 'Update Password'}
+                        </button>
                     </div>
 
                     {/* ── 3. Notification Preferences ──────────────────────── */}
-                    <div className="admin-settings-section">
-                        <div className="admin-settings-section-header">
-                            <div className="admin-settings-section-icon admin-settings-section-icon-green">
-                                <Bell size={18} />
+                    <div className="bg-white dark:bg-[#1E2130] border border-slate-200 dark:border-white/10 rounded-2xl p-6 shadow-sm flex flex-col gap-6 relative">
+                        <div className="flex items-center gap-4 pb-4 border-b border-slate-100 dark:border-white/5">
+                            <div className="w-12 h-12 rounded-xl flex items-center justify-center shrink-0 bg-rose-50 text-rose-600 dark:bg-rose-500/20 dark:text-rose-400 border border-rose-200/50 dark:border-rose-500/30">
+                                <Bell size={22} />
                             </div>
-                            <div className="admin-settings-section-title-wrapper">
-                                <h3 className="admin-settings-section-title">Notification Preferences</h3>
-                                <p className="admin-settings-section-description">Choose which in-app alerts you want to receive</p>
+                            <div className="flex flex-col">
+                                <h2 className="m-0 font-inter text-base font-bold text-slate-800 dark:text-white">Notification Preferences</h2>
+                                <p className="m-0 font-inter text-xs text-slate-500 dark:text-slate-400 mt-0.5">Choose which in-app events you want to be alerted about</p>
                             </div>
                         </div>
 
-                        {NOTIF_META.map(({ key, label, desc }) => (
-                            <div key={key} className="sec-settings-notif-row">
-                                <div className="sec-settings-notif-info">
-                                    <span className="sec-settings-notif-label">{label}</span>
-                                    <span className="sec-settings-notif-desc">{desc}</span>
+                        {NOTIF_META.map(({ key, label, desc }, idx) => (
+                            <div key={key} className={`flex items-center justify-between py-3 ${idx < NOTIF_META.length - 1 ? 'border-b border-slate-100 dark:border-white/5' : ''}`}>
+                                <div className="flex flex-col gap-0.5">
+                                    <span className="font-inter text-sm font-semibold text-slate-800 dark:text-white">{label}</span>
+                                    <span className="font-inter text-xs text-slate-500 dark:text-slate-400">{desc}</span>
                                 </div>
-                                <label className="admin-toggle-switch">
+                                <label className="relative inline-flex items-center cursor-pointer shrink-0">
                                     <input
                                         type="checkbox"
+                                        className="sr-only peer"
                                         checked={notifPrefs[key]}
                                         onChange={() => toggleNotif(key)}
                                     />
-                                    <span className="admin-toggle-slider" />
+                                    <div className="w-11 h-6 bg-slate-200 dark:bg-white/10 peer-focus:outline-none rounded-full peer peer-checked:after:translate-x-full peer-checked:after:border-white after:content-[''] after:absolute after:top-[2px] after:left-[2px] after:bg-white after:border-slate-300 after:border after:rounded-full after:h-5 after:w-5 after:transition-all peer-checked:bg-blue-600"></div>
                                 </label>
                             </div>
                         ))}
+                    </div>
 
-                        <div className="sec-settings-actions">
-                            <button
-                                className="admin-settings-save-btn"
-                                onClick={handleSaveNotifPrefs}
-                                disabled={notifSaving}
-                            >
-                                {notifSaving ? 'Saving…' : 'Save Preferences'}
-                            </button>
+                    {/* ── 4. Appearance Settings Section ──────────────────────── */}
+                    <div className="bg-white dark:bg-[#1E2130] border border-slate-200 dark:border-white/10 rounded-2xl p-6 shadow-sm flex flex-col gap-6 relative">
+                        <div className="flex items-center gap-4 pb-4 border-b border-slate-100 dark:border-white/5">
+                            <div className="w-12 h-12 rounded-xl flex items-center justify-center shrink-0 bg-purple-50 text-purple-600 dark:bg-purple-500/20 dark:text-purple-400 border border-purple-200/50 dark:border-purple-500/30">
+                                <Moon size={22} />
+                            </div>
+                            <div className="flex flex-col">
+                                <h2 className="m-0 font-inter text-base font-bold text-slate-800 dark:text-white">Appearance Settings</h2>
+                                <p className="m-0 font-inter text-xs text-slate-500 dark:text-slate-400 mt-0.5">Customize theme preferences for low-light environments</p>
+                            </div>
+                        </div>
+
+                        <div className="flex items-center justify-between">
+                            <div className="flex flex-col gap-0.5">
+                                <span className="font-inter text-sm font-semibold text-slate-800 dark:text-white">Dark Mode Theme</span>
+                                <span className="font-inter text-xs text-slate-500 dark:text-slate-400">Enable dark theme scheme across your admin dashboard.</span>
+                            </div>
+                            <label className="relative inline-flex items-center cursor-pointer shrink-0">
+                                <input
+                                    type="checkbox"
+                                    className="sr-only peer"
+                                    checked={theme === 'dark'}
+                                    onChange={toggleTheme}
+                                />
+                                <div className="w-11 h-6 bg-slate-200 dark:bg-white/10 peer-focus:outline-none rounded-full peer peer-checked:after:translate-x-full peer-checked:after:border-white after:content-[''] after:absolute after:top-[2px] after:left-[2px] after:bg-white after:border-slate-300 after:border after:rounded-full after:h-5 after:w-5 after:transition-all peer-checked:bg-blue-600"></div>
+                            </label>
                         </div>
                     </div>
 
-                    {/* ── 4. Logout ─────────────────────────────────────────── */}
-                    <div className="admin-settings-section sec-settings-danger-section">
-                        <div className="sec-settings-danger-row">
-                            <div className="admin-settings-section-header" style={{ marginBottom: 0, borderBottom: 'none', paddingBottom: 0 }}>
-                                <div className="admin-settings-section-icon" style={{ backgroundColor: '#FECACA', color: '#DC2626' }}>
-                                    <LogOut size={18} />
-                                </div>
-                                <div>
-                                    <h3 className="admin-settings-section-title" style={{ color: '#991B1B' }}>Log Out</h3>
-                                    <p className="admin-settings-section-description" style={{ color: '#B91C1C' }}>Securely end your session</p>
-                                </div>
+                    {/* ── 5. Logout ─────────────────────────────────────────── */}
+                    <div className="bg-rose-50/70 dark:bg-rose-500/10 border border-rose-200/80 dark:border-rose-500/20 rounded-2xl p-6 shadow-sm flex flex-col sm:flex-row items-start sm:items-center justify-between gap-4">
+                        <div className="flex items-center gap-4">
+                            <div className="w-12 h-12 rounded-xl flex items-center justify-center shrink-0 bg-rose-100 text-rose-600 dark:bg-rose-500/20 dark:text-rose-400 border border-rose-200 dark:border-rose-500/30">
+                                <LogOut size={22} />
                             </div>
-                            <button className="sec-settings-logout-btn" onClick={handleLogout}>
-                                Log Out Now
-                            </button>
+                            <div className="flex flex-col">
+                                <h2 className="m-0 font-inter text-base font-bold text-rose-900 dark:text-rose-300">Log Out Session</h2>
+                                <p className="m-0 font-inter text-xs text-rose-700/80 dark:text-rose-400/80 mt-0.5">Securely log out of your Secretary Admin session</p>
+                            </div>
                         </div>
+                        <button 
+                            className="h-10 px-6 rounded-xl font-inter text-sm font-semibold transition-all border-none bg-rose-600 text-white hover:bg-rose-700 cursor-pointer shadow-sm flex items-center justify-center gap-2 shrink-0"
+                            onClick={handleLogout}
+                        >
+                            <LogOut size={16} /> Log Out Now
+                        </button>
                     </div>
 
                 </div>

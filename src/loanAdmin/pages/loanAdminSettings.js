@@ -6,8 +6,34 @@ import LoanAdminSidebar from './loanAdminSidebar';
 import { useTheme } from '../../context/ThemeContext';
 import API from '../../utils/api';
 
-import '../../admin/styles/AdminSettings.css';
-import { User, Moon, Lock, Bell, LogOut } from 'lucide-react';
+import { User, Moon, Lock, Bell, LogOut, Eye, EyeOff, Save, CheckCircle2 } from 'lucide-react';
+
+function getStrength(pw) {
+    if (!pw) return { level: 0, label: '' };
+    let score = 0;
+    if (pw.length >= 8)             score++;
+    if (/[A-Z]/.test(pw))           score++;
+    if (/[0-9]/.test(pw))           score++;
+    if (/[^A-Za-z0-9]/.test(pw))   score++;
+    if (score <= 1) return { level: 1, label: 'Weak' };
+    if (score <= 2) return { level: 2, label: 'Medium' };
+    return { level: 3, label: 'Strong' };
+}
+
+function StrengthBar({ password }) {
+    const { level, label } = getStrength(password);
+    if (!password) return null;
+    return (
+        <div className="mt-2">
+            <div className="flex gap-1.5 h-1.5 mb-1">
+                <div className={`flex-1 rounded-full transition-colors ${level >= 1 ? (level === 1 ? 'bg-rose-500' : level === 2 ? 'bg-amber-500' : 'bg-emerald-500') : 'bg-slate-200 dark:bg-white/10'}`} />
+                <div className={`flex-1 rounded-full transition-colors ${level >= 2 ? (level === 1 ? 'bg-rose-500' : level === 2 ? 'bg-amber-500' : 'bg-emerald-500') : 'bg-slate-200 dark:bg-white/10'}`} />
+                <div className={`flex-1 rounded-full transition-colors ${level >= 3 ? (level === 1 ? 'bg-rose-500' : level === 2 ? 'bg-amber-500' : 'bg-emerald-500') : 'bg-slate-200 dark:bg-white/10'}`} />
+            </div>
+            <p className="text-[11px] font-semibold text-slate-500 dark:text-slate-400 uppercase tracking-wider m-0">{label} password</p>
+        </div>
+    );
+}
 
 export default function LoanAdminSettings() {
     const navigate = useNavigate();
@@ -19,8 +45,11 @@ export default function LoanAdminSettings() {
     const [currentPassword, setCurrentPassword] = useState('');
     const [newPassword, setNewPassword] = useState('');
     const [confirmPassword, setConfirmPassword] = useState('');
+    const [showCurrentPassword, setShowCurrentPassword] = useState(false);
+    const [showNewPassword, setShowNewPassword] = useState(false);
+    const [showConfirmPassword, setShowConfirmPassword] = useState(false);
 
-    // Notification prefs (local state)
+    // Notification prefs
     const [notifNewLoan, setNotifNewLoan] = useState(true);
     const [notifPayment, setNotifPayment] = useState(true);
     const [notifDelinquent, setNotifDelinquent] = useState(true);
@@ -169,221 +198,244 @@ export default function LoanAdminSettings() {
     };
 
     return (
-        <div style={{ display: 'flex', width: '100%', height: '100vh', overflow: 'hidden' }}>
+        <div className="flex h-screen overflow-hidden bg-slate-100 dark:bg-[#161922]">
             <LoanAdminSidebar />
 
-            <div style={{ flex: 1, overflowY: 'auto', background: '#F9FAFB', padding: '40px' }}>
-                <div className="admin-settings-main">
+            <div className="flex-1 overflow-y-auto p-6 bg-slate-100 dark:bg-[#161922]">
+                <div className="flex flex-col gap-6 max-w-[1000px] mx-auto w-full min-h-screen">
                     {/* Header */}
-                    <div className="admin-settings-header">
-                        <h1 className="admin-settings-title">Loan Admin Settings</h1>
-                        <p className="admin-settings-subtitle">Configure your preferences and account security</p>
+                    <div className="flex flex-col gap-1">
+                        <h1 className="m-0 font-inter text-2xl font-bold text-slate-800 dark:text-white">Loan Admin Settings</h1>
+                        <p className="m-0 font-inter text-sm text-slate-500 dark:text-slate-400">Configure your personal account details, security, and notification preferences</p>
                     </div>
 
                     {/* Personal Profile Section */}
-                    <div className="admin-settings-section">
-                        <div className="admin-settings-section-header">
-                            <div className="admin-settings-section-icon admin-settings-section-icon-blue">
-                                <User size={20} />
+                    <div className="bg-white dark:bg-[#1E2130] border border-slate-200 dark:border-white/10 rounded-2xl p-6 shadow-sm flex flex-col gap-6 relative">
+                        <div className="flex items-center gap-4 pb-4 border-b border-slate-100 dark:border-white/5">
+                            <div className="w-12 h-12 rounded-xl flex items-center justify-center shrink-0 bg-blue-50 text-blue-600 dark:bg-blue-500/20 dark:text-blue-400 border border-blue-200/50 dark:border-blue-500/30">
+                                <User size={22} />
                             </div>
-                            <div className="admin-settings-section-title-wrapper">
-                                <h3 className="admin-settings-section-title">Personal Profile</h3>
-                                <p className="admin-settings-section-description">Manage your admin account details</p>
+                            <div className="flex flex-col">
+                                <h2 className="m-0 font-inter text-base font-bold text-slate-800 dark:text-white">Personal Profile</h2>
+                                <p className="m-0 font-inter text-xs text-slate-500 dark:text-slate-400 mt-0.5">Manage your display name and email address</p>
                             </div>
                         </div>
 
-                        <div className="admin-settings-form-row">
-                            <div className="admin-settings-form-group">
-                                <label className="admin-settings-form-label">Full Name</label>
+                        <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+                            <div className="flex flex-col gap-1">
+                                <label className="font-inter text-xs font-semibold text-slate-700 dark:text-slate-300 uppercase tracking-wider mb-1">Full Name</label>
                                 <input
                                     type="text"
-                                    className="admin-settings-form-input"
+                                    className="h-10 px-3.5 bg-slate-50 dark:bg-[#161922] border border-slate-200 dark:border-white/10 rounded-xl text-sm font-inter text-slate-800 dark:text-white outline-none focus:border-blue-500 focus:bg-white dark:focus:bg-[#161922] transition-all w-full"
                                     value={adminName}
                                     onChange={(e) => setAdminName(e.target.value)}
                                 />
                             </div>
 
-                            <div className="admin-settings-form-group">
-                                <label className="admin-settings-form-label">Email Address</label>
+                            <div className="flex flex-col gap-1">
+                                <label className="font-inter text-xs font-semibold text-slate-700 dark:text-slate-300 uppercase tracking-wider mb-1">Email Address</label>
                                 <input
                                     type="email"
-                                    className="admin-settings-form-input"
                                     value={adminEmail}
                                     disabled
-                                    style={{ opacity: 0.6, cursor: 'not-allowed' }}
+                                    className="h-10 px-3.5 bg-slate-100 dark:bg-white/5 border border-slate-200 dark:border-white/10 rounded-xl text-sm font-inter text-slate-500 dark:text-slate-400 outline-none w-full opacity-70 cursor-not-allowed"
                                 />
                             </div>
                         </div>
 
                         <button
-                            className="admin-settings-save-btn"
+                            className="h-10 px-6 rounded-xl font-inter text-sm font-semibold transition-all border-none bg-blue-600 text-white hover:bg-blue-700 cursor-pointer shadow-sm flex items-center justify-center gap-2 w-fit mt-1"
                             onClick={handleSaveProfile}
                         >
+                            <Save size={16} />
                             Save Changes
                         </button>
                     </div>
 
                     {/* Security Section */}
-                    <div className="admin-settings-section">
-                        <div className="admin-settings-section-header">
-                            <div className="admin-settings-section-icon admin-settings-section-icon-green">
-                                <Lock size={20} />
+                    <div className="bg-white dark:bg-[#1E2130] border border-slate-200 dark:border-white/10 rounded-2xl p-6 shadow-sm flex flex-col gap-6 relative">
+                        <div className="flex items-center gap-4 pb-4 border-b border-slate-100 dark:border-white/5">
+                            <div className="w-12 h-12 rounded-xl flex items-center justify-center shrink-0 bg-emerald-50 text-emerald-600 dark:bg-emerald-500/20 dark:text-emerald-400 border border-emerald-200/50 dark:border-emerald-500/30">
+                                <Lock size={22} />
                             </div>
-                            <div className="admin-settings-section-title-wrapper">
-                                <h3 className="admin-settings-section-title">Security</h3>
-                                <p className="admin-settings-section-description">Password and authentication settings</p>
+                            <div className="flex flex-col">
+                                <h2 className="m-0 font-inter text-base font-bold text-slate-800 dark:text-white">Security & Password</h2>
+                                <p className="m-0 font-inter text-xs text-slate-500 dark:text-slate-400 mt-0.5">Keep your account secure by updating your password</p>
                             </div>
                         </div>
 
-                        <div className="admin-settings-form-group">
-                            <label className="admin-settings-form-label">Current Password</label>
-                            <input
-                                type="password"
-                                className="admin-settings-form-input"
-                                value={currentPassword}
-                                onChange={(e) => setCurrentPassword(e.target.value)}
-                                placeholder="Enter current password"
-                            />
+                        <div className="flex flex-col gap-1">
+                            <label className="font-inter text-xs font-semibold text-slate-700 dark:text-slate-300 uppercase tracking-wider mb-1">Current Password</label>
+                            <div className="relative w-full">
+                                <input
+                                    type={showCurrentPassword ? 'text' : 'password'}
+                                    className="h-10 pl-3.5 pr-10 bg-slate-50 dark:bg-[#161922] border border-slate-200 dark:border-white/10 rounded-xl text-sm font-inter text-slate-800 dark:text-white outline-none focus:border-blue-500 focus:bg-white dark:focus:bg-[#161922] transition-all w-full"
+                                    value={currentPassword}
+                                    onChange={(e) => setCurrentPassword(e.target.value)}
+                                    placeholder="Enter current password"
+                                />
+                                <button
+                                    type="button"
+                                    onClick={() => setShowCurrentPassword(!showCurrentPassword)}
+                                    className="absolute right-3 top-1/2 -translate-y-1/2 bg-transparent border-none text-slate-400 hover:text-slate-600 dark:hover:text-slate-300 cursor-pointer p-0 flex items-center"
+                                >
+                                    {showCurrentPassword ? <EyeOff size={16} /> : <Eye size={16} />}
+                                </button>
+                            </div>
                         </div>
 
-                        <div className="admin-settings-form-row">
-                            <div className="admin-settings-form-group">
-                                <label className="admin-settings-form-label">New Password</label>
-                                <input
-                                    type="password"
-                                    className="admin-settings-form-input"
-                                    value={newPassword}
-                                    onChange={(e) => setNewPassword(e.target.value)}
-                                    placeholder="Enter new password"
-                                />
+                        <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+                            <div className="flex flex-col gap-1">
+                                <label className="font-inter text-xs font-semibold text-slate-700 dark:text-slate-300 uppercase tracking-wider mb-1">New Password</label>
+                                <div className="relative w-full">
+                                    <input
+                                        type={showNewPassword ? 'text' : 'password'}
+                                        className="h-10 pl-3.5 pr-10 bg-slate-50 dark:bg-[#161922] border border-slate-200 dark:border-white/10 rounded-xl text-sm font-inter text-slate-800 dark:text-white outline-none focus:border-blue-500 focus:bg-white dark:focus:bg-[#161922] transition-all w-full"
+                                        value={newPassword}
+                                        onChange={(e) => setNewPassword(e.target.value)}
+                                        placeholder="Min. 8 characters with upper, number, symbol"
+                                    />
+                                    <button
+                                        type="button"
+                                        onClick={() => setShowNewPassword(!showNewPassword)}
+                                        className="absolute right-3 top-1/2 -translate-y-1/2 bg-transparent border-none text-slate-400 hover:text-slate-600 dark:hover:text-slate-300 cursor-pointer p-0 flex items-center"
+                                    >
+                                        {showNewPassword ? <EyeOff size={16} /> : <Eye size={16} />}
+                                    </button>
+                                </div>
+                                <StrengthBar password={newPassword} />
                             </div>
-                            <div className="admin-settings-form-group">
-                                <label className="admin-settings-form-label">Confirm Password</label>
-                                <input
-                                    type="password"
-                                    className="admin-settings-form-input"
-                                    value={confirmPassword}
-                                    onChange={(e) => setConfirmPassword(e.target.value)}
-                                    placeholder="Confirm new password"
-                                />
+
+                            <div className="flex flex-col gap-1">
+                                <label className="font-inter text-xs font-semibold text-slate-700 dark:text-slate-300 uppercase tracking-wider mb-1">Confirm New Password</label>
+                                <div className="relative w-full">
+                                    <input
+                                        type={showConfirmPassword ? 'text' : 'password'}
+                                        className="h-10 pl-3.5 pr-10 bg-slate-50 dark:bg-[#161922] border border-slate-200 dark:border-white/10 rounded-xl text-sm font-inter text-slate-800 dark:text-white outline-none focus:border-blue-500 focus:bg-white dark:focus:bg-[#161922] transition-all w-full"
+                                        value={confirmPassword}
+                                        onChange={(e) => setConfirmPassword(e.target.value)}
+                                        placeholder="Repeat new password"
+                                    />
+                                    <button
+                                        type="button"
+                                        onClick={() => setShowConfirmPassword(!showConfirmPassword)}
+                                        className="absolute right-3 top-1/2 -translate-y-1/2 bg-transparent border-none text-slate-400 hover:text-slate-600 dark:hover:text-slate-300 cursor-pointer p-0 flex items-center"
+                                    >
+                                        {showConfirmPassword ? <EyeOff size={16} /> : <Eye size={16} />}
+                                    </button>
+                                </div>
+                                {confirmPassword && newPassword !== confirmPassword && (
+                                    <p className="text-[11px] font-semibold text-rose-500 m-0 mt-1">Passwords do not match</p>
+                                )}
+                                {confirmPassword && newPassword === confirmPassword && (
+                                    <p className="text-[11px] font-semibold text-emerald-500 m-0 mt-1 flex items-center gap-1"><CheckCircle2 size={12} /> Passwords match</p>
+                                )}
                             </div>
                         </div>
 
                         <button
-                            className="admin-settings-save-btn"
+                            className="h-10 px-6 rounded-xl font-inter text-sm font-semibold transition-all border-none bg-blue-600 text-white hover:bg-blue-700 cursor-pointer shadow-sm flex items-center justify-center gap-2 w-fit mt-1"
                             onClick={handleChangePassword}
                         >
+                            <Lock size={16} />
                             Update Password
                         </button>
                     </div>
 
                     {/* Notification Preferences Section */}
-                    <div className="admin-settings-section">
-                        <div className="admin-settings-section-header">
-                            <div className="admin-settings-section-icon" style={{ backgroundColor: '#fce7f3', color: '#db2777' }}>
-                                <Bell size={20} />
+                    <div className="bg-white dark:bg-[#1E2130] border border-slate-200 dark:border-white/10 rounded-2xl p-6 shadow-sm flex flex-col gap-6 relative">
+                        <div className="flex items-center gap-4 pb-4 border-b border-slate-100 dark:border-white/5">
+                            <div className="w-12 h-12 rounded-xl flex items-center justify-center shrink-0 bg-rose-50 text-rose-600 dark:bg-rose-500/20 dark:text-rose-400 border border-rose-200/50 dark:border-rose-500/30">
+                                <Bell size={22} />
                             </div>
-                            <div className="admin-settings-section-title-wrapper">
-                                <h3 className="admin-settings-section-title">Notification Preferences</h3>
-                                <p className="admin-settings-section-description">Choose which loan events trigger alerts</p>
+                            <div className="flex flex-col">
+                                <h2 className="m-0 font-inter text-base font-bold text-slate-800 dark:text-white">Notification Preferences</h2>
+                                <p className="m-0 font-inter text-xs text-slate-500 dark:text-slate-400 mt-0.5">Choose which loan events trigger alerts</p>
                             </div>
                         </div>
 
-                        <div className="admin-settings-form-group" style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '16px', paddingBottom: '16px', borderBottom: '1px solid #f3f4f6' }}>
-                            <div>
-                                <label className="admin-settings-form-label" style={{ marginBottom: '4px' }}>New Loan Applications</label>
-                                <p style={{ fontSize: '13px', color: '#6B7280', margin: 0 }}>Get notified when a member submits a new loan request.</p>
+                        <div className="flex items-center justify-between py-3 border-b border-slate-100 dark:border-white/5">
+                            <div className="flex flex-col gap-0.5">
+                                <span className="font-inter text-sm font-semibold text-slate-800 dark:text-white">New Loan Applications</span>
+                                <span className="font-inter text-xs text-slate-500 dark:text-slate-400">Get notified when a member submits a new loan request.</span>
                             </div>
-                            <label className="admin-toggle-switch">
-                                <input type="checkbox" checked={notifNewLoan} onChange={(e) => handleToggleChange('notifNewLoan', e.target.checked, setNotifNewLoan)} />
-                                <span className="admin-toggle-slider"></span>
+                            <label className="relative inline-flex items-center cursor-pointer shrink-0">
+                                <input type="checkbox" className="sr-only peer" checked={notifNewLoan} onChange={(e) => handleToggleChange('notifNewLoan', e.target.checked, setNotifNewLoan)} />
+                                <div className="w-11 h-6 bg-slate-200 dark:bg-white/10 peer-focus:outline-none rounded-full peer peer-checked:after:translate-x-full peer-checked:after:border-white after:content-[''] after:absolute after:top-[2px] after:left-[2px] after:bg-white after:border-slate-300 after:border after:rounded-full after:h-5 after:w-5 after:transition-all peer-checked:bg-blue-600"></div>
                             </label>
                         </div>
 
-                        <div className="admin-settings-form-group" style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '16px', paddingBottom: '16px', borderBottom: '1px solid #f3f4f6' }}>
-                            <div>
-                                <label className="admin-settings-form-label" style={{ marginBottom: '4px' }}>Payment Submissions</label>
-                                <p style={{ fontSize: '13px', color: '#6B7280', margin: 0 }}>Get notified when a borrower submits a repayment.</p>
+                        <div className="flex items-center justify-between py-3 border-b border-slate-100 dark:border-white/5">
+                            <div className="flex flex-col gap-0.5">
+                                <span className="font-inter text-sm font-semibold text-slate-800 dark:text-white">Payment Submissions</span>
+                                <span className="font-inter text-xs text-slate-500 dark:text-slate-400">Get notified when a borrower submits a repayment.</span>
                             </div>
-                            <label className="admin-toggle-switch">
-                                <input type="checkbox" checked={notifPayment} onChange={(e) => handleToggleChange('notifPayment', e.target.checked, setNotifPayment)} />
-                                <span className="admin-toggle-slider"></span>
+                            <label className="relative inline-flex items-center cursor-pointer shrink-0">
+                                <input type="checkbox" className="sr-only peer" checked={notifPayment} onChange={(e) => handleToggleChange('notifPayment', e.target.checked, setNotifPayment)} />
+                                <div className="w-11 h-6 bg-slate-200 dark:bg-white/10 peer-focus:outline-none rounded-full peer peer-checked:after:translate-x-full peer-checked:after:border-white after:content-[''] after:absolute after:top-[2px] after:left-[2px] after:bg-white after:border-slate-300 after:border after:rounded-full after:h-5 after:w-5 after:transition-all peer-checked:bg-blue-600"></div>
                             </label>
                         </div>
 
-                        <div className="admin-settings-form-group" style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
-                            <div>
-                                <label className="admin-settings-form-label" style={{ marginBottom: '4px' }}>Delinquency Alerts</label>
-                                <p style={{ fontSize: '13px', color: '#6B7280', margin: 0 }}>Get notified when a borrower becomes delinquent or at risk.</p>
+                        <div className="flex items-center justify-between py-3">
+                            <div className="flex flex-col gap-0.5">
+                                <span className="font-inter text-sm font-semibold text-slate-800 dark:text-white">Delinquency Alerts</span>
+                                <span className="font-inter text-xs text-slate-500 dark:text-slate-400">Get notified when a borrower becomes delinquent or at risk.</span>
                             </div>
-                            <label className="admin-toggle-switch">
-                                <input type="checkbox" checked={notifDelinquent} onChange={(e) => handleToggleChange('notifDelinquent', e.target.checked, setNotifDelinquent)} />
-                                <span className="admin-toggle-slider"></span>
+                            <label className="relative inline-flex items-center cursor-pointer shrink-0">
+                                <input type="checkbox" className="sr-only peer" checked={notifDelinquent} onChange={(e) => handleToggleChange('notifDelinquent', e.target.checked, setNotifDelinquent)} />
+                                <div className="w-11 h-6 bg-slate-200 dark:bg-white/10 peer-focus:outline-none rounded-full peer peer-checked:after:translate-x-full peer-checked:after:border-white after:content-[''] after:absolute after:top-[2px] after:left-[2px] after:bg-white after:border-slate-300 after:border after:rounded-full after:h-5 after:w-5 after:transition-all peer-checked:bg-blue-600"></div>
                             </label>
                         </div>
                     </div>
 
                     {/* Appearance Settings Section */}
-                    <div className="admin-settings-section">
-                        <div className="admin-settings-section-header">
-                            <div className="admin-settings-section-icon" style={{ backgroundColor: '#F3E8FF', color: '#9333EA' }}>
-                                <Moon size={20} />
+                    <div className="bg-white dark:bg-[#1E2130] border border-slate-200 dark:border-white/10 rounded-2xl p-6 shadow-sm flex flex-col gap-6 relative">
+                        <div className="flex items-center gap-4 pb-4 border-b border-slate-100 dark:border-white/5">
+                            <div className="w-12 h-12 rounded-xl flex items-center justify-center shrink-0 bg-purple-50 text-purple-600 dark:bg-purple-500/20 dark:text-purple-400 border border-purple-200/50 dark:border-purple-500/30">
+                                <Moon size={22} />
                             </div>
-                            <div className="admin-settings-section-title-wrapper">
-                                <h3 className="admin-settings-section-title">Appearance</h3>
-                                <p className="admin-settings-section-description">Customize the look and feel of the admin dashboard</p>
+                            <div className="flex flex-col">
+                                <h2 className="m-0 font-inter text-base font-bold text-slate-800 dark:text-white">Appearance Settings</h2>
+                                <p className="m-0 font-inter text-xs text-slate-500 dark:text-slate-400 mt-0.5">Customize theme preferences for low-light environments</p>
                             </div>
                         </div>
 
-                        <div className="admin-settings-form-group" style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
-                            <div>
-                                <label className="admin-settings-form-label" style={{ marginBottom: '4px' }}>Dark Mode Theme</label>
-                                <p style={{ fontSize: '13px', color: '#6B7280', margin: 0 }}>Enable a darker color scheme for low-light environments.</p>
+                        <div className="flex items-center justify-between">
+                            <div className="flex flex-col gap-0.5">
+                                <span className="font-inter text-sm font-semibold text-slate-800 dark:text-white">Dark Mode Theme</span>
+                                <span className="font-inter text-xs text-slate-500 dark:text-slate-400">Enable dark theme scheme across your admin dashboard.</span>
                             </div>
-                            <label className="admin-toggle-switch">
+                            <label className="relative inline-flex items-center cursor-pointer shrink-0">
                                 <input
                                     type="checkbox"
+                                    className="sr-only peer"
                                     checked={theme === 'dark'}
                                     onChange={toggleTheme}
                                 />
-                                <span className="admin-toggle-slider"></span>
+                                <div className="w-11 h-6 bg-slate-200 dark:bg-white/10 peer-focus:outline-none rounded-full peer peer-checked:after:translate-x-full peer-checked:after:border-white after:content-[''] after:absolute after:top-[2px] after:left-[2px] after:bg-white after:border-slate-300 after:border after:rounded-full after:h-5 after:w-5 after:transition-all peer-checked:bg-blue-600"></div>
                             </label>
                         </div>
                     </div>
 
                     {/* Logout Section */}
-                    <div className="admin-settings-section" style={{ border: '1px solid #fee2e2', backgroundColor: '#fef2f2', boxShadow: 'none' }}>
-                        <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
-                            <div style={{ display: 'flex', alignItems: 'center', gap: '16px' }}>
-                                <div className="admin-settings-section-icon" style={{ backgroundColor: '#fecaca', color: '#dc2626' }}>
-                                    <LogOut size={20} />
-                                </div>
-                                <div>
-                                    <h2 className="admin-settings-section-title" style={{ color: '#991b1b', margin: 0 }}>Log Out</h2>
-                                    <p className="admin-settings-section-description" style={{ color: '#b91c1c', margin: 0 }}>Securely end your admin session</p>
-                                </div>
+                    <div className="bg-rose-50/70 dark:bg-rose-500/10 border border-rose-200/80 dark:border-rose-500/20 rounded-2xl p-6 shadow-sm flex flex-col sm:flex-row items-start sm:items-center justify-between gap-4">
+                        <div className="flex items-center gap-4">
+                            <div className="w-12 h-12 rounded-xl flex items-center justify-center shrink-0 bg-rose-100 text-rose-600 dark:bg-rose-500/20 dark:text-rose-400 border border-rose-200 dark:border-rose-500/30">
+                                <LogOut size={22} />
                             </div>
-                            <button 
-                                onClick={handleLogout} 
-                                style={{
-                                    padding: '10px 24px',
-                                    backgroundColor: '#dc2626',
-                                    color: 'white',
-                                    border: 'none',
-                                    borderRadius: '8px',
-                                    fontFamily: 'DM Sans, sans-serif',
-                                    fontWeight: '600',
-                                    fontSize: '14px',
-                                    cursor: 'pointer',
-                                    transition: 'background-color 0.2s'
-                                }}
-                                onMouseOver={(e) => e.target.style.backgroundColor = '#b91c1c'}
-                                onMouseOut={(e) => e.target.style.backgroundColor = '#dc2626'}
-                            >
-                                Log Out Now
-                            </button>
+                            <div className="flex flex-col">
+                                <h2 className="m-0 font-inter text-base font-bold text-rose-900 dark:text-rose-300">Log Out Session</h2>
+                                <p className="m-0 font-inter text-xs text-rose-700/80 dark:text-rose-400/80 mt-0.5">Securely log out of your Loan Admin session</p>
+                            </div>
                         </div>
+                        <button 
+                            onClick={handleLogout} 
+                            className="h-10 px-6 rounded-xl font-inter text-sm font-semibold transition-all border-none bg-rose-600 text-white hover:bg-rose-700 cursor-pointer shadow-sm flex items-center justify-center gap-2 shrink-0"
+                        >
+                            <LogOut size={16} /> Log Out Now
+                        </button>
                     </div>
+
                 </div>
             </div>
         </div>

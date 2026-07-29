@@ -2,11 +2,36 @@ import { useState, useEffect } from 'react';
 import useSWR from 'swr';
 import { useNavigate } from 'react-router';
 import { toast } from 'sonner';
-import '../styles/AdminSettings.css';
-import { Settings, Lock, CreditCard, Edit2, Moon, Building, Bell, Database, Wrench, Download, LogOut } from 'lucide-react';
+import { Settings, Lock, CreditCard, Edit2, Moon, Building, Bell, Database, Wrench, Download, LogOut, Eye, EyeOff, Save, CheckCircle2 } from 'lucide-react';
 import API from '../../utils/api';
 import { useTheme } from '../../context/ThemeContext';
 
+function getStrength(pw) {
+    if (!pw) return { level: 0, label: '' };
+    let score = 0;
+    if (pw.length >= 8)             score++;
+    if (/[A-Z]/.test(pw))           score++;
+    if (/[0-9]/.test(pw))           score++;
+    if (/[^A-Za-z0-9]/.test(pw))   score++;
+    if (score <= 1) return { level: 1, label: 'Weak' };
+    if (score <= 2) return { level: 2, label: 'Medium' };
+    return { level: 3, label: 'Strong' };
+}
+
+function StrengthBar({ password }) {
+    const { level, label } = getStrength(password);
+    if (!password) return null;
+    return (
+        <div className="mt-2">
+            <div className="flex gap-1.5 h-1.5 mb-1">
+                <div className={`flex-1 rounded-full transition-colors ${level >= 1 ? (level === 1 ? 'bg-rose-500' : level === 2 ? 'bg-amber-500' : 'bg-emerald-500') : 'bg-slate-200 dark:bg-white/10'}`} />
+                <div className={`flex-1 rounded-full transition-colors ${level >= 2 ? (level === 1 ? 'bg-rose-500' : level === 2 ? 'bg-amber-500' : 'bg-emerald-500') : 'bg-slate-200 dark:bg-white/10'}`} />
+                <div className={`flex-1 rounded-full transition-colors ${level >= 3 ? (level === 1 ? 'bg-rose-500' : level === 2 ? 'bg-amber-500' : 'bg-emerald-500') : 'bg-slate-200 dark:bg-white/10'}`} />
+            </div>
+            <p className="text-[11px] font-semibold text-slate-500 dark:text-slate-400 uppercase tracking-wider m-0">{label} password</p>
+        </div>
+    );
+}
 
 export default function AdminSettings() {
   const navigate = useNavigate();
@@ -26,6 +51,11 @@ export default function AdminSettings() {
     notifDonation: true,
     notifLoan: true,
   });
+
+  const [showCurrentPassword, setShowCurrentPassword] = useState(false);
+  const [showNewPassword, setShowNewPassword] = useState(false);
+  const [showConfirmPassword, setShowConfirmPassword] = useState(false);
+
   const [savedApprovalMethod, setSavedApprovalMethod] = useState('gateway');
   const [isEditingPayment, setIsEditingPayment] = useState(false);
   const [confirmModal, setConfirmModal] = useState({ show: false, section: null });
@@ -37,7 +67,6 @@ export default function AdminSettings() {
       return;
     }
 
-    // Fetch profile
     const token = localStorage.getItem('adminToken');
     if (token) {
       fetch(`${API}/api/admin/profile/me`, {
@@ -213,266 +242,293 @@ export default function AdminSettings() {
     }, 1500);
   };
 
+  const handleLogout = () => {
+    localStorage.removeItem('adminToken');
+    localStorage.removeItem('adminEmail');
+    localStorage.removeItem('adminRole');
+    localStorage.removeItem('adminName');
+    toast.success('Signed out successfully');
+    navigate('/');
+  };
+
   return (
-    <div className="admin-settings-main">
+    <div className="flex flex-col gap-6 p-6 max-w-[1000px] mx-auto w-full min-h-screen bg-slate-100 dark:bg-[#161922]">
       {/* Header */}
-      <div className="admin-settings-header">
-        <h1 className="admin-settings-title">Admin Settings</h1>
-        <p className="admin-settings-subtitle">Configure system preferences and security</p>
+      <div className="flex flex-col gap-1">
+        <h1 className="m-0 font-inter text-2xl font-bold text-slate-800 dark:text-white">Admin Settings</h1>
+        <p className="m-0 font-inter text-sm text-slate-500 dark:text-slate-400">Configure global organization preferences, security, and system defaults</p>
       </div>
 
-
       {/* Organization Profile Section */}
-      <div className="admin-settings-section">
-        <div className="admin-settings-section-header">
-          <div className="admin-settings-section-icon" style={{ backgroundColor: '#ffedd5', color: '#ea580c' }}>
-            <Building size={20} />
+      <div className="bg-white dark:bg-[#1E2130] border border-slate-200 dark:border-white/10 rounded-2xl p-6 shadow-sm flex flex-col gap-6 relative">
+        <div className="flex items-center gap-4 pb-4 border-b border-slate-100 dark:border-white/5">
+          <div className="w-12 h-12 rounded-xl flex items-center justify-center shrink-0 bg-amber-50 text-amber-600 dark:bg-amber-500/20 dark:text-amber-400 border border-amber-200/50 dark:border-amber-500/30">
+            <Building size={22} />
           </div>
-          <div className="admin-settings-section-title-wrapper">
-            <h2 className="admin-settings-section-title">Organization Profile</h2>
-            <p className="admin-settings-section-description">Update the church's official branding and contact details</p>
+          <div className="flex flex-col">
+            <h2 className="m-0 font-inter text-base font-bold text-slate-800 dark:text-white">Organization Profile</h2>
+            <p className="m-0 font-inter text-xs text-slate-500 dark:text-slate-400 mt-0.5">Update the church's official branding and contact details</p>
           </div>
         </div>
 
-        <div className="admin-settings-form-row">
-          <div className="admin-settings-form-group">
-            <label className="admin-settings-form-label">Church Name</label>
+        <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+          <div className="flex flex-col gap-1">
+            <label className="font-inter text-xs font-semibold text-slate-700 dark:text-slate-300 uppercase tracking-wider mb-1">Church Name</label>
             <input
               type="text"
               value={settings.orgName}
               onChange={(e) => setSettings({ ...settings, orgName: e.target.value })}
-              className="admin-settings-form-input"
+              className="h-10 px-3.5 bg-slate-50 dark:bg-[#161922] border border-slate-200 dark:border-white/10 rounded-xl text-sm font-inter text-slate-800 dark:text-white outline-none focus:border-blue-500 focus:bg-white dark:focus:bg-[#161922] transition-all w-full"
             />
           </div>
-          <div className="admin-settings-form-group">
-            <label className="admin-settings-form-label">Contact Number</label>
+          <div className="flex flex-col gap-1">
+            <label className="font-inter text-xs font-semibold text-slate-700 dark:text-slate-300 uppercase tracking-wider mb-1">Contact Number</label>
             <input
               type="text"
               value={settings.orgContact}
               onChange={(e) => setSettings({ ...settings, orgContact: e.target.value })}
-              className="admin-settings-form-input"
+              className="h-10 px-3.5 bg-slate-50 dark:bg-[#161922] border border-slate-200 dark:border-white/10 rounded-xl text-sm font-inter text-slate-800 dark:text-white outline-none focus:border-blue-500 focus:bg-white dark:focus:bg-[#161922] transition-all w-full"
             />
           </div>
         </div>
-        <div className="admin-settings-form-group">
-          <label className="admin-settings-form-label">Official Address</label>
+        <div className="flex flex-col gap-1">
+          <label className="font-inter text-xs font-semibold text-slate-700 dark:text-slate-300 uppercase tracking-wider mb-1">Official Address</label>
           <input
             type="text"
             value={settings.orgAddress}
             onChange={(e) => setSettings({ ...settings, orgAddress: e.target.value })}
-            className="admin-settings-form-input"
+            className="h-10 px-3.5 bg-slate-50 dark:bg-[#161922] border border-slate-200 dark:border-white/10 rounded-xl text-sm font-inter text-slate-800 dark:text-white outline-none focus:border-blue-500 focus:bg-white dark:focus:bg-[#161922] transition-all w-full"
           />
         </div>
 
         <button
           onClick={() => setConfirmModal({ show: true, section: 'Organization' })}
-          className="admin-settings-save-btn"
+          className="h-10 px-6 rounded-xl font-inter text-sm font-semibold transition-all border-none bg-blue-600 text-white hover:bg-blue-700 cursor-pointer shadow-sm flex items-center justify-center gap-2 w-fit mt-1"
         >
+          <Save size={16} />
           Save Details
         </button>
       </div>
 
       {/* Account Settings Section */}
-      <div className="admin-settings-section">
-        <div className="admin-settings-section-header">
-          <div className="admin-settings-section-icon admin-settings-section-icon-purple">
-            <Settings size={20} />
+      <div className="bg-white dark:bg-[#1E2130] border border-slate-200 dark:border-white/10 rounded-2xl p-6 shadow-sm flex flex-col gap-6 relative">
+        <div className="flex items-center gap-4 pb-4 border-b border-slate-100 dark:border-white/5">
+          <div className="w-12 h-12 rounded-xl flex items-center justify-center shrink-0 bg-blue-50 text-blue-600 dark:bg-blue-500/20 dark:text-blue-400 border border-blue-200/50 dark:border-blue-500/30">
+            <Settings size={22} />
           </div>
-          <div className="admin-settings-section-title-wrapper">
-            <h2 className="admin-settings-section-title">Account Settings</h2>
-            <p className="admin-settings-section-description">Manage your admin account details</p>
+          <div className="flex flex-col">
+            <h2 className="m-0 font-inter text-base font-bold text-slate-800 dark:text-white">Account Profile</h2>
+            <p className="m-0 font-inter text-xs text-slate-500 dark:text-slate-400 mt-0.5">Manage your display name and registered email</p>
           </div>
         </div>
 
-        <div className="admin-settings-form-row">
-          <div className="admin-settings-form-group">
-            <label className="admin-settings-form-label">Admin Name</label>
+        <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+          <div className="flex flex-col gap-1">
+            <label className="font-inter text-xs font-semibold text-slate-700 dark:text-slate-300 uppercase tracking-wider mb-1">Admin Full Name</label>
             <input
               type="text"
               value={settings.adminName}
               onChange={(e) => setSettings({ ...settings, adminName: e.target.value })}
-              className="admin-settings-form-input"
+              className="h-10 px-3.5 bg-slate-50 dark:bg-[#161922] border border-slate-200 dark:border-white/10 rounded-xl text-sm font-inter text-slate-800 dark:text-white outline-none focus:border-blue-500 focus:bg-white dark:focus:bg-[#161922] transition-all w-full"
             />
           </div>
-          <div className="admin-settings-form-group">
-            <label className="admin-settings-form-label">Email Address</label>
+          <div className="flex flex-col gap-1">
+            <label className="font-inter text-xs font-semibold text-slate-700 dark:text-slate-300 uppercase tracking-wider mb-1">Email Address</label>
             <input
               type="email"
               value={settings.adminEmail}
-              onChange={(e) => setSettings({ ...settings, adminEmail: e.target.value })}
-              className="admin-settings-form-input"
+              disabled
+              className="h-10 px-3.5 bg-slate-100 dark:bg-white/5 border border-slate-200 dark:border-white/10 rounded-xl text-sm font-inter text-slate-500 dark:text-slate-400 outline-none w-full opacity-70 cursor-not-allowed"
             />
           </div>
         </div>
 
         <button
           onClick={() => setConfirmModal({ show: true, section: 'Account' })}
-          className="admin-settings-save-btn"
+          className="h-10 px-6 rounded-xl font-inter text-sm font-semibold transition-all border-none bg-blue-600 text-white hover:bg-blue-700 cursor-pointer shadow-sm flex items-center justify-center gap-2 w-fit mt-1"
         >
+          <Save size={16} />
           Save Changes
         </button>
       </div>
 
       {/* Security Settings Section */}
-      <div className="admin-settings-section">
-        <div className="admin-settings-section-header">
-          <div className="admin-settings-section-icon admin-settings-section-icon-green">
-            <Lock size={20} />
+      <div className="bg-white dark:bg-[#1E2130] border border-slate-200 dark:border-white/10 rounded-2xl p-6 shadow-sm flex flex-col gap-6 relative">
+        <div className="flex items-center gap-4 pb-4 border-b border-slate-100 dark:border-white/5">
+          <div className="w-12 h-12 rounded-xl flex items-center justify-center shrink-0 bg-emerald-50 text-emerald-600 dark:bg-emerald-500/20 dark:text-emerald-400 border border-emerald-200/50 dark:border-emerald-500/30">
+            <Lock size={22} />
           </div>
-          <div className="admin-settings-section-title-wrapper">
-            <h2 className="admin-settings-section-title">Security</h2>
-            <p className="admin-settings-section-description">Password and authentication settings</p>
+          <div className="flex flex-col">
+            <h2 className="m-0 font-inter text-base font-bold text-slate-800 dark:text-white">Security & Password</h2>
+            <p className="m-0 font-inter text-xs text-slate-500 dark:text-slate-400 mt-0.5">Keep your administrative account safe with a strong password</p>
           </div>
         </div>
 
-        <div className="admin-settings-form-group">
-          <label className="admin-settings-form-label">Current Password</label>
-          <input
-            type="password"
-            value={settings.currentPassword}
-            onChange={(e) => setSettings({ ...settings, currentPassword: e.target.value })}
-            placeholder="Enter current password"
-            className="admin-settings-form-input"
-          />
-        </div>
-
-        <div className="admin-settings-form-row">
-          <div className="admin-settings-form-group">
-            <label className="admin-settings-form-label">New Password</label>
+        <div className="flex flex-col gap-1">
+          <label className="font-inter text-xs font-semibold text-slate-700 dark:text-slate-300 uppercase tracking-wider mb-1">Current Password</label>
+          <div className="relative w-full">
             <input
-              type="password"
-              value={settings.newPassword}
-              onChange={(e) => setSettings({ ...settings, newPassword: e.target.value })}
-              placeholder="Enter new password"
-              className="admin-settings-form-input"
+              type={showCurrentPassword ? 'text' : 'password'}
+              value={settings.currentPassword}
+              onChange={(e) => setSettings({ ...settings, currentPassword: e.target.value })}
+              placeholder="Enter current password"
+              className="h-10 pl-3.5 pr-10 bg-slate-50 dark:bg-[#161922] border border-slate-200 dark:border-white/10 rounded-xl text-sm font-inter text-slate-800 dark:text-white outline-none focus:border-blue-500 focus:bg-white dark:focus:bg-[#161922] transition-all w-full"
             />
-          </div>
-          <div className="admin-settings-form-group">
-            <label className="admin-settings-form-label">Confirm Password</label>
-            <input
-              type="password"
-              value={settings.confirmPassword}
-              onChange={(e) => setSettings({ ...settings, confirmPassword: e.target.value })}
-              placeholder="Confirm new password"
-              className="admin-settings-form-input"
-            />
+            <button
+              type="button"
+              onClick={() => setShowCurrentPassword(!showCurrentPassword)}
+              className="absolute right-3 top-1/2 -translate-y-1/2 bg-transparent border-none text-slate-400 hover:text-slate-600 dark:hover:text-slate-300 cursor-pointer p-0 flex items-center"
+            >
+              {showCurrentPassword ? <EyeOff size={16} /> : <Eye size={16} />}
+            </button>
           </div>
         </div>
 
+        <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+          <div className="flex flex-col gap-1">
+            <label className="font-inter text-xs font-semibold text-slate-700 dark:text-slate-300 uppercase tracking-wider mb-1">New Password</label>
+            <div className="relative w-full">
+              <input
+                type={showNewPassword ? 'text' : 'password'}
+                value={settings.newPassword}
+                onChange={(e) => setSettings({ ...settings, newPassword: e.target.value })}
+                placeholder="Min. 8 characters with upper, number, symbol"
+                className="h-10 pl-3.5 pr-10 bg-slate-50 dark:bg-[#161922] border border-slate-200 dark:border-white/10 rounded-xl text-sm font-inter text-slate-800 dark:text-white outline-none focus:border-blue-500 focus:bg-white dark:focus:bg-[#161922] transition-all w-full"
+              />
+              <button
+                type="button"
+                onClick={() => setShowNewPassword(!showNewPassword)}
+                className="absolute right-3 top-1/2 -translate-y-1/2 bg-transparent border-none text-slate-400 hover:text-slate-600 dark:hover:text-slate-300 cursor-pointer p-0 flex items-center"
+              >
+                {showNewPassword ? <EyeOff size={16} /> : <Eye size={16} />}
+              </button>
+            </div>
+            <StrengthBar password={settings.newPassword} />
+          </div>
+
+          <div className="flex flex-col gap-1">
+            <label className="font-inter text-xs font-semibold text-slate-700 dark:text-slate-300 uppercase tracking-wider mb-1">Confirm New Password</label>
+            <div className="relative w-full">
+              <input
+                type={showConfirmPassword ? 'text' : 'password'}
+                value={settings.confirmPassword}
+                onChange={(e) => setSettings({ ...settings, confirmPassword: e.target.value })}
+                placeholder="Repeat new password"
+                className="h-10 pl-3.5 pr-10 bg-slate-50 dark:bg-[#161922] border border-slate-200 dark:border-white/10 rounded-xl text-sm font-inter text-slate-800 dark:text-white outline-none focus:border-blue-500 focus:bg-white dark:focus:bg-[#161922] transition-all w-full"
+              />
+              <button
+                type="button"
+                onClick={() => setShowConfirmPassword(!showConfirmPassword)}
+                className="absolute right-3 top-1/2 -translate-y-1/2 bg-transparent border-none text-slate-400 hover:text-slate-600 dark:hover:text-slate-300 cursor-pointer p-0 flex items-center"
+              >
+                {showConfirmPassword ? <EyeOff size={16} /> : <Eye size={16} />}
+              </button>
+            </div>
+            {settings.confirmPassword && settings.newPassword !== settings.confirmPassword && (
+              <p className="text-[11px] font-semibold text-rose-500 m-0 mt-1">Passwords do not match</p>
+            )}
+            {settings.confirmPassword && settings.newPassword === settings.confirmPassword && (
+              <p className="text-[11px] font-semibold text-emerald-500 m-0 mt-1 flex items-center gap-1"><CheckCircle2 size={12} /> Passwords match</p>
+            )}
+          </div>
+        </div>
 
         <button
           onClick={() => setConfirmModal({ show: true, section: 'Security' })}
-          className="admin-settings-save-btn"
+          className="h-10 px-6 rounded-xl font-inter text-sm font-semibold transition-all border-none bg-blue-600 text-white hover:bg-blue-700 cursor-pointer shadow-sm flex items-center justify-center gap-2 w-fit mt-1"
         >
+          <Lock size={16} />
           Update Password
         </button>
       </div>
 
       {/* Notification Preferences Section */}
-      <div className="admin-settings-section">
-        <div className="admin-settings-section-header">
-          <div className="admin-settings-section-icon" style={{ backgroundColor: '#fce7f3', color: '#db2777' }}>
-            <Bell size={20} />
+      <div className="bg-white dark:bg-[#1E2130] border border-slate-200 dark:border-white/10 rounded-2xl p-6 shadow-sm flex flex-col gap-6 relative">
+        <div className="flex items-center gap-4 pb-4 border-b border-slate-100 dark:border-white/5">
+          <div className="w-12 h-12 rounded-xl flex items-center justify-center shrink-0 bg-rose-50 text-rose-600 dark:bg-rose-500/20 dark:text-rose-400 border border-rose-200/50 dark:border-rose-500/30">
+            <Bell size={22} />
           </div>
-          <div className="admin-settings-section-title-wrapper">
-            <h2 className="admin-settings-section-title">Notification Preferences</h2>
-            <p className="admin-settings-section-description">Choose what system events you want to be alerted about</p>
+          <div className="flex flex-col">
+            <h2 className="m-0 font-inter text-base font-bold text-slate-800 dark:text-white">Notification Preferences</h2>
+            <p className="m-0 font-inter text-xs text-slate-500 dark:text-slate-400 mt-0.5">Choose which system events trigger real-time alerts</p>
           </div>
         </div>
 
-        <div className="admin-settings-form-group" style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '16px', paddingBottom: '16px', borderBottom: '1px solid #f3f4f6' }}>
-          <div>
-            <label className="admin-settings-form-label" style={{ marginBottom: '4px' }}>New User Registrations</label>
-            <p style={{ fontSize: '13px', color: '#6B7280', margin: 0 }}>Get notified when a new member joins.</p>
+        <div className="flex items-center justify-between py-3 border-b border-slate-100 dark:border-white/5">
+          <div className="flex flex-col gap-0.5">
+            <span className="font-inter text-sm font-semibold text-slate-800 dark:text-white">New User Registrations</span>
+            <span className="font-inter text-xs text-slate-500 dark:text-slate-400">Get notified when a new member registers an account.</span>
           </div>
-          <label className="admin-toggle-switch">
-            <input type="checkbox" checked={settings.notifNewUser} onChange={(e) => handleToggleChange('notifNewUser', e.target.checked)} />
-            <span className="admin-toggle-slider"></span>
+          <label className="relative inline-flex items-center cursor-pointer shrink-0">
+            <input type="checkbox" className="sr-only peer" checked={settings.notifNewUser} onChange={(e) => handleToggleChange('notifNewUser', e.target.checked)} />
+            <div className="w-11 h-6 bg-slate-200 dark:bg-white/10 peer-focus:outline-none rounded-full peer peer-checked:after:translate-x-full peer-checked:after:border-white after:content-[''] after:absolute after:top-[2px] after:left-[2px] after:bg-white after:border-slate-300 after:border after:rounded-full after:h-5 after:w-5 after:transition-all peer-checked:bg-blue-600"></div>
           </label>
         </div>
 
-        <div className="admin-settings-form-group" style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '16px', paddingBottom: '16px', borderBottom: '1px solid #f3f4f6' }}>
-          <div>
-            <label className="admin-settings-form-label" style={{ marginBottom: '4px' }}>Large Donations</label>
-            <p style={{ fontSize: '13px', color: '#6B7280', margin: 0 }}>Get notified for donations above ₱5,000.</p>
+        <div className="flex items-center justify-between py-3 border-b border-slate-100 dark:border-white/5">
+          <div className="flex flex-col gap-0.5">
+            <span className="font-inter text-sm font-semibold text-slate-800 dark:text-white">Large Donations</span>
+            <span className="font-inter text-xs text-slate-500 dark:text-slate-400">Get notified for financial contributions above ₱5,000.</span>
           </div>
-          <label className="admin-toggle-switch">
-            <input type="checkbox" checked={settings.notifDonation} onChange={(e) => handleToggleChange('notifDonation', e.target.checked)} />
-            <span className="admin-toggle-slider"></span>
+          <label className="relative inline-flex items-center cursor-pointer shrink-0">
+            <input type="checkbox" className="sr-only peer" checked={settings.notifDonation} onChange={(e) => handleToggleChange('notifDonation', e.target.checked)} />
+            <div className="w-11 h-6 bg-slate-200 dark:bg-white/10 peer-focus:outline-none rounded-full peer peer-checked:after:translate-x-full peer-checked:after:border-white after:content-[''] after:absolute after:top-[2px] after:left-[2px] after:bg-white after:border-slate-300 after:border after:rounded-full after:h-5 after:w-5 after:transition-all peer-checked:bg-blue-600"></div>
           </label>
         </div>
 
-        <div className="admin-settings-form-group" style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
-          <div>
-            <label className="admin-settings-form-label" style={{ marginBottom: '4px' }}>Loan Applications</label>
-            <p style={{ fontSize: '13px', color: '#6B7280', margin: 0 }}>Get notified when new loans are submitted or approved.</p>
+        <div className="flex items-center justify-between py-3">
+          <div className="flex flex-col gap-0.5">
+            <span className="font-inter text-sm font-semibold text-slate-800 dark:text-white">Loan Applications</span>
+            <span className="font-inter text-xs text-slate-500 dark:text-slate-400">Get notified when new loan applications are submitted or approved.</span>
           </div>
-          <label className="admin-toggle-switch">
-            <input type="checkbox" checked={settings.notifLoan} onChange={(e) => handleToggleChange('notifLoan', e.target.checked)} />
-            <span className="admin-toggle-slider"></span>
+          <label className="relative inline-flex items-center cursor-pointer shrink-0">
+            <input type="checkbox" className="sr-only peer" checked={settings.notifLoan} onChange={(e) => handleToggleChange('notifLoan', e.target.checked)} />
+            <div className="w-11 h-6 bg-slate-200 dark:bg-white/10 peer-focus:outline-none rounded-full peer peer-checked:after:translate-x-full peer-checked:after:border-white after:content-[''] after:absolute after:top-[2px] after:left-[2px] after:bg-white after:border-slate-300 after:border after:rounded-full after:h-5 after:w-5 after:transition-all peer-checked:bg-blue-600"></div>
           </label>
         </div>
       </div>
 
       {/* Payment Settings Section */}
-      <div className="admin-settings-section">
-        <div className="admin-settings-section-header">
-          <div className="admin-settings-section-icon admin-settings-section-icon-blue">
-            <CreditCard size={20} />
+      <div className="bg-white dark:bg-[#1E2130] border border-slate-200 dark:border-white/10 rounded-2xl p-6 shadow-sm flex flex-col gap-6 relative">
+        <div className="flex items-center gap-4 pb-4 border-b border-slate-100 dark:border-white/5">
+          <div className="w-12 h-12 rounded-xl flex items-center justify-center shrink-0 bg-cyan-50 text-cyan-600 dark:bg-cyan-500/20 dark:text-cyan-400 border border-cyan-200/50 dark:border-cyan-500/30">
+            <CreditCard size={22} />
           </div>
-          <div className="admin-settings-section-title-wrapper">
-            <h2 className="admin-settings-section-title">Payment Settings</h2>
-            <p className="admin-settings-section-description">Configure transaction approval methods</p>
+          <div className="flex flex-col">
+            <h2 className="m-0 font-inter text-base font-bold text-slate-800 dark:text-white">Payment Settings</h2>
+            <p className="m-0 font-inter text-xs text-slate-500 dark:text-slate-400 mt-0.5">Configure transaction approval methods for donations and loans</p>
           </div>
         </div>
 
-        <div className="admin-settings-form-group">
-          <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '8px' }}>
-            <label className="admin-settings-form-label" style={{ marginBottom: 0 }}>Payment Processing Mode</label>
+        <div className="flex flex-col gap-2">
+          <div className="flex items-center justify-between mb-1">
+            <label className="font-inter text-xs font-semibold text-slate-700 dark:text-slate-300 uppercase tracking-wider">Payment Processing Mode</label>
             {!isEditingPayment && (
               <button 
                 onClick={() => setIsEditingPayment(true)} 
-                className="admin-settings-change-btn" 
-                style={{ display: 'flex', alignItems: 'center', gap: '4px' }}
+                className="h-8 px-3 rounded-lg font-inter text-xs font-semibold transition-all border border-slate-200 dark:border-white/10 bg-slate-50 dark:bg-white/5 text-slate-700 dark:text-slate-300 hover:bg-slate-100 dark:hover:bg-white/10 cursor-pointer flex items-center gap-1.5" 
               >
-                <Edit2 size={14} /> Edit
+                <Edit2 size={13} /> Edit
               </button>
             )}
           </div>
           
           {!isEditingPayment ? (
-            <div style={{ 
-              padding: '12px 16px', 
-              background: '#f9fafb', 
-              border: '1px solid #e5e7eb', 
-              borderRadius: '6px', 
-              display: 'flex', 
-              alignItems: 'center', 
-              gap: '12px' 
-            }}>
-              <span style={{ 
-                fontSize: '12px', 
-                fontWeight: 600, 
-                padding: '4px 10px', 
-                borderRadius: '12px', 
-                backgroundColor: savedApprovalMethod === 'manual' ? '#fef3c7' : '#dcfce7', 
-                color: savedApprovalMethod === 'manual' ? '#b45309' : '#166534',
-                border: savedApprovalMethod === 'manual' ? '1px solid #fde68a' : '1px solid #bbf7d0',
-                fontFamily: 'Inter, sans-serif'
-              }}>
-                Active: {savedApprovalMethod === 'manual' ? 'Manual Approval' : 'Automated Gateway'}
+            <div className="p-4 bg-slate-50 dark:bg-[#161922] border border-slate-200 dark:border-white/10 rounded-xl flex items-center gap-3">
+              <span className={`text-xs font-bold px-3 py-1 rounded-full uppercase tracking-wider border ${savedApprovalMethod === 'manual' ? 'bg-amber-100 text-amber-800 border-amber-200 dark:bg-amber-500/20 dark:text-amber-400 dark:border-amber-500/30' : 'bg-emerald-100 text-emerald-800 border-emerald-200 dark:bg-emerald-500/20 dark:text-emerald-400 dark:border-emerald-500/30'}`}>
+                {savedApprovalMethod === 'manual' ? 'Manual Approval' : 'Automated Gateway'}
               </span>
-              <span style={{ fontSize: '14px', color: '#4b5563' }}>
+              <span className="font-inter text-sm text-slate-600 dark:text-slate-300">
                 {savedApprovalMethod === 'manual' 
-                  ? 'Admins manually review transactions.' 
-                  : 'Transactions confirmed automatically.'}
+                  ? 'Admins manually review uploaded receipts.' 
+                  : 'Transactions are processed automatically via PayMongo.'}
               </span>
             </div>
           ) : (
             <select
               value={settings.approvalMethod}
               onChange={(e) => setSettings({ ...settings, approvalMethod: e.target.value })}
-              className="admin-settings-form-input"
+              className="h-10 px-3.5 bg-slate-50 dark:bg-[#161922] border border-slate-200 dark:border-white/10 rounded-xl text-sm font-inter text-slate-800 dark:text-white outline-none focus:border-blue-500 transition-all w-full"
             >
               <option value="gateway">Automated Gateway Approval</option>
               <option value="manual">Manual Approval</option>
@@ -481,150 +537,131 @@ export default function AdminSettings() {
         </div>
 
         {isEditingPayment && (
-          <div style={{ display: 'flex', gap: '12px' }}>
+          <div className="flex gap-3">
             <button
               onClick={() => {
                 setIsEditingPayment(false);
                 setSettings({ ...settings, approvalMethod: savedApprovalMethod });
               }}
-              className="admin-settings-reset-btn"
-              style={{ flex: 1 }}
+              className="h-10 px-6 rounded-xl font-inter text-sm font-semibold transition-all border border-slate-200 dark:border-white/10 bg-white dark:bg-white/5 text-slate-700 dark:text-slate-300 hover:bg-slate-50 dark:hover:bg-white/10 cursor-pointer flex-1"
             >
               Cancel
             </button>
             <button
               onClick={() => setConfirmModal({ show: true, section: 'Payment' })}
-              className="admin-settings-save-btn"
+              className="h-10 px-6 rounded-xl font-inter text-sm font-semibold transition-all border-none bg-blue-600 text-white hover:bg-blue-700 cursor-pointer flex-1 flex items-center justify-center gap-2"
             >
-              Save Changes
+              <Save size={16} /> Save Changes
             </button>
           </div>
         )}
       </div>
 
       {/* Appearance Settings Section */}
-      <div className="admin-settings-section">
-        <div className="admin-settings-section-header">
-          <div className="admin-settings-section-icon" style={{ backgroundColor: '#F3E8FF', color: '#9333EA' }}>
-            <Moon size={20} />
+      <div className="bg-white dark:bg-[#1E2130] border border-slate-200 dark:border-white/10 rounded-2xl p-6 shadow-sm flex flex-col gap-6 relative">
+        <div className="flex items-center gap-4 pb-4 border-b border-slate-100 dark:border-white/5">
+          <div className="w-12 h-12 rounded-xl flex items-center justify-center shrink-0 bg-purple-50 text-purple-600 dark:bg-purple-500/20 dark:text-purple-400 border border-purple-200/50 dark:border-purple-500/30">
+            <Moon size={22} />
           </div>
-          <div className="admin-settings-section-title-wrapper">
-            <h2 className="admin-settings-section-title">Appearance Settings</h2>
-            <p className="admin-settings-section-description">Customize the look and feel of the admin dashboard</p>
+          <div className="flex flex-col">
+            <h2 className="m-0 font-inter text-base font-bold text-slate-800 dark:text-white">Appearance Settings</h2>
+            <p className="m-0 font-inter text-xs text-slate-500 dark:text-slate-400 mt-0.5">Customize theme preferences for low-light environments</p>
           </div>
         </div>
 
-        <div className="admin-settings-form-group" style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
-          <div>
-            <label className="admin-settings-form-label" style={{ marginBottom: '4px' }}>Dark Mode Theme</label>
-            <p style={{ fontSize: '13px', color: '#6B7280', margin: 0 }}>Enable a darker color scheme for low-light environments.</p>
+        <div className="flex items-center justify-between">
+          <div className="flex flex-col gap-0.5">
+            <span className="font-inter text-sm font-semibold text-slate-800 dark:text-white">Dark Mode Theme</span>
+            <span className="font-inter text-xs text-slate-500 dark:text-slate-400">Enable dark theme scheme across your admin dashboard.</span>
           </div>
-          <label className="admin-toggle-switch">
+          <label className="relative inline-flex items-center cursor-pointer shrink-0">
             <input
               type="checkbox"
+              className="sr-only peer"
               checked={theme === 'dark'}
               onChange={toggleTheme}
             />
-            <span className="admin-toggle-slider"></span>
+            <div className="w-11 h-6 bg-slate-200 dark:bg-white/10 peer-focus:outline-none rounded-full peer peer-checked:after:translate-x-full peer-checked:after:border-white after:content-[''] after:absolute after:top-[2px] after:left-[2px] after:bg-white after:border-slate-300 after:border after:rounded-full after:h-5 after:w-5 after:transition-all peer-checked:bg-blue-600"></div>
           </label>
         </div>
       </div>
 
       {/* Database Backup Section */}
-      <div className="admin-settings-section">
-        <div className="admin-settings-section-header">
-          <div className="admin-settings-section-icon" style={{ backgroundColor: '#dcfce7', color: '#16a34a' }}>
-            <Database size={20} />
+      <div className="bg-white dark:bg-[#1E2130] border border-slate-200 dark:border-white/10 rounded-2xl p-6 shadow-sm flex flex-col gap-6 relative">
+        <div className="flex items-center gap-4 pb-4 border-b border-slate-100 dark:border-white/5">
+          <div className="w-12 h-12 rounded-xl flex items-center justify-center shrink-0 bg-indigo-50 text-indigo-600 dark:bg-indigo-500/20 dark:text-indigo-400 border border-indigo-200/50 dark:border-indigo-500/30">
+            <Database size={22} />
           </div>
-          <div className="admin-settings-section-title-wrapper">
-            <h2 className="admin-settings-section-title">Data Backup & Export</h2>
-            <p className="admin-settings-section-description">Export a complete snapshot of your system's data</p>
+          <div className="flex flex-col">
+            <h2 className="m-0 font-inter text-base font-bold text-slate-800 dark:text-white">Data Backup & Export</h2>
+            <p className="m-0 font-inter text-xs text-slate-500 dark:text-slate-400 mt-0.5">Export a complete snapshot of system data</p>
           </div>
         </div>
 
-        <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', background: '#f9fafb', padding: '16px', borderRadius: '8px', border: '1px solid #e5e7eb' }}>
-          <div>
-            <strong style={{ fontSize: '14px', color: '#111827', display: 'block', marginBottom: '4px', fontFamily: 'DM Sans, sans-serif' }}>Export Master Database</strong>
-            <span style={{ fontSize: '13px', color: '#6b7280', fontFamily: 'DM Sans, sans-serif' }}>Downloads a secure CSV copy of all members, donations, and loans.</span>
+        <div className="flex flex-col sm:flex-row items-start sm:items-center justify-between gap-4 p-4 bg-slate-50 dark:bg-[#161922] border border-slate-200 dark:border-white/10 rounded-xl">
+          <div className="flex flex-col gap-0.5">
+            <span className="font-inter text-sm font-semibold text-slate-800 dark:text-white">Export Master Database</span>
+            <span className="font-inter text-xs text-slate-500 dark:text-slate-400">Download a CSV backup of members, donations, and loan records.</span>
           </div>
-          <button onClick={handleExportData} className="admin-settings-reset-btn" style={{ display: 'flex', alignItems: 'center', gap: '8px', color: '#16a34a', borderColor: '#bbf7d0', background: '#f0fdf4' }}>
-            <Download size={16} /> Download
+          <button onClick={handleExportData} className="h-10 px-5 rounded-xl font-inter text-sm font-semibold transition-all border border-emerald-200 dark:border-emerald-500/30 bg-emerald-50 dark:bg-emerald-500/10 text-emerald-700 dark:text-emerald-400 hover:bg-emerald-100 dark:hover:bg-emerald-500/20 cursor-pointer flex items-center gap-2 shrink-0">
+            <Download size={16} /> Download CSV
           </button>
         </div>
       </div>
 
       {/* System Maintenance Section */}
-      <div className="admin-settings-section">
-        <div className="admin-settings-section-header">
-          <div className="admin-settings-section-icon" style={{ backgroundColor: '#fef2f2', color: '#ef4444' }}>
-            <Wrench size={20} />
+      <div className="bg-white dark:bg-[#1E2130] border border-slate-200 dark:border-white/10 rounded-2xl p-6 shadow-sm flex flex-col gap-6 relative">
+        <div className="flex items-center gap-4 pb-4 border-b border-slate-100 dark:border-white/5">
+          <div className="w-12 h-12 rounded-xl flex items-center justify-center shrink-0 bg-orange-50 text-orange-600 dark:bg-orange-500/20 dark:text-orange-400 border border-orange-200/50 dark:border-orange-500/30">
+            <Wrench size={22} />
           </div>
-          <div className="admin-settings-section-title-wrapper">
-            <h2 className="admin-settings-section-title">System Maintenance</h2>
-            <p className="admin-settings-section-description">Temporarily disable user access to the platform</p>
+          <div className="flex flex-col">
+            <h2 className="m-0 font-inter text-base font-bold text-slate-800 dark:text-white">System Maintenance</h2>
+            <p className="m-0 font-inter text-xs text-slate-500 dark:text-slate-400 mt-0.5">Temporarily restrict user access for maintenance windows</p>
           </div>
         </div>
 
-        <div className="admin-settings-form-group" style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', background: '#fff1f2', padding: '16px', borderRadius: '8px', border: '1px solid #fecdd3' }}>
-          <div>
-            <label className="admin-settings-form-label" style={{ marginBottom: '4px', color: '#9f1239' }}>Enable Maintenance Mode</label>
-            <p style={{ fontSize: '13px', color: '#be123c', margin: 0 }}>Regular users will see a maintenance screen and cannot log in.</p>
+        <div className="flex items-center justify-between p-4 bg-rose-50/50 dark:bg-rose-500/10 border border-rose-200/60 dark:border-rose-500/20 rounded-xl">
+          <div className="flex flex-col gap-0.5">
+            <span className="font-inter text-sm font-semibold text-rose-800 dark:text-rose-400">Enable Maintenance Mode</span>
+            <span className="font-inter text-xs text-rose-700/80 dark:text-rose-400/80">Regular users will see a maintenance screen and cannot log in.</span>
           </div>
-          <label className="admin-toggle-switch">
-            <input type="checkbox" checked={settings.maintenanceMode} onChange={(e) => handleToggleChange('maintenanceMode', e.target.checked)} />
-            <span className="admin-toggle-slider" style={settings.maintenanceMode ? { backgroundColor: '#e11d48' } : {}}></span>
+          <label className="relative inline-flex items-center cursor-pointer shrink-0">
+            <input type="checkbox" className="sr-only peer" checked={settings.maintenanceMode} onChange={(e) => handleToggleChange('maintenanceMode', e.target.checked)} />
+            <div className="w-11 h-6 bg-slate-200 dark:bg-white/10 peer-focus:outline-none rounded-full peer peer-checked:after:translate-x-full peer-checked:after:border-white after:content-[''] after:absolute after:top-[2px] after:left-[2px] after:bg-white after:border-slate-300 after:border after:rounded-full after:h-5 after:w-5 after:transition-all peer-checked:bg-rose-600"></div>
           </label>
         </div>
       </div>
 
       {/* Logout Section */}
-      <div className="admin-settings-section" style={{ border: '1px solid #fee2e2', backgroundColor: '#fef2f2', boxShadow: 'none' }}>
-        <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
-          <div style={{ display: 'flex', alignItems: 'center', gap: '16px' }}>
-            <div className="admin-settings-section-icon" style={{ backgroundColor: '#fecaca', color: '#dc2626' }}>
-              <LogOut size={20} />
-            </div>
-            <div>
-              <h2 className="admin-settings-section-title" style={{ color: '#991b1b', margin: 0 }}>Log Out</h2>
-              <p className="admin-settings-section-description" style={{ color: '#b91c1c', margin: 0 }}>Securely end your admin session</p>
-            </div>
+      <div className="bg-rose-50/70 dark:bg-rose-500/10 border border-rose-200/80 dark:border-rose-500/20 rounded-2xl p-6 shadow-sm flex flex-col sm:flex-row items-start sm:items-center justify-between gap-4">
+        <div className="flex items-center gap-4">
+          <div className="w-12 h-12 rounded-xl flex items-center justify-center shrink-0 bg-rose-100 text-rose-600 dark:bg-rose-500/20 dark:text-rose-400 border border-rose-200 dark:border-rose-500/30">
+            <LogOut size={22} />
           </div>
-          <button 
-            onClick={() => {
-                localStorage.removeItem('adminToken');
-                localStorage.removeItem('adminEmail');
-                navigate('/');
-            }} 
-            style={{
-                padding: '10px 24px',
-                backgroundColor: '#dc2626',
-                color: 'white',
-                border: 'none',
-                borderRadius: '8px',
-                fontFamily: 'Inter, sans-serif',
-                fontWeight: '600',
-                fontSize: '14px',
-                cursor: 'pointer',
-                transition: 'background-color 0.2s'
-            }}
-            onMouseOver={(e) => e.target.style.backgroundColor = '#b91c1c'}
-            onMouseOut={(e) => e.target.style.backgroundColor = '#dc2626'}
-          >
-            Log Out Now
-          </button>
+          <div className="flex flex-col">
+            <h2 className="m-0 font-inter text-base font-bold text-rose-900 dark:text-rose-300">Log Out Session</h2>
+            <p className="m-0 font-inter text-xs text-rose-700/80 dark:text-rose-400/80 mt-0.5">Securely log out of your Main Admin account</p>
+          </div>
         </div>
+        <button 
+          onClick={handleLogout} 
+          className="h-10 px-6 rounded-xl font-inter text-sm font-semibold transition-all border-none bg-rose-600 text-white hover:bg-rose-700 cursor-pointer shadow-sm flex items-center justify-center gap-2 shrink-0"
+        >
+          <LogOut size={16} /> Log Out Now
+        </button>
       </div>
 
       {/* Confirmation Modal */}
       {confirmModal.show && (
-        <div className="admin-settings-modal-overlay">
-          <div className="admin-settings-modal-content">
-            <h2 className="admin-settings-modal-title">Confirm Changes</h2>
-            <p className="admin-settings-modal-description" style={{ marginBottom: '12px' }}>
+        <div className="fixed inset-0 bg-black/50 backdrop-blur-sm z-[1000] flex items-center justify-center p-4">
+          <div className="bg-white dark:bg-[#1E2130] rounded-2xl w-full max-w-[450px] shadow-2xl border border-slate-200 dark:border-white/10 p-6 flex flex-col gap-4">
+            <h2 className="m-0 font-inter text-lg font-bold text-slate-800 dark:text-white">Confirm Changes</h2>
+            <p className="m-0 font-inter text-sm text-slate-600 dark:text-slate-400">
               Are you sure you want to save changes to your {confirmModal.section} settings?
             </p>
-            <div style={{ background: '#f9fafb', padding: '12px', borderRadius: '6px', marginBottom: '24px', fontSize: '13px', color: '#4b5563', lineHeight: '1.5' }}>
-              <strong>What happens next:</strong><br />
+            <div className="bg-slate-50 dark:bg-[#161922] p-4 rounded-xl border border-slate-200 dark:border-white/10 text-xs text-slate-600 dark:text-slate-300 leading-relaxed">
+              <strong className="block font-semibold mb-1 text-slate-800 dark:text-white">What happens next:</strong>
               {confirmModal.section === 'Account' && "Your admin profile details such as name and email address will be updated across the system."}
               {confirmModal.section === 'Organization' && "The church's official name, address, and contact details will be updated globally."}
               {confirmModal.section === 'Security' && "Your password will be updated immediately. Please make sure to remember your new password for your next login."}
@@ -634,10 +671,10 @@ export default function AdminSettings() {
                   : "Switching to Automated Gateway Approval will redirect users to PayMongo to securely process their payments. Transactions will be automatically confirmed without requiring manual review."
               )}
             </div>
-            <div className="admin-settings-modal-actions">
+            <div className="flex items-center justify-end gap-3 mt-2">
               <button 
                 onClick={() => setConfirmModal({ show: false, section: null })} 
-                className="admin-settings-modal-cancel-btn"
+                className="h-10 px-5 rounded-xl font-inter text-sm font-semibold transition-all border border-slate-200 dark:border-white/10 bg-white dark:bg-white/5 text-slate-700 dark:text-slate-300 hover:bg-slate-50 dark:hover:bg-white/10 cursor-pointer"
               >
                 Cancel
               </button>
@@ -646,7 +683,7 @@ export default function AdminSettings() {
                   handleSave(confirmModal.section);
                   setConfirmModal({ show: false, section: null });
                 }} 
-                className="admin-settings-modal-confirm-btn"
+                className="h-10 px-5 rounded-xl font-inter text-sm font-semibold transition-all border-none bg-blue-600 text-white hover:bg-blue-700 cursor-pointer shadow-sm"
               >
                 Confirm
               </button>

@@ -7,7 +7,6 @@ import {
   XAxis, YAxis, CartesianGrid, Tooltip, ResponsiveContainer, Label, LabelList
 } from 'recharts';
 
-import '../styles/AdminFinancialReport.css';
 import API from '../../utils/api';
 import { FileText, Printer, RefreshCw, Sparkles, Calendar, ChevronDown, Download, MapPin, AlertCircle, X } from 'lucide-react';
 
@@ -84,8 +83,8 @@ const METHOD_MAP = { 'bank': 'Bank Transfer', 'bank transfer': 'Bank Transfer', 
 const normalizeMethod = (m) => METHOD_MAP[(m || '').toLowerCase()] || m;
 
 const ChartFooter = ({ period, location }) => (
-  <div className="fin-chart-footer">
-    <p className="fin-chart-footer-source">Source: IsangDiwa · {period} · {location}</p>
+  <div className="mt-6 pt-4 border-t border-slate-100 dark:border-white/5 text-center">
+    <p className="m-0 font-inter text-xs text-slate-400 dark:text-slate-500">Source: IsangDiwa · {period} · {location}</p>
   </div>
 );
 
@@ -366,31 +365,31 @@ export default function AdminFinancialReport() {
   const filteredProvinces = availableProvinces.filter(p => p.toLowerCase().includes(provinceSearch.toLowerCase()));
 
   return (
-    <div className="fin-report-page">
+    <div className="flex flex-col p-6 max-w-[1200px] mx-auto w-full min-h-screen bg-slate-50 dark:bg-[#161922] font-inter text-slate-800 dark:text-slate-200">
 
       {/* ── Header ── */}
-      <div className="fin-report-header">
-        <div className="fin-report-header-left">
-          <div className="fin-report-icon-wrap">
+      <div className="flex flex-col md:flex-row justify-between items-start md:items-center gap-4 mb-6 shrink-0">
+        <div className="flex items-center gap-4">
+          <div className="w-12 h-12 bg-blue-600 text-white rounded-xl flex items-center justify-center shadow-md">
             <FileText size={20} />
           </div>
           <div>
-            <h1 className="fin-report-title">Automated Report</h1>
-            <p className="fin-report-subtitle">AI-generated operational analysis with detailed breakdowns</p>
+            <h1 className="m-0 font-inter text-2xl font-bold text-slate-900 dark:text-white leading-tight">Automated Report</h1>
+            <p className="m-0 font-inter text-sm text-slate-500 dark:text-slate-400 mt-1">AI-generated operational analysis with detailed breakdowns</p>
           </div>
         </div>
-        <div className="fin-report-header-actions no-print">
+        <div className="flex items-center gap-2 no-print">
           {report && (
             <>
               <button
-                className="fin-report-btn secondary"
+                className="h-10 px-4 rounded-lg font-inter text-sm font-semibold transition-all border border-slate-300 dark:border-white/10 bg-white dark:bg-[#1E2130] text-slate-700 dark:text-slate-300 hover:bg-slate-50 dark:hover:bg-white/5 flex items-center gap-2 cursor-pointer"
                 onClick={handleExportPDF}
                 disabled={exporting}
               >
                 {exporting ? <RefreshCw size={16} className="spinning" /> : <Download size={16} />}
                 {exporting ? 'Exporting...' : 'Export PDF'}
               </button>
-              <button className="fin-report-btn secondary" onClick={handlePrint}>
+              <button className="h-10 px-4 rounded-lg font-inter text-sm font-semibold transition-all border border-slate-300 dark:border-white/10 bg-white dark:bg-[#1E2130] text-slate-700 dark:text-slate-300 hover:bg-slate-50 dark:hover:bg-white/5 flex items-center gap-2 cursor-pointer" onClick={handlePrint}>
                 <Printer size={16} />
                 Print
               </button>
@@ -400,36 +399,40 @@ export default function AdminFinancialReport() {
       </div>
 
       {/* ── Filter Bar ── */}
-      <div className="fin-report-filter-bar no-print">
-        <div className="fin-report-filter-group">
+      <div className="bg-white dark:bg-[#1E2130] border border-slate-200 dark:border-white/10 rounded-xl p-4 mb-6 shadow-sm flex flex-col md:flex-row md:items-end justify-between gap-4 no-print">
+        <div className="flex flex-wrap items-end gap-3">
           {adminRole === 'admin' && (
-            <div className="fin-report-filter">
-              <FileText size={14} />
-              <select value={reportType} onChange={e => setReportType(e.target.value)} className="fin-report-select">
-                <option value="all">Comprehensive</option>
-                <option value="donations">Donations Only</option>
-                <option value="attendance">Attendance Only</option>
-              </select>
-              <ChevronDown size={12} className="fin-report-select-arrow" />
+            <div className="flex flex-col gap-1.5 relative">
+              <div className="relative">
+                <FileText size={14} className="absolute left-3 top-1/2 -translate-y-1/2 text-slate-400 pointer-events-none" />
+                <select value={reportType} onChange={e => setReportType(e.target.value)} className="h-9 pl-9 pr-8 appearance-none bg-slate-50 dark:bg-black/20 border border-slate-200 dark:border-white/10 rounded-lg text-sm font-inter text-slate-800 dark:text-white outline-none cursor-pointer focus:border-blue-500 transition-colors">
+                  <option value="all">Comprehensive</option>
+                  <option value="donations">Donations Only</option>
+                  <option value="attendance">Attendance Only</option>
+                </select>
+                <ChevronDown size={12} className="absolute right-2.5 top-1/2 -translate-y-1/2 text-slate-400 pointer-events-none" />
+              </div>
             </div>
           )}
 
           {branchesData.length > 0 && (
             <>
-              <div className="fin-report-filter">
-                <MapPin size={14} />
-                <select value={locationType} onChange={e => setLocationType(e.target.value)} className="fin-report-select">
-                  <option value="all">All Locations</option>
-                  <option value="province">By Province</option>
-                  <option value="specific">Specific Communities</option>
-                </select>
-                <ChevronDown size={12} className="fin-report-select-arrow" />
+              <div className="flex flex-col gap-1.5 relative">
+                <div className="relative">
+                  <MapPin size={14} className="absolute left-3 top-1/2 -translate-y-1/2 text-slate-400 pointer-events-none" />
+                  <select value={locationType} onChange={e => setLocationType(e.target.value)} className="h-9 pl-9 pr-8 appearance-none bg-slate-50 dark:bg-black/20 border border-slate-200 dark:border-white/10 rounded-lg text-sm font-inter text-slate-800 dark:text-white outline-none cursor-pointer focus:border-blue-500 transition-colors">
+                    <option value="all">All Locations</option>
+                    <option value="province">By Province</option>
+                    <option value="specific">Specific Communities</option>
+                  </select>
+                  <ChevronDown size={12} className="absolute right-2.5 top-1/2 -translate-y-1/2 text-slate-400 pointer-events-none" />
+                </div>
               </div>
 
               {locationType === 'province' && (
-                <div className="fin-report-filter" ref={provinceDropdownRef} style={{ position: 'relative' }}>
+                <div className="flex flex-col gap-1.5 relative" ref={provinceDropdownRef} style={{ position: 'relative' }}>
                   <div 
-                    className="fin-report-select" 
+                    className="h-9 pl-3 pr-8 appearance-none bg-slate-50 dark:bg-black/20 border border-slate-200 dark:border-white/10 rounded-lg text-sm font-inter text-slate-800 dark:text-white outline-none cursor-pointer focus:border-blue-500 transition-colors" 
                     style={{ minWidth: '180px', display: 'flex', alignItems: 'center', padding: '0 8px 0 0', background: '#f9fafb', border: '1px solid #e5e7eb', borderRadius: '8px' }}
                   >
                     <input
@@ -443,11 +446,11 @@ export default function AdminFinancialReport() {
                       onFocus={() => setShowProvinceDropdown(true)}
                       style={{ border: 'none', outline: 'none', background: 'transparent', width: '100%', padding: '8px 10px', fontSize: '13px', color: '#374151' }}
                     />
-                    <ChevronDown size={12} className="fin-report-select-arrow" style={{ position: 'static', cursor: 'pointer' }} onClick={() => setShowProvinceDropdown(!showProvinceDropdown)} />
+                    <ChevronDown size={12} className="absolute right-2.5 top-[55%] -translate-y-1/2 text-slate-400 pointer-events-none" style={{ position: 'static', cursor: 'pointer' }} onClick={() => setShowProvinceDropdown(!showProvinceDropdown)} />
                   </div>
                   
                   {showProvinceDropdown && (
-                    <div className="fin-report-dropdown-menu" style={{ position: 'absolute', top: '100%', left: 0, width: '100%', background: 'white', border: '1px solid #e5e7eb', borderRadius: '8px', boxShadow: '0 4px 6px rgba(0,0,0,0.1)', zIndex: 50, maxHeight: '250px', overflowY: 'auto', marginTop: '4px' }}>
+                    <div className="absolute top-full left-0 w-full bg-white dark:bg-[#1E2130] border border-slate-200 dark:border-white/10 rounded-lg shadow-lg z-50 max-h-[250px] overflow-y-auto mt-1 custom-scrollbar">
                       {filteredProvinces.map(p => (
                         <label key={p} style={{ display: 'flex', alignItems: 'center', gap: '8px', padding: '8px 12px', cursor: 'pointer', fontSize: '13px', borderBottom: '1px solid #f3f4f6', margin: 0 }}>
                           <input 
@@ -468,70 +471,72 @@ export default function AdminFinancialReport() {
             </>
           )}
 
-          <div className="fin-report-filter">
-            <Calendar size={14} />
-            <select 
-              value={periodMode === 'full' ? 'full' : periodMode === 'range' ? 'range' : `month-${reportMonth}`} 
-              onChange={e => {
-                const val = e.target.value;
-                if (val === 'full') setPeriodMode('full');
-                else if (val === 'range') setPeriodMode('range');
-                else {
-                  setPeriodMode('month');
-                  setReportMonth(val.replace('month-', ''));
-                }
-              }} 
-              className="fin-report-select"
-            >
-              <option value="full">Full Year</option>
-              {MONTHS.map((m, i) => (
-                i <= maxSelectableMonth ? <option key={i} value={`month-${i}`}>{m}</option> : null
-              ))}
-              <option value="range">Custom Range...</option>
-            </select>
-            <ChevronDown size={12} className="fin-report-select-arrow" />
+          <div className="flex flex-col gap-1.5 relative">
+            <div className="relative">
+              <Calendar size={14} className="absolute left-3 top-1/2 -translate-y-1/2 text-slate-400 pointer-events-none" />
+              <select 
+                value={periodMode === 'full' ? 'full' : periodMode === 'range' ? 'range' : `month-${reportMonth}`} 
+                onChange={e => {
+                  const val = e.target.value;
+                  if (val === 'full') setPeriodMode('full');
+                  else if (val === 'range') setPeriodMode('range');
+                  else {
+                    setPeriodMode('month');
+                    setReportMonth(val.replace('month-', ''));
+                  }
+                }} 
+                className="h-9 pl-9 pr-8 appearance-none bg-slate-50 dark:bg-black/20 border border-slate-200 dark:border-white/10 rounded-lg text-sm font-inter text-slate-800 dark:text-white outline-none cursor-pointer focus:border-blue-500 transition-colors"
+              >
+                <option value="full">Full Year</option>
+                {MONTHS.map((m, i) => (
+                  i <= maxSelectableMonth ? <option key={i} value={`month-${i}`}>{m}</option> : null
+                ))}
+                <option value="range">Custom Range...</option>
+              </select>
+              <ChevronDown size={12} className="absolute right-2.5 top-1/2 -translate-y-1/2 text-slate-400 pointer-events-none" />
+            </div>
           </div>
 
           {periodMode === 'range' && (
             <>
-              <div className="fin-report-filter">
+              <div className="flex flex-col gap-1.5 relative">
                 <span style={{fontSize: '13px', color: '#6b7280', paddingRight: '4px'}}>From</span>
-                <select value={startMonth} onChange={e => { const v = Number(e.target.value); setStartMonth(v); if (v >= endMonth) setEndMonth(Math.min(v + 1, maxSelectableMonth)); }} className="fin-report-select" style={{ minWidth: '70px', paddingLeft: 0 }}>
+                <select value={startMonth} onChange={e => { const v = Number(e.target.value); setStartMonth(v); if (v >= endMonth) setEndMonth(Math.min(v + 1, maxSelectableMonth)); }} className="h-9 pl-3 pr-8 appearance-none bg-slate-50 dark:bg-black/20 border border-slate-200 dark:border-white/10 rounded-lg text-sm font-inter text-slate-800 dark:text-white outline-none cursor-pointer focus:border-blue-500 transition-colors" style={{ minWidth: '70px', paddingLeft: 0 }}>
                   {MONTHS.map((m, i) => (
                     i < maxSelectableMonth ? <option key={i} value={i}>{MONTH_SHORT[i]}</option> : null
                   ))}
                 </select>
-                <ChevronDown size={12} className="fin-report-select-arrow" />
+                <ChevronDown size={12} className="absolute right-2.5 top-[55%] -translate-y-1/2 text-slate-400 pointer-events-none" />
               </div>
-              <div className="fin-report-filter">
+              <div className="flex flex-col gap-1.5 relative">
                 <span style={{fontSize: '13px', color: '#6b7280', paddingRight: '4px'}}>To</span>
-                <select value={endMonth} onChange={e => setEndMonth(Number(e.target.value))} className="fin-report-select" style={{ minWidth: '70px', paddingLeft: 0 }}>
+                <select value={endMonth} onChange={e => setEndMonth(Number(e.target.value))} className="h-9 pl-3 pr-8 appearance-none bg-slate-50 dark:bg-black/20 border border-slate-200 dark:border-white/10 rounded-lg text-sm font-inter text-slate-800 dark:text-white outline-none cursor-pointer focus:border-blue-500 transition-colors" style={{ minWidth: '70px', paddingLeft: 0 }}>
                   {MONTHS.map((m, i) => (
                     i > startMonth && i <= maxSelectableMonth ? <option key={i} value={i}>{MONTH_SHORT[i]}</option> : null
                   ))}
                 </select>
-                <ChevronDown size={12} className="fin-report-select-arrow" />
+                <ChevronDown size={12} className="absolute right-2.5 top-[55%] -translate-y-1/2 text-slate-400 pointer-events-none" />
               </div>
             </>
           )}
 
-          <div className="fin-report-filter">
-            <select value={reportYear} onChange={e => setReportYear(Number(e.target.value))} className="fin-report-select">
+          <div className="flex flex-col gap-1.5 relative">
+            <select value={reportYear} onChange={e => setReportYear(Number(e.target.value))} className="h-9 pl-3 pr-8 appearance-none bg-slate-50 dark:bg-black/20 border border-slate-200 dark:border-white/10 rounded-lg text-sm font-inter text-slate-800 dark:text-white outline-none cursor-pointer focus:border-blue-500 transition-colors">
               {yearOptions.map(y => (
                 <option key={y} value={y}>{y}</option>
               ))}
             </select>
-            <ChevronDown size={12} className="fin-report-select-arrow" />
+            <ChevronDown size={12} className="absolute right-2.5 top-[55%] -translate-y-1/2 text-slate-400 pointer-events-none" />
           </div>
 
-          <label className="fin-report-compare-label">
-            <input type="checkbox" checked={compareYoY} onChange={e => setCompareYoY(e.target.checked)} className="fin-report-compare-checkbox" />
+          <label className="flex items-center gap-2 font-inter text-sm font-medium text-slate-700 dark:text-slate-300 cursor-pointer h-9 px-3 bg-slate-50 dark:bg-black/20 border border-slate-200 dark:border-white/10 rounded-lg select-none hover:bg-slate-100 dark:hover:bg-white/5 transition-colors">
+            <input type="checkbox" checked={compareYoY} onChange={e => setCompareYoY(e.target.checked)} className="w-4 h-4 rounded border-slate-300 text-blue-600 focus:ring-blue-500 dark:border-white/10 dark:bg-black/20 cursor-pointer" />
             Compare YoY
           </label>
         </div>
 
         <button
-          className="fin-report-btn primary"
+          className="h-10 px-6 rounded-lg font-inter text-sm font-semibold transition-all border-none bg-blue-600 text-white hover:bg-blue-700 shadow-sm flex items-center gap-2 cursor-pointer"
           onClick={handleGenerateClick}
           disabled={loading}
         >
@@ -551,9 +556,9 @@ export default function AdminFinancialReport() {
 
       {/* ── Specific Communities Selector ── */}
       {locationType === 'specific' && branchesData.length > 0 && (
-        <div className="fin-report-specific-communities no-print">
-          <p className="fin-report-specific-label">Select Communities (Multiple allowed):</p>
-          <div className="fin-report-branch-list">
+        <div className="mt-3 pt-3 border-t border-slate-100 dark:border-white/5 no-print">
+          <p className="font-inter text-xs font-semibold text-slate-500 dark:text-slate-400 mb-2 uppercase tracking-wide">Select Communities (Multiple allowed):</p>
+          <div className="flex flex-wrap gap-2 max-h-[120px] overflow-y-auto custom-scrollbar pr-2">
             {[...branchesData].sort((a, b) => a.name.localeCompare(b.name)).map(b => (
               <label key={b.name} className={`fin-report-branch-chip${selectedCommunities.includes(b.name) ? ' selected' : ''}`}>
                 <input 
@@ -571,16 +576,16 @@ export default function AdminFinancialReport() {
 
       {/* ── Loading ── */}
       {loading && (
-        <div className="fin-report-loading">
-          <div className="fin-report-loading-spinner" />
-          <p className="fin-report-loading-text">Analyzing financial data with AI...</p>
-          <p className="fin-report-loading-sub">This may take 10-15 seconds</p>
+        <div className="flex flex-col items-center justify-center py-24 px-4 text-center">
+          <div className="w-12 h-12 border-4 border-slate-200 border-t-blue-600 rounded-full animate-spin mb-6 dark:border-white/10 dark:border-t-blue-500" />
+          <p className="m-0 font-inter text-lg font-bold text-slate-800 dark:text-white">Analyzing financial data with AI...</p>
+          <p className="m-0 font-inter text-sm text-slate-500 dark:text-slate-400 mt-2">This may take 10-15 seconds</p>
         </div>
       )}
 
       {/* ── Error ── */}
       {error && !loading && (
-        <div className="fin-report-error">
+        <div className="p-6 bg-rose-50 text-rose-700 dark:bg-rose-500/10 dark:text-rose-400 border border-rose-200 dark:border-rose-500/20 rounded-xl font-inter text-sm flex items-center gap-3">
           <p>⚠️ {error}</p>
           <button onClick={generateReport}>Try Again</button>
         </div>
@@ -588,10 +593,10 @@ export default function AdminFinancialReport() {
 
       {/* ── Report Content ── */}
       {report && !loading && (
-        <div className="fin-report-content" ref={reportRef}>
+        <div className="flex flex-col gap-6" ref={reportRef}>
 
           {/* Report Header (print/PDF) */}
-          <div className="fin-report-print-header print-only">
+          <div className="hidden print:block mb-8 pb-4 border-b-2 border-slate-800 dark:border-white">
             <h1>IsangDiwa Financial Report</h1>
             <p>Period: {report.period}</p>
             {report.community && <p>Location: {report.community}</p>}
@@ -599,15 +604,15 @@ export default function AdminFinancialReport() {
           </div>
 
           {/* Executive Summary */}
-          <div className="fin-report-section fin-report-executive">
-            <div className="fin-report-section-header">
-              <div className="fin-report-section-badge ai">
+          <div className="bg-white dark:bg-[#1E2130] rounded-xl border border-slate-200 dark:border-white/10 shadow-sm overflow-hidden">
+            <div className="p-5 border-b border-slate-200 dark:border-white/10 bg-slate-50 dark:bg-black/20 flex items-center gap-3">
+              <div className="px-2 py-0.5 bg-blue-100 text-blue-700 dark:bg-blue-500/20 dark:text-blue-400 rounded text-[10px] font-bold uppercase tracking-wide">
                 <Sparkles size={14} />
                 AI Executive Summary
               </div>
-              <span className="fin-report-period-label">{report.period}</span>
+              <span className="font-inter text-[13px] font-medium text-slate-500 dark:text-slate-400">{report.period}</span>
             </div>
-            <div className="fin-report-executive-body">
+            <div className="p-6">
               {report.executiveSummary?.split('\n').filter(Boolean).map((line, i) => {
                 const isBullet = line.trim().startsWith('-') || line.trim().startsWith('•') || /^\d+\./.test(line.trim());
                 return (
@@ -625,13 +630,13 @@ export default function AdminFinancialReport() {
 
           {/* === Year-over-Year Comparative Analysis === */}
           {report.comparison && (
-            <div className="fin-report-section">
-              <div className="fin-report-section-header">
-                <h2 className="fin-report-section-title">📊 Year-over-Year Comparison</h2>
+            <div className="bg-white dark:bg-[#1E2130] rounded-xl border border-slate-200 dark:border-white/10 shadow-sm overflow-hidden">
+              <div className="p-5 border-b border-slate-200 dark:border-white/10 bg-slate-50 dark:bg-black/20 flex items-center gap-3">
+                <h2 className="m-0 font-inter text-[15px] font-bold text-slate-800 dark:text-white flex items-center gap-2">📊 Year-over-Year Comparison</h2>
               </div>
-              <p className="fin-chart-summary compare-vs"><strong>{report.comparison.currentPeriod}</strong> vs <strong>{report.comparison.prevPeriod}</strong></p>
+              <p className="font-inter text-[13px] text-slate-500 dark:text-slate-400 mt-1"><strong>{report.comparison.currentPeriod}</strong> vs <strong>{report.comparison.prevPeriod}</strong></p>
 
-              <div className="fin-report-charts-row">
+              <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
                 {/* Donations Comparison */}
                 {report.comparison.donations && (() => {
                   const d = report.comparison.donations;
@@ -640,9 +645,9 @@ export default function AdminFinancialReport() {
                     { label: 'Transactions', current: d.currentCount, previous: d.previousCount },
                   ];
                   return (
-                    <div className="fin-report-chart-card">
-                      <h3 className="fin-report-chart-title">Donations — Period Over Period</h3>
-                      <p className="fin-chart-summary">
+                    <div className="bg-white dark:bg-[#1E2130] rounded-xl border border-slate-200 dark:border-white/10 shadow-sm p-6 flex flex-col h-[400px]">
+                      <h3 className="m-0 font-inter text-[15px] font-bold text-slate-800 dark:text-white">Donations — Period Over Period</h3>
+                      <p className="font-inter text-[13px] text-slate-500 dark:text-slate-400 mt-1">
                         Current: <strong>{fmt(d.current)}</strong> · Previous: <strong>{fmt(d.previous)}</strong>
                         {d.change !== null && <> · Change: <strong className={d.change >= 0 ? 'fin-change-positive' : 'fin-change-negative'}>{d.change >= 0 ? '+' : ''}{d.change}%</strong></>}
                       </p>
@@ -660,15 +665,15 @@ export default function AdminFinancialReport() {
                           </Bar>
                         </BarChart>
                       </ResponsiveContainer>
-                      <div className="fin-report-legend fin-report-legend-center">
-                        <div className="fin-report-legend-item fin-report-legend-gap">
-                          <span className="fin-report-legend-dot" style={{ background: '#0D1F45' }} />
-                          <span className="fin-report-legend-label">{report.comparison.currentPeriod}</span>
+                      <div className="flex flex-wrap items-center justify-center gap-4 mt-6 pt-4 border-t border-slate-100 dark:border-white/5">
+                        <div className="flex items-center gap-1.5 font-inter text-[11px] font-medium text-slate-600 dark:text-slate-400">
+                          <span className="w-2.5 h-2.5 rounded-full" style={{ background: '#0D1F45' }} />
+                          <span className="font-inter text-[11px] font-medium text-slate-600 dark:text-slate-400">{report.comparison.currentPeriod}</span>
                           <span style={{ fontSize: '10px', color: '#4B5563', marginLeft: '6px' }}>({fmt(report.comparison.donations.current)})</span>
                         </div>
-                        <div className="fin-report-legend-item fin-report-legend-gap">
-                          <span className="fin-report-legend-dot" style={{ background: '#93c5fd' }} />
-                          <span className="fin-report-legend-label">{report.comparison.prevPeriod}</span>
+                        <div className="flex items-center gap-1.5 font-inter text-[11px] font-medium text-slate-600 dark:text-slate-400">
+                          <span className="w-2.5 h-2.5 rounded-full" style={{ background: '#93c5fd' }} />
+                          <span className="font-inter text-[11px] font-medium text-slate-600 dark:text-slate-400">{report.comparison.prevPeriod}</span>
                           <span style={{ fontSize: '10px', color: '#4B5563', marginLeft: '6px' }}>({fmt(report.comparison.donations.previous)})</span>
                         </div>
                       </div>
@@ -682,9 +687,9 @@ export default function AdminFinancialReport() {
                   const a = report.comparison.attendance;
                   const barData = [{ label: 'Total Attendance', current: a.current, previous: a.previous }];
                   return (
-                    <div className="fin-report-chart-card">
-                      <h3 className="fin-report-chart-title">Attendance — Period Over Period</h3>
-                      <p className="fin-chart-summary">
+                    <div className="bg-white dark:bg-[#1E2130] rounded-xl border border-slate-200 dark:border-white/10 shadow-sm p-6 flex flex-col h-[400px]">
+                      <h3 className="m-0 font-inter text-[15px] font-bold text-slate-800 dark:text-white">Attendance — Period Over Period</h3>
+                      <p className="font-inter text-[13px] text-slate-500 dark:text-slate-400 mt-1">
                         Current: <strong>{a.current} attendees</strong> · Previous: <strong>{a.previous} attendees</strong>
                         {a.change !== null && <> · Change: <strong className={a.change >= 0 ? 'fin-change-positive' : 'fin-change-negative'}>{a.change >= 0 ? '+' : ''}{a.change}%</strong></>}
                       </p>
@@ -702,15 +707,15 @@ export default function AdminFinancialReport() {
                           </Bar>
                         </BarChart>
                       </ResponsiveContainer>
-                      <div className="fin-report-legend fin-report-legend-center">
-                        <div className="fin-report-legend-item fin-report-legend-gap">
-                          <span className="fin-report-legend-dot" style={{ background: '#2563eb' }} />
-                          <span className="fin-report-legend-label">{report.comparison.currentPeriod}</span>
+                      <div className="flex flex-wrap items-center justify-center gap-4 mt-6 pt-4 border-t border-slate-100 dark:border-white/5">
+                        <div className="flex items-center gap-1.5 font-inter text-[11px] font-medium text-slate-600 dark:text-slate-400">
+                          <span className="w-2.5 h-2.5 rounded-full" style={{ background: '#2563eb' }} />
+                          <span className="font-inter text-[11px] font-medium text-slate-600 dark:text-slate-400">{report.comparison.currentPeriod}</span>
                           <span style={{ fontSize: '10px', color: '#4B5563', marginLeft: '6px' }}>({a.current} attendees)</span>
                         </div>
-                        <div className="fin-report-legend-item fin-report-legend-gap">
-                          <span className="fin-report-legend-dot" style={{ background: '#bfdbfe' }} />
-                          <span className="fin-report-legend-label">{report.comparison.prevPeriod}</span>
+                        <div className="flex items-center gap-1.5 font-inter text-[11px] font-medium text-slate-600 dark:text-slate-400">
+                          <span className="w-2.5 h-2.5 rounded-full" style={{ background: '#bfdbfe' }} />
+                          <span className="font-inter text-[11px] font-medium text-slate-600 dark:text-slate-400">{report.comparison.prevPeriod}</span>
                           <span style={{ fontSize: '10px', color: '#4B5563', marginLeft: '6px' }}>({a.previous} attendees)</span>
                         </div>
                       </div>
@@ -722,10 +727,10 @@ export default function AdminFinancialReport() {
 
               {/* Loans Comparison */}
               {report.comparison.loans && (
-                <div className="fin-report-charts-row" style={{marginTop: '16px'}}>
-                  <div className="fin-report-chart-card">
-                    <h3 className="fin-report-chart-title">Loans — Period Over Period</h3>
-                    <p className="fin-chart-summary">
+                <div className="grid grid-cols-1 lg:grid-cols-2 gap-6" style={{marginTop: '16px'}}>
+                  <div className="bg-white dark:bg-[#1E2130] rounded-xl border border-slate-200 dark:border-white/10 shadow-sm p-6 flex flex-col h-[400px]">
+                    <h3 className="m-0 font-inter text-[15px] font-bold text-slate-800 dark:text-white">Loans — Period Over Period</h3>
+                    <p className="font-inter text-[13px] text-slate-500 dark:text-slate-400 mt-1">
                       Applications: <strong>{report.comparison.loans.currentApps}</strong> vs <strong>{report.comparison.loans.previousApps}</strong>
                       {report.comparison.loans.changeApps !== null && <> (<strong className={report.comparison.loans.changeApps >= 0 ? 'fin-change-positive' : 'fin-change-negative'}>{report.comparison.loans.changeApps >= 0 ? '+' : ''}{report.comparison.loans.changeApps}%</strong>)</>}
                     </p>
@@ -747,14 +752,14 @@ export default function AdminFinancialReport() {
                         </Bar>
                       </BarChart>
                     </ResponsiveContainer>
-                    <div className="fin-report-legend fin-report-legend-center">
-                      <div className="fin-report-legend-item fin-report-legend-gap">
-                        <span className="fin-report-legend-dot" style={{ background: '#0D1F45' }} />
-                        <span className="fin-report-legend-label">{report.comparison.currentPeriod}</span>
+                    <div className="flex flex-wrap items-center justify-center gap-4 mt-6 pt-4 border-t border-slate-100 dark:border-white/5">
+                      <div className="flex items-center gap-1.5 font-inter text-[11px] font-medium text-slate-600 dark:text-slate-400">
+                        <span className="w-2.5 h-2.5 rounded-full" style={{ background: '#0D1F45' }} />
+                        <span className="font-inter text-[11px] font-medium text-slate-600 dark:text-slate-400">{report.comparison.currentPeriod}</span>
                       </div>
-                      <div className="fin-report-legend-item fin-report-legend-gap">
-                        <span className="fin-report-legend-dot" style={{ background: '#93c5fd' }} />
-                        <span className="fin-report-legend-label">{report.comparison.prevPeriod}</span>
+                      <div className="flex items-center gap-1.5 font-inter text-[11px] font-medium text-slate-600 dark:text-slate-400">
+                        <span className="w-2.5 h-2.5 rounded-full" style={{ background: '#93c5fd' }} />
+                        <span className="font-inter text-[11px] font-medium text-slate-600 dark:text-slate-400">{report.comparison.prevPeriod}</span>
                       </div>
                     </div>
                     <ChartFooter period={`${report.comparison.currentPeriod} vs ${report.comparison.prevPeriod}`} location={getLocationLabel()} />
@@ -764,10 +769,10 @@ export default function AdminFinancialReport() {
 
               {/* Disbursements Comparison */}
               {report.comparison.disbursements && (
-                <div className="fin-report-charts-row" style={{marginTop: '16px'}}>
-                  <div className="fin-report-chart-card">
-                    <h3 className="fin-report-chart-title">Disbursements — Period Over Period</h3>
-                    <p className="fin-chart-summary">
+                <div className="grid grid-cols-1 lg:grid-cols-2 gap-6" style={{marginTop: '16px'}}>
+                  <div className="bg-white dark:bg-[#1E2130] rounded-xl border border-slate-200 dark:border-white/10 shadow-sm p-6 flex flex-col h-[400px]">
+                    <h3 className="m-0 font-inter text-[15px] font-bold text-slate-800 dark:text-white">Disbursements — Period Over Period</h3>
+                    <p className="font-inter text-[13px] text-slate-500 dark:text-slate-400 mt-1">
                       Current: <strong>{fmt(report.comparison.disbursements.current)}</strong> · Previous: <strong>{fmt(report.comparison.disbursements.previous)}</strong>
                       {report.comparison.disbursements.change !== null && <> · Change: <strong className={report.comparison.disbursements.change >= 0 ? 'fin-change-positive' : 'fin-change-negative'}>{report.comparison.disbursements.change >= 0 ? '+' : ''}{report.comparison.disbursements.change}%</strong></>}
                     </p>
@@ -788,15 +793,15 @@ export default function AdminFinancialReport() {
                         </Bar>
                       </BarChart>
                     </ResponsiveContainer>
-                    <div className="fin-report-legend fin-report-legend-center">
-                      <div className="fin-report-legend-item fin-report-legend-gap">
-                        <span className="fin-report-legend-dot" style={{ background: '#0D1F45' }} />
-                        <span className="fin-report-legend-label">{report.comparison.currentPeriod}</span>
+                    <div className="flex flex-wrap items-center justify-center gap-4 mt-6 pt-4 border-t border-slate-100 dark:border-white/5">
+                      <div className="flex items-center gap-1.5 font-inter text-[11px] font-medium text-slate-600 dark:text-slate-400">
+                        <span className="w-2.5 h-2.5 rounded-full" style={{ background: '#0D1F45' }} />
+                        <span className="font-inter text-[11px] font-medium text-slate-600 dark:text-slate-400">{report.comparison.currentPeriod}</span>
                         <span style={{ fontSize: '10px', color: '#4B5563', marginLeft: '6px' }}>({fmt(report.comparison.disbursements.current)})</span>
                       </div>
-                      <div className="fin-report-legend-item fin-report-legend-gap">
-                        <span className="fin-report-legend-dot" style={{ background: '#93c5fd' }} />
-                        <span className="fin-report-legend-label">{report.comparison.prevPeriod}</span>
+                      <div className="flex items-center gap-1.5 font-inter text-[11px] font-medium text-slate-600 dark:text-slate-400">
+                        <span className="w-2.5 h-2.5 rounded-full" style={{ background: '#93c5fd' }} />
+                        <span className="font-inter text-[11px] font-medium text-slate-600 dark:text-slate-400">{report.comparison.prevPeriod}</span>
                         <span style={{ fontSize: '10px', color: '#4B5563', marginLeft: '6px' }}>({fmt(report.comparison.disbursements.previous)})</span>
                       </div>
                     </div>
@@ -809,36 +814,36 @@ export default function AdminFinancialReport() {
 
           {/* Donations Section - Only for Super Admin */}
           {report.donations && adminRole === 'admin' && (report.reportType === 'all' || report.reportType === 'donations') && (
-            <div className="fin-report-section">
-              <div className="fin-report-section-header">
-                <h2 className="fin-report-section-title">💝 Donations Overview</h2>
+            <div className="bg-white dark:bg-[#1E2130] rounded-xl border border-slate-200 dark:border-white/10 shadow-sm overflow-hidden">
+              <div className="p-5 border-b border-slate-200 dark:border-white/10 bg-slate-50 dark:bg-black/20 flex items-center gap-3">
+                <h2 className="m-0 font-inter text-[15px] font-bold text-slate-800 dark:text-white flex items-center gap-2">💝 Donations Overview</h2>
               </div>
 
               {/* Donation Stats */}
-              <div className="fin-report-stat-grid">
-                <div className="fin-report-stat">
-                  <span className="fin-report-stat-label">Total Donations</span>
-                  <span className="fin-report-stat-value blue">{fmt(report.donations.total)}</span>
+              <div className="grid grid-cols-1 sm:grid-cols-3 gap-6">
+                <div className="flex flex-col">
+                  <span className="font-inter text-[13px] font-semibold text-slate-500 dark:text-slate-400 uppercase tracking-wide">Total Donations</span>
+                  <span className="font-inter font-bold text-[32px] text-blue-600 dark:text-blue-400 mt-1">{fmt(report.donations.total)}</span>
                 </div>
-                <div className="fin-report-stat">
-                  <span className="fin-report-stat-label">Transaction Count</span>
-                  <span className="fin-report-stat-value">{report.donations.count}</span>
+                <div className="flex flex-col">
+                  <span className="font-inter text-[13px] font-semibold text-slate-500 dark:text-slate-400 uppercase tracking-wide">Transaction Count</span>
+                  <span className="font-inter font-bold text-[32px] text-slate-900 dark:text-white mt-1">{report.donations.count}</span>
                 </div>
-                <div className="fin-report-stat">
-                  <span className="fin-report-stat-label">Avg per Transaction</span>
-                  <span className="fin-report-stat-value green">
+                <div className="flex flex-col">
+                  <span className="font-inter text-[13px] font-semibold text-slate-500 dark:text-slate-400 uppercase tracking-wide">Avg per Transaction</span>
+                  <span className="font-inter font-bold text-[32px] text-emerald-600 dark:text-emerald-400 mt-1">
                     {fmt(report.donations.count > 0 ? report.donations.total / report.donations.count : 0)}
                   </span>
                 </div>
               </div>
 
               {/* Charts Row */}
-              <div className="fin-report-charts-row" style={{ gridTemplateColumns: report.donations.byCategory?.length > 0 ? '4fr 6fr' : '1fr' }}>
+              <div className="grid grid-cols-1 lg:grid-cols-2 gap-6" style={{ gridTemplateColumns: report.donations.byCategory?.length > 0 ? '4fr 6fr' : '1fr' }}>
                 {/* By Category */}
                 {report.donations.byCategory?.length > 0 && (
-                  <div className="fin-report-chart-card">
-                    <h3 className="fin-report-chart-title">Donations By Category</h3>
-                    <p className="fin-chart-summary">Total: <strong>{fmt(report.donations.total)}</strong> · {report.donations.byCategory.length} categories</p>
+                  <div className="bg-white dark:bg-[#1E2130] rounded-xl border border-slate-200 dark:border-white/10 shadow-sm p-6 flex flex-col h-[400px]">
+                    <h3 className="m-0 font-inter text-[15px] font-bold text-slate-800 dark:text-white">Donations By Category</h3>
+                    <p className="font-inter text-[13px] text-slate-500 dark:text-slate-400 mt-1">Total: <strong>{fmt(report.donations.total)}</strong> · {report.donations.byCategory.length} categories</p>
                     <ResponsiveContainer width="100%" height={200}>
                       <PieChart>
                         <Pie data={report.donations.byCategory} cx="50%" cy="42%" innerRadius={35} outerRadius={75} paddingAngle={2} dataKey="value" nameKey="name" label={renderSliceLabel} labelLine={false}>
@@ -849,12 +854,12 @@ export default function AdminFinancialReport() {
                         <Tooltip formatter={(v, name) => [fmt(v), name === 'value' ? 'Amount' : name]} />
                       </PieChart>
                     </ResponsiveContainer>
-                    <div className="fin-report-legend">
+                    <div className="flex flex-wrap items-center gap-4 mt-6 pt-4 border-t border-slate-100 dark:border-white/5">
                       {report.donations.byCategory.map((cat, i) => (
-                        <div key={i} className="fin-report-legend-item">
-                          <span className="fin-report-legend-dot" style={{ background: PIE_COLORS[i % PIE_COLORS.length] }} />
-                          <span className="fin-report-legend-label">{cat.name}</span>
-                          <span className="fin-report-legend-val">{fmt(cat.value)} · {report.donations.total > 0 ? ((cat.value / report.donations.total) * 100).toFixed(0) : 0}%</span>
+                        <div key={i} className="flex items-center gap-1.5 font-inter text-[11px] font-medium text-slate-600 dark:text-slate-400">
+                          <span className="w-2.5 h-2.5 rounded-full" style={{ background: PIE_COLORS[i % PIE_COLORS.length] }} />
+                          <span className="font-inter text-[11px] font-medium text-slate-600 dark:text-slate-400">{cat.name}</span>
+                          <span className="font-bold text-slate-800 dark:text-white ml-1">{fmt(cat.value)} · {report.donations.total > 0 ? ((cat.value / report.donations.total) * 100).toFixed(0) : 0}%</span>
                         </div>
                       ))}
                     </div>
@@ -904,9 +909,9 @@ export default function AdminFinancialReport() {
                   const highestMon = fullMonthData.reduce((a, b) => b.value > a.value ? b : a, fullMonthData[0]);
                   
                   return (
-                    <div className="fin-report-chart-card">
-                      <h3 className="fin-report-chart-title">{chartTitle}</h3>
-                      <p className="fin-chart-summary">Total: <strong>{fmt(totalDon)}</strong> · Highest: <strong>{highestMon?.month}</strong> ({fmt(highestMon?.value)})</p>
+                    <div className="bg-white dark:bg-[#1E2130] rounded-xl border border-slate-200 dark:border-white/10 shadow-sm p-6 flex flex-col h-[400px]">
+                      <h3 className="m-0 font-inter text-[15px] font-bold text-slate-800 dark:text-white">{chartTitle}</h3>
+                      <p className="font-inter text-[13px] text-slate-500 dark:text-slate-400 mt-1">Total: <strong>{fmt(totalDon)}</strong> · Highest: <strong>{highestMon?.month}</strong> ({fmt(highestMon?.value)})</p>
                       <ResponsiveContainer width="100%" height={isMulti ? 280 : 220}>
                         {isMulti ? (
                           <BarChart data={fullMonthData} margin={{ top: 15, right: 10, left: -10, bottom: 0 }}>
@@ -947,12 +952,12 @@ export default function AdminFinancialReport() {
                         });
                         
                         return (
-                          <div className="fin-report-grouped-legend" style={{ display: 'flex', flexWrap: 'wrap', gap: '24px', marginTop: '16px' }}>
+                          <div className="flex gap-8 mt-6 pt-4 border-t border-slate-100 dark:border-white/5" style={{ display: 'flex', flexWrap: 'wrap', gap: '24px', marginTop: '16px' }}>
                             {Object.entries(seriesByProv).map(([prov, seriesList]) => {
                               const activeSeries = seriesList.filter(s => seriesWithData.includes(s.name));
                               if (activeSeries.length === 0) return null;
                               return (
-                                <div key={prov} className="fin-report-legend-group" style={{ display: 'flex', flexDirection: 'column', gap: '6px', minWidth: '120px' }}>
+                                <div key={prov} className="flex flex-col gap-2" style={{ display: 'flex', flexDirection: 'column', gap: '6px', minWidth: '120px' }}>
                                   {!showProvinceTrend && (
                                     <div style={{ fontSize: '11px', fontWeight: 'bold', color: '#6b7280', textTransform: 'uppercase', borderBottom: '1px solid #e5e7eb', paddingBottom: '4px', marginBottom: '2px' }}>
                                       {prov}
@@ -961,10 +966,10 @@ export default function AdminFinancialReport() {
                                   {activeSeries.map((s) => {
                                     const totalVal = fullMonthData.reduce((sum, row) => sum + (row[s.name] || 0), 0);
                                     return (
-                                      <div key={s.name} className="fin-report-legend-item" style={{ margin: 0, flexDirection: 'column', alignItems: 'flex-start' }}>
+                                      <div key={s.name} className="flex items-center gap-1.5 font-inter text-[11px] font-medium text-slate-600 dark:text-slate-400" style={{ margin: 0, flexDirection: 'column', alignItems: 'flex-start' }}>
                                         <div style={{ display: 'flex', alignItems: 'center' }}>
-                                          <span className="fin-report-legend-dot" style={{ background: COMMUNITY_COLORS[s.index % COMMUNITY_COLORS.length] }} />
-                                          <span className="fin-report-legend-label">{s.name}</span>
+                                          <span className="w-2.5 h-2.5 rounded-full" style={{ background: COMMUNITY_COLORS[s.index % COMMUNITY_COLORS.length] }} />
+                                          <span className="font-inter text-[11px] font-medium text-slate-600 dark:text-slate-400">{s.name}</span>
                                           <span style={{ fontSize: '10px', color: '#4B5563', marginLeft: '6px' }}>({fmt(totalVal)})</span>
                                         </div>
                                       </div>
@@ -1017,10 +1022,10 @@ export default function AdminFinancialReport() {
 
 
                 return (
-                  <div className="fin-report-charts-row" style={{ gridTemplateColumns: '1fr', marginTop: '16px' }}>
-                    <div className="fin-report-chart-card" style={{ width: '100%' }}>
-                      <h3 className="fin-report-chart-title">Monthly Donation Trend (By Community)</h3>
-                      <p className="fin-chart-summary">
+                  <div className="grid grid-cols-1 lg:grid-cols-2 gap-6" style={{ gridTemplateColumns: '1fr', marginTop: '16px' }}>
+                    <div className="bg-white dark:bg-[#1E2130] rounded-xl border border-slate-200 dark:border-white/10 shadow-sm p-6 flex flex-col h-[400px]" style={{ width: '100%' }}>
+                      <h3 className="m-0 font-inter text-[15px] font-bold text-slate-800 dark:text-white">Monthly Donation Trend (By Community)</h3>
+                      <p className="font-inter text-[13px] text-slate-500 dark:text-slate-400 mt-1">
                         Detailed Community Breakdown · Total: <strong>{fmt(totalDon)}</strong> · Highest: <strong>{highestMon?.month}</strong>
                         {hasOthers && <> · Showing top 10 of {allSeries.length} communities</>}
                       </p>
@@ -1059,25 +1064,25 @@ export default function AdminFinancialReport() {
                           seriesByProv[prov].push({ name: s, index: i, total: totals[s] });
                         });
                         return (
-                          <div className="fin-report-grouped-legend">
+                          <div className="flex gap-8 mt-6 pt-4 border-t border-slate-100 dark:border-white/5">
                             {Object.entries(seriesByProv).map(([prov, seriesList]) => (
-                              <div key={prov} className="fin-report-legend-group">
-                                <div className="fin-report-legend-province-header">{prov}</div>
+                              <div key={prov} className="flex flex-col gap-2">
+                                <div className="font-inter text-xs font-bold text-slate-700 dark:text-slate-300 uppercase tracking-wide border-b border-slate-100 dark:border-white/5 pb-1 mb-1">{prov}</div>
                                 {seriesList.map(s => (
-                                  <div key={s.name} className="fin-report-legend-item" style={{ margin: 0 }}>
-                                    <span className="fin-report-legend-dot" style={{ background: COMMUNITY_COLORS[s.index % COMMUNITY_COLORS.length] }} />
-                                    <span className="fin-report-legend-label">{s.name}</span>
+                                  <div key={s.name} className="flex items-center gap-1.5 font-inter text-[11px] font-medium text-slate-600 dark:text-slate-400" style={{ margin: 0 }}>
+                                    <span className="w-2.5 h-2.5 rounded-full" style={{ background: COMMUNITY_COLORS[s.index % COMMUNITY_COLORS.length] }} />
+                                    <span className="font-inter text-[11px] font-medium text-slate-600 dark:text-slate-400">{s.name}</span>
                                     <span style={{ fontSize: '10px', color: '#4B5563', marginLeft: '4px' }}>({fmt(s.total)})</span>
                                   </div>
                                 ))}
                               </div>
                             ))}
                             {hasOthers && (
-                              <div className="fin-report-legend-group">
-                                <div className="fin-report-legend-province-header">Others</div>
-                                <div className="fin-report-legend-item" style={{ margin: 0 }}>
-                                  <span className="fin-report-legend-dot" style={{ background: '#d1d5db' }} />
-                                  <span className="fin-report-legend-label">{otherSeries.length} more communities</span>
+                              <div className="flex flex-col gap-2">
+                                <div className="font-inter text-xs font-bold text-slate-700 dark:text-slate-300 uppercase tracking-wide border-b border-slate-100 dark:border-white/5 pb-1 mb-1">Others</div>
+                                <div className="flex items-center gap-1.5 font-inter text-[11px] font-medium text-slate-600 dark:text-slate-400" style={{ margin: 0 }}>
+                                  <span className="w-2.5 h-2.5 rounded-full" style={{ background: '#d1d5db' }} />
+                                  <span className="font-inter text-[11px] font-medium text-slate-600 dark:text-slate-400">{otherSeries.length} more communities</span>
                                   <span style={{ fontSize: '10px', color: '#4B5563', marginLeft: '4px' }}>
                                     ({fmt(otherSeries.reduce((s, k) => s + totals[k], 0))})
                                   </span>
@@ -1089,7 +1094,7 @@ export default function AdminFinancialReport() {
                       })()}
 
                       {hasOthers && (
-                        <p className="fin-chart-others-note">
+                        <p className="block font-inter text-xs text-slate-400 dark:text-slate-500 mt-2 text-center">
                           ℹ️ Chart shows top 10 communities by total donation. {otherSeries.length} smaller communities
                           ({otherSeries.join(', ')}) are merged into "Others".
                         </p>
@@ -1102,12 +1107,12 @@ export default function AdminFinancialReport() {
               })()}
 
               {/* Top Communities & Top 8 Donators Side-by-Side */}
-              <div className="fin-report-charts-row">
+              <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
                 {/* Top Donor Communities Bar Chart */}
                 {report.donations.byBranch?.length > 0 && (
-                  <div className="fin-report-chart-card">
-                    <h3 className="fin-report-chart-title">Top Donor Communities</h3>
-                    <p className="fin-chart-summary">Top: <strong>{report.donations.byBranch[0]?.branch}</strong> · {fmt(report.donations.byBranch[0]?.value)} ({report.donations.total > 0 ? ((report.donations.byBranch[0]?.value / report.donations.total) * 100).toFixed(1) : 0}%)</p>
+                  <div className="bg-white dark:bg-[#1E2130] rounded-xl border border-slate-200 dark:border-white/10 shadow-sm p-6 flex flex-col h-[400px]">
+                    <h3 className="m-0 font-inter text-[15px] font-bold text-slate-800 dark:text-white">Top Donor Communities</h3>
+                    <p className="font-inter text-[13px] text-slate-500 dark:text-slate-400 mt-1">Top: <strong>{report.donations.byBranch[0]?.branch}</strong> · {fmt(report.donations.byBranch[0]?.value)} ({report.donations.total > 0 ? ((report.donations.byBranch[0]?.value / report.donations.total) * 100).toFixed(1) : 0}%)</p>
                     <ResponsiveContainer width="100%" height={280}>
                       <BarChart data={report.donations.byBranch.slice(0, 8)} margin={{ top: 15, right: 10, left: -10, bottom: 40 }}>
                         <CartesianGrid strokeDasharray="3 3" stroke="#f1f5f9" vertical={false} />
@@ -1132,9 +1137,9 @@ export default function AdminFinancialReport() {
                 {report.donations?.byDonor?.length > 0 && (() => {
                   const topDonors = report.donations.byDonor.slice(0, 8);
                   return (
-                  <div className="fin-report-chart-card">
-                    <h3 className="fin-report-chart-title">Top {topDonors.length} Donators</h3>
-                    <p className="fin-chart-summary">#1: <strong>{topDonors[0]?.donor}</strong> · {fmt(topDonors[0]?.value)} ({report.donations.total > 0 ? ((topDonors[0]?.value / report.donations.total) * 100).toFixed(0) : 0}%)</p>
+                  <div className="bg-white dark:bg-[#1E2130] rounded-xl border border-slate-200 dark:border-white/10 shadow-sm p-6 flex flex-col h-[400px]">
+                    <h3 className="m-0 font-inter text-[15px] font-bold text-slate-800 dark:text-white">Top {topDonors.length} Donators</h3>
+                    <p className="font-inter text-[13px] text-slate-500 dark:text-slate-400 mt-1">#1: <strong>{topDonors[0]?.donor}</strong> · {fmt(topDonors[0]?.value)} ({report.donations.total > 0 ? ((topDonors[0]?.value / report.donations.total) * 100).toFixed(0) : 0}%)</p>
                     <ResponsiveContainer width="100%" height={Math.max(220, topDonors.length * 32)}>
                       <BarChart data={topDonors} layout="vertical" margin={{ top: 5, right: 30, left: 10, bottom: 0 }}>
                         <CartesianGrid strokeDasharray="3 3" stroke="#f1f5f9" horizontal={false} />
@@ -1151,12 +1156,12 @@ export default function AdminFinancialReport() {
                         </Bar>
                       </BarChart>
                     </ResponsiveContainer>
-                    <div className="fin-report-legend">
+                    <div className="flex flex-wrap items-center gap-4 mt-6 pt-4 border-t border-slate-100 dark:border-white/5">
                       {topDonors.slice(0, 5).map((d, i) => (
-                        <div key={i} className="fin-report-legend-item">
-                          <span className="fin-report-legend-dot" style={{ background: i === 0 ? '#2563eb' : '#0D1F45' }} />
-                          <span className="fin-report-legend-label">{d.donor}</span>
-                          <span className="fin-report-legend-val">{fmt(d.value)} · {report.donations.total > 0 ? ((d.value / report.donations.total) * 100).toFixed(0) : 0}%</span>
+                        <div key={i} className="flex items-center gap-1.5 font-inter text-[11px] font-medium text-slate-600 dark:text-slate-400">
+                          <span className="w-2.5 h-2.5 rounded-full" style={{ background: i === 0 ? '#2563eb' : '#0D1F45' }} />
+                          <span className="font-inter text-[11px] font-medium text-slate-600 dark:text-slate-400">{d.donor}</span>
+                          <span className="font-bold text-slate-800 dark:text-white ml-1">{fmt(d.value)} · {report.donations.total > 0 ? ((d.value / report.donations.total) * 100).toFixed(0) : 0}%</span>
                         </div>
                       ))}
                     </div>
@@ -1168,24 +1173,24 @@ export default function AdminFinancialReport() {
 
               {/* Full Width Community Table */}
               {report.donations.byBranch?.length > 0 && (
-                <div className="fin-report-charts-row" style={{ gridTemplateColumns: '1fr', marginTop: '16px' }}>
-                  <div className="fin-report-table-wrap fin-report-chart-card" style={{ marginTop: 0 }}>
-                    <h3 className="fin-report-chart-title">Donations Breakdown By Community</h3>
-                    <div className="fin-report-table-scroll" style={{ maxHeight: '400px' }}>
-                      <table className="fin-report-table">
+                <div className="grid grid-cols-1 lg:grid-cols-2 gap-6" style={{ gridTemplateColumns: '1fr', marginTop: '16px' }}>
+                  <div className="bg-white dark:bg-[#1E2130] rounded-xl border border-slate-200 dark:border-white/10 shadow-sm flex flex-col overflow-hidden">
+                    <h3 className="m-0 font-inter text-[15px] font-bold text-slate-800 dark:text-white">Donations Breakdown By Community</h3>
+                    <div className="w-full overflow-x-auto custom-scrollbar" style={{ maxHeight: '400px' }}>
+                      <table className="w-full text-left border-collapse min-w-[700px]">
                         <thead>
                           <tr>
-                            <th>Community</th>
-                            <th>Amount</th>
-                            <th>% of Total</th>
+                            <th className="px-4 py-3 bg-slate-50 dark:bg-black/20 border-b border-slate-200 dark:border-white/10 font-semibold text-[11px] tracking-wider uppercase text-slate-500 dark:text-slate-400 whitespace-nowrap sticky top-0 z-10">Community</th>
+                            <th className="px-4 py-3 bg-slate-50 dark:bg-black/20 border-b border-slate-200 dark:border-white/10 font-semibold text-[11px] tracking-wider uppercase text-slate-500 dark:text-slate-400 whitespace-nowrap sticky top-0 z-10">Amount</th>
+                            <th className="px-4 py-3 bg-slate-50 dark:bg-black/20 border-b border-slate-200 dark:border-white/10 font-semibold text-[11px] tracking-wider uppercase text-slate-500 dark:text-slate-400 whitespace-nowrap sticky top-0 z-10">% of Total</th>
                           </tr>
                         </thead>
                         <tbody>
                           {report.donations.byBranch.map((b, i) => (
                             <tr key={i}>
-                              <td>{b.branch}</td>
+                              <td className="px-4 py-3 border-b border-slate-100 dark:border-white/5 text-sm font-inter text-slate-700 dark:text-slate-300">{b.branch}</td>
                               <td className="amount">{fmt(b.value)}</td>
-                              <td>{report.donations.total > 0 ? ((b.value / report.donations.total) * 100).toFixed(1) : 0}%</td>
+                              <td className="px-4 py-3 border-b border-slate-100 dark:border-white/5 text-sm font-inter text-slate-700 dark:text-slate-300">{report.donations.total > 0 ? ((b.value / report.donations.total) * 100).toFixed(1) : 0}%</td>
                             </tr>
                           ))}
                         </tbody>
@@ -1224,10 +1229,10 @@ export default function AdminFinancialReport() {
                 }, fullMonthData[0]);
 
                 return fullMonthData.some(d => topSeries.some(k => d[k] > 0)) ? (
-                  <div className="fin-report-charts-row" style={{ gridTemplateColumns: '1fr', marginTop: '16px' }}>
-                    <div className="fin-report-chart-card" style={{ width: '100%' }}>
-                      <h3 className="fin-report-chart-title">Monthly Attendance Trend (By Community)</h3>
-                      <p className="fin-chart-summary">
+                  <div className="grid grid-cols-1 lg:grid-cols-2 gap-6" style={{ gridTemplateColumns: '1fr', marginTop: '16px' }}>
+                    <div className="bg-white dark:bg-[#1E2130] rounded-xl border border-slate-200 dark:border-white/10 shadow-sm p-6 flex flex-col h-[400px]" style={{ width: '100%' }}>
+                      <h3 className="m-0 font-inter text-[15px] font-bold text-slate-800 dark:text-white">Monthly Attendance Trend (By Community)</h3>
+                      <p className="font-inter text-[13px] text-slate-500 dark:text-slate-400 mt-1">
                         Detailed Community Breakdown · Total: <strong>{totalAtt} attendees</strong> · Highest: <strong>{highestMon?.month}</strong>
                         {hasOthers && <> · Showing top 10 of {allCommunities.length} communities</>}
                       </p>
@@ -1263,25 +1268,25 @@ export default function AdminFinancialReport() {
                           seriesByProv[prov].push({ name: s, index: i, total: totals[s] });
                         });
                         return (
-                          <div className="fin-report-grouped-legend">
+                          <div className="flex gap-8 mt-6 pt-4 border-t border-slate-100 dark:border-white/5">
                             {Object.entries(seriesByProv).map(([prov, comms]) => (
-                              <div key={prov} className="fin-report-legend-group">
-                                <div className="fin-report-legend-province-header">{prov}</div>
+                              <div key={prov} className="flex flex-col gap-2">
+                                <div className="font-inter text-xs font-bold text-slate-700 dark:text-slate-300 uppercase tracking-wide border-b border-slate-100 dark:border-white/5 pb-1 mb-1">{prov}</div>
                                 {comms.map(c => (
-                                  <div key={c.name} className="fin-report-legend-item" style={{ margin: 0 }}>
-                                    <span className="fin-report-legend-dot" style={{ background: COMMUNITY_COLORS[c.index % COMMUNITY_COLORS.length] }} />
-                                    <span className="fin-report-legend-label">{c.name}</span>
+                                  <div key={c.name} className="flex items-center gap-1.5 font-inter text-[11px] font-medium text-slate-600 dark:text-slate-400" style={{ margin: 0 }}>
+                                    <span className="w-2.5 h-2.5 rounded-full" style={{ background: COMMUNITY_COLORS[c.index % COMMUNITY_COLORS.length] }} />
+                                    <span className="font-inter text-[11px] font-medium text-slate-600 dark:text-slate-400">{c.name}</span>
                                     <span style={{ fontSize: '10px', color: '#4B5563', marginLeft: '4px' }}>({c.total} attendees)</span>
                                   </div>
                                 ))}
                               </div>
                             ))}
                             {hasOthers && (
-                              <div className="fin-report-legend-group">
-                                <div className="fin-report-legend-province-header">Others</div>
-                                <div className="fin-report-legend-item" style={{ margin: 0 }}>
-                                  <span className="fin-report-legend-dot" style={{ background: '#d1d5db' }} />
-                                  <span className="fin-report-legend-label">{otherSeries.length} more communities</span>
+                              <div className="flex flex-col gap-2">
+                                <div className="font-inter text-xs font-bold text-slate-700 dark:text-slate-300 uppercase tracking-wide border-b border-slate-100 dark:border-white/5 pb-1 mb-1">Others</div>
+                                <div className="flex items-center gap-1.5 font-inter text-[11px] font-medium text-slate-600 dark:text-slate-400" style={{ margin: 0 }}>
+                                  <span className="w-2.5 h-2.5 rounded-full" style={{ background: '#d1d5db' }} />
+                                  <span className="font-inter text-[11px] font-medium text-slate-600 dark:text-slate-400">{otherSeries.length} more communities</span>
                                   <span style={{ fontSize: '10px', color: '#4B5563', marginLeft: '4px' }}>
                                     ({otherSeries.reduce((s, k) => s + totals[k], 0)} attendees)
                                   </span>
@@ -1293,7 +1298,7 @@ export default function AdminFinancialReport() {
                       })()}
 
                       {hasOthers && (
-                        <p className="fin-chart-others-note">
+                        <p className="block font-inter text-xs text-slate-400 dark:text-slate-500 mt-2 text-center">
                           ℹ️ Chart shows top 10 communities by total attendance. {otherSeries.length} smaller
                           communities are merged into "Others" for readability.
                         </p>
@@ -1309,41 +1314,41 @@ export default function AdminFinancialReport() {
 
           {/* Loans Section - Only for Loan Admin */}
           {report.loans && adminRole === 'loanAdmin' && (
-            <div className="fin-report-section">
-              <div className="fin-report-section-header">
-                <h2 className="fin-report-section-title">💳 Loans Portfolio</h2>
+            <div className="bg-white dark:bg-[#1E2130] rounded-xl border border-slate-200 dark:border-white/10 shadow-sm overflow-hidden">
+              <div className="p-5 border-b border-slate-200 dark:border-white/10 bg-slate-50 dark:bg-black/20 flex items-center gap-3">
+                <h2 className="m-0 font-inter text-[15px] font-bold text-slate-800 dark:text-white flex items-center gap-2">💳 Loans Portfolio</h2>
               </div>
 
-              <div className="fin-report-stat-grid">
-                <div className="fin-report-stat">
-                  <span className="fin-report-stat-label">Total Applications</span>
-                  <span className="fin-report-stat-value">{report.loans.totalApplications}</span>
+              <div className="grid grid-cols-1 sm:grid-cols-3 gap-6">
+                <div className="flex flex-col">
+                  <span className="font-inter text-[13px] font-semibold text-slate-500 dark:text-slate-400 uppercase tracking-wide">Total Applications</span>
+                  <span className="font-inter font-bold text-[32px] text-slate-900 dark:text-white mt-1">{report.loans.totalApplications}</span>
                 </div>
-                <div className="fin-report-stat">
-                  <span className="fin-report-stat-label">Amount Applied</span>
-                  <span className="fin-report-stat-value blue">{fmt(report.loans.totalAmountApplied)}</span>
+                <div className="flex flex-col">
+                  <span className="font-inter text-[13px] font-semibold text-slate-500 dark:text-slate-400 uppercase tracking-wide">Amount Applied</span>
+                  <span className="font-inter font-bold text-[32px] text-blue-600 dark:text-blue-400 mt-1">{fmt(report.loans.totalAmountApplied)}</span>
                 </div>
-                <div className="fin-report-stat">
-                  <span className="fin-report-stat-label">Total Disbursed</span>
-                  <span className="fin-report-stat-value">{fmt(report.loans.totalDisbursed)}</span>
+                <div className="flex flex-col">
+                  <span className="font-inter text-[13px] font-semibold text-slate-500 dark:text-slate-400 uppercase tracking-wide">Total Disbursed</span>
+                  <span className="font-inter font-bold text-[32px] text-slate-900 dark:text-white mt-1">{fmt(report.loans.totalDisbursed)}</span>
                 </div>
-                <div className="fin-report-stat">
-                  <span className="fin-report-stat-label">Payments Received</span>
-                  <span className="fin-report-stat-value green">{fmt(report.loans.totalPaymentsReceived)}</span>
+                <div className="flex flex-col">
+                  <span className="font-inter text-[13px] font-semibold text-slate-500 dark:text-slate-400 uppercase tracking-wide">Payments Received</span>
+                  <span className="font-inter font-bold text-[32px] text-emerald-600 dark:text-emerald-400 mt-1">{fmt(report.loans.totalPaymentsReceived)}</span>
                 </div>
-                <div className="fin-report-stat">
-                  <span className="fin-report-stat-label">Interest Earned</span>
-                  <span className="fin-report-stat-value purple">{fmt(report.loans.totalInterestEarned)}</span>
+                <div className="flex flex-col">
+                  <span className="font-inter text-[13px] font-semibold text-slate-500 dark:text-slate-400 uppercase tracking-wide">Interest Earned</span>
+                  <span className="font-inter font-bold text-[32px] text-purple-600 dark:text-purple-400 mt-1">{fmt(report.loans.totalInterestEarned)}</span>
                 </div>
               </div>
 
               {/* Loan Charts Row */}
-              <div className="fin-report-charts-row" style={{ gridTemplateColumns: '3fr 7fr' }}>
+              <div className="grid grid-cols-1 lg:grid-cols-2 gap-6" style={{ gridTemplateColumns: '3fr 7fr' }}>
                 {/* Loan Status Donut */}
                 {report.loans.byStatus?.length > 0 && (
-                  <div className="fin-report-chart-card">
-                    <h3 className="fin-report-chart-title">Loan Status Distribution</h3>
-                    <p className="fin-chart-summary">Total: <strong>{report.loans.totalApplications} applications</strong> · {report.loans.byStatus.length} statuses</p>
+                  <div className="bg-white dark:bg-[#1E2130] rounded-xl border border-slate-200 dark:border-white/10 shadow-sm p-6 flex flex-col h-[400px]">
+                    <h3 className="m-0 font-inter text-[15px] font-bold text-slate-800 dark:text-white">Loan Status Distribution</h3>
+                    <p className="font-inter text-[13px] text-slate-500 dark:text-slate-400 mt-1">Total: <strong>{report.loans.totalApplications} applications</strong> · {report.loans.byStatus.length} statuses</p>
                     <ResponsiveContainer width="100%" height={220}>
                       <PieChart>
                         <Pie
@@ -1364,15 +1369,15 @@ export default function AdminFinancialReport() {
                         <Tooltip formatter={(v, name) => [v + ' loans', name]} />
                       </PieChart>
                     </ResponsiveContainer>
-                    <div className="fin-report-legend">
+                    <div className="flex flex-wrap items-center gap-4 mt-6 pt-4 border-t border-slate-100 dark:border-white/5">
                       {report.loans.byStatus.map((s, i) => {
                         const total = report.loans.totalApplications || 1;
                         const pct = ((s.count / total) * 100).toFixed(0);
                         return (
-                          <div key={i} className="fin-report-legend-item">
-                            <span className="fin-report-legend-dot" style={{ background: getStatusColor(s.status) }} />
-                            <span className="fin-report-legend-label">{s.status}</span>
-                            <span className="fin-report-legend-val">{s.count} loans · {pct}%</span>
+                          <div key={i} className="flex items-center gap-1.5 font-inter text-[11px] font-medium text-slate-600 dark:text-slate-400">
+                            <span className="w-2.5 h-2.5 rounded-full" style={{ background: getStatusColor(s.status) }} />
+                            <span className="font-inter text-[11px] font-medium text-slate-600 dark:text-slate-400">{s.status}</span>
+                            <span className="font-bold text-slate-800 dark:text-white ml-1">{s.count} loans · {pct}%</span>
                           </div>
                         );
                       })}
@@ -1419,9 +1424,9 @@ export default function AdminFinancialReport() {
                   });
 
                   return trendData.length > 0 ? (
-                    <div className="fin-report-chart-card" style={{ width: '100%' }}>
-                      <h3 className="fin-report-chart-title">{chartTitle}</h3>
-                      <p className="fin-chart-summary">Disbursed: <strong>{fmt(trendData.reduce((s, d) => s + d.disbursed, 0))}</strong> · Collected: <strong>{fmt(trendData.reduce((s, d) => s + d.received, 0))}</strong></p>
+                    <div className="bg-white dark:bg-[#1E2130] rounded-xl border border-slate-200 dark:border-white/10 shadow-sm p-6 flex flex-col h-[400px]" style={{ width: '100%' }}>
+                      <h3 className="m-0 font-inter text-[15px] font-bold text-slate-800 dark:text-white">{chartTitle}</h3>
+                      <p className="font-inter text-[13px] text-slate-500 dark:text-slate-400 mt-1">Disbursed: <strong>{fmt(trendData.reduce((s, d) => s + d.disbursed, 0))}</strong> · Collected: <strong>{fmt(trendData.reduce((s, d) => s + d.received, 0))}</strong></p>
                       <ResponsiveContainer width="100%" height={isMulti ? 300 : 250}>
                         {isMulti ? (
                           <BarChart data={trendData} margin={{ top: 15, right: 10, left: -10, bottom: 0 }}>
@@ -1471,12 +1476,12 @@ export default function AdminFinancialReport() {
                         });
                         
                         return (
-                          <div className="fin-report-grouped-legend" style={{ display: 'flex', flexWrap: 'wrap', gap: '24px', marginTop: '16px' }}>
+                          <div className="flex gap-8 mt-6 pt-4 border-t border-slate-100 dark:border-white/5" style={{ display: 'flex', flexWrap: 'wrap', gap: '24px', marginTop: '16px' }}>
                             {Object.entries(seriesByProv).map(([prov, seriesList]) => {
                               const activeSeries = seriesList.filter(s => s.hasData);
                               if (activeSeries.length === 0) return null;
                               return (
-                                <div key={prov} className="fin-report-legend-group" style={{ display: 'flex', flexDirection: 'column', gap: '6px', minWidth: '120px' }}>
+                                <div key={prov} className="flex flex-col gap-2" style={{ display: 'flex', flexDirection: 'column', gap: '6px', minWidth: '120px' }}>
                                   {!showProvinceTrend && (
                                     <div style={{ fontSize: '11px', fontWeight: 'bold', color: '#6b7280', textTransform: 'uppercase', borderBottom: '1px solid #e5e7eb', paddingBottom: '4px', marginBottom: '2px' }}>
                                       {prov}
@@ -1486,10 +1491,10 @@ export default function AdminFinancialReport() {
                                     const totalDisb = trendData.reduce((sum, row) => sum + (row['disb_' + s.name] || 0), 0);
                                     const totalColl = trendData.reduce((sum, row) => sum + (row['coll_' + s.name] || 0), 0);
                                     return (
-                                      <div key={s.name} className="fin-report-legend-item" style={{ margin: 0, flexDirection: 'column', alignItems: 'flex-start' }}>
+                                      <div key={s.name} className="flex items-center gap-1.5 font-inter text-[11px] font-medium text-slate-600 dark:text-slate-400" style={{ margin: 0, flexDirection: 'column', alignItems: 'flex-start' }}>
                                         <div style={{ display: 'flex', alignItems: 'center' }}>
-                                          <span className="fin-report-legend-dot" style={{ background: COMMUNITY_COLORS[s.index % COMMUNITY_COLORS.length] }} />
-                                          <span className="fin-report-legend-label">{s.name}</span>
+                                          <span className="w-2.5 h-2.5 rounded-full" style={{ background: COMMUNITY_COLORS[s.index % COMMUNITY_COLORS.length] }} />
+                                          <span className="font-inter text-[11px] font-medium text-slate-600 dark:text-slate-400">{s.name}</span>
                                           <span style={{ fontSize: '9px', color: '#4b5563', marginLeft: '6px' }}>(Disb: {fmt(totalDisb)} · Coll: {fmt(totalColl)})</span>
                                         </div>
                                       </div>
@@ -1523,7 +1528,7 @@ export default function AdminFinancialReport() {
                 const shouldShowRow2 = availProv2.length >= 2;
                 if (!shouldShowRow2) return null;
                 return (
-                <div className="fin-report-charts-row" style={{ gridTemplateColumns: '1fr' }}>
+                <div className="grid grid-cols-1 lg:grid-cols-2 gap-6" style={{ gridTemplateColumns: '1fr' }}>
                   {(() => {
                     const { from, to } = getChartMonthRange();
                     const byMonthMap = {};
@@ -1556,9 +1561,9 @@ export default function AdminFinancialReport() {
                     });
 
                     return trendData.length > 0 ? (
-                      <div className="fin-report-chart-card" style={{ width: '100%' }}>
-                        <h3 className="fin-report-chart-title">{chartTitle}</h3>
-                        <p className="fin-chart-summary">Detailed Community Breakdown · Disbursed: <strong>{fmt(trendData.reduce((s, d) => s + d.disbursed, 0))}</strong> · Collected: <strong>{fmt(trendData.reduce((s, d) => s + d.received, 0))}</strong></p>
+                      <div className="bg-white dark:bg-[#1E2130] rounded-xl border border-slate-200 dark:border-white/10 shadow-sm p-6 flex flex-col h-[400px]" style={{ width: '100%' }}>
+                        <h3 className="m-0 font-inter text-[15px] font-bold text-slate-800 dark:text-white">{chartTitle}</h3>
+                        <p className="font-inter text-[13px] text-slate-500 dark:text-slate-400 mt-1">Detailed Community Breakdown · Disbursed: <strong>{fmt(trendData.reduce((s, d) => s + d.disbursed, 0))}</strong> · Collected: <strong>{fmt(trendData.reduce((s, d) => s + d.received, 0))}</strong></p>
                         <ResponsiveContainer width="100%" height={isMulti ? 300 : 250}>
                           {isMulti ? (
                             <BarChart data={trendData} margin={{ top: 15, right: 10, left: -10, bottom: 0 }}>
@@ -1608,12 +1613,12 @@ export default function AdminFinancialReport() {
                           });
                           
                           return (
-                            <div className="fin-report-grouped-legend" style={{ display: 'flex', flexWrap: 'wrap', gap: '24px', marginTop: '16px' }}>
+                            <div className="flex gap-8 mt-6 pt-4 border-t border-slate-100 dark:border-white/5" style={{ display: 'flex', flexWrap: 'wrap', gap: '24px', marginTop: '16px' }}>
                               {Object.entries(seriesByProv).map(([prov, seriesList]) => {
                                 const activeSeries = seriesList.filter(s => s.hasData);
                                 if (activeSeries.length === 0) return null;
                                 return (
-                                  <div key={prov} className="fin-report-legend-group" style={{ display: 'flex', flexDirection: 'column', gap: '6px', minWidth: '120px' }}>
+                                  <div key={prov} className="flex flex-col gap-2" style={{ display: 'flex', flexDirection: 'column', gap: '6px', minWidth: '120px' }}>
                                     <div style={{ fontSize: '11px', fontWeight: 'bold', color: '#6b7280', textTransform: 'uppercase', borderBottom: '1px solid #e5e7eb', paddingBottom: '4px', marginBottom: '2px' }}>
                                       {prov}
                                     </div>
@@ -1621,10 +1626,10 @@ export default function AdminFinancialReport() {
                                       const totalDisb = trendData.reduce((sum, row) => sum + (row['disb_' + s.name] || 0), 0);
                                       const totalColl = trendData.reduce((sum, row) => sum + (row['coll_' + s.name] || 0), 0);
                                       return (
-                                        <div key={s.name} className="fin-report-legend-item" style={{ margin: 0, flexDirection: 'column', alignItems: 'flex-start' }}>
+                                        <div key={s.name} className="flex items-center gap-1.5 font-inter text-[11px] font-medium text-slate-600 dark:text-slate-400" style={{ margin: 0, flexDirection: 'column', alignItems: 'flex-start' }}>
                                           <div style={{ display: 'flex', alignItems: 'center' }}>
-                                            <span className="fin-report-legend-dot" style={{ background: COMMUNITY_COLORS[s.index % COMMUNITY_COLORS.length] }} />
-                                            <span className="fin-report-legend-label">{s.name}</span>
+                                            <span className="w-2.5 h-2.5 rounded-full" style={{ background: COMMUNITY_COLORS[s.index % COMMUNITY_COLORS.length] }} />
+                                            <span className="font-inter text-[11px] font-medium text-slate-600 dark:text-slate-400">{s.name}</span>
                                             <span style={{ fontSize: '9px', color: '#4b5563', marginLeft: '6px' }}>(Disb: {fmt(totalDisb)} · Coll: {fmt(totalColl)})</span>
                                           </div>
                                         </div>
@@ -1653,7 +1658,7 @@ export default function AdminFinancialReport() {
               })()}
 
               {/* Application Trend + Repayment Performance Row */}
-              <div className="fin-report-charts-row" style={{ gridTemplateColumns: '1fr' }}>
+              <div className="grid grid-cols-1 lg:grid-cols-2 gap-6" style={{ gridTemplateColumns: '1fr' }}>
                 {/* === Loan Application Trend (Row 1) === */}
                 {(() => {
                   const { from, to } = getChartMonthRange();
@@ -1680,9 +1685,9 @@ export default function AdminFinancialReport() {
                   const totalApps = trendData.reduce((s, d) => s + d.applications, 0);
                   const peakIdx = trendData.reduce((maxI, d, i, arr) => d.applications > arr[maxI].applications ? i : maxI, 0);
                   return trendData.length > 0 ? (
-                    <div className="fin-report-chart-card" style={{ width: '100%' }}>
-                      <h3 className="fin-report-chart-title">{chartTitle}</h3>
-                      <p className="fin-chart-summary">Total: <strong>{totalApps} applications</strong> · Peak: <strong>{trendData[peakIdx]?.label}</strong> ({trendData[peakIdx]?.applications})</p>
+                    <div className="bg-white dark:bg-[#1E2130] rounded-xl border border-slate-200 dark:border-white/10 shadow-sm p-6 flex flex-col h-[400px]" style={{ width: '100%' }}>
+                      <h3 className="m-0 font-inter text-[15px] font-bold text-slate-800 dark:text-white">{chartTitle}</h3>
+                      <p className="font-inter text-[13px] text-slate-500 dark:text-slate-400 mt-1">Total: <strong>{totalApps} applications</strong> · Peak: <strong>{trendData[peakIdx]?.label}</strong> ({trendData[peakIdx]?.applications})</p>
                       <ResponsiveContainer width="100%" height={isMulti ? 300 : 250}>
                         {isMulti ? (
                           <BarChart data={trendData} margin={{ top: 15, right: 10, left: -10, bottom: 0 }}>
@@ -1723,19 +1728,19 @@ export default function AdminFinancialReport() {
                         });
                         
                         return (
-                          <div className="fin-report-grouped-legend" style={{ display: 'flex', flexWrap: 'wrap', gap: '24px', marginTop: '16px' }}>
+                          <div className="flex gap-8 mt-6 pt-4 border-t border-slate-100 dark:border-white/5" style={{ display: 'flex', flexWrap: 'wrap', gap: '24px', marginTop: '16px' }}>
                             {Object.entries(seriesByProv).map(([prov, seriesList]) => (
-                              <div key={prov} className="fin-report-legend-group" style={{ display: 'flex', flexDirection: 'column', gap: '6px', minWidth: '120px' }}>
+                              <div key={prov} className="flex flex-col gap-2" style={{ display: 'flex', flexDirection: 'column', gap: '6px', minWidth: '120px' }}>
                                 {!showProvinceTrend && (
                                   <div style={{ fontSize: '11px', fontWeight: 'bold', color: '#6b7280', textTransform: 'uppercase', borderBottom: '1px solid #e5e7eb', paddingBottom: '4px', marginBottom: '2px' }}>
                                     {prov}
                                   </div>
                                 )}
                                 {seriesList.map((s) => (
-                                  <div key={s.name} className="fin-report-legend-item" style={{ margin: 0, flexDirection: 'column', alignItems: 'flex-start' }}>
+                                  <div key={s.name} className="flex items-center gap-1.5 font-inter text-[11px] font-medium text-slate-600 dark:text-slate-400" style={{ margin: 0, flexDirection: 'column', alignItems: 'flex-start' }}>
                                     <div style={{ display: 'flex', alignItems: 'center' }}>
-                                      <span className="fin-report-legend-dot" style={{ background: COMMUNITY_COLORS[s.index % COMMUNITY_COLORS.length] }} />
-                                      <span className="fin-report-legend-label">{s.name}</span>
+                                      <span className="w-2.5 h-2.5 rounded-full" style={{ background: COMMUNITY_COLORS[s.index % COMMUNITY_COLORS.length] }} />
+                                      <span className="font-inter text-[11px] font-medium text-slate-600 dark:text-slate-400">{s.name}</span>
                                     </div>
                                   </div>
                                 ))}
@@ -1756,7 +1761,7 @@ export default function AdminFinancialReport() {
                 const shouldShowRow2 = availProvApps2.length >= 2;
                 if (!shouldShowRow2) return null;
                 return (
-                <div className="fin-report-charts-row" style={{ gridTemplateColumns: '1fr' }}>
+                <div className="grid grid-cols-1 lg:grid-cols-2 gap-6" style={{ gridTemplateColumns: '1fr' }}>
                   {(() => {
                     const { from, to } = getChartMonthRange();
                     const appsMap = {};
@@ -1783,9 +1788,9 @@ export default function AdminFinancialReport() {
                     const peakIdx = trendData.reduce((maxI, d, i, arr) => d.applications > arr[maxI].applications ? i : maxI, 0);
 
                     return trendData.length > 0 ? (
-                      <div className="fin-report-chart-card" style={{ width: '100%' }}>
-                        <h3 className="fin-report-chart-title">{chartTitle}</h3>
-                        <p className="fin-chart-summary">Detailed Community Breakdown · Total: <strong>{totalApps} applications</strong> · Peak: <strong>{trendData[peakIdx]?.label}</strong> ({trendData[peakIdx]?.applications})</p>
+                      <div className="bg-white dark:bg-[#1E2130] rounded-xl border border-slate-200 dark:border-white/10 shadow-sm p-6 flex flex-col h-[400px]" style={{ width: '100%' }}>
+                        <h3 className="m-0 font-inter text-[15px] font-bold text-slate-800 dark:text-white">{chartTitle}</h3>
+                        <p className="font-inter text-[13px] text-slate-500 dark:text-slate-400 mt-1">Detailed Community Breakdown · Total: <strong>{totalApps} applications</strong> · Peak: <strong>{trendData[peakIdx]?.label}</strong> ({trendData[peakIdx]?.applications})</p>
                         <ResponsiveContainer width="100%" height={isMulti ? 300 : 250}>
                           {isMulti ? (
                             <BarChart data={trendData} margin={{ top: 15, right: 10, left: -10, bottom: 0 }}>
@@ -1828,22 +1833,22 @@ export default function AdminFinancialReport() {
                           });
                           
                           return (
-                            <div className="fin-report-grouped-legend" style={{ display: 'flex', flexWrap: 'wrap', gap: '24px', marginTop: '16px' }}>
+                            <div className="flex gap-8 mt-6 pt-4 border-t border-slate-100 dark:border-white/5" style={{ display: 'flex', flexWrap: 'wrap', gap: '24px', marginTop: '16px' }}>
                               {Object.entries(seriesByProv).map(([prov, seriesList]) => {
                                 const activeSeries = seriesList.filter(s => s.hasData);
                                 if (activeSeries.length === 0) return null;
                                 return (
-                                  <div key={prov} className="fin-report-legend-group" style={{ display: 'flex', flexDirection: 'column', gap: '6px', minWidth: '120px' }}>
+                                  <div key={prov} className="flex flex-col gap-2" style={{ display: 'flex', flexDirection: 'column', gap: '6px', minWidth: '120px' }}>
                                     <div style={{ fontSize: '11px', fontWeight: 'bold', color: '#6b7280', textTransform: 'uppercase', borderBottom: '1px solid #e5e7eb', paddingBottom: '4px', marginBottom: '2px' }}>
                                       {prov}
                                     </div>
                                     {activeSeries.map((s) => {
                                       const totalVal = trendData.reduce((sum, row) => sum + (row[s.name] || 0), 0);
                                       return (
-                                        <div key={s.name} className="fin-report-legend-item" style={{ margin: 0, flexDirection: 'column', alignItems: 'flex-start' }}>
+                                        <div key={s.name} className="flex items-center gap-1.5 font-inter text-[11px] font-medium text-slate-600 dark:text-slate-400" style={{ margin: 0, flexDirection: 'column', alignItems: 'flex-start' }}>
                                           <div style={{ display: 'flex', alignItems: 'center' }}>
-                                            <span className="fin-report-legend-dot" style={{ background: COMMUNITY_COLORS[s.index % COMMUNITY_COLORS.length] }} />
-                                            <span className="fin-report-legend-label">{s.name}</span>
+                                            <span className="w-2.5 h-2.5 rounded-full" style={{ background: COMMUNITY_COLORS[s.index % COMMUNITY_COLORS.length] }} />
+                                            <span className="font-inter text-[11px] font-medium text-slate-600 dark:text-slate-400">{s.name}</span>
                                             <span style={{ fontSize: '10px', color: '#4B5563', marginLeft: '6px' }}>({totalVal} apps)</span>
                                           </div>
                                         </div>
@@ -1869,7 +1874,7 @@ export default function AdminFinancialReport() {
               })()}
 
               {/* Approval Rate + Repayment Row */}
-              <div className="fin-report-charts-row" style={{ gridTemplateColumns: '1fr' }}>
+              <div className="grid grid-cols-1 lg:grid-cols-2 gap-6" style={{ gridTemplateColumns: '1fr' }}>
                 {/* Approval Rate Per Month */}
                 {(() => {
                   const { from, to } = getChartMonthRange();
@@ -1884,9 +1889,9 @@ export default function AdminFinancialReport() {
                   const totalLoans = rateData.reduce((s, d) => s + d.total, 0);
                   const avgApproval = totalLoans > 0 ? Math.round(rateData.reduce((s, d) => s + d.approvalRate * d.total, 0) / totalLoans) : 0;
                   return (
-                    <div className="fin-report-chart-card">
-                      <h3 className="fin-report-chart-title">Approval Rate Per Month (%)</h3>
-                      <p className="fin-chart-summary">Avg: <strong style={{color: '#10B981'}}>{avgApproval}%</strong> approval · <strong style={{color: '#EF4444'}}>{100 - avgApproval}%</strong> rejection</p>
+                    <div className="bg-white dark:bg-[#1E2130] rounded-xl border border-slate-200 dark:border-white/10 shadow-sm p-6 flex flex-col h-[400px]">
+                      <h3 className="m-0 font-inter text-[15px] font-bold text-slate-800 dark:text-white">Approval Rate Per Month (%)</h3>
+                      <p className="font-inter text-[13px] text-slate-500 dark:text-slate-400 mt-1">Avg: <strong style={{color: '#10B981'}}>{avgApproval}%</strong> approval · <strong style={{color: '#EF4444'}}>{100 - avgApproval}%</strong> rejection</p>
                       <ResponsiveContainer width="100%" height={220}>
                         <BarChart data={rateData} margin={{ top: 15, right: 10, left: -10, bottom: 0 }}>
                           <CartesianGrid strokeDasharray="3 3" stroke="#f1f5f9" vertical={false} />
@@ -1899,16 +1904,16 @@ export default function AdminFinancialReport() {
                           <Bar name="Rejection %" dataKey="rejectionRate" fill="#EF4444" radius={[4, 4, 0, 0]} barSize={16} />
                         </BarChart>
                       </ResponsiveContainer>
-                      <div className="fin-report-legend" style={{ justifyContent: 'center', display: 'flex', gap: '16px' }}>
-                        <div className="fin-report-legend-item" style={{ gap: '4px' }}>
-                          <span className="fin-report-legend-dot" style={{ background: '#10B981' }} />
-                          <span className="fin-report-legend-label">Approval %</span>
-                          <span className="fin-report-legend-val">{avgApproval}% avg</span>
+                      <div className="flex flex-wrap items-center gap-4 mt-6 pt-4 border-t border-slate-100 dark:border-white/5" style={{ justifyContent: 'center', display: 'flex', gap: '16px' }}>
+                        <div className="flex items-center gap-1.5 font-inter text-[11px] font-medium text-slate-600 dark:text-slate-400" style={{ gap: '4px' }}>
+                          <span className="w-2.5 h-2.5 rounded-full" style={{ background: '#10B981' }} />
+                          <span className="font-inter text-[11px] font-medium text-slate-600 dark:text-slate-400">Approval %</span>
+                          <span className="font-bold text-slate-800 dark:text-white ml-1">{avgApproval}% avg</span>
                         </div>
-                        <div className="fin-report-legend-item" style={{ gap: '4px' }}>
-                          <span className="fin-report-legend-dot" style={{ background: '#EF4444' }} />
-                          <span className="fin-report-legend-label">Rejection %</span>
-                          <span className="fin-report-legend-val">{100 - avgApproval}% avg</span>
+                        <div className="flex items-center gap-1.5 font-inter text-[11px] font-medium text-slate-600 dark:text-slate-400" style={{ gap: '4px' }}>
+                          <span className="w-2.5 h-2.5 rounded-full" style={{ background: '#EF4444' }} />
+                          <span className="font-inter text-[11px] font-medium text-slate-600 dark:text-slate-400">Rejection %</span>
+                          <span className="font-bold text-slate-800 dark:text-white ml-1">{100 - avgApproval}% avg</span>
                         </div>
                       </div>
                       <ChartFooter period={report.period} location={getLocationLabel()} />
@@ -1923,50 +1928,50 @@ export default function AdminFinancialReport() {
 
           {/* Savings Section - Only for Loan Admin */}
           {report.savings && adminRole === 'loanAdmin' && (
-            <div className="fin-report-section">
-              <div className="fin-report-section-header">
-                <h2 className="fin-report-section-title">🏦 Savings Overview</h2>
+            <div className="bg-white dark:bg-[#1E2130] rounded-xl border border-slate-200 dark:border-white/10 shadow-sm overflow-hidden">
+              <div className="p-5 border-b border-slate-200 dark:border-white/10 bg-slate-50 dark:bg-black/20 flex items-center gap-3">
+                <h2 className="m-0 font-inter text-[15px] font-bold text-slate-800 dark:text-white flex items-center gap-2">🏦 Savings Overview</h2>
               </div>
 
-              <div className="fin-report-stat-grid savings-grid">
-                <div className="fin-report-stat">
-                  <span className="fin-report-stat-label">Total Saved</span>
-                  <span className="fin-report-stat-value green fin-stat-shrink">{fmt(report.savings.totalSaved)}</span>
+              <div className="grid grid-cols-1 sm:grid-cols-3 gap-6">
+                <div className="flex flex-col">
+                  <span className="font-inter text-[13px] font-semibold text-slate-500 dark:text-slate-400 uppercase tracking-wide">Total Saved</span>
+                  <span className="font-inter font-bold text-[32px] text-emerald-600 dark:text-emerald-400 mt-1">{fmt(report.savings.totalSaved)}</span>
                 </div>
-                <div className="fin-report-stat">
-                  <span className="fin-report-stat-label">Total Targets</span>
-                  <span className="fin-report-stat-value fin-stat-shrink">{fmt(report.savings.totalTargets)}</span>
+                <div className="flex flex-col">
+                  <span className="font-inter text-[13px] font-semibold text-slate-500 dark:text-slate-400 uppercase tracking-wide">Total Targets</span>
+                  <span className="font-inter font-bold text-[32px] text-slate-900 dark:text-white mt-1">{fmt(report.savings.totalTargets)}</span>
                 </div>
-                <div className="fin-report-stat">
-                  <span className="fin-report-stat-label">Overall Progress</span>
-                  <span className="fin-report-stat-value blue">
+                <div className="flex flex-col">
+                  <span className="font-inter text-[13px] font-semibold text-slate-500 dark:text-slate-400 uppercase tracking-wide">Overall Progress</span>
+                  <span className="font-inter font-bold text-[32px] text-blue-600 dark:text-blue-400 mt-1">
                     {report.savings.overallProgress > 0 && report.savings.overallProgress < 1
                       ? `<1%`
                       : `${report.savings.overallProgress}%`}
                   </span>
                 </div>
-                <div className="fin-report-stat">
-                  <span className="fin-report-stat-label">Period Deposits</span>
-                  <span className="fin-report-stat-value fin-stat-shrink">{fmt(report.savings.periodDeposits)}</span>
-                  <span className="fin-report-stat-sub">{report.savings.periodDepositCount} transactions</span>
+                <div className="flex flex-col">
+                  <span className="font-inter text-[13px] font-semibold text-slate-500 dark:text-slate-400 uppercase tracking-wide">Period Deposits</span>
+                  <span className="font-inter font-bold text-[32px] text-slate-900 dark:text-white mt-1">{fmt(report.savings.periodDeposits)}</span>
+                  <span className="font-inter text-sm text-slate-500 dark:text-slate-400 mt-1">{report.savings.periodDepositCount} transactions</span>
                 </div>
-                <div className="fin-report-stat">
-                  <span className="fin-report-stat-label">Active Goals</span>
-                  <span className="fin-report-stat-value">{report.savings.activeGoals}</span>
+                <div className="flex flex-col">
+                  <span className="font-inter text-[13px] font-semibold text-slate-500 dark:text-slate-400 uppercase tracking-wide">Active Goals</span>
+                  <span className="font-inter font-bold text-[32px] text-slate-900 dark:text-white mt-1">{report.savings.activeGoals}</span>
                 </div>
-                <div className="fin-report-stat">
-                  <span className="fin-report-stat-label">Completed Goals</span>
-                  <span className="fin-report-stat-value green">{report.savings.completedGoals}</span>
+                <div className="flex flex-col">
+                  <span className="font-inter text-[13px] font-semibold text-slate-500 dark:text-slate-400 uppercase tracking-wide">Completed Goals</span>
+                  <span className="font-inter font-bold text-[32px] text-emerald-600 dark:text-emerald-400 mt-1">{report.savings.completedGoals}</span>
                 </div>
               </div>
 
               {/* Savings Charts Row */}
-              <div className="fin-report-charts-row" style={{ gridTemplateColumns: '3fr 7fr' }}>
+              <div className="grid grid-cols-1 lg:grid-cols-2 gap-6" style={{ gridTemplateColumns: '3fr 7fr' }}>
                 {/* Savings Goals Donut */}
                 {(report.savings.activeGoals > 0 || report.savings.completedGoals > 0) && (
-                  <div className="fin-report-chart-card">
-                    <h3 className="fin-report-chart-title">Savings Goals Status</h3>
-                    <p className="fin-chart-summary">Total: <strong>{report.savings.activeGoals + report.savings.completedGoals} goals</strong> · Progress: <strong>{report.savings.overallProgress}%</strong></p>
+                  <div className="bg-white dark:bg-[#1E2130] rounded-xl border border-slate-200 dark:border-white/10 shadow-sm p-6 flex flex-col h-[400px]">
+                    <h3 className="m-0 font-inter text-[15px] font-bold text-slate-800 dark:text-white">Savings Goals Status</h3>
+                    <p className="font-inter text-[13px] text-slate-500 dark:text-slate-400 mt-1">Total: <strong>{report.savings.activeGoals + report.savings.completedGoals} goals</strong> · Progress: <strong>{report.savings.overallProgress}%</strong></p>
                     <ResponsiveContainer width="100%" height={200}>
                       <PieChart>
                         <Pie
@@ -1989,7 +1994,7 @@ export default function AdminFinancialReport() {
                         <Tooltip formatter={(v, name) => [v + ' goals', name]} />
                       </PieChart>
                     </ResponsiveContainer>
-                    <div className="fin-report-legend">
+                    <div className="flex flex-wrap items-center gap-4 mt-6 pt-4 border-t border-slate-100 dark:border-white/5">
                       {[
                         { name: 'Active', value: report.savings.activeGoals, color: '#2563EB' },
                         { name: 'Completed', value: report.savings.completedGoals, color: '#10B981' },
@@ -1997,10 +2002,10 @@ export default function AdminFinancialReport() {
                         const total = report.savings.activeGoals + report.savings.completedGoals || 1;
                         const pct = ((item.value / total) * 100).toFixed(0);
                         return (
-                          <div key={i} className="fin-report-legend-item">
-                            <span className="fin-report-legend-dot" style={{ background: item.color }} />
-                            <span className="fin-report-legend-label">{item.name}</span>
-                            <span className="fin-report-legend-val">{item.value} goals · {pct}%</span>
+                          <div key={i} className="flex items-center gap-1.5 font-inter text-[11px] font-medium text-slate-600 dark:text-slate-400">
+                            <span className="w-2.5 h-2.5 rounded-full" style={{ background: item.color }} />
+                            <span className="font-inter text-[11px] font-medium text-slate-600 dark:text-slate-400">{item.name}</span>
+                            <span className="font-bold text-slate-800 dark:text-white ml-1">{item.value} goals · {pct}%</span>
                           </div>
                         );
                       })}
@@ -2023,9 +2028,9 @@ export default function AdminFinancialReport() {
                   });
                   
                   return (
-                    <div className="fin-report-chart-card">
-                      <h3 className="fin-report-chart-title">Savings Trend (Deposits vs Withdrawals)</h3>
-                      <p className="fin-chart-summary">Total Saved: <strong>{fmt(report.savings.totalSaved)}</strong> · Deposits: <strong style={{color: '#10B981'}}>{fmt(report.savings.periodDeposits)}</strong> · Withdrawals: <strong style={{color: '#EF4444'}}>{fmt(report.savings.periodWithdrawals)}</strong></p>
+                    <div className="bg-white dark:bg-[#1E2130] rounded-xl border border-slate-200 dark:border-white/10 shadow-sm p-6 flex flex-col h-[400px]">
+                      <h3 className="m-0 font-inter text-[15px] font-bold text-slate-800 dark:text-white">Savings Trend (Deposits vs Withdrawals)</h3>
+                      <p className="font-inter text-[13px] text-slate-500 dark:text-slate-400 mt-1">Total Saved: <strong>{fmt(report.savings.totalSaved)}</strong> · Deposits: <strong style={{color: '#10B981'}}>{fmt(report.savings.periodDeposits)}</strong> · Withdrawals: <strong style={{color: '#EF4444'}}>{fmt(report.savings.periodWithdrawals)}</strong></p>
                       <ResponsiveContainer width="100%" height={220}>
                         <BarChart data={savingsData} margin={{ top: 15, right: 10, left: -10, bottom: 0 }}>
                           <CartesianGrid strokeDasharray="3 3" stroke="#f1f5f9" vertical={false} />
@@ -2042,14 +2047,14 @@ export default function AdminFinancialReport() {
                           </Bar>
                         </BarChart>
                       </ResponsiveContainer>
-                      <div className="fin-report-legend" style={{ justifyContent: 'center', display: 'flex', gap: '16px' }}>
-                        <div className="fin-report-legend-item" style={{ gap: '4px' }}>
-                          <span className="fin-report-legend-dot" style={{ background: '#10B981' }} />
-                          <span className="fin-report-legend-label">Deposits</span>
+                      <div className="flex flex-wrap items-center gap-4 mt-6 pt-4 border-t border-slate-100 dark:border-white/5" style={{ justifyContent: 'center', display: 'flex', gap: '16px' }}>
+                        <div className="flex items-center gap-1.5 font-inter text-[11px] font-medium text-slate-600 dark:text-slate-400" style={{ gap: '4px' }}>
+                          <span className="w-2.5 h-2.5 rounded-full" style={{ background: '#10B981' }} />
+                          <span className="font-inter text-[11px] font-medium text-slate-600 dark:text-slate-400">Deposits</span>
                         </div>
-                        <div className="fin-report-legend-item" style={{ gap: '4px' }}>
-                          <span className="fin-report-legend-dot" style={{ background: '#EF4444' }} />
-                          <span className="fin-report-legend-label">Withdrawals</span>
+                        <div className="flex items-center gap-1.5 font-inter text-[11px] font-medium text-slate-600 dark:text-slate-400" style={{ gap: '4px' }}>
+                          <span className="w-2.5 h-2.5 rounded-full" style={{ background: '#EF4444' }} />
+                          <span className="font-inter text-[11px] font-medium text-slate-600 dark:text-slate-400">Withdrawals</span>
                         </div>
                       </div>
                       <ChartFooter period={report.period} location={getLocationLabel()} />
@@ -2059,17 +2064,17 @@ export default function AdminFinancialReport() {
               </div>
 
               {/* Savings Progress Bar */}
-              <div className="fin-report-progress-section">
-                <div className="fin-report-progress-header">
+              <div className="mt-6 pt-6 border-t border-slate-100 dark:border-white/5">
+                <div className="flex justify-between items-end mb-2">
                   <span>Overall Savings Progress</span>
-                  <span className="fin-report-progress-pct">
+                  <span className="font-inter font-bold text-slate-800 dark:text-white">
                     {report.savings.overallProgress > 0 && report.savings.overallProgress < 1
                       ? '<1%'
                       : `${report.savings.overallProgress}%`}
                   </span>
                 </div>
-                <div className="fin-report-progress-track">
-                  <div className="fin-report-progress-fill" style={{ width: `${Math.max(report.savings.overallProgress > 0 ? 1 : 0, Math.min(100, report.savings.overallProgress))}%` }} />
+                <div className="h-2.5 w-full bg-slate-100 dark:bg-white/5 rounded-full overflow-hidden">
+                  <div className="h-full bg-blue-600 rounded-full transition-all duration-1000 ease-out" style={{ width: `${Math.max(report.savings.overallProgress > 0 ? 1 : 0, Math.min(100, report.savings.overallProgress))}%` }} />
                 </div>
                 <p style={{fontSize: '10px', color: '#9ca3af', marginTop: '6px', marginBottom: 0}}>
                   {fmt(report.savings.totalSaved)} saved out of {fmt(report.savings.totalTargets)} target
@@ -2083,38 +2088,38 @@ export default function AdminFinancialReport() {
 
           {/* Member Growth & Attendance - Only for Super Admin */}
           {(report.memberGrowth || report.attendance) && adminRole === 'admin' && (report.reportType === 'all' || report.reportType === 'attendance') && (
-            <div className="fin-report-section">
-              <div className="fin-report-section-header">
-                <h2 className="fin-report-section-title">👥 Membership & Engagement</h2>
+            <div className="bg-white dark:bg-[#1E2130] rounded-xl border border-slate-200 dark:border-white/10 shadow-sm overflow-hidden">
+              <div className="p-5 border-b border-slate-200 dark:border-white/10 bg-slate-50 dark:bg-black/20 flex items-center gap-3">
+                <h2 className="m-0 font-inter text-[15px] font-bold text-slate-800 dark:text-white flex items-center gap-2">👥 Membership & Engagement</h2>
               </div>
-              <div className="fin-report-stat-grid">
+              <div className="grid grid-cols-1 sm:grid-cols-3 gap-6">
                 {report.memberGrowth && (
                   <>
-                    <div className="fin-report-stat">
-                      <span className="fin-report-stat-label">New Members</span>
-                      <span className="fin-report-stat-value blue">{report.memberGrowth.newMembers}</span>
+                    <div className="flex flex-col">
+                      <span className="font-inter text-[13px] font-semibold text-slate-500 dark:text-slate-400 uppercase tracking-wide">New Members</span>
+                      <span className="font-inter font-bold text-[32px] text-blue-600 dark:text-blue-400 mt-1">{report.memberGrowth.newMembers}</span>
                     </div>
-                    <div className="fin-report-stat">
-                      <span className="fin-report-stat-label">Total Members</span>
-                      <span className="fin-report-stat-value">{report.memberGrowth.totalMembers}</span>
+                    <div className="flex flex-col">
+                      <span className="font-inter text-[13px] font-semibold text-slate-500 dark:text-slate-400 uppercase tracking-wide">Total Members</span>
+                      <span className="font-inter font-bold text-[32px] text-slate-900 dark:text-white mt-1">{report.memberGrowth.totalMembers}</span>
                     </div>
                   </>
                 )}
                 {report.attendance && (
-                  <div className="fin-report-stat">
-                    <span className="fin-report-stat-label">Attendance Records</span>
-                    <span className="fin-report-stat-value green">{report.attendance.totalRecords}</span>
+                  <div className="flex flex-col">
+                    <span className="font-inter text-[13px] font-semibold text-slate-500 dark:text-slate-400 uppercase tracking-wide">Attendance Records</span>
+                    <span className="font-inter font-bold text-[32px] text-emerald-600 dark:text-emerald-400 mt-1">{report.attendance.totalRecords}</span>
                   </div>
                 )}
               </div>
 
               {/* Attendance Charts Row */}
-              <div className="fin-report-charts-row">
+              <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
                 {/* Attendance By Community Chart */}
                 {report.attendance?.byBranch?.length > 0 && (
-                  <div className="fin-report-chart-card">
-                    <h3 className="fin-report-chart-title">Attendance By Community</h3>
-                    <p className="fin-chart-summary">Top: <strong>{report.attendance.byBranch[0]?.name}</strong> · {report.attendance.byBranch[0]?.value} attendees</p>
+                  <div className="bg-white dark:bg-[#1E2130] rounded-xl border border-slate-200 dark:border-white/10 shadow-sm p-6 flex flex-col h-[400px]">
+                    <h3 className="m-0 font-inter text-[15px] font-bold text-slate-800 dark:text-white">Attendance By Community</h3>
+                    <p className="font-inter text-[13px] text-slate-500 dark:text-slate-400 mt-1">Top: <strong>{report.attendance.byBranch[0]?.name}</strong> · {report.attendance.byBranch[0]?.value} attendees</p>
                     <ResponsiveContainer width="100%" height={200}>
                       <BarChart data={report.attendance.byBranch.slice(0, 8)} margin={{ top: 15, right: 10, left: -10, bottom: 40 }}>
                         <CartesianGrid strokeDasharray="3 3" stroke="#f1f5f9" />
@@ -2145,9 +2150,9 @@ export default function AdminFinancialReport() {
                     .slice(0, 5); // Top 5
                   
                   return serviceData.length > 0 ? (
-                    <div className="fin-report-chart-card">
-                      <h3 className="fin-report-chart-title">Top Services By Attendance</h3>
-                      <p className="fin-chart-summary">
+                    <div className="bg-white dark:bg-[#1E2130] rounded-xl border border-slate-200 dark:border-white/10 shadow-sm p-6 flex flex-col h-[400px]">
+                      <h3 className="m-0 font-inter text-[15px] font-bold text-slate-800 dark:text-white">Top Services By Attendance</h3>
+                      <p className="font-inter text-[13px] text-slate-500 dark:text-slate-400 mt-1">
                         Top: <strong>{serviceData[0].service}</strong> · {serviceData[0].count} attendees
                       </p>
                       <ResponsiveContainer width="100%" height={200}>
@@ -2170,7 +2175,7 @@ export default function AdminFinancialReport() {
                 })()}
               </div>
               {/* === NEW: Monthly Attendance Trend (Row 1) === */}
-              <div className="fin-report-charts-row" style={{ gridTemplateColumns: '1fr' }}>
+              <div className="grid grid-cols-1 lg:grid-cols-2 gap-6" style={{ gridTemplateColumns: '1fr' }}>
                 {(() => {
                   const byMonthMap = {};
                   (report.attendance.byMonth || []).forEach(d => { byMonthMap[d.month] = d.count; });
@@ -2214,9 +2219,9 @@ export default function AdminFinancialReport() {
                   const highestMon = fullMonthData.reduce((a, b) => b.value > a.value ? b : a, fullMonthData[0]);
 
                   return fullMonthData.some(d => d.value > 0) ? (
-                    <div className="fin-report-chart-card" style={{ width: '100%' }}>
-                      <h3 className="fin-report-chart-title">{chartTitle}</h3>
-                      <p className="fin-chart-summary">Total: <strong>{totalAtt}</strong> attendees · Highest: <strong>{highestMon?.month}</strong> ({highestMon?.value})</p>
+                    <div className="bg-white dark:bg-[#1E2130] rounded-xl border border-slate-200 dark:border-white/10 shadow-sm p-6 flex flex-col h-[400px]" style={{ width: '100%' }}>
+                      <h3 className="m-0 font-inter text-[15px] font-bold text-slate-800 dark:text-white">{chartTitle}</h3>
+                      <p className="font-inter text-[13px] text-slate-500 dark:text-slate-400 mt-1">Total: <strong>{totalAtt}</strong> attendees · Highest: <strong>{highestMon?.month}</strong> ({highestMon?.value})</p>
                       <ResponsiveContainer width="100%" height={isMulti ? 300 : 250}>
                         {isMulti ? (
                           <BarChart data={fullMonthData} margin={{ top: 15, right: 10, left: -10, bottom: 0 }}>
@@ -2246,7 +2251,7 @@ export default function AdminFinancialReport() {
                         )}
                       </ResponsiveContainer>
                       {isMulti && (
-                        <div className="fin-report-legend">
+                        <div className="flex flex-wrap items-center gap-4 mt-6 pt-4 border-t border-slate-100 dark:border-white/5">
                           {(() => {
                             const activeSeries = allSeries.filter(s => seriesWithData.includes(s));
                             return (
@@ -2255,9 +2260,9 @@ export default function AdminFinancialReport() {
                                   const totalVal = fullMonthData.reduce((sum, row) => sum + (row[s] || 0), 0);
                                   const origIdx = allSeries.indexOf(s);
                                   return (
-                                    <div key={s} className="fin-report-legend-item">
-                                      <span className="fin-report-legend-dot" style={{ background: COMMUNITY_COLORS[origIdx % COMMUNITY_COLORS.length] }} />
-                                      <span className="fin-report-legend-label">{s}</span>
+                                    <div key={s} className="flex items-center gap-1.5 font-inter text-[11px] font-medium text-slate-600 dark:text-slate-400">
+                                      <span className="w-2.5 h-2.5 rounded-full" style={{ background: COMMUNITY_COLORS[origIdx % COMMUNITY_COLORS.length] }} />
+                                      <span className="font-inter text-[11px] font-medium text-slate-600 dark:text-slate-400">{s}</span>
                                       <span style={{ fontSize: '10px', color: '#4B5563', marginLeft: '6px' }}>({totalVal} attendees)</span>
                                     </div>
                                   );
@@ -2284,7 +2289,7 @@ export default function AdminFinancialReport() {
                 const shouldShowRow2 = availProvCheck.length >= 2;
                 if (!shouldShowRow2) return null;
                 return (
-                <div className="fin-report-charts-row" style={{ gridTemplateColumns: '1fr' }}>
+                <div className="grid grid-cols-1 lg:grid-cols-2 gap-6" style={{ gridTemplateColumns: '1fr' }}>
                   {(() => {
                     const byMonthMap = {};
                     (report.attendance.byMonth || []).forEach(d => { byMonthMap[d.month] = d.count; });
@@ -2309,9 +2314,9 @@ export default function AdminFinancialReport() {
                     const highestMon = fullMonthData.reduce((a, b) => b.value > a.value ? b : a, fullMonthData[0]);
 
                     return fullMonthData.some(d => d.value > 0) ? (
-                      <div className="fin-report-chart-card" style={{ width: '100%' }}>
-                        <h3 className="fin-report-chart-title">Monthly Attendance Trend {isMulti ? '(By Community)' : ''}</h3>
-                        <p className="fin-chart-summary">Detailed Community Breakdown · Total: <strong>{totalAtt}</strong> attendees · Highest: <strong>{highestMon?.month}</strong></p>
+                      <div className="bg-white dark:bg-[#1E2130] rounded-xl border border-slate-200 dark:border-white/10 shadow-sm p-6 flex flex-col h-[400px]" style={{ width: '100%' }}>
+                        <h3 className="m-0 font-inter text-[15px] font-bold text-slate-800 dark:text-white">Monthly Attendance Trend {isMulti ? '(By Community)' : ''}</h3>
+                        <p className="font-inter text-[13px] text-slate-500 dark:text-slate-400 mt-1">Detailed Community Breakdown · Total: <strong>{totalAtt}</strong> attendees · Highest: <strong>{highestMon?.month}</strong></p>
                         <ResponsiveContainer width="100%" height={isMulti ? 300 : 250}>
                           {isMulti ? (
                             <BarChart data={fullMonthData} margin={{ top: 15, right: 10, left: -10, bottom: 0 }}>
@@ -2354,22 +2359,22 @@ export default function AdminFinancialReport() {
                           });
                           
                           return (
-                            <div className="fin-report-grouped-legend" style={{ display: 'flex', flexWrap: 'wrap', gap: '24px', marginTop: '16px' }}>
+                            <div className="flex gap-8 mt-6 pt-4 border-t border-slate-100 dark:border-white/5" style={{ display: 'flex', flexWrap: 'wrap', gap: '24px', marginTop: '16px' }}>
                               {Object.entries(commsByProv).map(([prov, comms]) => {
                                 const activeComms = comms.filter(c => c.hasData);
                                 if (activeComms.length === 0) return null;
                                 return (
-                                  <div key={prov} className="fin-report-legend-group" style={{ display: 'flex', flexDirection: 'column', gap: '6px', minWidth: '120px' }}>
+                                  <div key={prov} className="flex flex-col gap-2" style={{ display: 'flex', flexDirection: 'column', gap: '6px', minWidth: '120px' }}>
                                     <div style={{ fontSize: '11px', fontWeight: 'bold', color: '#6b7280', textTransform: 'uppercase', borderBottom: '1px solid #e5e7eb', paddingBottom: '4px', marginBottom: '2px' }}>
                                       {prov}
                                     </div>
                                     {activeComms.map((c) => {
                                       const totalVal = fullMonthData.reduce((sum, row) => sum + (row[c.name] || 0), 0);
                                       return (
-                                        <div key={c.name} className="fin-report-legend-item" style={{ margin: 0 }}>
+                                        <div key={c.name} className="flex items-center gap-1.5 font-inter text-[11px] font-medium text-slate-600 dark:text-slate-400" style={{ margin: 0 }}>
                                           <div style={{ display: 'flex', alignItems: 'center' }}>
-                                            <span className="fin-report-legend-dot" style={{ background: COMMUNITY_COLORS[c.index % COMMUNITY_COLORS.length] }} />
-                                            <span className="fin-report-legend-label">{c.name}</span>
+                                            <span className="w-2.5 h-2.5 rounded-full" style={{ background: COMMUNITY_COLORS[c.index % COMMUNITY_COLORS.length] }} />
+                                            <span className="font-inter text-[11px] font-medium text-slate-600 dark:text-slate-400">{c.name}</span>
                                             <span style={{ fontSize: '10px', color: '#4B5563', marginLeft: '6px' }}>({totalVal} attendees)</span>
                                           </div>
                                         </div>
@@ -2396,30 +2401,30 @@ export default function AdminFinancialReport() {
 
               {/* Attendee Names Table */}
               {report.attendance?.attendees?.length > 0 && (
-                <div className="fin-report-table-wrap">
-                  <h3 className="fin-report-chart-title">Attendee List ({report.attendance.attendees.length} records)</h3>
-                  <table className="fin-report-table">
+                <div className="overflow-hidden">
+                  <h3 className="m-0 font-inter text-[15px] font-bold text-slate-800 dark:text-white">Attendee List ({report.attendance.attendees.length} records)</h3>
+                  <table className="w-full text-left border-collapse min-w-[700px]">
                     <thead>
                       <tr>
-                        <th>#</th>
-                        <th>Member</th>
-                        <th>Community</th>
-                        <th>Service</th>
-                        <th>Date</th>
-                        <th>Time In</th>
-                        <th>Status</th>
+                        <th className="px-4 py-3 bg-slate-50 dark:bg-black/20 border-b border-slate-200 dark:border-white/10 font-semibold text-[11px] tracking-wider uppercase text-slate-500 dark:text-slate-400 whitespace-nowrap sticky top-0 z-10">#</th>
+                        <th className="px-4 py-3 bg-slate-50 dark:bg-black/20 border-b border-slate-200 dark:border-white/10 font-semibold text-[11px] tracking-wider uppercase text-slate-500 dark:text-slate-400 whitespace-nowrap sticky top-0 z-10">Member</th>
+                        <th className="px-4 py-3 bg-slate-50 dark:bg-black/20 border-b border-slate-200 dark:border-white/10 font-semibold text-[11px] tracking-wider uppercase text-slate-500 dark:text-slate-400 whitespace-nowrap sticky top-0 z-10">Community</th>
+                        <th className="px-4 py-3 bg-slate-50 dark:bg-black/20 border-b border-slate-200 dark:border-white/10 font-semibold text-[11px] tracking-wider uppercase text-slate-500 dark:text-slate-400 whitespace-nowrap sticky top-0 z-10">Service</th>
+                        <th className="px-4 py-3 bg-slate-50 dark:bg-black/20 border-b border-slate-200 dark:border-white/10 font-semibold text-[11px] tracking-wider uppercase text-slate-500 dark:text-slate-400 whitespace-nowrap sticky top-0 z-10">Date</th>
+                        <th className="px-4 py-3 bg-slate-50 dark:bg-black/20 border-b border-slate-200 dark:border-white/10 font-semibold text-[11px] tracking-wider uppercase text-slate-500 dark:text-slate-400 whitespace-nowrap sticky top-0 z-10">Time In</th>
+                        <th className="px-4 py-3 bg-slate-50 dark:bg-black/20 border-b border-slate-200 dark:border-white/10 font-semibold text-[11px] tracking-wider uppercase text-slate-500 dark:text-slate-400 whitespace-nowrap sticky top-0 z-10">Status</th>
                       </tr>
                     </thead>
                     <tbody>
                       {report.attendance.attendees.map((a, i) => (
                         <tr key={i}>
-                          <td>{i + 1}</td>
-                          <td style={{ fontWeight: 600 }}>{a.name}</td>
-                          <td>{a.branch}</td>
-                          <td>{a.service}</td>
-                          <td>{a.date}</td>
-                          <td>{a.time}</td>
-                          <td>
+                          <td className="px-4 py-3 border-b border-slate-100 dark:border-white/5 text-sm font-inter text-slate-700 dark:text-slate-300">{i + 1}</td>
+                          <td className="px-4 py-3 border-b border-slate-100 dark:border-white/5 text-sm font-inter text-slate-700 dark:text-slate-300" style={{ fontWeight: 600 }}>{a.name}</td>
+                          <td className="px-4 py-3 border-b border-slate-100 dark:border-white/5 text-sm font-inter text-slate-700 dark:text-slate-300">{a.branch}</td>
+                          <td className="px-4 py-3 border-b border-slate-100 dark:border-white/5 text-sm font-inter text-slate-700 dark:text-slate-300">{a.service}</td>
+                          <td className="px-4 py-3 border-b border-slate-100 dark:border-white/5 text-sm font-inter text-slate-700 dark:text-slate-300">{a.date}</td>
+                          <td className="px-4 py-3 border-b border-slate-100 dark:border-white/5 text-sm font-inter text-slate-700 dark:text-slate-300">{a.time}</td>
+                          <td className="px-4 py-3 border-b border-slate-100 dark:border-white/5 text-sm font-inter text-slate-700 dark:text-slate-300">
                             <span className={`status-badge ${a.status.toLowerCase()}`} style={{ fontSize: '11px', padding: '2px 8px' }}>
                               {a.status}
                             </span>
@@ -2435,21 +2440,21 @@ export default function AdminFinancialReport() {
 
           {/* Secretary Section - Only for Super Admin and Secretary Admin */}
           {report.secretary && (adminRole === 'admin' || adminRole === 'secretaryAdmin') && (
-            <div className="fin-report-section">
-              <div className="fin-report-section-header">
-                <h2 className="fin-report-section-title">📋 Disbursement Report</h2>
+            <div className="bg-white dark:bg-[#1E2130] rounded-xl border border-slate-200 dark:border-white/10 shadow-sm overflow-hidden">
+              <div className="p-5 border-b border-slate-200 dark:border-white/10 bg-slate-50 dark:bg-black/20 flex items-center gap-3">
+                <h2 className="m-0 font-inter text-[15px] font-bold text-slate-800 dark:text-white flex items-center gap-2">📋 Disbursement Report</h2>
               </div>
               
-              <div className="fin-report-stat-grid">
-                <div className="fin-report-stat">
-                  <span className="fin-report-stat-label">Total Amount Disbursed</span>
-                  <span className="fin-report-stat-value purple">{fmt(report.secretary.disbursements.totalAmount)}</span>
-                  <span className="fin-report-stat-sub">{report.secretary.disbursements.count} releases processed</span>
+              <div className="grid grid-cols-1 sm:grid-cols-3 gap-6">
+                <div className="flex flex-col">
+                  <span className="font-inter text-[13px] font-semibold text-slate-500 dark:text-slate-400 uppercase tracking-wide">Total Amount Disbursed</span>
+                  <span className="font-inter font-bold text-[32px] text-purple-600 dark:text-purple-400 mt-1">{fmt(report.secretary.disbursements.totalAmount)}</span>
+                  <span className="font-inter text-sm text-slate-500 dark:text-slate-400 mt-1">{report.secretary.disbursements.count} releases processed</span>
                 </div>
               </div>
 
               {/* Secretary Charts Row */}
-              <div className="fin-report-charts-row" style={{ gridTemplateColumns: '1fr' }}>
+              <div className="grid grid-cols-1 lg:grid-cols-2 gap-6" style={{ gridTemplateColumns: '1fr' }}>
                 {/* === Monthly Disbursements (Row 1) === */}
                 {(() => {
                   const { from, to } = getChartMonthRange();
@@ -2481,9 +2486,9 @@ export default function AdminFinancialReport() {
                   const totalDisb = trendData.reduce((s, d) => s + d.value, 0);
                   const highestMon = trendData.reduce((a, b) => b.value > a.value ? b : a, trendData[0]);
                   return trendData.length > 0 ? (
-                    <div className="fin-report-chart-card" style={{ width: '100%' }}>
-                      <h3 className="fin-report-chart-title">{chartTitle}</h3>
-                      <p className="fin-chart-summary">Total: <strong>{fmt(totalDisb)}</strong> · {report.secretary.disbursements.count} releases · Highest: <strong>{highestMon?.label}</strong></p>
+                    <div className="bg-white dark:bg-[#1E2130] rounded-xl border border-slate-200 dark:border-white/10 shadow-sm p-6 flex flex-col h-[400px]" style={{ width: '100%' }}>
+                      <h3 className="m-0 font-inter text-[15px] font-bold text-slate-800 dark:text-white">{chartTitle}</h3>
+                      <p className="font-inter text-[13px] text-slate-500 dark:text-slate-400 mt-1">Total: <strong>{fmt(totalDisb)}</strong> · {report.secretary.disbursements.count} releases · Highest: <strong>{highestMon?.label}</strong></p>
                       <ResponsiveContainer width="100%" height={isMulti ? 300 : 250}>
                         {isMulti ? (
                           <BarChart data={trendData} margin={{ top: 15, right: 10, left: -10, bottom: 0 }}>
@@ -2526,12 +2531,12 @@ export default function AdminFinancialReport() {
                         });
                         
                         return (
-                          <div className="fin-report-grouped-legend" style={{ display: 'flex', flexWrap: 'wrap', gap: '24px', marginTop: '16px' }}>
+                          <div className="flex gap-8 mt-6 pt-4 border-t border-slate-100 dark:border-white/5" style={{ display: 'flex', flexWrap: 'wrap', gap: '24px', marginTop: '16px' }}>
                             {Object.entries(seriesByProv).map(([prov, seriesList]) => {
                               const activeSeries = seriesList.filter(s => s.hasData);
                               if (activeSeries.length === 0) return null;
                               return (
-                                <div key={prov} className="fin-report-legend-group" style={{ display: 'flex', flexDirection: 'column', gap: '6px', minWidth: '120px' }}>
+                                <div key={prov} className="flex flex-col gap-2" style={{ display: 'flex', flexDirection: 'column', gap: '6px', minWidth: '120px' }}>
                                   {!showProvinceTrend && (
                                     <div style={{ fontSize: '11px', fontWeight: 'bold', color: '#6b7280', textTransform: 'uppercase', borderBottom: '1px solid #e5e7eb', paddingBottom: '4px', marginBottom: '2px' }}>
                                       {prov}
@@ -2540,10 +2545,10 @@ export default function AdminFinancialReport() {
                                   {activeSeries.map((s) => {
                                     const totalVal = trendData.reduce((sum, row) => sum + (row[s.name] || 0), 0);
                                     return (
-                                      <div key={s.name} className="fin-report-legend-item" style={{ margin: 0, flexDirection: 'column', alignItems: 'flex-start' }}>
+                                      <div key={s.name} className="flex items-center gap-1.5 font-inter text-[11px] font-medium text-slate-600 dark:text-slate-400" style={{ margin: 0, flexDirection: 'column', alignItems: 'flex-start' }}>
                                         <div style={{ display: 'flex', alignItems: 'center' }}>
-                                          <span className="fin-report-legend-dot" style={{ background: COMMUNITY_COLORS[s.index % COMMUNITY_COLORS.length] }} />
-                                          <span className="fin-report-legend-label">{s.name}</span>
+                                          <span className="w-2.5 h-2.5 rounded-full" style={{ background: COMMUNITY_COLORS[s.index % COMMUNITY_COLORS.length] }} />
+                                          <span className="font-inter text-[11px] font-medium text-slate-600 dark:text-slate-400">{s.name}</span>
                                           <span style={{ fontSize: '10px', color: '#4B5563', marginLeft: '6px' }}>({fmt(totalVal)})</span>
                                         </div>
                                       </div>
@@ -2572,7 +2577,7 @@ export default function AdminFinancialReport() {
                 const shouldShowRow2 = availProv2.length >= 2;
                 if (!shouldShowRow2) return null;
                 return (
-                <div className="fin-report-charts-row" style={{ gridTemplateColumns: '1fr' }}>
+                <div className="grid grid-cols-1 lg:grid-cols-2 gap-6" style={{ gridTemplateColumns: '1fr' }}>
                   {(() => {
                     const { from, to } = getChartMonthRange();
                     const byMonthMap = {};
@@ -2600,9 +2605,9 @@ export default function AdminFinancialReport() {
                     const highestMon = trendData.reduce((a, b) => b.value > a.value ? b : a, trendData[0]);
 
                     return trendData.length > 0 ? (
-                      <div className="fin-report-chart-card" style={{ width: '100%' }}>
-                        <h3 className="fin-report-chart-title">{chartTitle}</h3>
-                        <p className="fin-chart-summary">Detailed Community Breakdown · Total: <strong>{fmt(totalDisb)}</strong> · Highest: <strong>{highestMon?.label}</strong></p>
+                      <div className="bg-white dark:bg-[#1E2130] rounded-xl border border-slate-200 dark:border-white/10 shadow-sm p-6 flex flex-col h-[400px]" style={{ width: '100%' }}>
+                        <h3 className="m-0 font-inter text-[15px] font-bold text-slate-800 dark:text-white">{chartTitle}</h3>
+                        <p className="font-inter text-[13px] text-slate-500 dark:text-slate-400 mt-1">Detailed Community Breakdown · Total: <strong>{fmt(totalDisb)}</strong> · Highest: <strong>{highestMon?.label}</strong></p>
                         <ResponsiveContainer width="100%" height={isMulti ? 300 : 250}>
                           {isMulti ? (
                             <BarChart data={trendData} margin={{ top: 15, right: 10, left: -10, bottom: 0 }}>
@@ -2645,22 +2650,22 @@ export default function AdminFinancialReport() {
                           });
                           
                           return (
-                            <div className="fin-report-grouped-legend" style={{ display: 'flex', flexWrap: 'wrap', gap: '24px', marginTop: '16px' }}>
+                            <div className="flex gap-8 mt-6 pt-4 border-t border-slate-100 dark:border-white/5" style={{ display: 'flex', flexWrap: 'wrap', gap: '24px', marginTop: '16px' }}>
                               {Object.entries(seriesByProv).map(([prov, seriesList]) => {
                                 const activeSeries = seriesList.filter(s => s.hasData);
                                 if (activeSeries.length === 0) return null;
                                 return (
-                                  <div key={prov} className="fin-report-legend-group" style={{ display: 'flex', flexDirection: 'column', gap: '6px', minWidth: '120px' }}>
+                                  <div key={prov} className="flex flex-col gap-2" style={{ display: 'flex', flexDirection: 'column', gap: '6px', minWidth: '120px' }}>
                                     <div style={{ fontSize: '11px', fontWeight: 'bold', color: '#6b7280', textTransform: 'uppercase', borderBottom: '1px solid #e5e7eb', paddingBottom: '4px', marginBottom: '2px' }}>
                                       {prov}
                                     </div>
                                     {activeSeries.map((s) => {
                                       const totalVal = trendData.reduce((sum, row) => sum + (row[s.name] || 0), 0);
                                       return (
-                                        <div key={s.name} className="fin-report-legend-item" style={{ margin: 0, flexDirection: 'column', alignItems: 'flex-start' }}>
+                                        <div key={s.name} className="flex items-center gap-1.5 font-inter text-[11px] font-medium text-slate-600 dark:text-slate-400" style={{ margin: 0, flexDirection: 'column', alignItems: 'flex-start' }}>
                                           <div style={{ display: 'flex', alignItems: 'center' }}>
-                                            <span className="fin-report-legend-dot" style={{ background: COMMUNITY_COLORS[s.index % COMMUNITY_COLORS.length] }} />
-                                            <span className="fin-report-legend-label">{s.name}</span>
+                                            <span className="w-2.5 h-2.5 rounded-full" style={{ background: COMMUNITY_COLORS[s.index % COMMUNITY_COLORS.length] }} />
+                                            <span className="font-inter text-[11px] font-medium text-slate-600 dark:text-slate-400">{s.name}</span>
                                             <span style={{ fontSize: '10px', color: '#4B5563', marginLeft: '6px' }}>({fmt(totalVal)})</span>
                                           </div>
                                         </div>
@@ -2686,12 +2691,12 @@ export default function AdminFinancialReport() {
               })()}
 
               {/* Top Communities Row (Full Width) */}
-              <div className="fin-report-charts-row" style={{ gridTemplateColumns: '1fr' }}>
+              <div className="grid grid-cols-1 lg:grid-cols-2 gap-6" style={{ gridTemplateColumns: '1fr' }}>
                 {/* Top 5 Communities by Disbursement */}
                 {report.secretary.disbursements.byCommunity?.length > 0 && (
-                  <div className="fin-report-chart-card">
-                    <h3 className="fin-report-chart-title">Top Communities By Disbursement</h3>
-                    <p className="fin-chart-summary">Top: <strong>{report.secretary.disbursements.byCommunity[0]?.community}</strong> · {fmt(report.secretary.disbursements.byCommunity[0]?.value)} ({report.secretary.disbursements.totalAmount > 0 ? ((report.secretary.disbursements.byCommunity[0]?.value / report.secretary.disbursements.totalAmount) * 100).toFixed(1) : 0}%)</p>
+                  <div className="bg-white dark:bg-[#1E2130] rounded-xl border border-slate-200 dark:border-white/10 shadow-sm p-6 flex flex-col h-[400px]">
+                    <h3 className="m-0 font-inter text-[15px] font-bold text-slate-800 dark:text-white">Top Communities By Disbursement</h3>
+                    <p className="font-inter text-[13px] text-slate-500 dark:text-slate-400 mt-1">Top: <strong>{report.secretary.disbursements.byCommunity[0]?.community}</strong> · {fmt(report.secretary.disbursements.byCommunity[0]?.value)} ({report.secretary.disbursements.totalAmount > 0 ? ((report.secretary.disbursements.byCommunity[0]?.value / report.secretary.disbursements.totalAmount) * 100).toFixed(1) : 0}%)</p>
                     <ResponsiveContainer width="100%" height={250}>
                       <BarChart data={report.secretary.disbursements.byCommunity} margin={{ top: 15, right: 10, left: -10, bottom: 0 }}>
                         <CartesianGrid strokeDasharray="3 3" stroke="#f1f5f9" vertical={false} />
@@ -2708,12 +2713,12 @@ export default function AdminFinancialReport() {
                         </Bar>
                       </BarChart>
                     </ResponsiveContainer>
-                    <div className="fin-report-legend">
+                    <div className="flex flex-wrap items-center gap-4 mt-6 pt-4 border-t border-slate-100 dark:border-white/5">
                       {report.secretary.disbursements.byCommunity.map((c, i) => (
-                        <div key={i} className="fin-report-legend-item">
-                          <span className="fin-report-legend-dot" style={{ background: i === 0 ? '#2563eb' : '#0D1F45' }} />
-                          <span className="fin-report-legend-label">{c.community}</span>
-                          <span className="fin-report-legend-val">{fmt(c.value)} · {report.secretary.disbursements.totalAmount > 0 ? ((c.value / report.secretary.disbursements.totalAmount) * 100).toFixed(0) : 0}%</span>
+                        <div key={i} className="flex items-center gap-1.5 font-inter text-[11px] font-medium text-slate-600 dark:text-slate-400">
+                          <span className="w-2.5 h-2.5 rounded-full" style={{ background: i === 0 ? '#2563eb' : '#0D1F45' }} />
+                          <span className="font-inter text-[11px] font-medium text-slate-600 dark:text-slate-400">{c.community}</span>
+                          <span className="font-bold text-slate-800 dark:text-white ml-1">{fmt(c.value)} · {report.secretary.disbursements.totalAmount > 0 ? ((c.value / report.secretary.disbursements.totalAmount) * 100).toFixed(0) : 0}%</span>
                         </div>
                       ))}
                     </div>
@@ -2723,7 +2728,7 @@ export default function AdminFinancialReport() {
               </div>
 
               {/* Payment Method + Top Recipients Row */}
-              <div className="fin-report-charts-row">
+              <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
                 {/* Payment Method Distribution */}
                 {report.secretary.disbursements.byMethod?.length > 0 && (() => {
                   const normalizedMethods = {};
@@ -2733,9 +2738,9 @@ export default function AdminFinancialReport() {
                   });
                   const methodData = Object.entries(normalizedMethods).map(([method, value]) => ({ method, value })).sort((a, b) => b.value - a.value);
                   return (
-                  <div className="fin-report-chart-card">
-                    <h3 className="fin-report-chart-title">Disbursement By Payment Method</h3>
-                    <p className="fin-chart-summary">Total: <strong>{fmt(report.secretary.disbursements.totalAmount)}</strong> · {methodData.length} methods</p>
+                  <div className="bg-white dark:bg-[#1E2130] rounded-xl border border-slate-200 dark:border-white/10 shadow-sm p-6 flex flex-col h-[400px]">
+                    <h3 className="m-0 font-inter text-[15px] font-bold text-slate-800 dark:text-white">Disbursement By Payment Method</h3>
+                    <p className="font-inter text-[13px] text-slate-500 dark:text-slate-400 mt-1">Total: <strong>{fmt(report.secretary.disbursements.totalAmount)}</strong> · {methodData.length} methods</p>
                     <ResponsiveContainer width="100%" height={180}>
                       <PieChart>
                         <Pie
@@ -2754,13 +2759,13 @@ export default function AdminFinancialReport() {
                         <Tooltip formatter={(v, name) => [fmt(v), name === 'value' ? 'Amount' : name]} />
                       </PieChart>
                     </ResponsiveContainer>
-                    <p className="fin-report-chart-total">{fmt(report.secretary.disbursements.totalAmount)} Total</p>
-                    <div className="fin-report-legend">
+                    <p className="font-inter text-[28px] font-bold text-blue-600 dark:text-blue-400 block mt-1">{fmt(report.secretary.disbursements.totalAmount)} Total</p>
+                    <div className="flex flex-wrap items-center gap-4 mt-6 pt-4 border-t border-slate-100 dark:border-white/5">
                       {methodData.map((m, i) => (
-                        <div key={i} className="fin-report-legend-item">
-                          <span className="fin-report-legend-dot" style={{ background: PIE_COLORS[i % PIE_COLORS.length] }} />
-                          <span className="fin-report-legend-label">{m.method}</span>
-                          <span className="fin-report-legend-val">{fmt(m.value)} · {report.secretary.disbursements.totalAmount > 0 ? ((m.value / report.secretary.disbursements.totalAmount) * 100).toFixed(0) : 0}%</span>
+                        <div key={i} className="flex items-center gap-1.5 font-inter text-[11px] font-medium text-slate-600 dark:text-slate-400">
+                          <span className="w-2.5 h-2.5 rounded-full" style={{ background: PIE_COLORS[i % PIE_COLORS.length] }} />
+                          <span className="font-inter text-[11px] font-medium text-slate-600 dark:text-slate-400">{m.method}</span>
+                          <span className="font-bold text-slate-800 dark:text-white ml-1">{fmt(m.value)} · {report.secretary.disbursements.totalAmount > 0 ? ((m.value / report.secretary.disbursements.totalAmount) * 100).toFixed(0) : 0}%</span>
                         </div>
                       ))}
                     </div>
@@ -2771,9 +2776,9 @@ export default function AdminFinancialReport() {
 
                 {/* Top 5 Recipients */}
                 {report.secretary.disbursements.byUser?.length > 0 && (
-                  <div className="fin-report-chart-card">
-                    <h3 className="fin-report-chart-title">Top Recipients By Disbursement</h3>
-                    <p className="fin-chart-summary">#1: <strong>{report.secretary.disbursements.byUser[0]?.user}</strong> · {fmt(report.secretary.disbursements.byUser[0]?.value)} ({report.secretary.disbursements.totalAmount > 0 ? ((report.secretary.disbursements.byUser[0]?.value / report.secretary.disbursements.totalAmount) * 100).toFixed(1) : 0}%)</p>
+                  <div className="bg-white dark:bg-[#1E2130] rounded-xl border border-slate-200 dark:border-white/10 shadow-sm p-6 flex flex-col h-[400px]">
+                    <h3 className="m-0 font-inter text-[15px] font-bold text-slate-800 dark:text-white">Top Recipients By Disbursement</h3>
+                    <p className="font-inter text-[13px] text-slate-500 dark:text-slate-400 mt-1">#1: <strong>{report.secretary.disbursements.byUser[0]?.user}</strong> · {fmt(report.secretary.disbursements.byUser[0]?.value)} ({report.secretary.disbursements.totalAmount > 0 ? ((report.secretary.disbursements.byUser[0]?.value / report.secretary.disbursements.totalAmount) * 100).toFixed(1) : 0}%)</p>
                     <ResponsiveContainer width="100%" height={220}>
                       <BarChart data={report.secretary.disbursements.byUser} layout="vertical" margin={{ top: 5, right: 30, left: 10, bottom: 0 }}>
                         <CartesianGrid strokeDasharray="3 3" stroke="#f1f5f9" horizontal={false} />
@@ -2790,12 +2795,12 @@ export default function AdminFinancialReport() {
                         </Bar>
                       </BarChart>
                     </ResponsiveContainer>
-                    <div className="fin-report-legend">
+                    <div className="flex flex-wrap items-center gap-4 mt-6 pt-4 border-t border-slate-100 dark:border-white/5">
                       {report.secretary.disbursements.byUser.map((u, i) => (
-                        <div key={i} className="fin-report-legend-item">
-                          <span className="fin-report-legend-dot" style={{ background: i === 0 ? '#2563eb' : '#1e3a8a' }} />
-                          <span className="fin-report-legend-label">{u.user}</span>
-                          <span className="fin-report-legend-val">{fmt(u.value)} · {report.secretary.disbursements.totalAmount > 0 ? ((u.value / report.secretary.disbursements.totalAmount) * 100).toFixed(0) : 0}%</span>
+                        <div key={i} className="flex items-center gap-1.5 font-inter text-[11px] font-medium text-slate-600 dark:text-slate-400">
+                          <span className="w-2.5 h-2.5 rounded-full" style={{ background: i === 0 ? '#2563eb' : '#1e3a8a' }} />
+                          <span className="font-inter text-[11px] font-medium text-slate-600 dark:text-slate-400">{u.user}</span>
+                          <span className="font-bold text-slate-800 dark:text-white ml-1">{fmt(u.value)} · {report.secretary.disbursements.totalAmount > 0 ? ((u.value / report.secretary.disbursements.totalAmount) * 100).toFixed(0) : 0}%</span>
                         </div>
                       ))}
                     </div>
@@ -2806,24 +2811,24 @@ export default function AdminFinancialReport() {
 
               {/* Disbursement List */}
               {report.secretary.disbursements.loans?.length > 0 && (
-                <div className="fin-report-table-wrap">
-                  <h3 className="fin-report-chart-title">Detailed Disbursement Log</h3>
-                  <table className="fin-report-table">
+                <div className="overflow-hidden">
+                  <h3 className="m-0 font-inter text-[15px] font-bold text-slate-800 dark:text-white">Detailed Disbursement Log</h3>
+                  <table className="w-full text-left border-collapse min-w-[700px]">
                     <thead>
                       <tr>
-                        <th>Loan ID</th>
-                        <th>Member</th>
-                        <th>Amount</th>
-                        <th>Date</th>
+                        <th className="px-4 py-3 bg-slate-50 dark:bg-black/20 border-b border-slate-200 dark:border-white/10 font-semibold text-[11px] tracking-wider uppercase text-slate-500 dark:text-slate-400 whitespace-nowrap sticky top-0 z-10">Loan ID</th>
+                        <th className="px-4 py-3 bg-slate-50 dark:bg-black/20 border-b border-slate-200 dark:border-white/10 font-semibold text-[11px] tracking-wider uppercase text-slate-500 dark:text-slate-400 whitespace-nowrap sticky top-0 z-10">Member</th>
+                        <th className="px-4 py-3 bg-slate-50 dark:bg-black/20 border-b border-slate-200 dark:border-white/10 font-semibold text-[11px] tracking-wider uppercase text-slate-500 dark:text-slate-400 whitespace-nowrap sticky top-0 z-10">Amount</th>
+                        <th className="px-4 py-3 bg-slate-50 dark:bg-black/20 border-b border-slate-200 dark:border-white/10 font-semibold text-[11px] tracking-wider uppercase text-slate-500 dark:text-slate-400 whitespace-nowrap sticky top-0 z-10">Date</th>
                       </tr>
                     </thead>
                     <tbody>
                       {report.secretary.disbursements.loans.map((l, i) => (
                         <tr key={i}>
                           <td className="id">{l.id}</td>
-                          <td>{l.member}</td>
+                          <td className="px-4 py-3 border-b border-slate-100 dark:border-white/5 text-sm font-inter text-slate-700 dark:text-slate-300">{l.member}</td>
                           <td className="amount">{fmt(l.amount)}</td>
-                          <td>{new Date(l.date).toLocaleDateString()}</td>
+                          <td className="px-4 py-3 border-b border-slate-100 dark:border-white/5 text-sm font-inter text-slate-700 dark:text-slate-300">{new Date(l.date).toLocaleDateString()}</td>
                         </tr>
                       ))}
                     </tbody>
@@ -2834,7 +2839,7 @@ export default function AdminFinancialReport() {
           )}
 
           {/* Footer */}
-          <div className="fin-report-footer">
+          <div className="text-center py-6 border-t border-slate-200 dark:border-white/10 mt-4">
             <p>Generated by IsangDiwa AI • {new Date(report.generatedAt).toLocaleString('en-US')}</p>
             <p>This report was generated using artificial intelligence. Please verify critical data points before making decisions.</p>
           </div>
@@ -2843,8 +2848,8 @@ export default function AdminFinancialReport() {
 
       {/* Empty State */}
       {!report && !loading && !error && (
-        <div className="fin-report-empty">
-          <div className="fin-report-empty-icon">
+        <div className="flex flex-col items-center justify-center py-20 px-4 text-center bg-white dark:bg-[#1E2130] rounded-xl border border-slate-200 dark:border-white/10 shadow-sm">
+          <div className="w-16 h-16 rounded-full bg-slate-100 dark:bg-white/5 text-slate-400 flex items-center justify-center mb-4">
             <FileText size={40} />
           </div>
           <h2>Generate an Automated Report</h2>
@@ -2854,37 +2859,37 @@ export default function AdminFinancialReport() {
 
       {/* Confirmation Modal */}
       {showConfirm && (
-        <div className="fin-confirm-overlay" onClick={() => setShowConfirm(false)}>
-          <div className="fin-confirm-modal" onClick={e => e.stopPropagation()}>
-            <button className="fin-confirm-close" onClick={() => setShowConfirm(false)}>
+        <div className="fixed inset-0 bg-black/50 backdrop-blur-sm z-[2000] flex items-center justify-center p-4" onClick={() => setShowConfirm(false)}>
+          <div className="bg-white dark:bg-[#1E2130] rounded-2xl w-full max-w-[500px] shadow-2xl p-6 flex flex-col items-center text-center" onClick={e => e.stopPropagation()}>
+            <button className="absolute top-4 right-4 text-slate-400 hover:text-slate-600 dark:hover:text-slate-200 cursor-pointer bg-transparent border-none" onClick={() => setShowConfirm(false)}>
               <X size={18} />
             </button>
-            <div className="fin-confirm-icon">
+            <div className="w-16 h-16 bg-blue-50 text-blue-600 dark:bg-blue-500/10 dark:text-blue-400 rounded-full flex items-center justify-center mb-4">
               <AlertCircle size={28} />
             </div>
-            <h3 className="fin-confirm-title">Confirm Report Generation</h3>
-            <p className="fin-confirm-desc">Please review the details below before proceeding. AI report generation may take 10–15 seconds.</p>
-            <div className="fin-confirm-details">
+            <h3 className="m-0 font-inter text-xl font-bold text-slate-900 dark:text-white">Confirm Report Generation</h3>
+            <p className="m-0 font-inter text-sm text-slate-500 dark:text-slate-400 mt-2 leading-relaxed">Please review the details below before proceeding. AI report generation may take 10–15 seconds.</p>
+            <div className="w-full bg-slate-50 dark:bg-black/20 border border-slate-100 dark:border-white/5 rounded-xl p-4 my-6 flex flex-col gap-3 text-left">
               {adminRole === 'admin' && (
-                <div className="fin-confirm-row">
-                  <span className="fin-confirm-label">Report Type</span>
-                  <span className="fin-confirm-value">{getReportTypeName()}</span>
+                <div className="flex justify-between items-center text-sm font-inter">
+                  <span className="text-slate-500 dark:text-slate-400 font-medium">Report Type</span>
+                  <span className="text-slate-800 dark:text-white font-semibold">{getReportTypeName()}</span>
                 </div>
               )}
-              <div className="fin-confirm-row">
-                <span className="fin-confirm-label">Period</span>
-                <span className="fin-confirm-value">{getPeriodName()}</span>
+              <div className="flex justify-between items-center text-sm font-inter">
+                <span className="text-slate-500 dark:text-slate-400 font-medium">Period</span>
+                <span className="text-slate-800 dark:text-white font-semibold">{getPeriodName()}</span>
               </div>
-              <div className="fin-confirm-row">
-                <span className="fin-confirm-label">Location</span>
-                <span className="fin-confirm-value">
+              <div className="flex justify-between items-center text-sm font-inter">
+                <span className="text-slate-500 dark:text-slate-400 font-medium">Location</span>
+                <span className="text-slate-800 dark:text-white font-semibold">
                   {getLocationLabel()}
                 </span>
               </div>
             </div>
-            <div className="fin-confirm-actions">
-              <button className="fin-report-btn secondary" onClick={() => setShowConfirm(false)}>Cancel</button>
-              <button className="fin-report-btn primary" onClick={handleConfirmGenerate}>
+            <div className="flex w-full gap-3">
+              <button className="h-10 px-4 rounded-lg font-inter text-sm font-semibold transition-all border border-slate-300 dark:border-white/10 bg-white dark:bg-[#1E2130] text-slate-700 dark:text-slate-300 hover:bg-slate-50 dark:hover:bg-white/5 flex items-center gap-2 cursor-pointer" onClick={() => setShowConfirm(false)}>Cancel</button>
+              <button className="h-10 px-6 rounded-lg font-inter text-sm font-semibold transition-all border-none bg-blue-600 text-white hover:bg-blue-700 shadow-sm flex items-center gap-2 cursor-pointer" onClick={handleConfirmGenerate}>
                 <Sparkles size={16} />
                 Generate Report
               </button>

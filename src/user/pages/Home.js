@@ -4,17 +4,16 @@ import { useNavigate } from 'react-router';
 import { useAuth } from '../../context/AuthContext';
 
 import API from '../../utils/api';
-import '../styles/Home.css';
-import { Banknote, CalendarDays, CheckCircle, ChevronRight, ChevronLeft, Clock, Heart, MapPin, PiggyBank, Wallet, FileText, Megaphone, ArrowRight, BookOpen, Target, AlertCircle, X } from 'lucide-react';
+import { Banknote, CalendarDays, CheckCircle, ChevronRight, ChevronLeft, Clock, Heart, MapPin, PiggyBank, Wallet, FileText, Megaphone, ArrowRight, BookOpen, Target, AlertCircle, X, Sparkles } from 'lucide-react';
 import { isOfficerPosition } from '../../utils/officerPositions';
 
 const CAT_COLORS = {
-  Events: { bg: '#FFF7ED', color: '#C2410C' },
-  General: { bg: '#EFF6FF', color: '#1E40AF' },
-  Prayer: { bg: '#F5F3FF', color: '#6D28D9' },
-  Services: { bg: '#F0FDF4', color: '#15803D' },
-  Donations: { bg: '#FDF2F8', color: '#9D174D' },
-  Urgent: { bg: '#FFF1F2', color: '#BE123C' },
+  Events: { bg: 'bg-orange-50 dark:bg-orange-950/40', text: 'text-orange-700 dark:text-orange-300' },
+  General: { bg: 'bg-blue-50 dark:bg-blue-950/40', text: 'text-blue-700 dark:text-blue-300' },
+  Prayer: { bg: 'bg-purple-50 dark:bg-purple-950/40', text: 'text-purple-700 dark:text-purple-300' },
+  Services: { bg: 'bg-emerald-50 dark:bg-emerald-950/40', text: 'text-emerald-700 dark:text-emerald-300' },
+  Donations: { bg: 'bg-pink-50 dark:bg-pink-950/40', text: 'text-pink-700 dark:text-pink-300' },
+  Urgent: { bg: 'bg-rose-50 dark:bg-rose-950/40', text: 'text-rose-700 dark:text-rose-300' },
 };
 
 export default function Home() {
@@ -34,6 +33,7 @@ export default function Home() {
   const [upcomingEvents, setUpcomingEvents] = useState([]);
   const [allAnnouncements, setAllAnnouncements] = useState([]);
   const [loading, setLoading] = useState(true);
+
   /* User interaction modals */
   const [selectedEvent, setSelectedEvent] = useState(null);
   const [showAllEvents, setShowAllEvents] = useState(false);
@@ -46,8 +46,8 @@ export default function Home() {
   const [calendarDate, setCalendarDate] = useState(new Date());
 
   const token = localStorage.getItem('token');
-
   const branch = profile?.branch || '';
+
   const urls = useMemo(() => {
     if (!token) return null;
     return [
@@ -76,7 +76,7 @@ export default function Home() {
 
   useEffect(() => {
     if (!data) return;
-    setLoading(isValidating && !data); // Only show loading spinner if we don't have cached data
+    setLoading(isValidating && !data);
     try {
       const [loansData, donationsData, attendanceData, annData, savingsData, savingsGoalsData, prayersData, savingsTxnData, loanPaymentsData] = data;
 
@@ -224,7 +224,16 @@ export default function Home() {
       }
 
       activities.sort((a, b) => b.date - a.date);
-      setRecentActivity(activities.slice(0, 3));
+
+      // Dedup: if a loan has payment entries, remove the bare loan-application entry for that same loanId
+      const loanIdsWithPayments = new Set(
+        activities.filter(a => a.type === 'loan' && a.title.includes('Payment')).map(a => a.loanId)
+      );
+      const dedupedActivities = activities.filter(a =>
+        !(a.type === 'loan' && !a.title.includes('Payment') && loanIdsWithPayments.has(a.loanId))
+      );
+
+      setRecentActivity(dedupedActivities.slice(0, 5));
 
     } catch (err) {
       console.error('Failed to parse dashboard data:', err);
@@ -233,18 +242,16 @@ export default function Home() {
     }
   }, [data, isValidating, profile?.branch]);
 
-  // Auto-swipe for Events Carousel
   useEffect(() => {
     if (upcomingEvents.length <= 1) return;
     const timer = setInterval(() => {
       setCurrentEventIndex(prev => (prev + 1) % upcomingEvents.length);
-    }, 5000 * (1 + currentEventIndex / 10)); // Slight variation to feel more natural
+    }, 5000 * (1 + currentEventIndex / 10));
     return () => clearInterval(timer);
   }, [upcomingEvents.length, currentEventIndex]);
 
   const isOfficer = isOfficerPosition(profile?.position);
   
-  // Robust frontend check for late loans (in case backend misses it)
   const processedLoans = activeLoansList.map(l => {
     let isLate = l.isLate === true;
     if (!isLate && l.status === 'active' && l.disbursementDate) {
@@ -268,11 +275,11 @@ export default function Home() {
   const lateLoansCount = processedLoans.filter(l => l.isLate).length;
 
   const renderActivityIcon = (activity) => {
-    if (activity.type === 'loan') return <Banknote size={16} />;
-    if (activity.type === 'donation') return <Heart size={16} />;
-    if (activity.type === 'attendance') return <CalendarDays size={16} />;
-    if (activity.type === 'savings') return <PiggyBank size={16} />;
-    return <CheckCircle size={16} />;
+    if (activity.type === 'loan') return <Banknote size={18} />;
+    if (activity.type === 'donation') return <Heart size={18} />;
+    if (activity.type === 'attendance') return <CalendarDays size={18} />;
+    if (activity.type === 'savings') return <PiggyBank size={18} />;
+    return <CheckCircle size={18} />;
   };
 
   const formatTimeAgo = (date) => {
@@ -295,21 +302,21 @@ export default function Home() {
     {
       title: 'Make a Donation',
       description: 'Support the church today',
-      className: 'uh-action--donate',
+      iconBg: 'bg-rose-50 dark:bg-rose-950/40 text-rose-600 dark:text-rose-400',
       action: () => navigate('/donation'),
       icon: <Heart size={18} />
     },
     {
       title: 'Check Attendance',
       description: 'View your attendance record',
-      className: 'uh-action--attendance',
+      iconBg: 'bg-blue-50 dark:bg-blue-950/40 text-blue-600 dark:text-blue-400',
       action: () => navigate('/attendance'),
       icon: <CalendarDays size={18} />
     },
     {
       title: 'Manage Savings',
       description: 'View and save for your goals',
-      className: 'uh-action--savings',
+      iconBg: 'bg-emerald-50 dark:bg-emerald-950/40 text-emerald-600 dark:text-emerald-400',
       action: () => navigate('/savings'),
       icon: <Wallet size={18} />
     },
@@ -317,7 +324,7 @@ export default function Home() {
       {
         title: 'Loan Services',
         description: 'See history and apply for loans',
-        className: 'uh-action--loans',
+        iconBg: 'bg-amber-50 dark:bg-amber-950/40 text-amber-600 dark:text-amber-400',
         action: () => navigate('/loans'),
         icon: <FileText size={18} />
       }
@@ -327,7 +334,6 @@ export default function Home() {
   const formatCurrency = (val) =>
     `₱${Number(val || 0).toLocaleString('en-PH', { minimumFractionDigits: 2, maximumFractionDigits: 2 })}`;
 
-  // ── Daily Verse ──
   const DAILY_VERSES = useMemo(() => [
     { text: "For I know the plans I have for you, declares the Lord, plans to prosper you and not to harm you, plans to give you hope and a future.", ref: "Jeremiah 29:11" },
     { text: "Trust in the Lord with all your heart and lean not on your own understanding; in all your ways submit to Him, and He will make your paths straight.", ref: "Proverbs 3:5-6" },
@@ -369,7 +375,6 @@ export default function Home() {
     return DAILY_VERSES[dayOfYear % DAILY_VERSES.length];
   }, [DAILY_VERSES]);
 
-  // ── Next Payment Info (for officers with active loans) ──
   const nextPaymentInfo = useMemo(() => {
     if (!isOfficer || processedLoans.length === 0) return null;
     const activeLoans = processedLoans.filter(l => l.status === 'active' && l.disbursementDate);
@@ -396,10 +401,8 @@ export default function Home() {
     return soonest;
   }, [isOfficer, processedLoans]);
 
-  // ── Top Savings Goal ──
   const topSavingsGoal = useMemo(() => {
     if (savingsGoalsList.length === 0) return null;
-    // Pick the goal with the highest progress percentage
     return savingsGoalsList.reduce((best, g) => {
       const pct = g.targetAmount > 0 ? (g.savedAmount / g.targetAmount) : 0;
       const bestPct = best.targetAmount > 0 ? (best.savedAmount / best.targetAmount) : 0;
@@ -438,446 +441,425 @@ export default function Home() {
     }
   };
 
-  return (
-    <div className="user-home-content-wrapper">
+  const timeGreeting = useMemo(() => {
+    const hour = new Date().getHours();
+    if (hour < 12) return 'Good morning';
+    if (hour < 18) return 'Good afternoon';
+    return 'Good evening';
+  }, []);
 
-      {/* Welcome Header */}
-      <div className="uh-welcome-header" style={{ marginBottom: '24px', display: 'flex', flexDirection: 'column', gap: '4px' }}>
-        <h1 style={{ fontSize: '28px', fontWeight: '900', color: '#0f172a', margin: 0, letterSpacing: '-0.02em', fontFamily: "'Cormorant Garamond', serif" }}>
-          Welcome back{profile?.fullName ? `, ${profile.fullName.split(' ')[0]}` : ''}!
-        </h1>
-        <p style={{ fontSize: '16px', color: '#64748b', margin: 0, fontFamily: "'Inter', sans-serif", lineHeight: '1.5' }}>
-          Here's your personal overview and the latest updates from your community.
-        </p>
+  return (
+    <div className="space-y-5 w-full pb-8">
+
+      {/* Page Header matching Savings/Loans/Attendance */}
+      <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-3 pb-2.5 border-b border-slate-200/80 dark:border-white/10 font-inter">
+        <div>
+          <p className="text-[11px] font-bold text-blue-600 dark:text-blue-400 uppercase tracking-widest font-inter mb-0.5">Overview &amp; Dashboard</p>
+          <h1 className="text-2xl sm:text-[26px] font-extrabold text-slate-900 dark:text-white font-dm leading-none tracking-tight">
+            Welcome back, <span className="text-blue-600 dark:text-blue-400">{profile?.fullName ? profile.fullName.trim().split(' ')[0] : 'Member'}</span>
+          </h1>
+          <p className="text-xs text-slate-500 dark:text-slate-400 font-inter mt-1">
+            Here is your personal overview, savings status, and the latest announcements from your IsangDiwa community.
+          </p>
+        </div>
+
+        {/* Right info chips */}
+        <div className="flex flex-wrap items-center gap-2 shrink-0">
+          <div className="flex items-center gap-2 px-3 py-1.5 rounded-xl bg-white dark:bg-[#1E2130] border border-slate-200/80 dark:border-white/10 text-xs font-inter font-semibold text-slate-700 dark:text-slate-200 shadow-xs">
+            <MapPin size={14} className="text-blue-600 dark:text-blue-400" />
+            <span>{profile?.branch || 'Main Community Branch'}</span>
+          </div>
+          <div className="flex items-center gap-2 px-3 py-1.5 rounded-xl bg-white dark:bg-[#1E2130] border border-slate-200/80 dark:border-white/10 text-xs font-inter font-semibold text-slate-700 dark:text-slate-200 shadow-xs">
+            <Clock size={14} className="text-emerald-600 dark:text-emerald-400" />
+            <span>{new Date().toLocaleDateString('en-US', { weekday: 'short', month: 'short', day: 'numeric', year: 'numeric' })}</span>
+          </div>
+        </div>
       </div>
 
-      {/* Stats */}
-      <div className="uh-stats-grid">
+      {/* Stats Grid */}
+      <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-4">
 
         {/* Savings Stat Card */}
-        <div className="uh-stat-card uh-stat-card--savings uh-stat-card--clickable" onClick={() => navigate('/savings')}>
-            <div className="uh-stat-card__body">
-              <div className="uh-stat-icon-box">
-                <PiggyBank size={20} />
-              </div>
-              <div className="uh-stat-text">
-                <span className="uh-stat-label">Total Savings</span>
-                {loading
-                  ? <div className="user-skeleton uh-stat-skel" />
-                  : <span className="uh-stat-value user-fade-in">{formatCurrency(savingsStats.totalSavings)}</span>
-                }
-                {!loading && (
-                  <span className="uh-stat-sub uh-stat-sub--positive">+{formatCurrency(savingsStats.thisMonth)} this month</span>
-                )}
-                {loading && (
-                  <div className="user-skeleton" style={{ width: '60%', height: 10, borderRadius: 4, marginTop: 4 }} />
-                )}
-              </div>
-            </div>
-            {/* Hover tooltip */}
-            {!loading && savingsGoalsList.length > 0 && (
-              <div className="uh-tooltip">
-                <p className="uh-tooltip__title">Active Goals</p>
-                {savingsGoalsList.slice(0, 3).map(goal => (
-                  <div key={goal._id} className="uh-tooltip__row">
-                    <span className="uh-tooltip__label">{goal.name}</span>
-                    <span className="uh-tooltip__value">{formatCurrency(goal.savedAmount)}</span>
-                  </div>
-                ))}
-                {savingsGoalsList.length > 3 && (
-                  <p className="uh-tooltip__more">+{savingsGoalsList.length - 3} more</p>
-                )}
-                <p className="uh-tooltip__cta">Click to manage goals</p>
-              </div>
-            )}
-          </div>
-        {/* End Savings Stat Card */}
-
-        {isOfficer && (
-          <div className="uh-stat-card uh-stat-card--loans uh-stat-card--clickable" onClick={() => navigate('/loans')}>
-            <div className="uh-stat-card__body">
-              <div className="uh-stat-icon-box">
-                <Banknote size={20} />
-              </div>
-              <div className="uh-stat-text">
-                <span className="uh-stat-label">Active Loans</span>
-                {loading
-                  ? <div className="user-skeleton uh-stat-skel" />
-                  : <span className="uh-stat-value user-fade-in">{loanStats.activeCount}</span>
-                }
-                {!loading && (
-                  <span className={`uh-stat-sub ${lateLoansCount > 0 ? 'uh-stat-sub--negative' : rejectedLoansCount > 0 ? 'uh-stat-sub--negative' : ''}`}>
-                    {lateLoansCount > 0 ? `${lateLoansCount} late payment${lateLoansCount > 1 ? 's' : ''}` : rejectedLoansCount > 0 ? `${rejectedLoansCount} rejected` : 'No rejected'}
-                  </span>
-                )}
-                {loading && (
-                  <div className="user-skeleton" style={{ width: '60%', height: 10, borderRadius: 4, marginTop: 4 }} />
-                )}
-              </div>
-            </div>
-            {!loading && activeLoansList.length > 0 && (
-              <div className="uh-tooltip" style={lateLoansCount > 0 ? { border: '1px solid #EF4444' } : {}}>
-                <p className="uh-tooltip__title" style={lateLoansCount > 0 ? { color: '#DC2626', fontWeight: '700' } : {}}>
-                  {lateLoansCount > 0 ? 'OVERDUE LOANS' : 'Active Loans'}
-                </p>
-                {processedLoans.slice(0, 3).map(loan => (
-                  <div key={loan._id} className="uh-tooltip__row" style={loan.isLate ? { backgroundColor: '#FEF2F2', padding: '6px 8px', borderRadius: '4px', margin: '-4px -8px 4px -8px' } : {}}>
-                    <span className="uh-tooltip__label" style={loan.isLate ? { color: '#991B1B', fontWeight: '600' } : {}}>
-                      {loan.loanId}
-                      {loan.isLate && <span style={{ backgroundColor: '#EF4444', color: 'white', padding: '2px 6px', borderRadius: '4px', marginLeft: '6px', fontSize: '10px', fontWeight: 'bold' }}>LATE</span>}
-                    </span>
-                    <span className="uh-tooltip__value" style={loan.isLate ? { color: '#991B1B', fontWeight: '600' } : {}}>{formatCurrency(loan.remainingBalance ?? loan.amount)}</span>
-                  </div>
-                ))}
-                {processedLoans.length > 3 && (
-                  <p className="uh-tooltip__more">+{processedLoans.length - 3} more</p>
-                )}
-                <p className="uh-tooltip__cta" style={lateLoansCount > 0 ? { color: '#DC2626' } : {}}>Click to view details</p>
-              </div>
-            )}
-          </div>
-        )}
-
-        <div className="uh-stat-card uh-stat-card--donations uh-stat-card--clickable" onClick={() => navigate('/donation')}>
-          <div className="uh-stat-card__body">
-            <div className="uh-stat-icon-box">
-              <Heart size={20} />
-            </div>
-            <div className="uh-stat-text">
-              <span className="uh-stat-label">Total Donated</span>
-              {loading
-                ? <div className="user-skeleton uh-stat-skel" />
-                : <span className="uh-stat-value user-fade-in">{formatCurrency(donationStats.totalDonated)}</span>
-              }
-              {!loading && (
-                <span className="uh-stat-sub">{monthlyDonationCount} contribution{monthlyDonationCount !== 1 ? 's' : ''} this month</span>
-              )}
-              {loading && (
-                <div className="user-skeleton" style={{ width: '60%', height: 10, borderRadius: 4, marginTop: 4 }} />
-              )}
+        <div 
+          onClick={() => navigate('/savings')}
+          className="group relative bg-white dark:bg-[#1E2130] border border-slate-200/80 dark:border-white/10 rounded-2xl p-4 shadow-sm hover:shadow-md transition-all duration-300 cursor-pointer overflow-hidden flex flex-col gap-2.5"
+        >
+          <div className="flex items-center justify-between">
+            <span className="text-xs font-semibold text-slate-500 dark:text-slate-400 font-inter">Total Savings</span>
+            <div className="w-8 h-8 rounded-lg bg-emerald-50 dark:bg-emerald-950/50 text-emerald-600 dark:text-emerald-400 flex items-center justify-center border border-emerald-100/60 dark:border-emerald-900/30 shrink-0 group-hover:scale-105 transition-transform">
+              <PiggyBank size={16} />
             </div>
           </div>
+          {loading ? (
+            <div className="h-7 w-32 bg-slate-200 dark:bg-slate-700 animate-pulse rounded-md" />
+          ) : (
+            <div className="text-xl sm:text-2xl font-extrabold font-dm text-slate-900 dark:text-white tracking-tight leading-tight">
+              {formatCurrency(savingsStats.totalSavings)}
+            </div>
+          )}
+          {!loading && (
+            <p className="text-xs text-slate-500 dark:text-slate-400 font-inter">+{formatCurrency(savingsStats.thisMonth)} this month</p>
+          )}
         </div>
 
-        <div className="uh-stat-card uh-stat-card--verse-mini">
-          <div className="uh-stat-card__body">
-            <div className="uh-stat-icon-box">
-              <BookOpen size={20} />
+        {/* Active Loans Stat Card (Officers only) */}
+        {isOfficer ? (
+          <div 
+            onClick={() => navigate('/loans')}
+            className="group relative bg-white dark:bg-[#1E2130] border border-slate-200/80 dark:border-white/10 rounded-2xl p-4 shadow-sm hover:shadow-md transition-all duration-300 cursor-pointer overflow-hidden flex flex-col gap-2.5"
+          >
+            <div className="flex items-center justify-between">
+              <span className="text-xs font-semibold text-slate-500 dark:text-slate-400 font-inter">Active Loans</span>
+              <div className="w-8 h-8 rounded-lg bg-blue-50 dark:bg-blue-950/50 text-blue-600 dark:text-blue-400 flex items-center justify-center border border-blue-100/60 dark:border-blue-900/30 shrink-0 group-hover:scale-105 transition-transform">
+                <Banknote size={16} />
+              </div>
             </div>
-            <div className="uh-stat-text">
-              <span className="uh-stat-label">Today's Verse</span>
-              <span className="uh-stat-verse-text">"{dailyVerse.text.length > 60 ? dailyVerse.text.slice(0, 60) + '…' : dailyVerse.text}"</span>
-              <span className="uh-stat-sub uh-stat-sub--gold">— {dailyVerse.ref}</span>
+            {loading ? (
+              <div className="h-7 w-20 bg-slate-200 dark:bg-slate-700 animate-pulse rounded-md" />
+            ) : (
+              <div className="text-xl sm:text-2xl font-extrabold font-dm text-slate-900 dark:text-white tracking-tight leading-tight">
+                {loanStats.activeCount}
+              </div>
+            )}
+            {!loading && (
+              <p className={`text-xs font-inter ${
+                lateLoansCount > 0 
+                  ? 'text-rose-600 dark:text-rose-400' 
+                  : 'text-slate-500 dark:text-slate-400'
+              }`}>
+                {lateLoansCount > 0 ? `${lateLoansCount} late payment${lateLoansCount > 1 ? 's' : ''}` : rejectedLoansCount > 0 ? `${rejectedLoansCount} rejected` : 'No overdue loans'}
+              </p>
+            )}
+          </div>
+        ) : null}
+
+        {/* Total Donated Stat Card */}
+        <div 
+          onClick={() => navigate('/donation')}
+          className="group relative bg-white dark:bg-[#1E2130] border border-slate-200/80 dark:border-white/10 rounded-2xl p-4 shadow-sm hover:shadow-md transition-all duration-300 cursor-pointer overflow-hidden flex flex-col gap-2.5"
+        >
+          <div className="flex items-center justify-between">
+            <span className="text-xs font-semibold text-slate-500 dark:text-slate-400 font-inter">Total Donated</span>
+            <div className="w-8 h-8 rounded-lg bg-rose-50 dark:bg-rose-950/50 text-rose-600 dark:text-rose-400 flex items-center justify-center border border-rose-100/60 dark:border-rose-900/30 shrink-0 group-hover:scale-105 transition-transform">
+              <Heart size={16} />
             </div>
+          </div>
+          {loading ? (
+            <div className="h-7 w-32 bg-slate-200 dark:bg-slate-700 animate-pulse rounded-md" />
+          ) : (
+            <div className="text-xl sm:text-2xl font-extrabold font-dm text-slate-900 dark:text-white tracking-tight leading-tight">
+              {formatCurrency(donationStats.totalDonated)}
+            </div>
+          )}
+          {!loading && (
+            <p className="text-xs text-slate-500 dark:text-slate-400 font-inter">{monthlyDonationCount} contribution{monthlyDonationCount !== 1 ? 's' : ''} this month</p>
+          )}
+        </div>
+
+        {/* Today's Verse Mini Stat Card */}
+        <div className="bg-gradient-to-br from-[#0B1736] via-[#0D1F45] to-[#1E3A8A] text-white rounded-2xl p-4 sm:p-4.5 shadow-sm relative overflow-hidden flex flex-col gap-2 border border-white/10">
+          <div className="flex items-center gap-2">
+            <div className="w-6.5 h-6.5 rounded-lg bg-amber-400/20 text-[#F5C800] flex items-center justify-center">
+              <BookOpen size={14} />
+            </div>
+            <span className="text-[11px] font-bold uppercase tracking-wider text-[#F5C800] font-inter">Today's Verse</span>
+          </div>
+          
+          <p className="font-cormorant italic text-xs sm:text-sm text-white/95 leading-snug line-clamp-2">
+            "{dailyVerse.text}"
+          </p>
+          
+          <div className="pt-1 border-t border-white/10">
+            <span className="font-inter text-[11px] font-bold text-[#F5C800] tracking-wide uppercase">
+              — {dailyVerse.ref}
+            </span>
           </div>
         </div>
 
       </div>
 
-      {/* Main grid */}
-      <div className="uh-grid-main">
+      {/* Main Content Grid: [Left col: QA + Overview] [Right col: Announcements] */}
+      <div className="grid grid-cols-1 lg:grid-cols-[0.85fr_1.5fr] gap-6">
 
-        {/* Quick Actions */}
-        <div className="uh-card uh-card--quick-actions">
-          <h2 className="uh-card__heading">Quick Actions</h2>
-          <div className={`uh-actions ${isOfficer ? 'uh-actions--grid' : ''}`}>
-            {loading ? (
-              [1, 2, 3, 4].slice(0, isOfficer ? 4 : 3).map(i => (
-                <button key={i} className={`uh-action ${i % 2 === 0 ? 'uh-action--blue' : 'uh-action--purple'}`} style={{ pointerEvents: 'none', backgroundColor: 'rgba(0,0,0,0.03)' }}>
-                  <div className="user-skeleton" style={{ width: 40, height: 40, borderRadius: '50%', flexShrink: 0 }} />
-                  <div className="uh-action__text" style={{ flex: 1, width: '100%', alignItems: 'flex-start' }}>
-                    <div className="user-skeleton" style={{ height: 12, width: '50%', marginBottom: 6, borderRadius: 4 }} />
-                    <div className="user-skeleton" style={{ height: 10, width: '70%', borderRadius: 4 }} />
-                  </div>
-                </button>
-              ))
-            ) : (
-              quickActions.map((action, i) => (
-                <button key={i} onClick={action.action} className={`uh-action ${action.className} user-fade-in`}>
-                  <div className="uh-action__icon">{action.icon}</div>
-                  <div className="uh-action__text">
-                    <span className="uh-action__title">{action.title}</span>
-                    <span className="uh-action__desc">{action.description}</span>
-                  </div>
-                  <ChevronRight size={16} className="uh-action__arrow" />
-                </button>
-              ))
-            )}
-          </div>
-        </div>
+        {/* Left column: Quick Actions stacked above My Overview */}
+        <div className="flex flex-col gap-6">
 
-        {/* Savings Goal + Payment Reminder */}
-        <div className="uh-card uh-card--insights">
-          <div className="uh-insights-header">
-            <h2 className="uh-card__heading">My Overview</h2>
-          </div>
-
-          {/* Savings Goal Progress */}
-          <div className="uh-insight-block" style={{ flex: 1 }}>
-            <div className="uh-insight-header">
-              <div className="uh-insight-icon uh-insight-icon--savings"><Target size={16} /></div>
-              <h3 className="uh-insight-title">Savings Goal</h3>
+          {/* Quick Actions — compact */}
+          <div className="bg-white dark:bg-[#1E2130] border border-slate-200/80 dark:border-white/10 rounded-2xl p-4 shadow-sm">
+            <div className="flex items-center justify-between mb-3 pb-2.5 border-b border-slate-100 dark:border-white/5">
+              <h2 className="text-xs font-bold text-slate-900 dark:text-white uppercase tracking-wider font-inter">Quick Actions</h2>
+              <span className="text-[10px] font-semibold px-2 py-0.5 rounded-full bg-slate-100 dark:bg-white/10 text-slate-500 dark:text-slate-400 font-inter">{quickActions.length} Shortcuts</span>
             </div>
-            {loading ? (
-              <div className="uh-savings-goal">
-                <div className="uh-savings-goal__info">
-                  <div className="user-skeleton" style={{ height: 13, width: '55%', borderRadius: 4 }} />
-                </div>
-                <div className="uh-progress-bar">
-                  <div className="user-skeleton" style={{ height: 10, width: '100%', borderRadius: 100 }} />
-                </div>
-                <div className="uh-savings-goal__amounts">
-                  <div className="user-skeleton" style={{ height: 12, width: 60, borderRadius: 4 }} />
-                  <div className="user-skeleton" style={{ height: 12, width: 80, borderRadius: 4 }} />
-                </div>
-              </div>
-            ) : topSavingsGoal ? (() => {
-              const pct = topSavingsGoal.targetAmount > 0
-                ? Math.min(100, Math.round((topSavingsGoal.savedAmount / topSavingsGoal.targetAmount) * 100))
-                : 0;
-              return (
-                <div className="uh-savings-goal user-fade-in">
-                  <div className="uh-savings-goal__info">
-                    <span className="uh-savings-goal__name">{topSavingsGoal.name}</span>
-                    <span className="uh-savings-goal__pct">{pct}%</span>
+            <div className="grid grid-cols-2 gap-2">
+              {quickActions.map((action, i) => (
+                <button
+                  key={i}
+                  onClick={action.action}
+                  className="flex items-center gap-2.5 p-3 rounded-xl border border-slate-100 dark:border-white/5 hover:border-blue-200 dark:hover:border-blue-500/30 bg-slate-50/60 dark:bg-slate-800/40 hover:bg-blue-50/40 dark:hover:bg-slate-800/80 transition-all duration-200 cursor-pointer text-left w-full group"
+                >
+                  <div className={`w-8 h-8 rounded-lg flex items-center justify-center shrink-0 group-hover:scale-105 transition-transform ${action.iconBg}`}>
+                    {action.icon}
                   </div>
-                  <div className="uh-progress-bar">
-                    <div className="uh-progress-bar__fill" style={{ width: `${pct}%` }} />
-                  </div>
-                  <div className="uh-savings-goal__amounts">
-                    <span>{formatCurrency(topSavingsGoal.savedAmount)}</span>
-                    <span className="uh-savings-goal__target">of {formatCurrency(topSavingsGoal.targetAmount)}</span>
-                  </div>
-                </div>
-              );
-            })() : (
-              <div className="uh-insight-empty uh-insight-empty--savings">
-                <div className="uh-insight-empty__icon">
-                  <Target size={22} />
-                </div>
-                <div className="uh-insight-empty__text">
-                  <h4>No Active Goals</h4>
-                  <p>Start saving for your future.</p>
-                </div>
-                <button className="uh-insight-empty__btn" onClick={() => navigate('/savings')}>
-                  Create a Goal
+                  <span className="font-inter text-xs font-semibold text-slate-800 dark:text-white group-hover:text-blue-600 dark:group-hover:text-blue-400 transition-colors leading-tight">{action.title}</span>
                 </button>
-              </div>
-            )}
+              ))}
+            </div>
           </div>
 
-          {isOfficer && (
-            <>
-              {/* Upcoming Payment Reminder */}
-              <div className="uh-insight-block">
-                <div className="uh-insight-header">
-                  <div className={`uh-insight-icon ${nextPaymentInfo?.isLate ? 'uh-insight-icon--late' : 'uh-insight-icon--loan'}`}>
-                    {nextPaymentInfo?.isLate ? <AlertCircle size={16} /> : <Banknote size={16} />}
+          {/* My Overview Card */}
+          <div className="bg-white dark:bg-[#1E2130] border border-slate-200/80 dark:border-white/10 rounded-2xl p-5 shadow-sm flex flex-col justify-between flex-1">
+            <div>
+              <div className="flex items-center justify-between mb-4 pb-3 border-b border-slate-100 dark:border-white/5">
+                <h2 className="text-xs font-bold text-slate-900 dark:text-white uppercase tracking-wider font-inter">My Overview</h2>
+                <span className="text-[10px] font-semibold px-2 py-0.5 rounded-full bg-emerald-50 dark:bg-emerald-950/40 text-emerald-600 dark:text-emerald-400 font-inter">Personal Stats</span>
+              </div>
+
+              {/* Top Savings Goal Block */}
+              <div className="mb-4 p-4 rounded-xl bg-slate-50/70 dark:bg-slate-800/40 border border-slate-100 dark:border-white/5 space-y-3">
+                <div className="flex items-center justify-between">
+                  <div className="flex items-center gap-2">
+                    <div className="w-7 h-7 rounded-lg bg-emerald-100 dark:bg-emerald-950/60 text-emerald-600 dark:text-emerald-400 flex items-center justify-center">
+                      <Target size={15} />
+                    </div>
+                    <h3 className="text-xs font-bold text-slate-800 dark:text-slate-200 font-inter uppercase tracking-wide">Top Savings Goal</h3>
                   </div>
-                  <h3 className="uh-insight-title">Next Payment</h3>
+                  {topSavingsGoal && (
+                    <button onClick={() => navigate('/savings')} className="text-[11px] font-semibold text-blue-600 dark:text-blue-400 hover:underline border-none bg-transparent cursor-pointer">Manage →</button>
+                  )}
                 </div>
-                {loading ? (
-                  <div className="uh-payment-reminder">
-                    <div className="uh-payment-reminder__row">
-                      <div className="user-skeleton" style={{ height: 12, width: 80, borderRadius: 4 }} />
-                      <div className="user-skeleton" style={{ height: 12, width: 60, borderRadius: 4 }} />
-                    </div>
-                    <div className="uh-payment-reminder__row">
-                      <div className="user-skeleton" style={{ height: 12, width: 70, borderRadius: 4 }} />
-                      <div className="user-skeleton" style={{ height: 12, width: 90, borderRadius: 4 }} />
-                    </div>
-                    <div className="uh-payment-reminder__row">
-                      <div className="user-skeleton" style={{ height: 12, width: 50, borderRadius: 4 }} />
-                      <div className="user-skeleton" style={{ height: 12, width: 40, borderRadius: 4 }} />
-                    </div>
-                  </div>
-                ) : nextPaymentInfo ? (() => {
-                  const now = new Date();
-                  const due = new Date(nextPaymentInfo.dueDate);
-                  const diffDays = Math.ceil((due - now) / 86400000);
-                  const isOverdue = diffDays < 0;
+
+                {topSavingsGoal ? (() => {
+                  const pct = topSavingsGoal.targetAmount > 0
+                    ? Math.min(100, Math.round((topSavingsGoal.savedAmount / topSavingsGoal.targetAmount) * 100))
+                    : 0;
                   return (
-                    <div className={`uh-payment-reminder user-fade-in ${isOverdue ? 'uh-payment-reminder--overdue' : ''}`}>
-                      <div className="uh-payment-reminder__row">
-                        <span className="uh-payment-reminder__label">{nextPaymentInfo.remainingBalance < nextPaymentInfo.monthlyPayment ? 'Remaining Balance' : 'Amount Due'}</span>
-                        <span className="uh-payment-reminder__value">{formatCurrency(nextPaymentInfo.remainingBalance < nextPaymentInfo.monthlyPayment ? nextPaymentInfo.remainingBalance : nextPaymentInfo.monthlyPayment)}</span>
+                    <div className="space-y-2">
+                      <div className="flex justify-between items-center text-xs font-semibold text-slate-900 dark:text-white font-inter">
+                        <span className="truncate max-w-[170px]">{topSavingsGoal.name}</span>
+                        <span className="px-2 py-0.5 rounded-full bg-emerald-500/10 text-emerald-600 dark:text-emerald-400 font-bold text-[11px]">{pct}%</span>
                       </div>
-                      <div className="uh-payment-reminder__row">
-                        <span className="uh-payment-reminder__label">Due Date</span>
-                        <span className={`uh-payment-reminder__value ${isOverdue ? 'uh-payment-reminder__value--late' : ''}`}>
-                          {due.toLocaleDateString('en-US', { month: 'short', day: 'numeric', year: 'numeric' })}
-                        </span>
+                      <div className="w-full bg-slate-200 dark:bg-slate-700 h-2.5 rounded-full overflow-hidden p-0.5">
+                        <div className="bg-gradient-to-r from-emerald-500 to-teal-400 h-full rounded-full transition-all duration-500" style={{ width: `${pct}%` }} />
                       </div>
-                      <div className="uh-payment-reminder__badge-row">
-                        <span className={`uh-payment-reminder__badge ${isOverdue ? 'uh-payment-reminder__badge--late' : 'uh-payment-reminder__badge--ok'}`}>
-                          {isOverdue ? `${Math.abs(diffDays)} day${Math.abs(diffDays) > 1 ? 's' : ''} overdue` : `${diffDays} day${diffDays > 1 ? 's' : ''} left`}
-                        </span>
+                      <div className="flex justify-between text-xs text-slate-500 dark:text-slate-400 font-inter pt-0.5">
+                        <span className="font-medium text-slate-700 dark:text-slate-300">{formatCurrency(topSavingsGoal.savedAmount)}</span>
+                        <span>Target: {formatCurrency(topSavingsGoal.targetAmount)}</span>
                       </div>
-                      <button className="uh-insight-cta" onClick={() => navigate('/loans')}>
-                        View Loan <ArrowRight size={12} />
-                      </button>
                     </div>
                   );
                 })() : (
-                  <div className="uh-insight-empty uh-insight-empty--savings uh-insight-empty--loan user-fade-in">
-                    <div className="uh-insight-empty__icon uh-insight-empty__icon--loan">
-                      <CheckCircle size={18} />
-                    </div>
-                    <div className="uh-insight-empty__text">
-                      <h4>All Caught Up</h4>
-                      <p>You have no upcoming payments.</p>
-                    </div>
+                  <div className="text-center py-4 bg-white dark:bg-white/5 rounded-xl border border-dashed border-slate-200 dark:border-white/10">
+                    <p className="text-xs text-slate-500 dark:text-slate-400 font-inter mb-2">No active savings goal set</p>
+                    <button onClick={() => navigate('/savings')} className="inline-flex items-center gap-1 text-xs font-semibold text-blue-600 dark:text-blue-400 hover:underline border-none bg-transparent cursor-pointer">
+                      + Create a Goal
+                    </button>
                   </div>
                 )}
               </div>
-            </>
-          )}
 
-          {/* Prayer Wall mini trigger */}
-          <div style={{ padding: '0 20px 16px', marginTop: 'auto' }}>
-            <button className="uh-prayer-trigger" onClick={() => setShowPrayerModal(true)}>
-              <Heart size={16} />
-              <div className="uh-prayer-trigger__text">
-                <span className="uh-prayer-trigger__title">Prayer Wall</span>
-                <span className="uh-prayer-trigger__count">{prayers.length} prayer{prayers.length !== 1 ? 's' : ''}</span>
+              {/* Officer Next Loan Payment Reminder */}
+              {isOfficer && nextPaymentInfo && (
+                <div className="p-4 rounded-xl bg-blue-50/70 dark:bg-blue-950/30 border border-blue-100 dark:border-blue-900/40 space-y-2 font-inter text-xs">
+                  <div className="flex items-center justify-between">
+                    <div className="flex items-center gap-2">
+                      <Banknote size={15} className="text-blue-600 dark:text-blue-400" />
+                      <span className="font-bold text-slate-800 dark:text-slate-200 uppercase text-[11px] tracking-wide">Next Payment Due</span>
+                    </div>
+                    <span className="px-2 py-0.5 rounded-full bg-blue-600 text-white font-bold text-[10px]">
+                      {new Date(nextPaymentInfo.dueDate).toLocaleDateString('en-US', { month: 'short', day: 'numeric' })}
+                    </span>
+                  </div>
+                  <div className="flex justify-between items-center text-slate-600 dark:text-slate-300 pt-1">
+                    <span>Due Amount:</span>
+                    <span className="font-bold text-slate-900 dark:text-white text-sm">{formatCurrency(nextPaymentInfo.monthlyPayment)}</span>
+                  </div>
+                </div>
+              )}
+            </div>
+
+            {/* Community Prayer Wall Button */}
+            <button
+              onClick={() => setShowPrayerModal(true)}
+              className="w-full mt-4 flex items-center justify-between p-3.5 rounded-xl bg-gradient-to-r from-purple-500/10 via-purple-500/5 to-indigo-500/10 dark:from-purple-950/40 dark:to-indigo-950/40 border border-purple-200/60 dark:border-purple-800/40 text-purple-700 dark:text-purple-300 text-xs font-semibold hover:border-purple-300 dark:hover:border-purple-700/60 transition-all cursor-pointer group"
+            >
+              <div className="flex items-center gap-2.5">
+                <div className="w-7 h-7 rounded-lg bg-purple-600 text-white flex items-center justify-center group-hover:scale-110 transition-transform">
+                  <Heart size={14} />
+                </div>
+                <span className="font-inter">Community Prayer Wall</span>
               </div>
-              <ChevronRight size={14} className="uh-prayer-trigger__arrow" />
+              <span className="bg-purple-200/80 dark:bg-purple-900/80 text-purple-800 dark:text-purple-200 px-2.5 py-0.5 rounded-full text-[11px] font-bold">
+                {prayers.length} Requests
+              </span>
             </button>
           </div>
+
         </div>
 
-        {/* Events Carousel */}
-        <div className="uh-card uh-card--events">
+        {/* Announcements & Events Carousel Card */}
+        <div className="bg-white dark:bg-[#1E2130] border border-slate-200/80 dark:border-white/10 rounded-2xl p-5 shadow-sm flex flex-col justify-between h-full">
+          <div className="flex flex-col flex-1">
+            <div className="flex items-center justify-between mb-3 pb-3 border-b border-slate-100 dark:border-white/5">
+              <h2 className="text-xs font-bold text-slate-900 dark:text-white uppercase tracking-wider font-inter">Announcements &amp; Events</h2>
+              <button onClick={() => setShowAllEvents(true)} className="text-xs font-semibold text-blue-600 dark:text-blue-400 hover:underline flex items-center gap-1 border-none bg-transparent cursor-pointer">
+                See All →
+              </button>
+            </div>
 
-          <div className="uh-carousel-viewport">
-            {loading ? (
-              <div className="user-skeleton" style={{ height: '100%', width: '100%', borderRadius: 0 }} />
-            ) : upcomingEvents.length === 0 ? (
-              <div className="uh-empty user-fade-in">
-                <CalendarDays size={28} strokeWidth={1.5} />
-                <p>No announcements yet.</p>
+            {upcomingEvents.length > 0 ? (
+              <div
+                className="relative rounded-2xl overflow-hidden bg-slate-900 min-h-[280px] sm:min-h-[310px] flex-1 group cursor-pointer shadow-md mb-2"
+                onClick={() => { setSelectedEvent(upcomingEvents[currentEventIndex]); setModalImageIndex(0); }}
+              >
+                <img
+                  src={upcomingEvents[currentEventIndex]?.images?.[0] || upcomingEvents[currentEventIndex]?.image || ''}
+                  alt=""
+                  className="w-full h-full object-cover opacity-80 group-hover:scale-105 transition-transform duration-700 absolute inset-0"
+                />
+                <div className="absolute top-3 left-3 bg-white/90 dark:bg-slate-900/90 backdrop-blur-md rounded-xl p-2 text-center border border-white/20 shadow-md z-10">
+                  <span className="block text-[10px] font-bold uppercase tracking-wider text-blue-600 dark:text-blue-400 font-inter">{upcomingEvents[currentEventIndex]?.month}</span>
+                  <span className="block text-base font-extrabold text-slate-900 dark:text-white font-dm leading-none">{upcomingEvents[currentEventIndex]?.day}</span>
+                </div>
+                <div className="absolute inset-0 bg-gradient-to-t from-slate-950 via-slate-950/40 to-transparent p-4 flex flex-col justify-end z-10">
+                  <span className="inline-block self-start text-[10px] font-extrabold uppercase tracking-wider px-2 py-0.5 rounded-full bg-[#F5C800] text-slate-950 font-inter mb-1.5">{upcomingEvents[currentEventIndex]?.category}</span>
+                  <h3 className="text-base font-bold text-white font-inter line-clamp-1 mb-1 group-hover:text-[#F5C800] transition-colors">{upcomingEvents[currentEventIndex]?.title}</h3>
+                  <div className="flex items-center gap-3 text-xs text-slate-300 font-inter">
+                    <span className="flex items-center gap-1"><Clock size={12} className="text-[#F5C800]" /> {upcomingEvents[currentEventIndex]?.time || 'All Day'}</span>
+                    <span className="flex items-center gap-1"><MapPin size={12} className="text-emerald-400" /> {upcomingEvents[currentEventIndex]?.branch?.split(',')[0]}</span>
+                  </div>
+                </div>
               </div>
             ) : (
-              <div
-                className="uh-carousel-track"
-                style={{ transform: `translateX(-${currentEventIndex * 100}%)` }}
-              >
-                {upcomingEvents.map((evt, i) => {
-                  const hasImage = !!(evt.images?.[0] || evt.image);
-                  const imageUrl = evt.images?.[0] || evt.image;
+              <div className="min-h-[260px] flex-1 flex flex-col items-center justify-center text-slate-400 dark:text-slate-500 bg-slate-50 dark:bg-white/5 rounded-2xl border border-dashed border-slate-200 dark:border-white/10 mb-2">
+                <CalendarDays size={36} className="mb-2 opacity-40 text-blue-500" />
+                <p className="text-xs font-inter font-medium">No upcoming events scheduled</p>
+              </div>
+            )}
+          </div>
+
+          {/* Dots & Nav Controls */}
+          {upcomingEvents.length > 1 && (
+            <div className="flex items-center justify-between pt-2">
+              <div className="flex gap-1.5">
+                {upcomingEvents.map((_, i) => (
+                  <button
+                    key={i}
+                    onClick={() => setCurrentEventIndex(i)}
+                    className={`h-2 rounded-full transition-all duration-300 border-none cursor-pointer ${
+                      i === currentEventIndex ? 'w-6 bg-blue-600 dark:bg-blue-400' : 'w-2 bg-slate-300 dark:bg-slate-700'
+                    }`}
+                    aria-label={`Go to slide ${i + 1}`}
+                  />
+                ))}
+              </div>
+              <div className="flex items-center gap-1">
+                <button onClick={() => setCurrentEventIndex((prev) => (prev === 0 ? upcomingEvents.length - 1 : prev - 1))} className="w-7 h-7 rounded-lg bg-slate-100 dark:bg-slate-800 text-slate-600 dark:text-slate-300 hover:bg-blue-50 hover:text-blue-600 dark:hover:bg-slate-700 flex items-center justify-center cursor-pointer transition-colors border-none">
+                  <ChevronLeft size={14} />
+                </button>
+                <button onClick={() => setCurrentEventIndex((prev) => (prev + 1) % upcomingEvents.length)} className="w-7 h-7 rounded-lg bg-slate-100 dark:bg-slate-800 text-slate-600 dark:text-slate-300 hover:bg-blue-50 hover:text-blue-600 dark:hover:bg-slate-700 flex items-center justify-center cursor-pointer transition-colors border-none">
+                  <ChevronRight size={14} />
+                </button>
+              </div>
+            </div>
+          )}
+        </div>
+
+      </div>
+
+
+      {/* Bottom Grid: Recent Activity & Calendar */}
+      <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
+
+        {/* Recent Activity Card */}
+        <div className="bg-white dark:bg-[#1E2130] border border-slate-200/80 dark:border-white/10 rounded-2xl p-5 shadow-sm flex flex-col">
+          <div className="flex items-center justify-between mb-4 pb-3 border-b border-slate-100 dark:border-white/5">
+            <h2 className="text-xs font-bold text-slate-900 dark:text-white uppercase tracking-wider font-inter">Recent Activity</h2>
+            <span className="text-[10px] font-semibold px-2 py-0.5 rounded-full bg-blue-50 dark:bg-blue-950/40 text-blue-600 dark:text-blue-400 font-inter">Latest Actions</span>
+          </div>
+
+          {recentActivity.length === 0 ? (
+            <div className="flex-1 flex flex-col justify-center py-6 px-4 rounded-2xl bg-gradient-to-br from-slate-50 to-blue-50/30 dark:from-slate-800/40 dark:to-blue-950/20 border border-dashed border-slate-200 dark:border-white/10 text-center">
+              <div className="w-12 h-12 rounded-2xl bg-white dark:bg-white/10 border border-slate-200 dark:border-white/10 shadow-sm flex items-center justify-center mx-auto mb-3">
+                <Sparkles size={22} className="text-blue-400" />
+              </div>
+              <p className="text-sm font-semibold text-slate-700 dark:text-slate-200 font-inter mb-1">No activity yet</p>
+              <p className="text-xs text-slate-400 dark:text-slate-500 font-inter mb-4">Start by making a donation, savings deposit, or attending a service.</p>
+              <div className="flex items-center justify-center gap-2 flex-wrap">
+                <button onClick={() => navigate('/donation')} className="flex items-center gap-1.5 px-3 py-1.5 rounded-lg bg-rose-50 dark:bg-rose-950/40 text-rose-600 dark:text-rose-400 text-xs font-semibold border border-rose-100 dark:border-rose-900/40 hover:bg-rose-100 dark:hover:bg-rose-950/60 transition-colors cursor-pointer border-none">
+                  <Heart size={12} /> Donate
+                </button>
+                <button onClick={() => navigate('/savings')} className="flex items-center gap-1.5 px-3 py-1.5 rounded-lg bg-emerald-50 dark:bg-emerald-950/40 text-emerald-600 dark:text-emerald-400 text-xs font-semibold border border-emerald-100 dark:border-emerald-900/40 hover:bg-emerald-100 dark:hover:bg-emerald-950/60 transition-colors cursor-pointer border-none">
+                  <PiggyBank size={12} /> Save
+                </button>
+
+              </div>
+            </div>
+          ) : (
+            <div className="relative">
+              {/* Timeline spine */}
+              <div className="absolute left-[21px] top-4 bottom-4 w-px bg-slate-100 dark:bg-white/5" />
+              <div className="space-y-1">
+                {recentActivity.map((act, index) => {
+                  const iconBg =
+                    act.type === 'savings'  ? 'bg-emerald-100 text-emerald-600 dark:bg-emerald-950/60 dark:text-emerald-400' :
+                    act.type === 'loan'     ? 'bg-blue-100 text-blue-600 dark:bg-blue-950/60 dark:text-blue-400' :
+                    act.type === 'donation' ? 'bg-rose-100 text-rose-600 dark:bg-rose-950/60 dark:text-rose-400' :
+                                             'bg-purple-100 text-purple-600 dark:bg-purple-950/60 dark:text-purple-400';
+                  const amountColor =
+                    act.type === 'savings'  ? 'text-emerald-600 dark:text-emerald-400' :
+                    act.type === 'loan'     ? 'text-blue-600 dark:text-blue-400' :
+                    act.type === 'donation' ? 'text-rose-600 dark:text-rose-400' : 'text-slate-900 dark:text-white';
+                  const isLast = index === recentActivity.length - 1;
                   return (
-                    <div
-                      key={i}
-                      className="uh-carousel-slide"
-                      onClick={() => { setSelectedEvent(evt); setModalImageIndex(0); }}
-                    >
-                      <div className="uh-slide-hero">
-                        {hasImage && (
-                          <img className="uh-slide-hero__img" src={imageUrl} alt="" />
+                    <div key={index} className={`flex items-center gap-3 py-2.5 ${!isLast ? 'border-b border-slate-100 dark:border-white/5' : ''}`}>
+                      <div className={`relative z-10 w-9 h-9 rounded-xl flex items-center justify-center shrink-0 ${iconBg}`}>
+                        {renderActivityIcon(act)}
+                      </div>
+                      <div className="flex-1 min-w-0">
+                        <div className="flex items-center justify-between gap-2">
+                          <div className="min-w-0 flex-1">
+                            <span className="text-xs font-bold text-slate-900 dark:text-white font-inter block leading-snug truncate">{act.title}</span>
+                            <span className="text-xs text-slate-500 dark:text-slate-400 font-inter block truncate mt-0.5">
+                              {act.loanId ? `Loan #${act.loanId}` : act.category || 'General'}
+                            </span>
+                          </div>
+                          <div className="text-right shrink-0">
+                            {act.amount && (
+                              <span className={`text-sm font-bold font-dm block ${amountColor}`}>{act.amount}</span>
+                            )}
+                            <span className="text-xs text-slate-400 dark:text-slate-500 font-inter block mt-0.5">{formatTimeAgo(act.date)}</span>
+                          </div>
+                        </div>
+                        {act.status && (act.status === 'pending' || act.status === 'rejected') && (
+                          <span className={`inline-block mt-1 px-2 py-0.5 rounded-full text-[10px] font-bold uppercase tracking-wider ${
+                            act.status === 'pending'
+                              ? 'bg-amber-100 text-amber-700 dark:bg-amber-950/60 dark:text-amber-400'
+                              : 'bg-rose-100 text-rose-700 dark:bg-rose-950/60 dark:text-rose-400'
+                          }`}>
+                            {act.status}
+                          </span>
                         )}
-                        <div className="uh-slide-hero__overlay" />
-                        {/* Top pills */}
-                        <div className="uh-slide-hero__top">
-                          <div className="uh-slide-pill uh-slide-pill--date">
-                            <span className="uh-slide-pill__day">{evt.day}</span>
-                            <span className="uh-slide-pill__month">{evt.month}</span>
-                          </div>
-                          <div className="uh-slide-pill uh-slide-pill--cat">
-                            {evt.category}
-                          </div>
-                        </div>
-                        {/* Bottom content */}
-                        <div className="uh-slide-hero__bottom">
-                          <h3 className="uh-slide-hero__title">{evt.title}</h3>
-                          <div className="uh-slide-hero__meta">
-                            <span><Clock size={11} /> {evt.time || 'All Day'}</span>
-                            <span><MapPin size={11} /> {evt.branch?.split(',')[0]}</span>
-                          </div>
-                        </div>
                       </div>
                     </div>
                   );
                 })}
               </div>
-            )}
-          </div>
-
-          <div className="uh-carousel-footer">
-            <div className="uh-carousel-dots">
-              {upcomingEvents.map((_, i) => (
-                <button
-                  key={i}
-                  className={`uh-carousel-dot ${i === currentEventIndex ? 'uh-carousel-dot--active' : ''}`}
-                  onClick={() => setCurrentEventIndex(i)}
-                />
-              ))}
-            </div>
-            <button className="uh-text-btn uh-text-btn--sm" onClick={() => setShowAllEvents(true)}>
-              See all <ArrowRight size={11} />
-            </button>
-          </div>
-        </div>
-      </div>
-
-      {/* Bottom row */}
-      <div className="uh-grid-bottom">
-
-        {/* Activity */}
-        <div className="uh-card uh-card--activity">
-          <div className="uh-card__header-row">
-            <h2 className="uh-card__heading">Recent Activity</h2>
-          </div>
-          {loading ? (
-            <div className="uh-activity-scroll">
-              {[1, 2, 3].map(i => (
-                <div key={i} className="uh-activity-card uh-activity-card--skel">
-                  <div className="user-skeleton" style={{ width: 30, height: 30, borderRadius: 7 }} />
-                  <div style={{ flex: 1 }}>
-                    <div className="user-skeleton" style={{ height: 12, width: '70%', marginBottom: 6, borderRadius: 4 }} />
-                    <div className="user-skeleton" style={{ height: 10, width: '50%', marginBottom: 6, borderRadius: 4 }} />
-                    <div className="user-skeleton" style={{ height: 11, width: '35%', borderRadius: 4 }} />
-                  </div>
-                </div>
-              ))}
-            </div>
-          ) : recentActivity.length === 0 ? (
-            <div className="uh-empty">
-              <CalendarDays size={28} strokeWidth={1.5} />
-              <p>No recent activity yet.</p>
-            </div>
-          ) : (
-            <div className="uh-activity-scroll user-fade-in">
-              {recentActivity.map((activity, index) => (
-                <div key={index} className={`uh-activity-card uh-activity-card--${activity.type}`}>
-                  <div className={`uh-activity-card__icon uh-activity-card__icon--${activity.status || activity.type}`}>
-                    {renderActivityIcon(activity)}
-                  </div>
-                  <div className="uh-activity-card__content">
-                    <span className="uh-activity-card__title">{activity.title}</span>
-                    <span className="uh-activity-card__sub">{activity.loanId || activity.category || ''}</span>
-                    {activity.amount && <span className="uh-activity-card__amount">{activity.amount}</span>}
-                  </div>
-                  <span className="uh-activity-card__time">{formatTimeAgo(activity.date)}</span>
-                </div>
-              ))}
             </div>
           )}
         </div>
 
-        {/* Monthly Calendar */}
+        {/* Calendar + Events — single merged card */}
         {(() => {
           const year = calendarDate.getFullYear();
           const month = calendarDate.getMonth();
           const firstDay = new Date(year, month, 1);
-          const lastDay = new Date(year, month + 1, 0);
-          const startWeekday = (firstDay.getDay() + 6) % 7; // Monday = 0
-          const daysInMonth = lastDay.getDate();
-          
+          const startWeekday = (firstDay.getDay() + 6) % 7;
+          const daysInMonth = new Date(year, month + 1, 0).getDate();
+
           const now = new Date();
           const isCurrentMonth = now.getFullYear() === year && now.getMonth() === month;
           const today = isCurrentMonth ? now.getDate() : -1;
 
-          // Get event days this month
           const eventDays = {};
           allAnnouncements.forEach(evt => {
             if (evt.dateObj) {
@@ -894,266 +876,420 @@ export default function Home() {
           for (let i = 0; i < startWeekday; i++) cells.push(null);
           for (let d = 1; d <= daysInMonth; d++) cells.push(d);
 
+          const monthEvents = allAnnouncements
+            .filter(evt => {
+              if (!evt.dateObj) return false;
+              const d = new Date(evt.dateObj);
+              return d.getMonth() === month && d.getFullYear() === year;
+            })
+            .sort((a, b) => new Date(a.dateObj) - new Date(b.dateObj));
+
+          const catColor = (cat) => {
+            const map = {
+              Events:    { dot: 'bg-orange-400', pill: 'bg-orange-100 text-orange-700 dark:bg-orange-950/60 dark:text-orange-300' },
+              General:   { dot: 'bg-blue-400',   pill: 'bg-blue-100 text-blue-700 dark:bg-blue-950/60 dark:text-blue-300' },
+              Prayer:    { dot: 'bg-purple-400',  pill: 'bg-purple-100 text-purple-700 dark:bg-purple-950/60 dark:text-purple-300' },
+              Services:  { dot: 'bg-emerald-400', pill: 'bg-emerald-100 text-emerald-700 dark:bg-emerald-950/60 dark:text-emerald-300' },
+              Donations: { dot: 'bg-pink-400',    pill: 'bg-pink-100 text-pink-700 dark:bg-pink-950/60 dark:text-pink-300' },
+              Urgent:    { dot: 'bg-rose-500',    pill: 'bg-rose-100 text-rose-700 dark:bg-rose-950/60 dark:text-rose-300' },
+            };
+            return map[cat] || { dot: 'bg-slate-400', pill: 'bg-slate-100 text-slate-600 dark:bg-slate-800 dark:text-slate-400' };
+          };
+
           return (
-            <div className="uh-card uh-card--calendar">
-              <div className="uh-cal-header">
-                <h2 className="uh-cal-title" style={{ margin: 0, textAlign: 'left' }}>
-                  {firstDay.toLocaleDateString('en-US', { month: 'long', year: 'numeric' })}
-                </h2>
-                <div style={{ display: 'flex', alignItems: 'center', gap: '8px' }}>
-                  <button 
-                    className="uh-cal-nav" 
-                    onClick={() => setCalendarDate(new Date(year, month - 1, 1))}
-                  >
-                    <ChevronLeft size={18} />
-                  </button>
-                  <button 
-                    className="uh-cal-nav" 
-                    onClick={() => setCalendarDate(new Date(year, month + 1, 1))}
-                  >
-                    <ChevronRight size={18} />
-                  </button>
+            <div className="bg-white dark:bg-[#1E2130] border border-slate-200/80 dark:border-white/10 rounded-2xl overflow-hidden shadow-sm">
+
+              {/* Dark gradient header */}
+              <div className="bg-gradient-to-br from-slate-900 to-slate-800 dark:from-[#0f172a] dark:to-[#1E2130] px-4 pt-3 pb-3">
+                <div className="flex items-center justify-between mb-2">
+                  <div>
+                    <h2 className="text-sm font-extrabold text-white font-dm leading-tight">
+                      {firstDay.toLocaleDateString('en-US', { month: 'long' })}{' '}
+                      <span className="text-slate-400 font-medium text-xs">{year}</span>
+                    </h2>
+                  </div>
+                  <div className="flex items-center gap-1">
+                    <button
+                      onClick={() => setCalendarDate(new Date(year, month - 1, 1))}
+                      className="w-7 h-7 rounded-lg bg-white/10 hover:bg-white/20 text-white flex items-center justify-center border-none cursor-pointer transition-colors"
+                      aria-label="Previous month"
+                    >
+                      <ChevronLeft size={14} />
+                    </button>
+                    <button
+                      onClick={() => setCalendarDate(new Date(year, month + 1, 1))}
+                      className="w-7 h-7 rounded-lg bg-white/10 hover:bg-white/20 text-white flex items-center justify-center border-none cursor-pointer transition-colors"
+                      aria-label="Next month"
+                    >
+                      <ChevronRight size={14} />
+                    </button>
+                  </div>
                 </div>
-              </div>
-              <div className="uh-cal-body">
-                <div className="uh-cal-grid">
-                  {['MON', 'TUE', 'WED', 'THU', 'FRI', 'SAT', 'SUN'].map(d => (
-                    <div key={d} className="uh-cal-weekday">{d}</div>
+
+                {/* Day labels */}
+                <div className="grid grid-cols-7 text-center">
+                  {['Mo', 'Tu', 'We', 'Th', 'Fr', 'Sa', 'Su'].map((d, idx) => (
+                    <span key={idx} className="text-[9px] font-bold text-slate-500 py-0.5 font-inter">{d}</span>
                   ))}
-                  {loading ? (
-                    Array(35).fill(0).map((_, i) => (
-                      <div key={`skel-${i}`} className="uh-cal-cell uh-cal-cell--empty">
-                        <div className="user-skeleton" style={{ width: 28, height: 28, borderRadius: 8, margin: 'auto' }} />
-                      </div>
-                    ))
-                  ) : (
-                    cells.map((day, i) => (
-                      <div
-                        key={i}
-                        className={`uh-cal-cell ${!day ? 'uh-cal-cell--empty' : ''} ${day === today ? 'uh-cal-cell--today' : ''} ${day && eventDays[day] ? 'uh-cal-cell--event user-fade-in' : ''} ${day && !eventDays[day] ? 'user-fade-in' : ''}`}
-                        onClick={() => {
-                          if (day && eventDays[day]) {
-                            setSelectedEvent(eventDays[day][0]);
-                            setModalImageIndex(0);
-                          }
-                        }}
-                        title={day && eventDays[day] ? eventDays[day].map(e => e.title).join(', ') : ''}
-                      >
-                        {day && <span>{day}</span>}
-                        {day && eventDays[day] && <div className="uh-cal-cell__dot" />}
-                      </div>
-                    ))
+                </div>
+
+                {/* Calendar grid */}
+                <div className="grid grid-cols-7 gap-y-0.5 text-center font-inter">
+                  {cells.map((day, i) => (
+                    <div
+                      key={i}
+                      onClick={() => { if (day && eventDays[day]) { setSelectedEvent(eventDays[day][0]); setModalImageIndex(0); } }}
+                      className={`h-6 flex flex-col items-center justify-center text-[11px] font-semibold transition-all relative mx-auto w-6 rounded-full ${
+                        !day ? 'invisible' : eventDays[day] ? 'cursor-pointer' : 'cursor-default'
+                      } ${
+                        day === today
+                          ? 'bg-blue-500 text-white shadow-md shadow-blue-500/40 font-bold'
+                          : eventDays[day]
+                          ? 'text-white hover:bg-white/15'
+                          : 'text-slate-400 hover:bg-white/10'
+                      }`}
+                    >
+                      {day}
+                      {day && eventDays[day] && day !== today && (
+                        <span className="w-1 h-1 rounded-full bg-amber-400 absolute bottom-0.5" />
+                      )}
+                    </div>
+                  ))}
+                </div>
+
+                {/* Legend */}
+                <div className="flex items-center gap-3 mt-2 pt-2 border-t border-white/10">
+                  <div className="flex items-center gap-1.5">
+                    <div className="w-5 h-5 rounded-full bg-blue-500 flex items-center justify-center"><span className="text-[9px] font-bold text-white">{today > 0 ? today : '·'}</span></div>
+                    <span className="text-[10px] text-slate-400 font-inter">Today</span>
+                  </div>
+                  <div className="flex items-center gap-1.5">
+                    <span className="w-1.5 h-1.5 rounded-full bg-amber-400 block" />
+                    <span className="text-[10px] text-slate-400 font-inter">Has event</span>
+                  </div>
+                  {monthEvents.length > 0 && (
+                    <div className="ml-auto">
+                      <span className="text-[10px] font-bold px-2 py-0.5 rounded-full bg-amber-400/20 text-amber-300 font-inter">
+                        {monthEvents.length} event{monthEvents.length !== 1 ? 's' : ''}
+                      </span>
+                    </div>
                   )}
                 </div>
               </div>
-            </div>
-          );
+
+              {/* Events list — white section */}
+              <div className="p-3">
+                <p className="text-[10px] font-bold text-slate-400 dark:text-slate-500 uppercase tracking-wider mb-2 font-inter">Scheduled Events</p>
+
+                {monthEvents.length === 0 ? (
+                  <div className="flex flex-col items-center justify-center py-3 px-3 rounded-xl bg-slate-50 dark:bg-white/5 border border-dashed border-slate-200 dark:border-white/10">
+                    <div className="w-8 h-8 rounded-lg bg-slate-100 dark:bg-white/10 flex items-center justify-center mb-1.5">
+                      <CalendarDays size={18} className="text-slate-400 dark:text-slate-500" />
+                    </div>
+                    <p className="text-xs font-semibold text-slate-500 dark:text-slate-400 font-inter">Nothing scheduled</p>
+                    <p className="text-[10px] text-slate-400 dark:text-slate-500 font-inter mt-0.5">Navigate months to see events</p>
+                  </div>
+                ) : (
+                  <div className="space-y-2">
+                    {monthEvents.map((evt, i) => {
+                      const d = new Date(evt.dateObj);
+                      const dayNum = d.getDate();
+                      const dayName = d.toLocaleDateString('en-US', { weekday: 'short' });
+                      const isPast = d < new Date();
+                      const colors = catColor(evt.category);
+                      return (
+                        <button
+                          key={i}
+                          onClick={() => { setSelectedEvent(evt); setModalImageIndex(0); }}
+                          className={`w-full flex items-center gap-3 p-2.5 rounded-xl border transition-all cursor-pointer group text-left ${
+                            isPast
+                              ? 'border-slate-100 dark:border-white/5 opacity-50'
+                              : 'border-slate-100 dark:border-white/5 hover:border-blue-200 dark:hover:border-blue-800/50 hover:bg-blue-50/30 dark:hover:bg-blue-950/20'
+                          }`}
+                        >
+                          {/* Date badge */}
+                          <div className="w-9 h-9 rounded-xl bg-slate-100 dark:bg-white/10 flex flex-col items-center justify-center shrink-0">
+                            <span className="text-[9px] font-bold text-slate-400 uppercase leading-none">{dayName}</span>
+                            <span className={`text-sm font-extrabold leading-tight font-dm ${isPast ? 'text-slate-400' : 'text-slate-900 dark:text-white'}`}>{dayNum}</span>
+                          </div>
+                          {/* Color bar */}
+                          <div className={`w-0.5 h-7 rounded-full shrink-0 ${colors.dot}`} />
+                          {/* Info */}
+                          <div className="flex-1 min-w-0">
+                            <span className="text-xs font-semibold text-slate-800 dark:text-white font-inter block truncate group-hover:text-blue-600 dark:group-hover:text-blue-400 transition-colors">
+                              {evt.title}
+                            </span>
+                            <div className="flex items-center gap-1.5 mt-0.5">
+                              <span className={`text-[9px] font-bold px-1.5 py-0.5 rounded ${colors.pill}`}>{evt.category}</span>
+                              {evt.time && (
+                                <span className="text-[9px] text-slate-400 dark:text-slate-500 flex items-center gap-0.5 font-inter">
+                                  <Clock size={9} /> {evt.time}
+                                </span>
+                              )}
+                           </div>
+                         </div>
+                         <ChevronRight size={13} className="text-slate-300 dark:text-slate-600 group-hover:text-blue-400 transition-colors shrink-0" />
+                       </button>
+                     );
+                   })}
+                 </div>
+               )}
+             </div>
+           </div>
+         );
         })()}
+
       </div>
+
 
       {/* Prayer Wall Modal */}
       {showPrayerModal && (
-        <div className="uh-overlay" onClick={() => setShowPrayerModal(false)}>
-          <div className="uh-modal uh-modal--list uh-modal--prayer-wall" onClick={e => e.stopPropagation()}>
-            <div className="uh-modal__header">
-              <h2 className="uh-modal__title">Community Prayer Wall</h2>
-              <button className="uh-modal__close-sm" onClick={() => setShowPrayerModal(false)}>×</button>
+        <div className="fixed inset-0 bg-black/40 backdrop-blur-xs z-[1000] flex items-center justify-center p-4" onClick={() => setShowPrayerModal(false)}>
+          <div className="bg-white dark:bg-[#1E2130] rounded-2xl w-full max-w-lg overflow-hidden border border-slate-200/80 dark:border-white/10 shadow-lg flex flex-col max-h-[85vh]" onClick={e => e.stopPropagation()}>
+            <div className="p-4 border-b border-slate-200 dark:border-white/10 flex items-center justify-between">
+              <h2 className="text-base font-bold text-slate-900 dark:text-white font-inter">Community Prayer Wall</h2>
+              <button onClick={() => setShowPrayerModal(false)} className="text-slate-400 hover:text-slate-600 dark:hover:text-white">
+                <X size={18} />
+              </button>
             </div>
-            <div className="uh-modal__body uh-modal__body--sticky-input">
-              <div className="uh-prayer-input-container">
-                <input
-                  type="text"
-                  className="uh-prayer-input"
-                  placeholder="Share your prayer request..."
-                  value={newPrayer}
-                  onChange={(e) => setNewPrayer(e.target.value)}
-                  onKeyDown={(e) => {
-                    if (e.key === 'Enter') handlePostPrayer();
-                  }}
-                />
-                <button
-                  className="uh-cta uh-prayer-post-btn"
-                  onClick={handlePostPrayer}
-                >
-                  Post
-                </button>
-              </div>
-              <div className="uh-prayer-list-scroll">
-                {prayers.length === 0 ? (
-                  <div className="uh-empty-state uh-empty-state--modal">
-                    <div className="uh-empty-state__icon-wrap">
-                      <Heart size={32} strokeWidth={1} className="uh-empty-state__icon" />
-                      <div className="uh-empty-state__pulse" />
-                    </div>
-                    <p className="uh-empty-state__text">No prayers posted yet. Join the community by sharing your first prayer above.</p>
+            <div className="p-4 border-b border-slate-100 dark:border-white/5 flex gap-2">
+              <input
+                type="text"
+                className="flex-1 h-10 px-3 rounded-xl border border-slate-200 dark:border-white/10 bg-slate-50 dark:bg-white/5 text-sm text-slate-900 dark:text-white outline-none focus:border-[#1E3A8A]"
+                placeholder="Share your prayer request..."
+                value={newPrayer}
+                onChange={(e) => setNewPrayer(e.target.value)}
+                onKeyDown={(e) => { if (e.key === 'Enter') handlePostPrayer(); }}
+              />
+              <button
+                onClick={handlePostPrayer}
+                className="bg-[#1E3A8A] hover:bg-[#2B4EAF] text-white px-4 text-xs font-semibold rounded-xl"
+              >
+                Post
+              </button>
+            </div>
+            <div className="p-4 overflow-y-auto space-y-3 flex-1">
+              {prayers.map((prayer) => (
+                <div key={prayer._id || prayer.id} className="p-3 rounded-xl bg-slate-50 dark:bg-white/5 border border-slate-100 dark:border-white/5">
+                  <p className="text-xs text-slate-700 dark:text-slate-200 font-inter italic mb-2">"{prayer.text}"</p>
+                  <div className="flex justify-between text-[11px] text-slate-400 dark:text-slate-500 font-inter">
+                    <span className="font-semibold">{prayer.author}</span>
+                    <span>{formatTimeAgo(prayer.createdAt || prayer.date)}</span>
                   </div>
-                ) : (
-                  prayers.map((prayer) => (
-                    <div key={prayer._id || prayer.id} className="uh-prayer-item--new">
-                      <div className="uh-prayer-item__body--new">
-                        <p className="uh-prayer-item__text--new">"{prayer.text}"</p>
-                        <div className="uh-prayer-item__meta--new">
-                          <span className="uh-prayer-item__author--new">{prayer.author}</span>
-                          <span className="uh-prayer-item__time--new">{formatTimeAgo(prayer.createdAt || prayer.date)}</span>
-                        </div>
-                      </div>
-                    </div>
-                  ))
-                )}
+                </div>
+              ))}
             </div>
           </div>
         </div>
-      </div>
-    )}
+      )}
 
       {/* Event Detail Modal */}
       {selectedEvent && (
-        <div className="uh-overlay" onClick={() => setSelectedEvent(null)}>
-          <div className="uh-edm" onClick={e => e.stopPropagation()}>
-            {/* Left side: Hero Image Zone */}
-            <div className="uh-edm__hero">
-              {selectedEvent.images && selectedEvent.images.length > 0 ? (
-                <>
-                  <img
-                    src={selectedEvent.images[modalImageIndex]}
-                    alt=""
-                    className="uh-edm__hero-img"
-                    onClick={() => setLightboxImageIndex(modalImageIndex)}
-                    title="Click to view full screen"
-                  />
-                  {selectedEvent.images.length > 1 && (
-                    <>
-                      <button
-                        className="uh-edm__nav uh-edm__nav--prev"
-                        onClick={(e) => { e.stopPropagation(); setModalImageIndex(prev => prev === 0 ? selectedEvent.images.length - 1 : prev - 1); }}
-                      ><ChevronLeft size={18} /></button>
-                      <button
-                        className="uh-edm__nav uh-edm__nav--next"
-                        onClick={(e) => { e.stopPropagation(); setModalImageIndex(prev => (prev + 1) % selectedEvent.images.length); }}
-                      ><ChevronRight size={18} /></button>
-                    </>
-                  )}
-                </>
-              ) : selectedEvent.image ? (
-                <img src={selectedEvent.image} alt="" className="uh-edm__hero-img" onClick={() => setLightboxImageIndex(0)} title="Click to view full screen" />
-              ) : (
-                <div className="uh-edm__hero-empty"><Megaphone size={36} /></div>
-              )}
+        <div className="fixed inset-0 bg-black/40 backdrop-blur-xs z-[1000] flex items-center justify-center p-4 sm:p-6" onClick={() => setSelectedEvent(null)}>
+          <div className="bg-white dark:bg-[#1E2130] rounded-3xl w-full max-w-4xl overflow-hidden border border-slate-200 dark:border-white/10 flex flex-col md:flex-row max-h-[90vh]" onClick={e => e.stopPropagation()}>
+            
+            {/* Left Media Column */}
+            <div className="w-full md:w-1/2 h-64 md:h-auto min-h-[280px] bg-slate-100 dark:bg-slate-900 relative flex flex-col justify-between overflow-hidden group shrink-0">
+              <img 
+                src={selectedEvent.images?.[modalImageIndex] || selectedEvent.image || ''} 
+                alt={selectedEvent.title} 
+                className="w-full h-full object-cover absolute inset-0 transition-transform duration-700 group-hover:scale-105" 
+              />
+              <div className="absolute inset-0 bg-gradient-to-t from-black/30 via-transparent to-transparent pointer-events-none" />
 
-              {/* Image dots */}
-              {selectedEvent.images?.length > 1 && (
-                <div className="uh-edm__dots">
-                  {selectedEvent.images.map((_, i) => (
+              {/* Mobile Close Button */}
+              <button 
+                onClick={() => setSelectedEvent(null)} 
+                className="md:hidden absolute top-3.5 right-3.5 bg-black/50 hover:bg-black text-white p-2 rounded-full backdrop-blur-md border border-white/20 z-10 transition-colors cursor-pointer"
+              >
+                <X size={16} />
+              </button>
+
+              {/* Category overlay badge */}
+              <div className="relative z-10 p-4 sm:p-5">
+                <span className="inline-flex items-center gap-1.5 px-3 py-1 rounded-full text-[11px] font-extrabold uppercase tracking-wider bg-white/90 dark:bg-slate-900/90 text-blue-700 dark:text-blue-400 backdrop-blur-md border border-slate-200/50 dark:border-white/10 shadow-xs">
+                  <Sparkles size={12} className="text-[#F5C800]" />
+                  {selectedEvent.category || 'Event'}
+                </span>
+              </div>
+
+              {/* Bottom Image Navigation dots if multiple images exist */}
+              {selectedEvent.images && selectedEvent.images.length > 1 && (
+                <div className="relative z-10 p-4 flex items-center justify-center gap-2">
+                  {selectedEvent.images.map((_, idx) => (
                     <button
-                      key={i}
-                      className={`uh-edm__dot ${i === modalImageIndex ? 'uh-edm__dot--active' : ''}`}
-                      onClick={(e) => { e.stopPropagation(); setModalImageIndex(i); }}
+                      key={idx}
+                      onClick={() => setModalImageIndex(idx)}
+                      className={`h-2 rounded-full transition-all duration-300 border-none cursor-pointer ${
+                        idx === modalImageIndex ? 'w-6 bg-white' : 'w-2 bg-white/50'
+                      }`}
                     />
                   ))}
                 </div>
               )}
             </div>
 
-            {/* Right side: Content Details */}
-            <div className="uh-edm__content-side">
-              {/* Top row */}
-              <div className="uh-edm__header-row">
-                <span className="uh-edm__cat-pill">{selectedEvent.category}</span>
-                <button className="uh-edm__close" onClick={() => setSelectedEvent(null)}>
-                  <X size={16} />
-                </button>
-              </div>
-
-              {/* Title */}
-              <h2 className="uh-edm__title">{selectedEvent.title}</h2>
-              <div className="uh-edm__meta-row">
-                <span><CalendarDays size={13} /> {selectedEvent.dateObj.toLocaleDateString('en-US', { weekday: 'short', month: 'long', day: 'numeric', year: 'numeric' })}</span>
-                {selectedEvent.time && <span><Clock size={13} /> {selectedEvent.time}</span>}
-                <span><MapPin size={13} /> {selectedEvent.branch}</span>
-              </div>
-
-              {/* Scrollable Body */}
-              <div className="uh-edm__body-scroll">
-                {selectedEvent.fullBody && (
-                  <div className="uh-edm__desc">
-                    <p>{selectedEvent.fullBody}</p>
+            {/* Right Details Column */}
+            <div className="p-6 sm:p-8 w-full md:w-1/2 flex flex-col justify-between overflow-y-auto">
+              <div className="space-y-5">
+                
+                {/* Header Row */}
+                <div className="flex justify-between items-start gap-4">
+                  <div>
+                    <span className="text-[11px] font-bold text-blue-600 dark:text-blue-400 uppercase tracking-widest block font-inter mb-1">
+                      Official Announcement
+                    </span>
+                    <h2 className="text-xl sm:text-2xl font-extrabold font-inter text-slate-900 dark:text-white leading-snug">
+                      {selectedEvent.title}
+                    </h2>
                   </div>
-                )}
+                  <button 
+                    onClick={() => setSelectedEvent(null)} 
+                    className="hidden md:flex w-9 h-9 rounded-full items-center justify-center text-slate-400 hover:text-slate-700 dark:hover:text-white bg-slate-100 dark:bg-white/10 hover:bg-slate-200 dark:hover:bg-white/20 transition-all border-none cursor-pointer shrink-0"
+                  >
+                    <X size={18} />
+                  </button>
+                </div>
+
+                {/* Event Schedule & Location Grid */}
+                <div className="grid grid-cols-1 sm:grid-cols-3 gap-2.5 font-inter">
+                  <div className="p-3 rounded-2xl bg-blue-50/70 dark:bg-blue-950/40 border border-blue-100 dark:border-blue-900/40 flex flex-col gap-1">
+                    <div className="flex items-center gap-1.5 text-blue-600 dark:text-blue-400 text-xs font-bold">
+                      <CalendarDays size={14} />
+                      <span>Date</span>
+                    </div>
+                    <span className="text-xs font-semibold text-slate-800 dark:text-slate-200 truncate">
+                      {selectedEvent.dateObj?.toLocaleDateString('en-US', { month: 'short', day: 'numeric', year: 'numeric' }) || 'Scheduled'}
+                    </span>
+                  </div>
+
+                  <div className="p-3 rounded-2xl bg-amber-50/70 dark:bg-amber-950/40 border border-amber-100 dark:border-amber-900/40 flex flex-col gap-1">
+                    <div className="flex items-center gap-1.5 text-amber-600 dark:text-amber-400 text-xs font-bold">
+                      <Clock size={14} />
+                      <span>Time</span>
+                    </div>
+                    <span className="text-xs font-semibold text-slate-800 dark:text-slate-200 truncate">
+                      {selectedEvent.time || 'All Day'}
+                    </span>
+                  </div>
+
+                  <div className="p-3 rounded-2xl bg-emerald-50/70 dark:bg-emerald-950/40 border border-emerald-100 dark:border-emerald-900/40 flex flex-col gap-1">
+                    <div className="flex items-center gap-1.5 text-emerald-600 dark:text-emerald-400 text-xs font-bold">
+                      <MapPin size={14} />
+                      <span>Venue</span>
+                    </div>
+                    <span className="text-xs font-semibold text-slate-800 dark:text-slate-200 truncate">
+                      {selectedEvent.branch || 'All Branches'}
+                    </span>
+                  </div>
+                </div>
+
+                {/* Announcement Content Block */}
+                <div className="p-4 sm:p-5 rounded-2xl bg-slate-50/90 dark:bg-slate-800/40 border border-slate-200/60 dark:border-white/10 relative overflow-hidden">
+                  <div className="absolute left-0 top-0 bottom-0 w-1 bg-gradient-to-b from-blue-600 to-indigo-600" />
+                  <p className="text-xs sm:text-sm text-slate-700 dark:text-slate-200 font-inter leading-relaxed whitespace-pre-line">
+                    "{selectedEvent.fullBody || selectedEvent.body}"
+                  </p>
+                </div>
+
               </div>
+
+              {/* Modal Footer */}
+              <div className="pt-4 mt-4 border-t border-slate-100 dark:border-white/5 flex items-center justify-between text-xs text-slate-400 font-inter">
+                <span>IsangDiwa Community Event</span>
+                <span className="text-[11px] font-semibold text-slate-400">Official Notice</span>
+              </div>
+
             </div>
           </div>
         </div>
       )}
 
-      {/* Lightbox / Fullscreen Image Viewer */}
-      {selectedEvent && lightboxImageIndex !== null && (() => {
-        const imagesList = selectedEvent.images && selectedEvent.images.length > 0
-          ? selectedEvent.images
-          : (selectedEvent.image ? [selectedEvent.image] : []);
-        const currentImg = imagesList[lightboxImageIndex] || selectedEvent.image;
-
-        return (
-          <div className="uh-lightbox-overlay" onClick={() => setLightboxImageIndex(null)}>
-            <div className="uh-lightbox-content" onClick={e => e.stopPropagation()}>
-              <img src={currentImg} alt="" className="uh-lightbox-img" />
-              
-              {/* Close Button */}
-              <button className="uh-lightbox-close" onClick={() => setLightboxImageIndex(null)}>
-                <X size={24} />
-              </button>
-
-              {/* Navigation Arrows for Lightbox */}
-              {imagesList.length > 1 && (
-                <>
-                  <button
-                    className="uh-lightbox-nav uh-lightbox-nav--prev"
-                    onClick={() => setLightboxImageIndex(prev => prev === 0 ? imagesList.length - 1 : prev - 1)}
-                  >
-                    <ChevronLeft size={30} />
-                  </button>
-                  <button
-                    className="uh-lightbox-nav uh-lightbox-nav--next"
-                    onClick={() => setLightboxImageIndex(prev => (prev + 1) % imagesList.length)}
-                  >
-                    <ChevronRight size={30} />
-                  </button>
-                  <div className="uh-lightbox-counter">
-                    {lightboxImageIndex + 1} / {imagesList.length}
-                  </div>
-                </>
-              )}
-            </div>
-          </div>
-        );
-      })()}
-
-      {/* All Events Modal */}
+      {/* All Events / Announcements Modal */}
       {showAllEvents && (
-        <div className="uh-overlay" onClick={() => setShowAllEvents(false)}>
-          <div className="uh-modal uh-modal--list" onClick={e => e.stopPropagation()}>
-            <div className="uh-modal__header">
-              <h2 className="uh-modal__title">All Announcements</h2>
-              <button className="uh-modal__close-sm" onClick={() => setShowAllEvents(false)}>×</button>
+        <div className="fixed inset-0 bg-black/40 backdrop-blur-xs z-[1000] flex items-center justify-center p-4 sm:p-6" onClick={() => setShowAllEvents(false)}>
+          <div className="bg-white dark:bg-[#1E2130] rounded-2xl sm:rounded-3xl w-full max-w-4xl overflow-hidden border border-slate-200 dark:border-white/10 shadow-lg flex flex-col max-h-[90vh] font-inter" onClick={e => e.stopPropagation()}>
+            
+            {/* Modal Header */}
+            <div className="p-5 sm:p-6 border-b border-slate-100 dark:border-white/10 flex items-center justify-between bg-slate-50/50 dark:bg-white/5">
+              <div>
+                <div className="flex items-center gap-2.5">
+                  <h2 className="text-lg sm:text-xl font-bold text-slate-900 dark:text-white font-dm">All Announcements & Events</h2>
+                  <span className="px-2.5 py-0.5 rounded-full text-xs font-bold bg-blue-100 dark:bg-blue-950/60 text-blue-700 dark:text-blue-300">
+                    {allAnnouncements.length} Total
+                  </span>
+                </div>
+                <p className="text-xs sm:text-sm text-slate-500 dark:text-slate-400 mt-1">Stay updated with official community news and service schedules</p>
+              </div>
+              <button onClick={() => setShowAllEvents(false)} className="w-9 h-9 rounded-full flex items-center justify-center text-slate-400 hover:text-slate-600 dark:hover:text-white bg-slate-100 dark:bg-white/10 border-none cursor-pointer transition-colors">
+                <X size={18} />
+              </button>
             </div>
-            <div className="uh-modal__body">
+
+            {/* List Body */}
+            <div className="p-5 sm:p-6 overflow-y-auto space-y-4 flex-1">
               {allAnnouncements.length === 0 ? (
-                <div className="uh-empty"><p>No announcements are currently posted.</p></div>
+                <div className="py-16 text-center text-xs text-slate-400 font-medium">No announcements found</div>
               ) : (
                 allAnnouncements.map((evt, i) => {
-                  const catStyle = CAT_COLORS[evt.category] || CAT_COLORS.General;
+                  const hasImage = !!(evt.images?.[0] || evt.image);
+                  const imgUrl = evt.images?.[0] || evt.image;
+
                   return (
-                    <div key={i} className="uh-event" onClick={() => { setShowAllEvents(false); setSelectedEvent(evt); setModalImageIndex(0); }}>
-                      <div className="uh-event__date">
-                        <span className="uh-event__day">{evt.day}</span>
-                        <span className="uh-event__month">{evt.month}</span>
-                      </div>
-                      <div className="uh-event__info">
-                        <div className="uh-event__top">
-                          <span className="uh-event__title">{evt.title}</span>
-                          <div className="uh-event__meta-right">
-                            <span className="uh-event__tag" style={{ color: catStyle.color, background: catStyle.bg }}>{evt.category}</span>
-                            <span className="uh-event__branch"><MapPin size={11} />{evt.branch}</span>
+                    <div 
+                      key={i} 
+                      onClick={() => { setShowAllEvents(false); setSelectedEvent(evt); setModalImageIndex(0); }}
+                      className="group flex flex-col sm:flex-row gap-4 p-4 rounded-2xl bg-slate-50/80 dark:bg-white/5 hover:bg-white dark:hover:bg-slate-800/80 border border-slate-200/60 dark:border-white/10 hover:border-blue-500/40 hover:shadow-lg transition-all duration-300 cursor-pointer"
+                    >
+                      {/* Left Thumbnail or Date Pill */}
+                      <div className="shrink-0">
+                        {hasImage ? (
+                          <div className="w-full sm:w-36 h-40 sm:h-28 rounded-xl overflow-hidden relative bg-slate-900 border border-slate-200/60 dark:border-white/10">
+                            <img src={imgUrl} alt="" className="w-full h-full object-cover group-hover:scale-105 transition-transform duration-500" />
+                            <div className="absolute top-2 left-2 px-2 py-0.5 rounded-md bg-black/70 backdrop-blur-xs text-[10px] font-bold text-white uppercase tracking-wider">
+                              {evt.month} {evt.day}
+                            </div>
                           </div>
+                        ) : (
+                          <div className="w-full sm:w-28 h-20 sm:h-28 rounded-xl bg-gradient-to-br from-blue-600 to-indigo-700 text-white flex flex-col items-center justify-center p-3 text-center shadow-xs">
+                            <span className="text-xs font-bold uppercase tracking-wider text-blue-200 font-inter">{evt.month || 'EVENT'}</span>
+                            <span className="text-2xl font-extrabold font-dm leading-none mt-1">{evt.day || '•'}</span>
+                          </div>
+                        )}
+                      </div>
+
+                      {/* Right Details */}
+                      <div className="flex-1 min-w-0 flex flex-col justify-between">
+                        <div>
+                          <div className="flex items-center justify-between gap-2 mb-2">
+                            <span className="inline-block text-[10px] font-extrabold uppercase tracking-wider px-2.5 py-0.5 rounded-md bg-blue-50 dark:bg-blue-950/60 text-blue-700 dark:text-blue-300 border border-blue-200/50 dark:border-blue-800/40">
+                              {evt.category || 'General'}
+                            </span>
+                            {evt.branch && (
+                              <span className="flex items-center gap-1.5 text-xs text-slate-400 dark:text-slate-500 font-inter">
+                                <MapPin size={12} className="text-emerald-500" />
+                                <span className="truncate max-w-[180px]">{evt.branch.split(',')[0]}</span>
+                              </span>
+                            )}
+                          </div>
+
+                          <h4 className="text-base font-bold text-slate-900 dark:text-white font-inter group-hover:text-blue-600 dark:group-hover:text-blue-400 transition-colors line-clamp-1">
+                            {evt.title}
+                          </h4>
+                          <p className="text-xs sm:text-sm text-slate-500 dark:text-slate-400 font-inter line-clamp-2 mt-1.5 leading-relaxed">
+                            {evt.body}
+                          </p>
+                        </div>
+
+                        {/* Footer details row */}
+                        <div className="flex items-center justify-between pt-3 mt-3 border-t border-slate-100 dark:border-white/5 text-xs text-slate-400 dark:text-slate-500 font-inter">
+                          <span className="flex items-center gap-1.5">
+                            <Clock size={13} className="text-[#F5C800]" />
+                            {evt.time || 'All Day'}
+                          </span>
+                          <span className="font-semibold text-xs text-blue-600 dark:text-blue-400 group-hover:translate-x-0.5 transition-transform inline-flex items-center gap-1">
+                            View details <ChevronRight size={14} />
+                          </span>
                         </div>
                       </div>
                     </div>
@@ -1161,6 +1297,7 @@ export default function Home() {
                 })
               )}
             </div>
+
           </div>
         </div>
       )}

@@ -3,7 +3,6 @@ import { useAuth } from '../../context/AuthContext';
 import { useState, useEffect, useCallback } from 'react';
 import { Building2, Calendar, FileText, Heart, LayoutGrid, Menu, Settings, Wallet, X, LogOut, Bell } from 'lucide-react';
 import puacLogo from '../../assets/puaclogo.png';
-import '../styles/Sidebar.css';
 import API from '../../utils/api';
 
 import { isOfficerPosition } from '../../utils/officerPositions';
@@ -132,10 +131,7 @@ export default function Sidebar({ collapsed, setCollapsed, toggleCollapsed }) {
     }
   };
 
-
-
   const isActive = (path) => location.pathname === path;
-
   const isOfficer = isOfficerPosition(profile?.position);
 
   const allNavItems = [
@@ -153,26 +149,44 @@ export default function Sidebar({ collapsed, setCollapsed, toggleCollapsed }) {
 
   return (
     <>
+      {/* Mobile overlay backdrop */}
       {isMobile && !collapsed && (
-        <div className="user-sidebar-mobile-overlay" onClick={() => setCollapsed(true)} />
+        <div 
+          className="fixed inset-0 bg-black/60 z-[1050] backdrop-blur-xs transition-opacity" 
+          onClick={() => setCollapsed(true)} 
+        />
       )}
 
-      <div className={`user-sidebar ${collapsed ? 'user-sidebar-collapsed' : ''}`}>
-
-        {/* Logo + Toggle button inside */}
-        <div className="user-sidebar-logo">
-          <div className="user-sidebar-logo-content">
-            <div className="user-sidebar-logo-image">
-              <img alt="IsangDiwa Logo" src={puacLogo} />
-            </div>
-            {!collapsed && (
-              <div className="user-sidebar-logo-text">
-                <h1><span className="brand-text-isang">Isang</span><span className="brand-text-diwa">Diwa</span></h1>
-                <p>Member Portal</p>
+      {/* Sidebar Container */}
+      <aside 
+        className={`fixed top-0 left-0 h-screen bg-[#0D1F45] dark:bg-[#1E2130] border-r border-white/10 text-white flex flex-col z-[1100] transition-all duration-300 ease-in-out scrollbar-none ${
+          collapsed ? 'w-64 -translate-x-full md:translate-x-0 md:w-[72px]' : 'w-64 translate-x-0'
+        }`}
+      >
+        {/* Logo Header */}
+        <div className={`border-b border-white/10 flex-shrink-0 flex items-center ${collapsed ? 'md:justify-center p-3 md:p-0 md:h-[72px]' : 'p-5'}`}>
+          <div className={`flex items-center gap-3 w-full ${collapsed ? 'md:justify-center' : ''}`}>
+            {/* Logo — hidden when collapsed on desktop */}
+            {(!collapsed || isMobile) && (
+              <div className="w-10 h-10 rounded-full overflow-hidden bg-white/15 flex items-center justify-center shrink-0">
+                <img alt="IsangDiwa Logo" src={puacLogo} className="w-full h-full object-cover" />
               </div>
             )}
+
+            {/* Brand name — only when expanded */}
+            {(!collapsed || isMobile) && (
+              <div className="flex-1 min-w-0">
+                <h1 className="text-xl font-semibold m-0 text-white font-cormorant tracking-wide whitespace-nowrap">
+                  <span className="font-inter font-semibold tracking-tight text-white">Isang</span>
+                  <span className="font-inter font-semibold tracking-tight text-[#F5C800]">Diwa</span>
+                </h1>
+                <p className="text-xs text-white/60 m-0 font-inter whitespace-nowrap">Member Portal</p>
+              </div>
+            )}
+
+            {/* Hamburger toggle */}
             <button
-              className="user-sidebar-toggle-btn"
+              className={`w-8 h-8 rounded-lg bg-white/10 hover:bg-white/20 border border-white/15 text-white/70 hover:text-white flex items-center justify-center cursor-pointer transition-colors shrink-0 p-0 ${collapsed ? 'md:ml-0' : 'ml-auto'}`}
               onClick={toggleCollapsed}
               title={collapsed ? 'Expand sidebar' : 'Collapse sidebar'}
             >
@@ -181,42 +195,99 @@ export default function Sidebar({ collapsed, setCollapsed, toggleCollapsed }) {
           </div>
         </div>
 
-        {/* Navigation — grouped with dividers */}
-        <div className="user-sidebar-nav">
+
+        {/* Navigation items */}
+        <div className={`flex-1 py-4 overflow-y-auto flex flex-col gap-1 ${collapsed ? 'md:px-2 md:items-center' : 'px-3'}`}>
           {/* Main */}
           {navItems.filter(n => ['/home'].includes(n.path)).map(({ path, icon, label }) => (
-            <button key={path} onClick={() => handleNavClick(path)} className={`user-sidebar-nav-button ${isActive(path) ? 'active' : ''}`} title={collapsed ? label : undefined}>
-              <span className="user-sidebar-nav-icon">{icon}</span>
-              {!collapsed && <span>{label}</span>}
+            <button 
+              key={path} 
+              onClick={() => handleNavClick(path)} 
+              className={`flex items-center gap-3 h-12 px-3 rounded-xl border-none font-inter text-sm cursor-pointer transition-all duration-200 w-full text-left relative ${
+                isActive(path) 
+                  ? 'bg-white/15 text-white font-semibold shadow-sm' 
+                  : 'bg-transparent text-white/70 hover:bg-white/10 hover:text-white'
+              } ${collapsed ? 'md:w-12 md:h-12 md:p-0 md:justify-center' : ''}`} 
+              title={collapsed ? label : undefined}
+            >
+              <span className="w-5 h-5 flex items-center justify-center shrink-0">{icon}</span>
+              {(!collapsed || isMobile) && <span className="truncate">{label}</span>}
             </button>
           ))}
 
-          {!collapsed && <div className="user-sidebar-divider"><span>Finance</span></div>}
-          {collapsed && <div className="user-sidebar-divider-dot" />}
+          {(!collapsed || isMobile) ? (
+            <div className="flex items-center gap-2 px-3 pt-4 pb-1 select-none">
+              <span className="text-[10px] font-bold uppercase tracking-widest text-white/30 font-inter whitespace-nowrap">Finance</span>
+              <div className="flex-1 h-[1px] bg-white/10"></div>
+            </div>
+          ) : (
+            <div className="w-1.5 h-1.5 rounded-full bg-white/15 my-2 mx-auto" />
+          )}
           {navItems.filter(n => ['/savings', '/loans', '/donation'].includes(n.path)).map(({ path, icon, label }) => (
-            <button key={path} onClick={() => handleNavClick(path)} className={`user-sidebar-nav-button ${isActive(path) ? 'active' : ''}`} title={collapsed ? label : undefined}>
-              <span className="user-sidebar-nav-icon">{icon}</span>
-              {!collapsed && <span>{label}</span>}
+            <button 
+              key={path} 
+              onClick={() => handleNavClick(path)} 
+              className={`flex items-center gap-3 h-12 px-3 rounded-xl border-none font-inter text-sm cursor-pointer transition-all duration-200 w-full text-left relative ${
+                isActive(path) 
+                  ? 'bg-white/15 text-white font-semibold shadow-sm' 
+                  : 'bg-transparent text-white/70 hover:bg-white/10 hover:text-white'
+              } ${collapsed ? 'md:w-12 md:h-12 md:p-0 md:justify-center' : ''}`} 
+              title={collapsed ? label : undefined}
+            >
+              <span className="w-5 h-5 flex items-center justify-center shrink-0">{icon}</span>
+              {(!collapsed || isMobile) && <span className="truncate">{label}</span>}
             </button>
           ))}
 
-          {!collapsed && <div className="user-sidebar-divider"><span>Activity</span></div>}
-          {collapsed && <div className="user-sidebar-divider-dot" />}
+          {(!collapsed || isMobile) ? (
+            <div className="flex items-center gap-2 px-3 pt-4 pb-1 select-none">
+              <span className="text-[10px] font-bold uppercase tracking-widest text-white/30 font-inter whitespace-nowrap">Activity</span>
+              <div className="flex-1 h-[1px] bg-white/10"></div>
+            </div>
+          ) : (
+            <div className="w-1.5 h-1.5 rounded-full bg-white/15 my-2 mx-auto" />
+          )}
           {navItems.filter(n => ['/attendance', '/branches'].includes(n.path)).map(({ path, icon, label }) => (
-            <button key={path} onClick={() => handleNavClick(path)} className={`user-sidebar-nav-button ${isActive(path) ? 'active' : ''}`} title={collapsed ? label : undefined}>
-              <span className="user-sidebar-nav-icon">{icon}</span>
-              {!collapsed && <span>{label}</span>}
+            <button 
+              key={path} 
+              onClick={() => handleNavClick(path)} 
+              className={`flex items-center gap-3 h-12 px-3 rounded-xl border-none font-inter text-sm cursor-pointer transition-all duration-200 w-full text-left relative ${
+                isActive(path) 
+                  ? 'bg-white/15 text-white font-semibold shadow-sm' 
+                  : 'bg-transparent text-white/70 hover:bg-white/10 hover:text-white'
+              } ${collapsed ? 'md:w-12 md:h-12 md:p-0 md:justify-center' : ''}`} 
+              title={collapsed ? label : undefined}
+            >
+              <span className="w-5 h-5 flex items-center justify-center shrink-0">{icon}</span>
+              {(!collapsed || isMobile) && <span className="truncate">{label}</span>}
             </button>
           ))}
 
-          {!collapsed && <div className="user-sidebar-divider"><span>System</span></div>}
-          {collapsed && <div className="user-sidebar-divider-dot" />}
+          {(!collapsed || isMobile) ? (
+            <div className="flex items-center gap-2 px-3 pt-4 pb-1 select-none">
+              <span className="text-[10px] font-bold uppercase tracking-widest text-white/30 font-inter whitespace-nowrap">System</span>
+              <div className="flex-1 h-[1px] bg-white/10"></div>
+            </div>
+          ) : (
+            <div className="w-1.5 h-1.5 rounded-full bg-white/15 my-2 mx-auto" />
+          )}
           {navItems.filter(n => ['/notifications', '/settings'].includes(n.path)).map(({ path, icon, label }) => (
-            <button key={path} onClick={() => handleNavClick(path)} className={`user-sidebar-nav-button ${isActive(path) ? 'active' : ''}`} title={collapsed ? label : undefined}>
-              <span className="user-sidebar-nav-icon">{icon}</span>
-              {!collapsed && <span>{label}</span>}
+            <button 
+              key={path} 
+              onClick={() => handleNavClick(path)} 
+              className={`flex items-center gap-3 h-12 px-3 rounded-xl border-none font-inter text-sm cursor-pointer transition-all duration-200 w-full text-left relative ${
+                isActive(path) 
+                  ? 'bg-white/15 text-white font-semibold shadow-sm' 
+                  : 'bg-transparent text-white/70 hover:bg-white/10 hover:text-white'
+              } ${collapsed ? 'md:w-12 md:h-12 md:p-0 md:justify-center' : ''}`} 
+              title={collapsed ? label : undefined}
+            >
+              <span className="w-5 h-5 flex items-center justify-center shrink-0">{icon}</span>
+              {(!collapsed || isMobile) && <span className="truncate">{label}</span>}
               {path === '/notifications' && unreadNotifCount > 0 && (
-                <span className="user-sidebar-notif-badge">
+                <span className={`ml-auto bg-rose-600 text-white font-inter text-xs font-bold px-1.5 py-0.5 rounded-full min-w-[20px] h-[20px] flex items-center justify-center animate-badgePop ${
+                  collapsed ? 'md:absolute md:top-1.5 md:right-1.5 md:ml-0 md:text-[9px] md:h-4 md:min-w-[16px]' : ''
+                }`}>
                   {unreadNotifCount > 9 ? '9+' : unreadNotifCount}
                 </span>
               )}
@@ -225,53 +296,58 @@ export default function Sidebar({ collapsed, setCollapsed, toggleCollapsed }) {
         </div>
 
         {/* Profile Section */}
-        <div className="user-sidebar-profile">
+        <div className="p-3 border-t border-white/10 shrink-0">
           <div 
-            className={`user-sidebar-profile-info ${collapsed ? 'collapsed' : ''}`}
+            className={`flex items-center gap-3 p-2.5 rounded-xl cursor-pointer hover:bg-white/10 transition-colors mb-2 ${
+              collapsed ? 'md:justify-center md:p-1.5' : ''
+            }`}
             onClick={() => handleNavClick('/profile')}
             title={collapsed ? 'Profile' : undefined}
           >
-            <div className="user-sidebar-profile-avatar">
+            <div className="w-10 h-10 rounded-full bg-[#F5C800] flex items-center justify-center font-bold text-[#0D1F45] shrink-0 overflow-hidden">
               {profile?.photoUrl ? (
-                <img src={profile.photoUrl} alt="Profile" style={{width: '100%', height: '100%', objectFit: 'cover', borderRadius: '50%'}} />
+                <img src={profile.photoUrl} alt="Profile" className="w-full h-full object-cover rounded-full" />
               ) : (
-                <p>{profile?.fullName?.charAt(0)?.toUpperCase() || 'M'}</p>
+                <p className="m-0 text-base font-inter text-[#1E3A8A] font-bold">{profile?.fullName?.charAt(0)?.toUpperCase() || 'M'}</p>
               )}
             </div>
-            {!collapsed && (
-              <div className="user-sidebar-profile-details">
-                <p className="user-sidebar-profile-name">{profile?.fullName || 'Member'}</p>
-                <p className="user-sidebar-profile-email">{user?.email || 'member@isangdiwa.org'}</p>
+            {(!collapsed || isMobile) && (
+              <div className="flex-1 min-w-0">
+                <p className="text-sm font-semibold text-white m-0 font-inter truncate leading-tight">{profile?.fullName || 'Member'}</p>
+                <p className="text-xs text-white/60 truncate m-0 font-inter">{user?.email || 'member@isangdiwa.org'}</p>
               </div>
             )}
           </div>
           <button 
-            className={`user-sidebar-profile-signout ${collapsed ? 'collapsed' : ''}`}
+            className={`w-full flex items-center justify-center gap-2 p-3 bg-transparent border border-white/15 hover:border-rose-500/50 hover:bg-rose-500/10 text-white/70 hover:text-rose-300 text-sm font-inter rounded-xl cursor-pointer transition-all ${
+              collapsed ? 'md:w-12 md:h-12 md:p-0 md:mx-auto' : ''
+            }`}
             onClick={() => setShowLogoutModal(true)}
             title={collapsed ? 'Sign out' : undefined}
           >
             <LogOut size={18} />
-            {!collapsed && <span>Sign out</span>}
+            {(!collapsed || isMobile) && <span>Sign out</span>}
           </button>
         </div>
-
-      </div>
+      </aside>
 
       {/* Logout Confirmation Modal */}
       {showLogoutModal && (
-        <div className="user-logout-modal-overlay">
-          <div className="user-logout-modal-content">
-            <h2 className="user-logout-modal-title">Confirm Logout</h2>
-            <p className="user-logout-modal-message">Are you sure you want to log out of your account?</p>
-            <div className="user-logout-modal-actions">
+        <div className="fixed inset-0 bg-black/60 backdrop-blur-xs flex items-center justify-center z-[2000] p-4 animate-fadeIn">
+          <div className="bg-card dark:bg-[#1E2130] rounded-2xl p-6 max-w-md w-full shadow-2xl border border-border">
+            <h2 className="font-inter text-xl font-bold text-foreground m-0 mb-3">Confirm Logout</h2>
+            <p className="font-inter text-sm text-slate-500 dark:text-slate-400 m-0 mb-6 leading-relaxed">
+              Are you sure you want to log out of your account?
+            </p>
+            <div className="flex gap-3 justify-end">
               <button 
-                className="user-logout-modal-cancel" 
+                className="px-5 py-2.5 bg-secondary dark:bg-slate-800 text-slate-700 dark:text-slate-300 border border-border hover:bg-slate-200 dark:hover:bg-slate-700 rounded-xl font-inter text-sm font-semibold cursor-pointer transition-colors" 
                 onClick={() => setShowLogoutModal(false)}
               >
                 Cancel
               </button>
               <button 
-                className="user-logout-modal-confirm" 
+                className="px-5 py-2.5 bg-destructive hover:bg-red-700 text-white border-none rounded-xl font-inter text-sm font-semibold cursor-pointer transition-colors" 
                 onClick={handleSignOut}
               >
                 Sign out

@@ -5,11 +5,10 @@ import SecretaryAdminSidebar from '../components/secretaryAdminSidebar';
 import SecApprovedLoanDetailsModal from '../components/secApprovedLoanDetailsModal';
 import SecProcessLoanModal from '../components/secProcessLoanModal';
 import SecLoanReceiptModal from '../components/SecLoanReceiptModal';
-import '../styles/secretaryAdminLoanProcess.css';
+
 
 import API from '../../utils/api';
 import { Banknote, Search } from 'lucide-react';
-
 
 export default function SecretaryLoanProcess() {
     const [searchQuery, setSearchQuery] = useState('');
@@ -189,116 +188,119 @@ export default function SecretaryLoanProcess() {
     );
 
     return (
-        <div className="sec-loan-process-page">
+        <div className="flex h-screen bg-slate-50 dark:bg-[#0b0f19] overflow-hidden font-inter">
             <SecretaryAdminSidebar />
 
-            <div className="sec-loan-process-content">
-                {/* Header */}
-                <div className="sec-loan-process-header">
-                    <h1 className="sec-loan-process-title">Loan Processing</h1>
-                    <p className="sec-loan-process-subtitle">Process approved loans and handle disbursements</p>
-                </div>
-
-                {/* Stats Cards */}
-                <div className="sec-loan-process-stats">
-                    <div className="sec-loan-process-stat-card">
-                        <p className="sec-loan-process-stat-label">Awaiting Processing</p>
-                        <p className="sec-loan-process-stat-value orange">{awaitingCount}</p>
+            <div className="flex-1 flex flex-col h-screen overflow-hidden">
+                <div className="flex-1 overflow-y-auto p-4 md:p-6 lg:p-8">
+                    {/* Header */}
+                    <div className="flex flex-col gap-1 mb-6">
+                        <h1 className="font-inter text-2xl font-bold text-slate-900 dark:text-white m-0">Loan Processing</h1>
+                        <p className="font-inter text-sm text-slate-500 dark:text-slate-400 m-0">Process approved loans and handle disbursements</p>
                     </div>
-                    <div className="sec-loan-process-stat-card">
-                        <p className="sec-loan-process-stat-label">Processed</p>
-                        <p className="sec-loan-process-stat-value blue">{processedCount}</p>
+
+                    {/* Stats Cards */}
+                    <div className="grid grid-cols-1 md:grid-cols-2 gap-4 mb-6">
+                        <div className="bg-white dark:bg-[#1E2130] border border-slate-200 dark:border-white/10 rounded-xl p-4 shadow-sm flex flex-col gap-1 transition-transform hover:-translate-y-0.5">
+                            <p className="font-inter font-semibold text-[11px] tracking-wider uppercase text-slate-500 dark:text-slate-400 m-0">Awaiting Processing</p>
+                            <p className="font-inter font-bold text-2xl text-amber-500 m-0">{awaitingCount}</p>
+                        </div>
+                        <div className="bg-white dark:bg-[#1E2130] border border-slate-200 dark:border-white/10 rounded-xl p-4 shadow-sm flex flex-col gap-1 transition-transform hover:-translate-y-0.5">
+                            <p className="font-inter font-semibold text-[11px] tracking-wider uppercase text-slate-500 dark:text-slate-400 m-0">Processed</p>
+                            <p className="font-inter font-bold text-2xl text-navy dark:text-blue-400 m-0">{processedCount}</p>
+                        </div>
                     </div>
-                </div>
 
-                {/* Search Bar */}
-                <div className="sec-loan-process-search">
-                    <Search size={20} color="#9CA3AF" />
-                    <input
-                        type="text"
-                        placeholder="Search by member name or loan ID..."
-                        value={searchQuery}
-                        onChange={(e) => setSearchQuery(e.target.value)}
-                    />
-                </div>
+                    {/* Search Bar */}
+                    <div className="relative mb-6">
+                        <Search size={18} className="absolute left-4 top-1/2 -translate-y-1/2 text-slate-400" />
+                        <input
+                            type="text"
+                            placeholder="Search by member name or loan ID..."
+                            value={searchQuery}
+                            onChange={(e) => setSearchQuery(e.target.value)}
+                            className="w-full h-10 pl-11 pr-4 py-2 bg-white dark:bg-[#1E2130] border border-slate-200 dark:border-white/10 rounded-lg text-sm font-inter text-slate-900 dark:text-white placeholder:text-slate-400 focus:outline-none focus:border-navy dark:focus:border-blue-500 transition-colors"
+                        />
+                    </div>
 
-                {/* Loans Table */}
-                <div className="sec-loan-process-table-container">
-                    {loading ? (
-                        <div style={{ padding: '40px', textAlign: 'center', color: '#6B7280' }}>Loading loans...</div>
-                    ) : (
-                        <table className="sec-loan-process-table">
-                            <thead>
-                                <tr>
-                                    <th>Loan ID</th>
-                                    <th>Member Name</th>
-                                    <th>Amount</th>
-                                    <th>Purpose</th>
-                                    <th>Approved Date</th>
-                                    <th>Status</th>
-                                    <th>Action</th>
-                                </tr>
-                            </thead>
-                            <tbody>
-                                {filteredLoans.length === 0 ? (
+                    {/* Loans Table */}
+                    <div className="bg-white dark:bg-[#1E2130] border border-slate-200 dark:border-white/10 rounded-xl overflow-x-auto shadow-sm">
+                        {loading ? (
+                            <div className="p-10 text-center text-slate-500 font-inter text-sm">Loading loans...</div>
+                        ) : (
+                            <table className="w-full text-left border-collapse min-w-[900px]">
+                                <thead>
                                     <tr>
-                                        <td colSpan="7" style={{ textAlign: 'center', padding: '40px', color: '#6B7280' }}>
-                                            No loans found
-                                        </td>
+                                        <th className="bg-slate-50 dark:bg-black/20 border-b border-slate-200 dark:border-white/10 px-4 py-3 font-inter font-semibold text-[11px] tracking-wider uppercase text-slate-500 dark:text-slate-400">Loan ID</th>
+                                        <th className="bg-slate-50 dark:bg-black/20 border-b border-slate-200 dark:border-white/10 px-4 py-3 font-inter font-semibold text-[11px] tracking-wider uppercase text-slate-500 dark:text-slate-400">Member Name</th>
+                                        <th className="bg-slate-50 dark:bg-black/20 border-b border-slate-200 dark:border-white/10 px-4 py-3 font-inter font-semibold text-[11px] tracking-wider uppercase text-slate-500 dark:text-slate-400">Amount</th>
+                                        <th className="bg-slate-50 dark:bg-black/20 border-b border-slate-200 dark:border-white/10 px-4 py-3 font-inter font-semibold text-[11px] tracking-wider uppercase text-slate-500 dark:text-slate-400">Purpose</th>
+                                        <th className="bg-slate-50 dark:bg-black/20 border-b border-slate-200 dark:border-white/10 px-4 py-3 font-inter font-semibold text-[11px] tracking-wider uppercase text-slate-500 dark:text-slate-400">Approved Date</th>
+                                        <th className="bg-slate-50 dark:bg-black/20 border-b border-slate-200 dark:border-white/10 px-4 py-3 font-inter font-semibold text-[11px] tracking-wider uppercase text-slate-500 dark:text-slate-400">Status</th>
+                                        <th className="bg-slate-50 dark:bg-black/20 border-b border-slate-200 dark:border-white/10 px-4 py-3 font-inter font-semibold text-[11px] tracking-wider uppercase text-slate-500 dark:text-slate-400">Action</th>
                                     </tr>
-                                ) : (
-                                    filteredLoans.map(loan => (
-                                        <tr key={loan._id}>
-                                            <td className="sec-loan-process-table-id">{loan.loanId}</td>
-                                            <td>
-                                                <div className="sec-loan-process-table-member">
-                                                    <p className="sec-loan-process-table-member-name">{loan.memberName}</p>
-                                                    <p className="sec-loan-process-table-member-email">{loan.email}</p>
-                                                </div>
+                                </thead>
+                                <tbody>
+                                    {filteredLoans.length === 0 ? (
+                                        <tr>
+                                            <td colSpan="7" className="text-center p-10 text-slate-500 font-inter text-sm">
+                                                No loans found
                                             </td>
-                                            <td className="sec-loan-process-table-amount">₱{Number(loan.amount).toLocaleString()}</td>
-                                            <td>{loan.purpose}</td>
-                                            <td>{new Date(loan.approvedDate || loan.appliedDate).toLocaleDateString('en-US')}</td>
-                                            <td>
-                                                {!loan.disbursed && (
-                                                    <span className="sec-loan-process-status-badge awaiting">Awaiting Processing</span>
-                                                )}
-                                                {loan.disbursed && (
-                                                    <div className="sec-loan-process-status-processed">
-                                                        <span className="sec-loan-process-status-badge processed">Processed</span>
-                                                        <p className="sec-loan-process-processed-info">
-                                                            {loan.paymentMethod === 'e-wallet' ? 'E-Wallet' : loan.paymentMethod === 'bank' ? 'Bank Transfer' : loan.paymentMethod} • {new Date(loan.disbursementDate).toLocaleDateString('en-US')}
-                                                        </p>
+                                        </tr>
+                                    ) : (
+                                        filteredLoans.map(loan => (
+                                            <tr key={loan._id} className="hover:bg-slate-50/50 dark:hover:bg-white/5 transition-colors group">
+                                                <td className="px-4 py-3 border-b border-slate-100 dark:border-white/5 font-inter text-[13px] text-slate-900 dark:text-white font-medium align-middle">{loan.loanId}</td>
+                                                <td className="px-4 py-3 border-b border-slate-100 dark:border-white/5 font-inter align-middle">
+                                                    <div className="flex flex-col gap-0.5">
+                                                        <p className="font-medium text-[13px] text-slate-900 dark:text-white m-0">{loan.memberName}</p>
+                                                        <p className="text-xs text-slate-500 dark:text-slate-400 m-0">{loan.email}</p>
                                                     </div>
-                                                )}
-                                            </td>
-                                            <td>
-                                                <div className="sec-loan-process-actions">
-                                                    {loan.disbursed ? (
-                                                        <button
-                                                            className="sec-loan-process-btn-receipt"
-                                                            onClick={() => handleViewReceipt(loan)}
-                                                        >
-                                                            <Banknote size={16} />
-                                                            View Receipt
-                                                        </button>
-                                                    ) : (
-                                                        <button
-                                                            className="sec-loan-process-btn-details"
-                                                            onClick={() => handleViewDetails(loan)}
-                                                        >
-                                                            <Banknote size={16} />
-                                                            View Data
-                                                        </button>
+                                                </td>
+                                                <td className="px-4 py-3 border-b border-slate-100 dark:border-white/5 font-inter text-[13px] text-slate-900 dark:text-white font-semibold align-middle">₱{Number(loan.amount).toLocaleString()}</td>
+                                                <td className="px-4 py-3 border-b border-slate-100 dark:border-white/5 font-inter text-[13px] text-slate-900 dark:text-slate-200 align-middle">{loan.purpose}</td>
+                                                <td className="px-4 py-3 border-b border-slate-100 dark:border-white/5 font-inter text-[13px] text-slate-900 dark:text-slate-200 align-middle">{new Date(loan.approvedDate || loan.appliedDate).toLocaleDateString('en-US')}</td>
+                                                <td className="px-4 py-3 border-b border-slate-100 dark:border-white/5 font-inter align-middle">
+                                                    {!loan.disbursed && (
+                                                        <span className="inline-flex px-3 py-1 rounded-md font-inter font-medium text-[11px] bg-amber-50 text-amber-700 dark:bg-amber-500/10 dark:text-amber-400 whitespace-nowrap">Awaiting Processing</span>
                                                     )}
-                                                </div>
-                                            </td>
+                                                    {loan.disbursed && (
+                                                        <div className="flex flex-col gap-1">
+                                                            <span className="inline-flex px-3 py-1 rounded-md font-inter font-medium text-[11px] bg-blue-50 text-blue-700 dark:bg-blue-500/10 dark:text-blue-400 w-fit whitespace-nowrap">Processed</span>
+                                                            <p className="font-inter text-[11px] text-slate-500 dark:text-slate-400 m-0">
+                                                                {loan.paymentMethod === 'e-wallet' ? 'E-Wallet' : loan.paymentMethod === 'bank' ? 'Bank Transfer' : loan.paymentMethod} • {new Date(loan.disbursementDate).toLocaleDateString('en-US')}
+                                                            </p>
+                                                        </div>
+                                                    )}
+                                                </td>
+                                                <td className="px-4 py-3 border-b border-slate-100 dark:border-white/5 font-inter align-middle">
+                                                    <div className="flex gap-2 items-center">
+                                                        {loan.disbursed ? (
+                                                            <button
+                                                                className="flex items-center gap-1.5 px-3 py-1.5 bg-blue-50 hover:bg-blue-100 text-blue-700 border border-blue-200 rounded-lg font-inter text-[12px] font-semibold cursor-pointer transition-colors dark:bg-blue-900/20 dark:hover:bg-blue-900/40 dark:text-blue-400 dark:border-blue-800/30 whitespace-nowrap"
+                                                                onClick={() => handleViewReceipt(loan)}
+                                                            >
+                                                                <Banknote size={14} />
+                                                                View Receipt
+                                                            </button>
+                                                        ) : (
+                                                            <button
+                                                                className="flex items-center gap-1.5 px-3 py-1.5 bg-navy hover:bg-blue-800 text-white border-none rounded-lg font-inter text-[12px] font-semibold cursor-pointer transition-colors dark:bg-[#0D1F45] dark:hover:bg-blue-900 whitespace-nowrap"
+                                                                onClick={() => handleViewDetails(loan)}
+                                                            >
+                                                                <Banknote size={14} />
+                                                                Process Data
+                                                            </button>
+                                                        )}
+                                                    </div>
+                                                </td>
                                         </tr>
                                     ))
                                 )}
                             </tbody>
                         </table>
-                    )}
+                        )}
+                    </div>
                 </div>
             </div>
 

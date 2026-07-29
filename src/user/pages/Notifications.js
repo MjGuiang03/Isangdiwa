@@ -1,8 +1,8 @@
 import { useState, useEffect, useMemo } from 'react';
 import useSWR from 'swr';
-import '../styles/Notifications.css';
+
 import API from '../../utils/api';
-import { Banknote, Bell, CalendarDays, Circle, Heart, ChevronDown, ChevronUp, Check, CircleCheck, AlertCircle, PiggyBank, BadgeCheck, Landmark } from 'lucide-react';
+import { Banknote, Bell, CalendarDays, Circle, Heart, ChevronDown, ChevronUp, Check, CircleCheck, AlertCircle, PiggyBank, BadgeCheck, Landmark, X } from 'lucide-react';
 
 
 const fmt = (n) =>
@@ -45,8 +45,37 @@ export default function Notifications() {
   const [activeFilter, setActiveFilter] = useState('all');
   const [readIds, setReadIds] = useState(new Set());
   const [detailModal, setDetailModal] = useState(null);
+  const [previewImage, setPreviewImage] = useState(null);
   const [expandedGroups, setExpandedGroups] = useState(new Set());
   const [expandedSimple, setExpandedSimple] = useState(new Set());
+
+  /* ── Modal swipe-down-to-close touch gesture state ── */
+  const [modalDragY, setModalDragY] = useState(0);
+  const [modalTouchStartY, setModalTouchStartY] = useState(null);
+  const [isDraggingModal, setIsDraggingModal] = useState(false);
+
+  const handleModalTouchStart = (e) => {
+    setModalTouchStartY(e.touches[0].clientY);
+    setIsDraggingModal(true);
+  };
+
+  const handleModalTouchMove = (e) => {
+    if (modalTouchStartY === null) return;
+    const currentY = e.touches[0].clientY;
+    const deltaY = currentY - modalTouchStartY;
+    if (deltaY > 0) {
+      setModalDragY(deltaY);
+    }
+  };
+
+  const handleModalTouchEnd = () => {
+    if (modalDragY > 70) {
+      setDetailModal(null);
+    }
+    setModalDragY(0);
+    setModalTouchStartY(null);
+    setIsDraggingModal(false);
+  };
 
   const [prefs] = useState(() => {
     const saved = localStorage.getItem('notif_prefs');
@@ -321,40 +350,39 @@ export default function Notifications() {
 
   /* ── UI helpers ── */
   const getIcon = (type, title = '') => {
-    const wrap = (bg, color, Icon) => (
-      <div style={{ background: bg, borderRadius: '10px', width: '36px', height: '36px', 
-                    display: 'flex', alignItems: 'center', justifyContent: 'center', flexShrink: 0 }}>
-        <Icon size={18} color={color} />
+    const wrap = (bgClass, iconColorClass, Icon) => (
+      <div className={`w-9 h-9 rounded-xl flex items-center justify-center shrink-0 ${bgClass}`}>
+        <Icon size={18} className={iconColorClass} />
       </div>
     );
 
     if (type === 'loan') {
-      if (title.includes('Disbursed'))  return wrap('var(--secondary)', 'var(--sidebar)', Landmark);
-      if (title.includes('Approved'))   return wrap('var(--secondary)', 'var(--sidebar)', BadgeCheck);
-      if (title.includes('Reminder'))   return wrap('#FEE2E2', '#B91C1C', AlertCircle);
-      return wrap('var(--secondary)', 'var(--sidebar)', Banknote);
+      if (title.includes('Disbursed'))  return wrap('bg-blue-100 dark:bg-blue-950/60', 'text-blue-600 dark:text-blue-400', Landmark);
+      if (title.includes('Approved'))   return wrap('bg-emerald-100 dark:bg-emerald-950/60', 'text-emerald-600 dark:text-emerald-400', BadgeCheck);
+      if (title.includes('Reminder'))   return wrap('bg-rose-100 dark:bg-rose-950/60', 'text-rose-600 dark:text-rose-400', AlertCircle);
+      return wrap('bg-blue-100 dark:bg-blue-950/60', 'text-blue-600 dark:text-blue-400', Banknote);
     }
-    if (type === 'payment_pending')     return wrap('#DCFCE7', '#15803D', CircleCheck);
-    if (type === 'savings')             return wrap('#FEF9C3', '#A16207', PiggyBank);
-    if (type === 'donation')            return wrap('#FDF2F8', '#DB2777', Heart);
-    if (type === 'attendance')          return wrap('#F0FDF4', '#16A34A', CalendarDays);
-    return wrap('var(--secondary)', 'var(--sidebar)', Bell);
+    if (type === 'payment_pending')     return wrap('bg-emerald-100 dark:bg-emerald-950/60', 'text-emerald-600 dark:text-emerald-400', CircleCheck);
+    if (type === 'savings')             return wrap('bg-[#F0D89A]/30 dark:bg-amber-950/60', 'text-amber-700 dark:text-amber-300', PiggyBank);
+    if (type === 'donation')            return wrap('bg-pink-100 dark:bg-pink-950/60', 'text-pink-600 dark:text-pink-400', Heart);
+    if (type === 'attendance')          return wrap('bg-teal-100 dark:bg-teal-950/60', 'text-teal-600 dark:text-teal-400', CalendarDays);
+    return wrap('bg-blue-100 dark:bg-blue-950/60', 'text-blue-600 dark:text-blue-400', Bell);
   };
 
   const badgeClass = (type) =>
-    type === 'loan' ? 'user-notif-badge-loan'
-      : type === 'donation' ? 'user-notif-badge-donation'
-        : type === 'savings' ? 'user-notif-badge-savings'
-          : type === 'payment_pending' ? 'user-notif-badge-payment'
-            : 'user-notif-badge-attendance';
+    type === 'loan' ? 'bg-blue-100 dark:bg-blue-950/60 text-blue-700 dark:text-blue-300'
+      : type === 'donation' ? 'bg-pink-100 dark:bg-pink-950/60 text-pink-700 dark:text-pink-300'
+        : type === 'savings' ? 'bg-amber-100 dark:bg-amber-950/60 text-amber-700 dark:text-amber-300'
+          : type === 'payment_pending' ? 'bg-emerald-100 dark:bg-emerald-950/60 text-emerald-700 dark:text-emerald-300'
+            : 'bg-teal-100 dark:bg-teal-950/60 text-teal-700 dark:text-teal-300';
 
   const cardClass = (n) => {
-    let classes = 'user-notif-card';
-    if (!n.isRead) classes += ' unread';
-    if (n.actionRequired) classes += ' user-notif-card-action';
-    if (n.isRead) classes += ' user-notif-card-read';
-    if (n.type === 'announcement') classes += ' user-notif-card-announcement';
-    if (n.isUrgent) classes += ' user-notif-card-urgent';
+    let classes = 'relative z-10 p-4 sm:p-5 bg-white dark:bg-[#1E2130] text-slate-900 dark:text-white rounded-2xl flex items-start gap-4 transition-transform cursor-pointer border border-transparent shadow-sm';
+    if (!n.isRead) classes += ' bg-blue-50/60 dark:bg-blue-950/30 border-blue-200/80 dark:border-blue-900/50 font-semibold';
+    if (n.actionRequired) classes += ' border-amber-300 dark:border-amber-700/60 bg-amber-50/60 dark:bg-amber-950/30';
+    if (n.isRead) classes += ' opacity-90 dark:opacity-80';
+    if (n.type === 'announcement') classes += ' border-indigo-200 dark:border-indigo-900/50 bg-indigo-50/50 dark:bg-indigo-950/30';
+    if (n.isUrgent) classes += ' border-red-300 dark:border-red-900/60 bg-red-50/60 dark:bg-red-950/30';
     return classes;
   };
 
@@ -462,9 +490,9 @@ export default function Notifications() {
   const renderSummary = (summary) => {
     const isExpanded = expandedGroups.has(summary.id);
     return (
-      <div key={summary.id} className="user-notif-summary-group">
+      <div key={summary.id} className="space-y-2 mb-3">
         <div
-          className={`user-notif-summary-card ${isExpanded ? 'expanded' : ''}`}
+          className={`p-4 bg-white dark:bg-[#1E2130] border border-slate-200 dark:border-white/10 rounded-2xl flex items-center justify-between cursor-pointer hover:bg-slate-50 dark:hover:bg-slate-800/50 transition-all shadow-sm ${isExpanded ? 'ring-2 ring-blue-500/50' : ''}`}
           onClick={() => {
             setExpandedGroups(prev => {
               const next = new Set(prev);
@@ -474,20 +502,20 @@ export default function Notifications() {
             });
           }}
         >
-          <div className="user-notif-summary-info">
-            <div className={`user-notif-summary-icon-stack ${summary.type}`}>
+          <div className="flex items-center gap-3">
+            <div className="w-9 h-9 rounded-xl flex items-center justify-center shrink-0 bg-blue-50 dark:bg-blue-950/60 text-blue-600 dark:text-blue-400">
               {getIcon(summary.type)}
             </div>
-            <p className="user-notif-summary-text">
-              <span className="user-notif-summary-count">{summary.count}</span> new {badgeLabel(summary.type).toLowerCase()}{summary.count > 1 ? 's' : ''}
+            <p className="text-xs font-bold text-slate-900 dark:text-white">
+              <span className="px-2 py-0.5 rounded-full bg-blue-600 text-white text-[11px] font-bold mr-1.5">{summary.count}</span> new {badgeLabel(summary.type).toLowerCase()}{summary.count > 1 ? 's' : ''}
             </p>
           </div>
-          <div className="user-notif-summary-toggle">
+          <div className="text-slate-400">
             {isExpanded ? <ChevronUp size={18} /> : <ChevronDown size={18} />}
           </div>
         </div>
         {isExpanded && (
-          <div className="user-notif-summary-expanded">
+          <div className="pl-4 sm:pl-6 space-y-3 pt-1 border-l-2 border-slate-200 dark:border-white/10 ml-4">
             {summary.items.map(n => renderCard(n))}
           </div>
         )}
@@ -550,7 +578,7 @@ export default function Notifications() {
       return (
         <span 
           onClick={(e) => { e.stopPropagation(); window.location.href = link; }}
-          style={{ fontSize: '12px', fontWeight: '700', color: 'var(--sidebar)', cursor: 'pointer', marginTop: '4px' }}
+          className="text-xs font-bold text-blue-600 dark:text-blue-400 hover:underline cursor-pointer inline-block"
         >
           {text}
         </span>
@@ -558,111 +586,134 @@ export default function Notifications() {
     };
 
     return (
-      <div className={`user-notif-card-outer ${isExpanded ? 'expanded' : ''}`}>
-        <div className="user-notif-swipe-reveal">
-          <div className="user-notif-swipe-btn">
-            <Check size={20} color="white" />
-            <span>Read</span>
+      <div className={`relative overflow-hidden rounded-2xl border transition-all mb-3 font-inter ${
+        isExpanded ? 'ring-2 ring-blue-500/50' : ''
+      } ${
+        n.isUrgent
+          ? 'border-rose-200/90 dark:border-rose-900/50 bg-rose-50/40 dark:bg-rose-950/20'
+          : n.actionRequired
+          ? 'border-amber-200/90 dark:border-amber-900/50 bg-amber-50/40 dark:bg-amber-950/20'
+          : !n.isRead
+          ? 'border-blue-200/90 dark:border-blue-900/40 bg-white dark:bg-[#1E2130] shadow-sm shadow-blue-100/50 dark:shadow-none'
+          : 'border-slate-200/70 dark:border-white/10 bg-slate-50/60 dark:bg-[#1E2130]/60'
+      }`}>
+        {/* Swipe-to-read blue bg (ONLY visible when swiping left) */}
+        {swipeOffset < 0 && (
+          <div className="absolute inset-0 bg-blue-600 flex items-center justify-end px-6 z-0 rounded-2xl">
+            <div className="flex items-center gap-1.5 text-white text-xs font-bold font-inter">
+              <Check size={16} color="white" />
+              <span>Mark Read</span>
+            </div>
           </div>
-        </div>
+        )}
+
         <div
-          className={cardClass(n)}
+          className={`relative z-10 flex items-start gap-3 p-3.5 sm:p-4 transition-transform ${
+            n.isUrgent
+              ? 'bg-rose-50/40 dark:bg-rose-950/30 border-l-4 border-l-rose-500'
+              : n.actionRequired
+              ? 'bg-amber-50/40 dark:bg-amber-950/30 border-l-4 border-l-amber-500'
+              : !n.isRead
+              ? 'bg-white dark:bg-[#1E2130] border-l-4 border-l-blue-600 dark:border-l-blue-500'
+              : 'bg-slate-50/60 dark:bg-[#1E2130]/60 border-l-4 border-l-transparent'
+          } rounded-2xl`}
           style={{ transform: `translateX(${swipeOffset}px)` }}
           onTouchStart={handleTouchStart}
           onTouchMove={handleTouchMove}
           onTouchEnd={handleTouchEnd}
-          onClick={() => !isSwiping && onClick()}
+          onClick={() => {
+            if (!n.isRead) markAsRead(n.id);
+            if (!isSwiping) onClick();
+          }}
         >
-          {getIcon(n.type, n.title)}
-          <div className="user-notif-body">
-            <div className="user-notif-body-header">
-              <p className={`user-notif-body-title${n.isRead ? ' read' : ''}`}>
-                {n.title}
-              </p>
-              <div className="user-notif-header-badges">
-                {n.type === 'announcement' && <span className="user-notif-admin-label">From admin</span>}
-                <span className={`user-notif-type-badge ${badgeClass(n.type)}`}>
-                  {badgeLabel(n.type)}
-                </span>
-                {n.actionRequired && <span className="user-notif-action-pill">Action Required</span>}
+          {/* Icon Badge */}
+          <div className="shrink-0 mt-0.5">
+            {getIcon(n.type, n.title)}
+          </div>
+
+          {/* Main Card Content */}
+          <div className="flex-1 min-w-0 font-inter">
+            {/* Header Row: Title + Category Badge + Read/Unread Status */}
+            <div className="flex items-start justify-between gap-2 mb-1">
+              <div className="flex items-center gap-1.5 flex-wrap min-w-0 flex-1">
+                <h3 className={`text-xs sm:text-sm leading-tight ${n.isRead ? 'font-semibold text-slate-700 dark:text-slate-300' : 'font-extrabold text-slate-900 dark:text-white'}`}>
+                  {n.title}
+                </h3>
+                {!n.isRead && (
+                  <span className="w-2 h-2 rounded-full bg-blue-600 dark:bg-blue-400 shrink-0" title="Unread" />
+                )}
               </div>
 
-              <div className="user-notif-header-right">
+              <div className="flex items-center gap-1.5 shrink-0 ml-1">
+                <span className={`px-2 py-0.5 rounded-md text-[10px] font-extrabold uppercase tracking-wider ${badgeClass(n.type)}`}>
+                  {badgeLabel(n.type)}
+                </span>
+              </div>
+            </div>
+
+            {/* Message Body */}
+            <p className={`text-xs leading-relaxed mb-2.5 ${n.isRead ? 'text-slate-500 dark:text-slate-400 font-normal' : 'text-slate-600 dark:text-slate-300 font-medium'}`}>
+              {n.message}
+            </p>
+
+            {/* Footer Row: Timestamp + CTA + Mark Read Action */}
+            <div className="flex items-center justify-between gap-2 pt-1.5 border-t border-slate-100/80 dark:border-white/5">
+              <span className="text-[11px] text-slate-400 dark:text-slate-500 font-medium shrink-0">
+                {fmtTime(n.timestamp, n.isReminder)}
+              </span>
+
+              <div className="flex items-center gap-2 ml-auto shrink-0">
+                {renderCTA(n)}
+                {n.actionRequired && (
+                  <span className="text-xs font-bold text-amber-600 dark:text-amber-400 hover:underline cursor-pointer">
+                    Review Terms →
+                  </span>
+                )}
+
+                {/* Mark as read button */}
                 {!n.isRead && (
                   <button
-                    className="user-notif-quick-read"
+                    className="h-6 px-2.5 rounded-lg bg-blue-50 dark:bg-blue-950/60 hover:bg-blue-600 hover:text-white text-blue-600 dark:text-blue-400 text-[11px] font-bold flex items-center gap-1 transition-all cursor-pointer border border-blue-100 dark:border-blue-900/40 shrink-0"
                     onClick={(e) => { e.stopPropagation(); onMarkRead(); }}
                     title="Mark as read"
                   >
-                    <div className="quick-read-dot" />
-                    <Check size={14} className="quick-read-icon" />
+                    <Check size={12} />
+                    <span>Mark as read</span>
                   </button>
                 )}
+
                 {isSimple && (
                   <ChevronDown
-                    size={16}
-                    className={`user-notif-chevron ${isExpanded ? 'rotated' : ''}`}
+                    size={14}
+                    className={`text-slate-400 transition-transform duration-200 shrink-0 ${isExpanded ? 'rotate-180' : ''}`}
                   />
                 )}
               </div>
             </div>
-            <p className="user-notif-msg">{n.message}</p>
-            <div className="user-notif-footer">
-              <span className="user-notif-time">{fmtTime(n.timestamp, n.isReminder)}</span>
-              
-              <div style={{ display: 'flex', flexDirection: 'column', alignItems: 'flex-end', gap: '4px' }}>
-                {n.isRead && (
-                  <div style={{ 
-                    display: 'flex', 
-                    alignItems: 'center', 
-                    gap: '4px',
-                    background: 'var(--secondary)',
-                    padding: '2px 8px',
-                    borderRadius: '6px',
-                    marginBottom: '2px'
-                  }}>
-                    <Check size={12} color="var(--sidebar)" strokeWidth={4} />
-                    <span style={{ fontSize: '10px', color: 'var(--sidebar)', fontWeight: '800', textTransform: 'uppercase', letterSpacing: '0.02em' }}>Read</span>
-                  </div>
-                )}
-                {renderCTA(n)}
-                {n.actionRequired && (
-                  <span className="user-notif-review-hint" style={{ fontSize: '11px' }}>Tap to review →</span>
-                )}
-                {isSimple && !isExpanded && (
-                  <span className="user-notif-expand-hint" style={{ fontSize: '11px' }}>Tap to expand ↓</span>
-                )}
-              </div>
-            </div>
 
-            {/* In-place expansion content for simple types */}
+            {/* Expandable detail content for simple items */}
             {isSimple && (
-              <div className={`user-notif-expandable-content ${isExpanded ? 'expanded' : ''}`}>
-                <div className="user-notif-expandable-inner">
+              <div className={`overflow-hidden transition-all duration-300 ${isExpanded ? 'max-h-96 pt-3 mt-2 border-t border-slate-100 dark:border-white/5' : 'max-h-0'}`}>
+                <div className="space-y-2 font-inter">
                   {n.type === 'attendance' && (
-                    <div className="user-notif-detail-grid small">
-                      <div><label>Service</label><span>{n.service || 'Sunday Service'}</span></div>
-                      <div><label>Community</label><span>{n.branch || 'Unknown Community'}</span></div>
-                      <div><label>Recorded On</label><span>{new Date(n.timestamp).toLocaleDateString()}</span></div>
+                    <div className="grid grid-cols-2 sm:grid-cols-3 gap-3 p-3 rounded-xl bg-slate-50 dark:bg-slate-800/40 text-xs">
+                      <div><label className="block text-[10px] font-bold text-slate-400 dark:text-slate-500 uppercase tracking-wider">Service</label><span className="font-bold text-slate-800 dark:text-slate-200">{n.service || 'Sunday Service'}</span></div>
+                      <div><label className="block text-[10px] font-bold text-slate-400 dark:text-slate-500 uppercase tracking-wider">Community</label><span className="font-bold text-slate-800 dark:text-slate-200">{n.branch || 'Unknown Community'}</span></div>
+                      <div><label className="block text-[10px] font-bold text-slate-400 dark:text-slate-500 uppercase tracking-wider">Recorded On</label><span className="font-bold text-slate-800 dark:text-slate-200">{new Date(n.timestamp).toLocaleDateString()}</span></div>
                     </div>
                   )}
                   {n.type === 'savings' && (
-                    <div className="user-notif-detail-grid small">
-                      <div><label>Goal</label><span>{n.goalName || 'General Savings'}</span></div>
-                      <div><label>Amount</label><span className="text-blue">₱{Number(n.amount || 0).toLocaleString()}</span></div>
-                      <div><label>Date</label><span>{new Date(n.timestamp).toLocaleDateString()}</span></div>
+                    <div className="grid grid-cols-2 sm:grid-cols-3 gap-3 p-3 rounded-xl bg-slate-50 dark:bg-slate-800/40 text-xs">
+                      <div><label className="block text-[10px] font-bold text-slate-400 dark:text-slate-500 uppercase tracking-wider">Goal</label><span className="font-bold text-slate-800 dark:text-slate-200">{n.goalName || 'General Savings'}</span></div>
+                      <div><label className="block text-[10px] font-bold text-slate-400 dark:text-slate-500 uppercase tracking-wider">Amount</label><span className="font-bold text-blue-600 dark:text-blue-400">₱{Number(n.amount || 0).toLocaleString()}</span></div>
+                      <div><label className="block text-[10px] font-bold text-slate-400 dark:text-slate-500 uppercase tracking-wider">Date</label><span className="font-bold text-slate-800 dark:text-slate-200">{new Date(n.timestamp).toLocaleDateString()}</span></div>
                     </div>
                   )}
                   {n.type === 'donation' && (
-                    <div className="user-notif-detail-grid small">
-                      <div><label>Category</label><span>{n.category || 'Tithe'}</span></div>
-                      <div><label>Amount</label><span className="text-pink">₱{Number(n.amount || 0).toLocaleString()}</span></div>
-                      <div><label>Date</label><span>{new Date(n.timestamp).toLocaleDateString()}</span></div>
-                    </div>
-                  )}
-                  {n.type === 'announcement' && (
-                    <div className="user-notif-full-message">
-                      {n.message}
+                    <div className="grid grid-cols-2 sm:grid-cols-3 gap-3 p-3 rounded-xl bg-slate-50 dark:bg-slate-800/40 text-xs">
+                      <div><label className="block text-[10px] font-bold text-slate-400 dark:text-slate-500 uppercase tracking-wider">Category</label><span className="font-bold text-slate-800 dark:text-slate-200">{n.category || 'Tithe'}</span></div>
+                      <div><label className="block text-[10px] font-bold text-slate-400 dark:text-slate-500 uppercase tracking-wider">Amount</label><span className="font-bold text-pink-600 dark:text-pink-400">₱{Number(n.amount || 0).toLocaleString()}</span></div>
+                      <div><label className="block text-[10px] font-bold text-slate-400 dark:text-slate-500 uppercase tracking-wider">Date</label><span className="font-bold text-slate-800 dark:text-slate-200">{new Date(n.timestamp).toLocaleDateString()}</span></div>
                     </div>
                   )}
                 </div>
@@ -676,110 +727,110 @@ export default function Notifications() {
 
   return (
     <>
-      <div className="user-notifications-container">
+      <div className="space-y-4 font-inter pb-8">
 
         {/* Header */}
-        <div className="user-notifications-page-header">
-          <div className="user-notifications-header-left">
-            <div className="user-notifications-title-row">
-              <h1 className="user-notifications-page-title">Notifications</h1>
-            </div>
+        <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-3 pb-2.5 border-b border-slate-200/80 dark:border-white/10 font-inter">
+          <div>
+            <p className="text-[11px] font-bold text-blue-600 dark:text-blue-400 uppercase tracking-widest font-inter mb-0.5">System &amp; Activity Updates</p>
+            <h1 className="text-2xl sm:text-[26px] font-extrabold text-slate-900 dark:text-white font-dm leading-none tracking-tight">Notifications</h1>
+            <p className="text-xs text-slate-500 dark:text-slate-400 font-inter mt-1">Stay updated with your applications and account activity</p>
           </div>
         </div>
 
-
         {/* Controls Row: Filters + Mark All */}
-        <div className="user-notif-controls-row">
-          <div className="user-notif-filters">
+        <div className="flex flex-wrap items-center justify-between gap-2 font-inter pt-1 pb-1">
+          <div className="flex items-center gap-1 sm:gap-1.5 flex-wrap min-w-0">
             {[
-              { key: 'all', label: 'All' },
-              { key: 'loans_payments', label: 'Loans & Payments' },
-              { key: 'activity', label: 'Activity' },
-              { key: 'unread', label: 'Unread' },
-            ].map(({ key, label }) => (
+              { key: 'all', label: 'All', shortLabel: 'All' },
+              { key: 'loans_payments', label: 'Loans & Payments', shortLabel: 'Loans & Pay' },
+              { key: 'activity', label: 'Activity', shortLabel: 'Activity' },
+              { key: 'unread', label: 'Unread', shortLabel: 'Unread' },
+            ].map(({ key, label, shortLabel }) => (
               <button
                 key={key}
-                className={`user-notif-filter-btn${activeFilter === key ? ' active' : ''}`}
+                className={`px-2 sm:px-3 py-1.5 rounded-xl text-[11px] sm:text-xs font-bold transition-all cursor-pointer flex items-center gap-1 shrink-0 border-none ${
+                  activeFilter === key 
+                    ? 'bg-blue-600 text-white shadow-md shadow-blue-500/20' 
+                    : 'bg-white dark:bg-[#1E2130] border border-slate-200/80 dark:border-white/10 text-slate-700 dark:text-slate-300 hover:bg-slate-50 dark:hover:bg-slate-800/50'
+                }`}
                 onClick={() => setActiveFilter(key)}
               >
-                {label}
+                <span className="hidden sm:inline">{label}</span>
+                <span className="inline sm:hidden">{shortLabel}</span>
                 {getUnreadCount(key) > 0 && (
-                  <span className="user-notif-filter-pill">{getUnreadCount(key)}</span>
+                  <span className={`px-1.5 py-0.2 rounded-full text-[10px] font-extrabold ${
+                    activeFilter === key ? 'bg-white text-blue-600' : 'bg-blue-600 text-white'
+                  }`}>
+                    {getUnreadCount(key)}
+                  </span>
                 )}
               </button>
             ))}
           </div>
 
-          <button className="user-notifications-mark-all-btn" onClick={markAllAsRead}>
+          <button 
+            className="text-xs font-bold text-blue-600 dark:text-blue-400 hover:underline cursor-pointer border-none bg-transparent shrink-0 ml-auto" 
+            onClick={markAllAsRead}
+          >
             Mark all as read
           </button>
         </div>
 
         {/* List */}
         {loading ? (
-          <div className="user-notif-skeleton-list">
+          <div className="space-y-3">
             {[...Array(6)].map((_, i) => (
-              <div key={i} className="user-notif-skeleton-card">
-                {/* Icon */}
-                <div className="user-notif-skeleton-icon user-notif-skel" />
-
-                {/* Body */}
-                <div className="user-notif-skeleton-body">
-                  {/* Title row + badge */}
-                  <div className="user-notif-skeleton-header">
-                    <div className="user-notif-skel" style={{ height: '14px', width: '45%', borderRadius: '4px' }} />
-                    <div className="user-notif-skel" style={{ height: '18px', width: '60px', borderRadius: '999px' }} />
-                  </div>
-
-                  {/* Message lines */}
-                  <div className="user-notif-skel" style={{ height: '12px', width: '90%', borderRadius: '4px' }} />
-                  <div className="user-notif-skel" style={{ height: '12px', width: '70%', borderRadius: '4px' }} />
-
-                  {/* Timestamp */}
-                  <div className="user-notif-skeleton-footer">
-                    <div className="user-notif-skel" style={{ height: '11px', width: '80px', borderRadius: '4px' }} />
-                  </div>
+              <div key={i} className="p-4 sm:p-5 bg-white dark:bg-[#1E2130] border border-slate-200 dark:border-white/10 rounded-2xl flex items-start gap-4 animate-pulse">
+                <div className="w-10 h-10 rounded-xl bg-slate-200 dark:bg-slate-800 shrink-0" />
+                <div className="flex-1 space-y-2">
+                  <div className="h-4 bg-slate-200 dark:bg-slate-800 rounded w-1/3" />
+                  <div className="h-3 bg-slate-200 dark:bg-slate-800 rounded w-3/4" />
                 </div>
               </div>
             ))}
           </div>
         ) : filtered.length === 0 ? (
-          <div className="user-notif-empty">
-            <div className="user-notif-empty-icon">
-              <Bell size={48} strokeWidth={1.5} color="#2563EB" />
+          <div className="p-12 bg-white dark:bg-[#1E2130] border border-slate-200 dark:border-white/10 rounded-2xl text-center space-y-3 shadow-sm">
+            <div className="w-14 h-14 rounded-2xl bg-blue-50 dark:bg-blue-950/50 text-blue-600 dark:text-blue-400 flex items-center justify-center mx-auto">
+              <Bell size={28} />
             </div>
-            <h3>{emptyStates[activeFilter]?.msg}</h3>
-            <p>{emptyStates[activeFilter]?.hint}</p>
+            <h3 className="text-base font-bold text-slate-900 dark:text-white">{emptyStates[activeFilter]?.msg}</h3>
+            <p className="text-xs text-slate-500 dark:text-slate-400 max-w-sm mx-auto">{emptyStates[activeFilter]?.hint}</p>
             {activeFilter !== 'all' && (
-              <button className="user-notif-empty-btn" onClick={() => setActiveFilter('all')}>
+              <button className="px-4 py-2 bg-blue-600 text-white text-xs font-bold rounded-xl shadow-md hover:bg-blue-700 transition-all cursor-pointer mt-2 border-none" onClick={() => setActiveFilter('all')}>
                 Show all notifications
               </button>
             )}
           </div>
         ) : (
-          <div className="user-notif-list">
+          <div className="space-y-6">
 
             {/* Pinned Section */}
             {pinned.length > 0 && (
-              <div className="user-notif-section">
-                <div className="user-notif-section-label">Action Required</div>
-                {pinned.map(n => renderCard(n))}
+              <div className="space-y-3">
+                <div className="text-xs font-bold text-slate-400 dark:text-slate-500 uppercase tracking-wider">Action Required</div>
+                <div className="space-y-3">
+                  {pinned.map(n => renderCard(n))}
+                </div>
               </div>
             )}
 
             {/* Time-based Sections */}
             {['today', 'yesterday', 'earlier'].map(key => (
               groups[key].length > 0 && (
-                <div key={key} className="user-notif-section">
-                  <div className="user-notif-section-label">
+                <div key={key} className="space-y-3">
+                  <div className="text-xs font-bold text-slate-400 dark:text-slate-500 uppercase tracking-wider">
                     {key.charAt(0).toUpperCase() + key.slice(1)}
                   </div>
-                  {groups[key].map(n => n.isSummary ? renderSummary(n) : renderCard(n))}
+                  <div className="space-y-3">
+                    {groups[key].map(n => n.isSummary ? renderSummary(n) : renderCard(n))}
+                  </div>
                 </div>
               )
             ))}
 
-            <div className="user-notif-bottom-spacer" />
+            <div className="h-6" />
           </div>
         )}
 
@@ -787,209 +838,206 @@ export default function Notifications() {
 
       {/* ── Terms Review Modal ── */}
       {termsModal && (
-        <div className="user-terms-modal-overlay" onClick={() => !termsLoading && setTermsModal(null)}>
-          <div className="user-terms-modal" onClick={(e) => e.stopPropagation()}>
-            <div className="user-notif-modal-drag-handle" />
-            <div className="user-terms-modal-header with-bg">
-              <h2 className="user-terms-modal-title">Loan Terms Modified</h2>
-              <button className="user-terms-modal-close" onClick={() => setTermsModal(null)}>×</button>
+        <div className="fixed inset-0 z-[9999] bg-black/60 backdrop-blur-sm flex items-end sm:items-center justify-center p-0 sm:p-4 overflow-hidden sm:overflow-y-auto" onClick={() => !termsLoading && setTermsModal(null)}>
+          <div className="relative w-full max-w-xl bg-white dark:bg-[#1E2130] rounded-t-3xl sm:rounded-2xl p-6 sm:p-8 shadow-2xl border-t sm:border border-slate-200 dark:border-white/10 max-h-[90vh] overflow-y-auto text-left space-y-4 font-inter" onClick={(e) => e.stopPropagation()}>
+            {/* Mobile Drag Indicator Pill */}
+            <div className="w-12 h-1.5 bg-slate-300 dark:bg-slate-700 rounded-full mx-auto -mt-1 mb-2 sm:hidden shrink-0" />
+
+            <div className="flex items-center justify-between pb-3 border-b border-slate-100 dark:border-white/5">
+              <h2 className="text-xl font-bold text-slate-900 dark:text-white">Loan Terms Modified</h2>
+              <button className="text-slate-400 hover:text-slate-600 dark:hover:text-white p-1 rounded-full transition-colors" onClick={() => setTermsModal(null)}>
+                <X size={20} />
+              </button>
             </div>
 
-            <div className="user-notif-modal-subheader">
-              <span className={`user-notif-type-badge ${badgeClass('loan')}`}>
-                {badgeLabel('loan')}
-              </span>
-              <span className="user-notif-modal-time">
-                {termsModal.modifiedTerms?.proposedDate ? new Date(termsModal.modifiedTerms.proposedDate).toLocaleDateString() : ''}
-              </span>
-            </div>
-
-            <p className="user-terms-modal-desc">
+            <p className="text-xs text-slate-600 dark:text-slate-300">
               The loan officer has proposed new terms for your loan application
-              <strong> {termsModal.loanId}</strong>. Please review the changes below.
+              <strong className="text-blue-600 dark:text-blue-400"> {termsModal.loanId}</strong>. Please review the changes below.
             </p>
 
-            <div className="user-terms-compare">
+            <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
               {/* Original */}
-              <div className="user-terms-column user-terms-column--original">
-                <h4 className="user-terms-column-title">Original Terms</h4>
-                <div className="user-terms-row"><span>Amount</span><strong>{fmt(termsModal.amount)}</strong></div>
-                <div className="user-terms-row"><span>Term</span><strong>{termsModal.termMonths} months</strong></div>
-                <div className="user-terms-row"><span>Monthly Payment</span><strong>{fmt(termsModal.monthlyPayment)}</strong></div>
-                <div className="user-terms-row"><span>Total Interest</span><strong>{fmt(termsModal.totalInterest)}</strong></div>
-                <div className="user-terms-row"><span>Total Repayment</span><strong>{fmt(termsModal.totalRepayment)}</strong></div>
-              </div>
-
-              {/* Arrow */}
-              <div className="user-terms-arrow">
-                <Banknote size={24} color="#6B7280" />
+              <div className="p-4 bg-slate-50 dark:bg-slate-800/50 rounded-xl border border-slate-200/60 dark:border-white/5 space-y-2 text-xs">
+                <h4 className="font-bold text-slate-500 dark:text-slate-400 border-b border-slate-200 dark:border-white/5 pb-1">Original Terms</h4>
+                <div className="flex justify-between"><span>Amount</span><strong>{fmt(termsModal.amount)}</strong></div>
+                <div className="flex justify-between"><span>Term</span><strong>{termsModal.termMonths} months</strong></div>
+                <div className="flex justify-between"><span>Monthly Payment</span><strong>{fmt(termsModal.monthlyPayment)}</strong></div>
+                <div className="flex justify-between"><span>Total Interest</span><strong>{fmt(termsModal.totalInterest)}</strong></div>
+                <div className="flex justify-between"><span>Total Repayment</span><strong>{fmt(termsModal.totalRepayment)}</strong></div>
               </div>
 
               {/* Proposed */}
-              <div className="user-terms-column user-terms-column--proposed">
-                <h4 className="user-terms-column-title">Proposed Terms</h4>
-                <div className="user-terms-row"><span>Amount</span><strong>{fmt(termsModal.modifiedTerms?.approvedAmount)}</strong></div>
-                <div className="user-terms-row"><span>Term</span><strong>{termsModal.modifiedTerms?.repaymentTerm} months</strong></div>
-                <div className="user-terms-row"><span>Monthly Payment</span><strong>{fmt(termsModal.modifiedTerms?.monthlyPayment)}</strong></div>
-                <div className="user-terms-row"><span>Total Interest</span><strong>{fmt(termsModal.modifiedTerms?.totalInterest)}</strong></div>
-                <div className="user-terms-row"><span>Total Repayment</span><strong>{fmt(termsModal.modifiedTerms?.totalRepayment)}</strong></div>
+              <div className="p-4 bg-blue-50/60 dark:bg-blue-950/40 rounded-xl border border-blue-200/60 dark:border-blue-800/40 space-y-2 text-xs">
+                <h4 className="font-bold text-blue-600 dark:text-blue-400 border-b border-blue-200 dark:border-blue-800/40 pb-1">Proposed Terms</h4>
+                <div className="flex justify-between text-slate-700 dark:text-slate-200"><span>Amount</span><strong className="text-blue-600 dark:text-blue-400">{fmt(termsModal.modifiedTerms?.approvedAmount)}</strong></div>
+                <div className="flex justify-between text-slate-700 dark:text-slate-200"><span>Term</span><strong>{termsModal.modifiedTerms?.repaymentTerm} months</strong></div>
+                <div className="flex justify-between text-slate-700 dark:text-slate-200"><span>Monthly Payment</span><strong>{fmt(termsModal.modifiedTerms?.monthlyPayment)}</strong></div>
+                <div className="flex justify-between text-slate-700 dark:text-slate-200"><span>Total Interest</span><strong>{fmt(termsModal.modifiedTerms?.totalInterest)}</strong></div>
+                <div className="flex justify-between text-slate-700 dark:text-slate-200"><span>Total Repayment</span><strong>{fmt(termsModal.modifiedTerms?.totalRepayment)}</strong></div>
               </div>
             </div>
 
-            <div className="user-terms-modal-actions">
+            <div className="flex items-center gap-3 pt-2">
               <button
-                className="user-terms-btn user-terms-btn--decline"
+                className="flex-1 py-2.5 bg-slate-100 dark:bg-slate-800 hover:bg-slate-200 dark:hover:bg-slate-700 text-slate-700 dark:text-slate-300 font-semibold rounded-xl transition-all text-xs cursor-pointer border-none"
                 onClick={() => handleTermsResponse(false)}
                 disabled={termsLoading}
               >
                 Decline
               </button>
               <button
-                className="user-terms-btn user-terms-btn--agree"
+                className="flex-1 py-2.5 bg-blue-600 hover:bg-blue-700 text-white font-semibold rounded-xl shadow-md transition-all text-xs flex items-center justify-center cursor-pointer border-none"
                 onClick={() => handleTermsResponse(true)}
                 disabled={termsLoading}
               >
-                {termsLoading ? <span className="btn-spinner" /> : 'Agree to Terms'}
+                {termsLoading ? <span className="w-4 h-4 border-2 border-white border-t-transparent rounded-full animate-spin inline-block" /> : 'Agree to Terms'}
               </button>
             </div>
           </div>
         </div>
       )}
 
-      {/* ── Notification Detail Modal (Loans/Payments) ── */}
+      {/* ── Notification Detail Modal (Loans/Payments Receipt Slider) ── */}
       {detailModal && (
-        <div className="user-terms-modal-overlay" onClick={() => setDetailModal(null)}>
-          <div className="user-terms-modal" onClick={(e) => e.stopPropagation()}>
-            <div className="user-notif-modal-drag-handle" />
-            <div className="user-terms-modal-header with-bg">
-              <h2 className="user-terms-modal-title">{detailModal.title}</h2>
-              <button className="user-terms-modal-close" onClick={() => setDetailModal(null)}>×</button>
+        <div className="fixed inset-0 z-[9999] bg-black/60 backdrop-blur-sm flex items-end sm:items-center justify-center p-0 sm:p-4 overflow-hidden sm:overflow-y-auto" onClick={() => setDetailModal(null)}>
+          <div
+            className={`relative w-full max-w-sm sm:max-w-md bg-white dark:bg-[#1E2130] rounded-t-3xl sm:rounded-3xl p-4 sm:p-5 shadow-2xl border-t sm:border border-slate-200/80 dark:border-white/10 max-h-[92vh] overflow-y-auto text-left space-y-2.5 font-inter ${
+              isDraggingModal ? '' : 'transition-transform duration-200'
+            }`}
+            style={{ transform: modalDragY > 0 ? `translateY(${modalDragY}px)` : 'none' }}
+            onTouchStart={handleModalTouchStart}
+            onTouchMove={handleModalTouchMove}
+            onTouchEnd={handleModalTouchEnd}
+            onClick={(e) => e.stopPropagation()}
+          >
+            
+            {/* Mobile Drag Handle Pill */}
+            <div className="w-full pt-0.5 pb-1 flex justify-center sm:hidden cursor-grab active:cursor-grabbing">
+              <div className="w-12 h-1.5 bg-slate-300 dark:bg-slate-700 rounded-full shrink-0" />
             </div>
 
-            <div className="user-notif-modal-body">
-              <div className="user-notif-modal-subheader">
-                <span className={`user-notif-type-badge ${badgeClass(detailModal.type)}`}>
-                  {badgeLabel(detailModal.type)}
-                </span>
-                <span className="user-notif-modal-time">
-                  {detailModal.timestamp
-                    ? new Date(detailModal.timestamp).toLocaleString('en-PH', { month: 'short', day: 'numeric', year: 'numeric', hour: '2-digit', minute: '2-digit' })
-                    : ''}
-                </span>
+            {/* Top Close Button */}
+            <button className="absolute top-3.5 right-3.5 text-slate-400 hover:text-slate-600 dark:hover:text-white p-1 rounded-full hover:bg-slate-100 dark:hover:bg-slate-800 transition-colors border-none bg-transparent cursor-pointer" onClick={() => setDetailModal(null)}>
+              <X size={16} />
+            </button>
+
+            {/* Receipt Icon Badge */}
+            <div className="text-center pt-0.5">
+              <div className="w-10 h-10 rounded-xl bg-emerald-50 dark:bg-emerald-950/60 text-emerald-600 dark:text-emerald-400 flex items-center justify-center mx-auto mb-1.5 border border-emerald-100 dark:border-emerald-900/30 shadow-xs">
+                <BadgeCheck size={22} />
               </div>
+              <h2 className="text-base sm:text-lg font-extrabold text-slate-900 dark:text-white font-dm tracking-tight leading-tight">
+                {detailModal.type === 'payment_pending' ? 'Payment Confirmed' : detailModal.title}
+              </h2>
+              <p className="text-[11px] text-slate-400 font-medium mt-0.5">
+                {detailModal.timestamp
+                  ? new Date(detailModal.timestamp).toLocaleString('en-PH', { month: 'short', day: 'numeric', year: 'numeric', hour: '2-digit', minute: '2-digit' })
+                  : ''}
+              </p>
+            </div>
 
-              {/* LOAN SPECIFIC CONTENT */}
-              {detailModal.type === 'loan' && (
-                <div className="user-notif-rich-content">
-                  {/* Status Stepper */}
-                  <div className="user-notif-stepper">
-                    {[
-                      { label: 'Submitted', key: 'submitted' },
-                      { label: 'Review', key: 'review' },
-                      { label: 'Approved', key: 'approved' },
-                      { label: 'Disbursed', key: 'disbursed' },
-                      { label: 'Completed', key: 'completed' }
-                    ].map((step, idx, arr) => {
-                      const loanStatus = detailModal.loanData?.status || '';
-                      
-                      // Map DB status to stepper keys
-                      const statusMap = {
-                        'pending': 'submitted',
-                        'awaiting_member_approval': 'review',
-                        'under_review': 'review',
-                        'approved': 'approved',
-                        'active': 'disbursed',
-                        'processed': 'disbursed',
-                        'completed': 'completed'
-                      };
-                      
-                      const mappedStatus = statusMap[loanStatus] || loanStatus;
-                      const activeIdx = arr.findIndex(s => s.key === mappedStatus);
-                      
-                      let isComplete = idx <= activeIdx;
-                      
-                      // Fallback: If activeIdx is -1, use title heuristics
-                      if (activeIdx === -1) {
-                        if (detailModal.title.includes('Approved') && idx <= 2) isComplete = true;
-                        if (detailModal.title.includes('Submitted') && idx <= 0) isComplete = true;
-                        if (detailModal.title.includes('Disbursed') && idx <= 3) isComplete = true;
-                        if (detailModal.title.includes('Completed') && idx <= 4) isComplete = true;
-                      }
-
-                      return (
-                        <div key={step.label} className={`user-notif-step ${isComplete ? 'completed' : ''}`}>
-                          <div className="step-circle">{isComplete ? <Check size={10} /> : idx + 1}</div>
-                          <span className="step-label">{step.label}</span>
-                          {idx < arr.length - 1 && <div className="step-line" />}
-                        </div>
-                      );
-                    })}
+            {/* PAYMENT PENDING RECEIPT CONTENT */}
+            {detailModal.type === 'payment_pending' && detailModal.paymentData && (
+              <div className="space-y-2.5 pt-0.5">
+                {/* Hero Amount Box */}
+                <div className="p-2.5 rounded-xl bg-slate-50 dark:bg-slate-800/50 border border-slate-200/70 dark:border-white/5 text-center">
+                  <span className="text-[9px] font-bold text-slate-400 dark:text-slate-500 uppercase tracking-widest block mb-0.5">Total Amount Paid</span>
+                  <div className="text-2xl font-extrabold font-dm text-slate-900 dark:text-white tracking-tight">
+                    ₱{Number(detailModal.paymentData.amount).toLocaleString('en-PH', { minimumFractionDigits: 2 })}
                   </div>
-
-                  <div className="user-notif-detail-grid">
-                    <div><label>Loan ID</label><span>{detailModal.loanData?.loanId || '—'}</span></div>
-                    <div><label>Amount</label><span className="text-bold">₱{Number(detailModal.loanData?.amount || 0).toLocaleString()}</span></div>
-                    <div><label>Interest</label><span>{fmt(detailModal.loanData?.totalInterest)}</span></div>
-                    <div><label>Status</label><span className="text-capitalize">{detailModal.loanData?.status || 'Pending'}</span></div>
+                  <div className="mt-1 inline-flex items-center gap-1 px-2 py-0.2 rounded-full text-[9px] font-extrabold bg-emerald-100 dark:bg-emerald-950/80 text-emerald-700 dark:text-emerald-300">
+                    <Check size={10} /> Confirmed Payment
                   </div>
-
-                  <p className="user-notif-modal-msg">{detailModal.message}</p>
-
-                  <button
-                    className="user-notif-action-btn primary"
-                    onClick={() => window.location.href = '/loans'}
-                  >
-                    View Loan Details
-                  </button>
                 </div>
-              )}
 
-              {/* PAYMENT PENDING SPECIFIC CONTENT */}
-              {detailModal.type === 'payment_pending' && detailModal.paymentData && (
-                <div className="user-notif-rich-content">
-                  <div className="user-notif-detail-grid">
-                    <div><label>Loan ID</label><span>{detailModal.paymentData.loanId || '—'}</span></div>
-                    <div><label>Month #</label><span>{detailModal.paymentData.monthNumber}</span></div>
-                    <div><label>Amount</label><span className="text-bold text-orange">₱{Number(detailModal.paymentData.amount).toLocaleString()}</span></div>
-                    <div><label>Method</label><span className="text-capitalize">{detailModal.paymentData.paymentMethod}</span></div>
-                    <div style={{ gridColumn: '1 / -1' }}><label>Submitted</label><span>{new Date(detailModal.paymentData.submittedAt).toLocaleString()}</span></div>
+                {/* Ticket Details Rows */}
+                <div className="space-y-1 pt-1 text-[11px] border-t border-dashed border-slate-200 dark:border-white/10">
+                  <div className="flex justify-between items-center py-0.5">
+                    <span className="text-slate-500 dark:text-slate-400 font-medium">Loan ID</span>
+                    <span className="font-mono font-bold text-slate-900 dark:text-white">{detailModal.paymentData.loanId || '—'}</span>
                   </div>
-
-                  <div className="user-notif-status-bar">
-                    <Circle 
-                      size={10} 
-                      fill={detailModal.paymentData.status === 'confirmed' ? '#10B981' : detailModal.paymentData.status === 'rejected' ? '#EF4444' : '#F59E0B'} 
-                      color={detailModal.paymentData.status === 'confirmed' ? '#10B981' : detailModal.paymentData.status === 'rejected' ? '#EF4444' : '#F59E0B'} 
-                    />
-                    <span style={{ 
-                      fontSize: '13px',
-                      color: detailModal.paymentData.status === 'confirmed' ? '#059669' : detailModal.paymentData.status === 'rejected' ? '#DC2626' : '#D97706', 
-                      fontWeight: 600 
-                    }}>
-                      {detailModal.paymentData.status === 'confirmed' ? 'Payment confirmed by admin' : detailModal.paymentData.status === 'rejected' ? 'Payment rejected' : 'Pending admin confirmation'}
-                    </span>
+                  <div className="flex justify-between items-center py-0.5 border-t border-slate-100 dark:border-white/5">
+                    <span className="text-slate-500 dark:text-slate-400 font-medium">Installment</span>
+                    <span className="font-bold text-slate-900 dark:text-white">Month #{detailModal.paymentData.monthNumber}</span>
                   </div>
+                  <div className="flex justify-between items-center py-0.5 border-t border-slate-100 dark:border-white/5">
+                    <span className="text-slate-500 dark:text-slate-400 font-medium">Payment Method</span>
+                    <span className="font-bold text-slate-900 dark:text-white capitalize">{detailModal.paymentData.paymentMethod}</span>
+                  </div>
+                </div>
 
-                  {detailModal.paymentData.proofData && (
-                    <div className="user-notif-proof-section">
-                      <label>Proof of Payment</label>
+                {/* Proof of Payment Image - Fully Visible (object-contain) */}
+                {detailModal.paymentData.proofData && (
+                  <div className="space-y-1 pt-1 border-t border-slate-100 dark:border-white/5">
+                    <label className="text-[11px] font-bold text-slate-700 dark:text-slate-300 block">Proof of Payment</label>
+                    <div 
+                      className="group relative rounded-xl overflow-hidden border border-slate-200 dark:border-white/10 cursor-pointer bg-slate-50 dark:bg-slate-900 flex items-center justify-center p-1"
+                      onClick={() => setPreviewImage(detailModal.paymentData.proofData)}
+                    >
                       <img
                         src={detailModal.paymentData.proofData}
                         alt="Payment proof"
-                        onClick={() => window.open(detailModal.paymentData.proofData, '_blank')}
+                        className="w-full max-h-36 sm:max-h-40 object-contain rounded-lg group-hover:scale-102 transition-transform duration-300"
                       />
+                      <div className="absolute inset-0 bg-slate-900/40 opacity-0 group-hover:opacity-100 transition-opacity flex items-center justify-center text-white text-[11px] font-bold gap-1 rounded-lg">
+                        <span>Tap to open full image</span>
+                      </div>
                     </div>
-                  )}
+                  </div>
+                )}
 
-                  <button
-                    className="user-notif-action-btn"
-                    onClick={() => window.location.href = '/loans'}
-                  >
-                    View Loan
-                  </button>
+                <button
+                  className="w-full h-9 bg-blue-600 hover:bg-blue-700 text-white font-bold rounded-xl shadow-md transition-all text-xs cursor-pointer border-none flex items-center justify-center gap-1 mt-1.5"
+                  onClick={() => window.location.href = '/loans'}
+                >
+                  View Loan Details →
+                </button>
+              </div>
+            )}
+
+            {/* LOAN NOTIFICATION SPECIFIC CONTENT */}
+            {detailModal.type === 'loan' && (
+              <div className="space-y-3 pt-0.5">
+                <div className="grid grid-cols-2 gap-2 text-xs p-2.5 bg-slate-50 dark:bg-slate-800/50 rounded-xl border border-slate-200/60 dark:border-white/5">
+                  <div><label className="text-slate-400 block text-[9px] uppercase font-bold tracking-wider mb-0.5">Loan ID</label><span className="font-bold text-slate-900 dark:text-white font-mono">{detailModal.loanData?.loanId || '—'}</span></div>
+                  <div><label className="text-slate-400 block text-[9px] uppercase font-bold tracking-wider mb-0.5">Amount</label><span className="font-extrabold text-blue-600 dark:text-blue-400">₱{Number(detailModal.loanData?.amount || 0).toLocaleString()}</span></div>
+                  <div><label className="text-slate-400 block text-[9px] uppercase font-bold tracking-wider mb-0.5">Interest</label><span className="font-bold text-slate-900 dark:text-white">{fmt(detailModal.loanData?.totalInterest)}</span></div>
+                  <div><label className="text-slate-400 block text-[9px] uppercase font-bold tracking-wider mb-0.5">Status</label><span className="font-bold capitalize text-slate-900 dark:text-white">{detailModal.loanData?.status || 'Pending'}</span></div>
                 </div>
-              )}
-            </div>
+
+                <p className="text-xs text-slate-600 dark:text-slate-300 leading-relaxed">{detailModal.message}</p>
+
+                <button
+                  className="w-full h-9 bg-blue-600 hover:bg-blue-700 text-white font-bold rounded-xl shadow-md transition-all text-xs cursor-pointer border-none"
+                  onClick={() => window.location.href = '/loans'}
+                >
+                  View Loan Details →
+                </button>
+              </div>
+            )}
+          </div>
+        </div>
+      )}
+
+      {/* ── Fullscreen Image Preview Lightbox ── */}
+      {previewImage && (
+        <div
+          className="fixed inset-0 z-[10000] bg-black/90 backdrop-blur-md flex items-center justify-center p-4"
+          onClick={() => setPreviewImage(null)}
+        >
+          <button
+            className="absolute top-4 right-4 p-2 rounded-full bg-white/10 hover:bg-white/20 text-white transition-colors border-none cursor-pointer z-10"
+            onClick={() => setPreviewImage(null)}
+            title="Close preview"
+          >
+            <X size={24} />
+          </button>
+          <div className="relative max-w-4xl max-h-[85vh] w-full flex items-center justify-center p-2" onClick={(e) => e.stopPropagation()}>
+            <img
+              src={previewImage}
+              alt="Proof of payment detail"
+              className="max-w-full max-h-[85vh] object-contain rounded-2xl shadow-2xl"
+            />
           </div>
         </div>
       )}

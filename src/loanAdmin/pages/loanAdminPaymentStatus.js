@@ -3,10 +3,10 @@ import useSWR from 'swr';
 import { useLocation } from 'react-router-dom';
 import { toast } from 'sonner';
 import LoanAdminSidebar from './loanAdminSidebar';
-import '../styles/loanAdminLoanManagement.css';
-import '../styles/loanAdminPaymentStatus.css';
+
+
 import API from '../../utils/api';
-import { PiggyBank, Search, X } from 'lucide-react';
+import { PiggyBank, Search, X, Loader2 } from 'lucide-react'; 
 import { PieChart, Pie, Cell, Tooltip as RechartsTooltip, ResponsiveContainer, Label } from 'recharts';
 
 const renderSliceLabel = ({ cx, cy, midAngle, innerRadius, outerRadius, percent }) => {
@@ -378,16 +378,16 @@ export default function LoanAdminPaymentStatus() {
 
 
   return (
-    <div className="loan-admin-mgmt-page">
+    <div className="flex h-screen overflow-hidden bg-slate-100 dark:bg-[#161922]">
       <LoanAdminSidebar />
-      <div className="loan-admin-mgmt-content">
-        <div className="loan-admin-mgmt-header" style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
-          <h1 className="loan-admin-mgmt-title">
+      <div className="flex-1 overflow-y-auto p-6 flex flex-col gap-5">
+        <div className="flex items-center justify-between">
+          <h1 className="font-inter text-xl font-bold text-slate-800 dark:text-white m-0">
             {isSavingsRoute ? 'Savings Overview' : 'Loan Payments'}
           </h1>
           <button 
             onClick={() => { resetWalkin(); setShowWalkinModal(true); setWalkinType(isSavingsRoute ? 'savings' : 'loan'); }}
-            style={{ display: 'flex', alignItems: 'center', gap: '8px', padding: '10px 16px', background: '#155DFC', color: 'white', border: 'none', borderRadius: '8px', cursor: 'pointer', fontFamily: 'Inter', fontWeight: 600, fontSize: '14px', boxShadow: '0 2px 4px rgba(21, 93, 252, 0.2)' }}
+            className="flex items-center gap-2 px-4 py-2.5 bg-blue-600 text-white text-sm font-semibold font-inter rounded-lg hover:bg-blue-700 transition-colors border-none cursor-pointer shadow-sm"
           >
             <PiggyBank size={16} />
             Process Walk-in
@@ -395,44 +395,44 @@ export default function LoanAdminPaymentStatus() {
         </div>
 
         {!isSavingsRoute && (
-          <div className="loan-admin-mgmt-stats" style={{ gridTemplateColumns: 'repeat(4, 1fr)' }}>
-            <div className="loan-admin-mgmt-stat-card">
-              <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '12px', minHeight: '24px' }}>
-                <p className="loan-admin-mgmt-stat-label" style={{ margin: 0 }}>On Track</p>
+          <div className="grid grid-cols-2 md:grid-cols-4 gap-4">
+            <div className="bg-white dark:bg-[#1E2130] border border-slate-200 dark:border-white/10 rounded-xl p-5 shadow-sm flex flex-col gap-2">
+              <div className="flex items-center justify-between mb-3 min-h-[24px]">
+                <p className="font-inter font-semibold text-[11px] tracking-wider uppercase text-slate-500 dark:text-slate-400 m-0">On Track</p>
               </div>
-              <p className="loan-admin-mgmt-stat-value approved">{counts.onTrack}</p>
+              <p className="font-inter font-bold text-3xl text-emerald-500 m-0">{counts.onTrack}</p>
             </div>
-            <div className="loan-admin-mgmt-stat-card">
-              <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '12px', minHeight: '24px' }}>
-                <p className="loan-admin-mgmt-stat-label" style={{ margin: 0 }}>Overdue (1-30d)</p>
+            <div className="bg-white dark:bg-[#1E2130] border border-slate-200 dark:border-white/10 rounded-xl p-5 shadow-sm flex flex-col gap-2">
+              <div className="flex items-center justify-between mb-3 min-h-[24px]">
+                <p className="font-inter font-semibold text-[11px] tracking-wider uppercase text-slate-500 dark:text-slate-400 m-0">Overdue (1-30d)</p>
               </div>
-              <p className="loan-admin-mgmt-stat-value pending">{counts.overdue}</p>
+              <p className="font-inter font-bold text-3xl text-amber-500 m-0">{counts.overdue}</p>
             </div>
-            <div className="loan-admin-mgmt-stat-card">
-              <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '12px', minHeight: '24px' }}>
-                <p className="loan-admin-mgmt-stat-label" style={{ margin: 0 }}>High Risk (31-60d)</p>
+            <div className="bg-white dark:bg-[#1E2130] border border-slate-200 dark:border-white/10 rounded-xl p-5 shadow-sm flex flex-col gap-2">
+              <div className="flex items-center justify-between mb-3 min-h-[24px]">
+                <p className="font-inter font-semibold text-[11px] tracking-wider uppercase text-slate-500 dark:text-slate-400 m-0">High Risk (31-60d)</p>
               </div>
-              <p className="loan-admin-mgmt-stat-value" style={{ color: '#F97316' }}>{counts.highRisk}</p>
+              <p className="font-inter font-bold text-3xl text-orange-500 m-0">{counts.highRisk}</p>
             </div>
-            <div className="loan-admin-mgmt-stat-card">
-              <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '12px', minHeight: '24px' }}>
-                <p className="loan-admin-mgmt-stat-label" style={{ margin: 0 }}>Default (60+d)</p>
+            <div className="bg-white dark:bg-[#1E2130] border border-slate-200 dark:border-white/10 rounded-xl p-5 shadow-sm flex flex-col gap-2">
+              <div className="flex items-center justify-between mb-3 min-h-[24px]">
+                <p className="font-inter font-semibold text-[11px] tracking-wider uppercase text-slate-500 dark:text-slate-400 m-0">Default (60+d)</p>
               </div>
-              <p className="loan-admin-mgmt-stat-value rejected">{counts.defaulted}</p>
+              <p className="font-inter font-bold text-3xl text-rose-500 m-0">{counts.defaulted}</p>
             </div>
           </div>
         )}
 
         {isSavingsRoute && (
-          <div className="la-savings-overview-grid">
+          <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
             {/* Left Column: Chart */}
-            <div className="loan-admin-mgmt-table-container la-savings-chart-card">
-              <h3 className="la-savings-chart-title">Savings by Role</h3>
-              <div className="la-savings-chart-content">
+            <div className="md:col-span-2 bg-white dark:bg-[#1E2130] border border-slate-200 dark:border-white/10 rounded-xl p-5 shadow-sm">
+              <h3 className="font-inter text-sm font-semibold text-slate-700 dark:text-slate-300 mb-4 m-0">Savings by Role</h3>
+              <div className="flex flex-col gap-4">
                 {savingsChartData.pieTotal === 0 ? (
-                  <p style={{ color: '#9CA3AF', fontSize: '14px' }}>No savings deposits available yet.</p>
+                  <p className="text-sm text-slate-400">No savings deposits available yet.</p>
                 ) : (
-                  <div className="la-savings-chart-wrapper">
+                  <div className="flex flex-col gap-4">
                     <ResponsiveContainer width="100%" height={240}>
                       <PieChart>
                         <Pie
@@ -453,27 +453,27 @@ export default function LoanAdminPaymentStatus() {
                             value={`₱${savingsChartData.pieTotal >= 1000 ? (savingsChartData.pieTotal/1000).toFixed(1).replace(/\.0$/, '') + 'k' : savingsChartData.pieTotal}`} 
                             position="center" 
                             fill="#1e3a5f" 
-                            style={{ fontSize: '18px', fontWeight: 'bold', fontFamily: 'Inter' }} 
+                            className="text-lg font-bold font-inter" 
                           />
                           <Label 
                             value="Total" 
                             position="center" 
                             dy={16} 
                             fill="#6B7280" 
-                            style={{ fontSize: '12px', fontFamily: 'Inter' }} 
+                            className="text-xs font-inter" 
                           />
                         </Pie>
                         <RechartsTooltip formatter={(value, name, props) => [`₱${(value || 0).toLocaleString()} (${Math.round((value/savingsChartData.pieTotal)*100)}%)`, props.payload.name]} contentStyle={{ borderRadius: '8px', border: 'none', boxShadow: '0 4px 6px -1px rgba(0, 0, 0, 0.1)' }} />
                       </PieChart>
                     </ResponsiveContainer>
-                    <div className="la-savings-pie-legend">
+                    <div className="flex flex-col gap-2 px-1">
                       {savingsChartData.pieData.map((cat, i) => (
-                        <div key={i} className="la-savings-pie-legend-item">
-                          <div className="la-savings-pie-legend-label">
-                            <div className="la-savings-pie-legend-dot" style={{ background: cat.color }} />
-                            <span className="la-savings-pie-legend-name">{cat.name}</span>
+                        <div key={i} className="flex items-center justify-between">
+                          <div className="flex items-center gap-2">
+                            <div className="w-2.5 h-2.5 rounded-full shrink-0" style={{ background: cat.color }} />
+                            <span className="font-inter text-[13px] text-slate-700 dark:text-slate-300">{cat.name}</span>
                           </div>
-                          <span className="la-savings-pie-legend-val">₱{cat.value.toLocaleString()} — {Math.round((cat.value/savingsChartData.pieTotal)*100)}%</span>
+                          <span className="font-inter text-[13px] font-semibold text-slate-800 dark:text-white">₱{cat.value.toLocaleString()} — {Math.round((cat.value/savingsChartData.pieTotal)*100)}%</span>
                         </div>
                       ))}
                     </div>
@@ -483,51 +483,51 @@ export default function LoanAdminPaymentStatus() {
             </div>
 
             {/* Right Column: 3 Stat Cards */}
-            <div className="la-savings-cards-col">
-              <div className="loan-admin-mgmt-stat-card la-savings-stat-card">
-                <div className="la-savings-stat-header">
-                  <p className="loan-admin-mgmt-stat-label la-savings-stat-label-text">Total Savings</p>
-                  <select value={savingsFilter} onChange={e => setSavingsFilter(e.target.value)} className="la-savings-filter-select">
+            <div className="flex flex-col gap-4">
+              <div className="bg-white dark:bg-[#1E2130] border border-slate-200 dark:border-white/10 rounded-xl p-5 shadow-sm flex flex-col gap-2 cursor-pointer hover:-translate-y-0.5 transition-transform">
+                <div className="flex items-center justify-between mb-1">
+                  <p className="font-inter font-semibold text-[11px] tracking-wider uppercase text-slate-500 dark:text-slate-400 m-0">Total Savings</p>
+                  <select value={savingsFilter} onChange={e => setSavingsFilter(e.target.value)} className="text-[11px] font-inter p-1 rounded border border-slate-200 dark:border-white/10 bg-white dark:bg-[#252836] text-slate-600 dark:text-slate-400 outline-none cursor-pointer">
                     <option value="all">All Time</option>
                     <option value="this_month">This Month</option>
                     <option value="this_year">This Year</option>
                   </select>
                 </div>
-                <p className="loan-admin-mgmt-stat-value approved">{fmt(totalSavingsFiltered)}</p>
+                <p className="font-inter font-bold text-3xl text-emerald-500 m-0">{fmt(totalSavingsFiltered)}</p>
               </div>
 
-              <div className="loan-admin-mgmt-stat-card la-savings-stat-card">
-                <div className="la-savings-stat-header">
-                  <p className="loan-admin-mgmt-stat-label la-savings-stat-label-text">Total Withdrawals</p>
+              <div className="bg-white dark:bg-[#1E2130] border border-slate-200 dark:border-white/10 rounded-xl p-5 shadow-sm flex flex-col gap-2 cursor-pointer hover:-translate-y-0.5 transition-transform">
+                <div className="flex items-center justify-between mb-1">
+                  <p className="font-inter font-semibold text-[11px] tracking-wider uppercase text-slate-500 dark:text-slate-400 m-0">Total Withdrawals</p>
                 </div>
-                <p className="loan-admin-mgmt-stat-value" style={{ color: '#DC2626' }}>{fmt(totalWithdrawalsFiltered)}</p>
+                <p className="font-inter font-bold text-3xl text-rose-600 m-0">{fmt(totalWithdrawalsFiltered)}</p>
               </div>
 
               <div 
-                className="loan-admin-mgmt-stat-card la-savings-stat-card" 
+                className="bg-white dark:bg-[#1E2130] border border-slate-200 dark:border-white/10 rounded-xl p-5 shadow-sm flex flex-col gap-2 cursor-pointer hover:-translate-y-0.5 transition-transform" 
                 onClick={() => setActiveTab('pending')}
               >
-                <div className="la-savings-stat-header">
-                  <p className="loan-admin-mgmt-stat-label la-savings-stat-label-text">Pending Review</p>
+                <div className="flex items-center justify-between mb-1">
+                  <p className="font-inter font-semibold text-[11px] tracking-wider uppercase text-slate-500 dark:text-slate-400 m-0">Pending Review</p>
                 </div>
-                <p className="loan-admin-mgmt-stat-value" style={{ color: '#EA580C' }}>{pendingSavings.length}</p>
+                <p className="font-inter font-bold text-3xl text-orange-600 m-0">{pendingSavings.length}</p>
               </div>
             </div>
           </div>
         )}
 
         {(!isSavingsRoute || approvalMethod === 'manual') && (
-          <div className="la-tabs-container">
+          <div className="flex items-center gap-1 border-b border-slate-200 dark:border-white/10">
             <button 
               onClick={() => setActiveTab(isSavingsRoute ? 'savings' : 'loans')}
-              className={`la-tab-btn ${activeTab === (isSavingsRoute ? 'savings' : 'loans') ? 'active' : ''}`}
+              className={`px-4 py-2 text-[13px] font-semibold font-inter transition-colors border-b-2 -mb-[2px] ${activeTab === (isSavingsRoute ? 'savings' : 'loans') ? 'border-blue-500 text-blue-600 dark:text-blue-400' : 'border-transparent text-slate-500 hover:text-slate-800 dark:text-slate-400'} bg-transparent cursor-pointer`}
             >
               {isSavingsRoute ? 'Savings Records' : 'Active Loans'}
             </button>
             {!isSavingsRoute && (
               <button 
                 onClick={() => setActiveTab('history')}
-                className={`la-tab-btn ${activeTab === 'history' ? 'active' : ''}`}
+                className={`px-4 py-2 text-[13px] font-semibold font-inter transition-colors border-b-2 -mb-[2px] ${activeTab === 'history' ? 'border-blue-500 text-blue-600 dark:text-blue-400' : 'border-transparent text-slate-500 hover:text-slate-800 dark:text-slate-400'} bg-transparent cursor-pointer`}
               >
                 Payment History
               </button>
@@ -535,11 +535,11 @@ export default function LoanAdminPaymentStatus() {
             {approvalMethod === 'manual' && (
               <button 
                 onClick={() => setActiveTab('pending')}
-                className={`la-tab-btn ${activeTab === 'pending' ? 'active' : ''}`}
+                className={`px-4 py-2 flex items-center gap-2 text-[13px] font-semibold font-inter transition-colors border-b-2 -mb-[2px] ${activeTab === 'pending' ? 'border-blue-500 text-blue-600 dark:text-blue-400' : 'border-transparent text-slate-500 hover:text-slate-800 dark:text-slate-400'} bg-transparent cursor-pointer`}
               >
                 Pending Approvals
                 {(isSavingsRoute ? pendingSavings.length : pendingLoanPayments.length) > 0 && (
-                  <span className="la-tab-badge">
+                  <span className="inline-flex items-center justify-center min-w-[18px] h-[18px] px-1 rounded-full bg-rose-500 text-white text-[10px] font-bold">
                     {isSavingsRoute ? pendingSavings.length : pendingLoanPayments.length}
                   </span>
                 )}
@@ -548,22 +548,22 @@ export default function LoanAdminPaymentStatus() {
           </div>
         )}
 
-        <div className="la-search-container">
-          <div className="la-search-wrapper">
+        <div className="flex items-center gap-4">
+          <div className="relative flex-1 max-w-[400px]">
             <Search size={18} color="#9CA3AF" />
             <input 
               type="text" 
               placeholder={isSavingsRoute ? "Search by member name or goal..." : "Search by member name or loan ID..."} 
               value={searchQuery} 
               onChange={(e) => setSearchQuery(e.target.value)} 
-              className="la-search-input"
+              className="w-full h-10 pl-10 pr-4 bg-white dark:bg-[#1E2130] border border-slate-200 dark:border-white/10 rounded-lg text-sm font-inter text-slate-800 dark:text-white placeholder:text-slate-400 focus:outline-none focus:border-blue-500 transition-colors"
             />
           </div>
           {isSavingsRoute && activeTab === 'savings' && (
             <select 
               value={savingsTypeFilter} 
               onChange={(e) => setSavingsTypeFilter(e.target.value)}
-              className="la-search-select"
+              className="h-10 px-3 bg-white dark:bg-[#1E2130] border border-slate-200 dark:border-white/10 rounded-lg text-sm font-inter text-slate-700 dark:text-slate-300 outline-none focus:border-blue-500 transition-colors cursor-pointer"
             >
               <option value="all">All Types</option>
               <option value="deposit">Deposits Only</option>
@@ -573,23 +573,23 @@ export default function LoanAdminPaymentStatus() {
         </div>
 
         {activeTab === 'savings' && isSavingsRoute && (
-          <div style={{ display: 'flex', flexDirection: 'column', gap: '20px', marginBottom: '20px' }}>
+          <div className="flex flex-col gap-5 mb-5">
             {/* Table */}
-            <div className="loan-admin-mgmt-table-container" style={{ margin: 0 }}>
-              <table className="loan-admin-mgmt-table">
+            <div className="bg-white dark:bg-[#1E2130] border border-slate-200 dark:border-white/10 rounded-xl overflow-x-auto shadow-sm" >
+              <table className="w-full text-left border-collapse min-w-[700px]">
               <thead>
                 <tr>
-                  <th>Date</th>
-                  <th>Member</th>
-                  <th>Type</th>
-                  <th>Goal</th>
-                  <th>Amount</th>
-                  <th>Status</th>
+                  <th className="bg-slate-50 dark:bg-black/20 border-b border-slate-200 dark:border-white/10 px-4 py-3 font-inter font-semibold text-[11px] tracking-wider uppercase text-slate-500 dark:text-slate-400">Date</th>
+                  <th className="bg-slate-50 dark:bg-black/20 border-b border-slate-200 dark:border-white/10 px-4 py-3 font-inter font-semibold text-[11px] tracking-wider uppercase text-slate-500 dark:text-slate-400">Member</th>
+                  <th className="bg-slate-50 dark:bg-black/20 border-b border-slate-200 dark:border-white/10 px-4 py-3 font-inter font-semibold text-[11px] tracking-wider uppercase text-slate-500 dark:text-slate-400">Type</th>
+                  <th className="bg-slate-50 dark:bg-black/20 border-b border-slate-200 dark:border-white/10 px-4 py-3 font-inter font-semibold text-[11px] tracking-wider uppercase text-slate-500 dark:text-slate-400">Goal</th>
+                  <th className="bg-slate-50 dark:bg-black/20 border-b border-slate-200 dark:border-white/10 px-4 py-3 font-inter font-semibold text-[11px] tracking-wider uppercase text-slate-500 dark:text-slate-400">Amount</th>
+                  <th className="bg-slate-50 dark:bg-black/20 border-b border-slate-200 dark:border-white/10 px-4 py-3 font-inter font-semibold text-[11px] tracking-wider uppercase text-slate-500 dark:text-slate-400">Status</th>
                 </tr>
               </thead>
               <tbody>
                 {loading ? (
-                  <tr><td colSpan={6} style={{ textAlign: 'center', padding: '40px', color: '#9CA3AF' }}>Loading...</td></tr>
+                  <tr><td colSpan={6} className="text-center p-10 text-slate-400">Loading...</td></tr>
                 ) : (() => {
                   const filteredSavingsList = confirmedSavings.filter(s => {
                     const matchesSearch = (s.memberName || '').toLowerCase().includes(searchQuery.toLowerCase()) || (s.goalName || s.goalId || '').toLowerCase().includes(searchQuery.toLowerCase());
@@ -598,7 +598,7 @@ export default function LoanAdminPaymentStatus() {
                   });
                   
                   if (filteredSavingsList.length === 0) {
-                    return <tr><td colSpan={6} style={{ textAlign: 'center', padding: '40px', color: '#9CA3AF' }}>No records found</td></tr>;
+                    return <tr><td colSpan={6} className="text-center p-10 text-slate-400">No records found</td></tr>;
                   }
                   
                   const paginatedSavings = filteredSavingsList.slice((savingsPage - 1) * SAVINGS_PER_PAGE, savingsPage * SAVINGS_PER_PAGE);
@@ -606,25 +606,25 @@ export default function LoanAdminPaymentStatus() {
                   return (
                     <>
                       {paginatedSavings.map(txn => (
-                        <tr key={txn._id} className="loan-admin-mgmt-table-row-hover" onClick={() => setSelectedSavings(txn)} style={{ cursor: 'pointer' }}>
-                          <td>{fmtDate(txn.confirmedAt || txn.date)}</td>
-                          <td>
-                            <div className="loan-admin-mgmt-table-member">
-                              <p className="loan-admin-mgmt-table-member-name">{txn.memberName || txn.email}</p>
-                              <p className="loan-admin-mgmt-table-member-email">{txn.email}</p>
+                        <tr key={txn._id} className="border-b border-slate-100 dark:border-white/5 hover:bg-slate-50 dark:hover:bg-white/5 transition-colors cursor-pointer cursor-pointer" onClick={() => setSelectedSavings(txn)}>
+                          <td className="px-4 py-3 whitespace-nowrap font-inter text-[13px] text-slate-700 dark:text-slate-300">{fmtDate(txn.confirmedAt || txn.date)}</td>
+                          <td className="px-4 py-3 whitespace-nowrap font-inter text-[13px] text-slate-700 dark:text-slate-300">
+                            <div className="flex flex-col">
+                              <p className="font-inter text-sm font-semibold text-slate-800 dark:text-white m-0">{txn.memberName || txn.email}</p>
+                              <p className="font-inter text-[11px] text-slate-500 dark:text-slate-400 m-0 mt-0.5">{txn.email}</p>
                             </div>
                           </td>
-                          <td>
-                            <span className={`savings-type-badge savings-type-${txn.type}`}>
+                          <td className="px-4 py-3 whitespace-nowrap font-inter text-[13px] text-slate-700 dark:text-slate-300">
+                            <span className={`inline-block px-2.5 py-1 rounded-md text-[11px] font-bold tracking-wider uppercase ${txn.type === 'withdrawal' ? 'bg-rose-100 text-rose-700 dark:bg-rose-500/20 dark:text-rose-400' : 'bg-emerald-100 text-emerald-700 dark:bg-emerald-500/20 dark:text-emerald-400'}`}>
                               {txn.type}
                             </span>
                           </td>
-                          <td style={{ fontSize: '13px', color: '#4B5563' }}>{txn.goalName || 'General Savings'}</td>
-                          <td className={`savings-amount-${txn.type}`}>
+                          <td className="text-[13px] text-slate-600 dark:text-slate-400">{txn.goalName || 'General Savings'}</td>
+                          <td className={`px-4 py-3 whitespace-nowrap font-inter text-sm font-bold ${txn.type === 'withdrawal' ? 'text-rose-600 dark:text-rose-400' : 'text-emerald-600 dark:text-emerald-400'}`}>
                             {txn.type === 'withdrawal' ? '-' : '+'}{fmt(txn.amount)}
                           </td>
-                          <td>
-                            <span className="ps-status-badge on-track">Confirmed</span>
+                          <td className="px-4 py-3 whitespace-nowrap font-inter text-[13px] text-slate-700 dark:text-slate-300">
+                            <span className="inline-block px-2.5 py-1 rounded-md text-[11px] font-bold tracking-wide uppercase bg-emerald-100 text-emerald-700 dark:bg-emerald-500/20 dark:text-emerald-400">Confirmed</span>
                           </td>
                         </tr>
                       ))}
@@ -644,10 +644,10 @@ export default function LoanAdminPaymentStatus() {
               const totalSavingsPages = Math.ceil(filteredSavingsList.length / SAVINGS_PER_PAGE);
               if (totalSavingsPages > 1) {
                 return (
-                  <div className="la-pagination">
-                    <button disabled={savingsPage === 1} onClick={() => setSavingsPage(p => p - 1)} className="la-pagination-btn">Prev</button>
-                    <span className="la-pagination-text">Page {savingsPage} of {totalSavingsPages}</span>
-                    <button disabled={savingsPage === totalSavingsPages} onClick={() => setSavingsPage(p => p + 1)} className="la-pagination-btn">Next</button>
+                  <div className="flex items-center justify-center gap-4 p-4">
+                    <button disabled={savingsPage === 1} onClick={() => setSavingsPage(p => p - 1)} className="px-4 py-2 text-[13px] font-semibold font-inter bg-white dark:bg-[#1E2130] border border-slate-200 dark:border-white/10 rounded-lg text-slate-700 dark:text-slate-300 hover:bg-slate-50 dark:hover:bg-white/5 transition-colors cursor-pointer disabled:opacity-40 disabled:cursor-not-allowed">Prev</button>
+                    <span className="font-inter text-[13px] text-slate-500 dark:text-slate-400">Page {savingsPage} of {totalSavingsPages}</span>
+                    <button disabled={savingsPage === totalSavingsPages} onClick={() => setSavingsPage(p => p + 1)} className="px-4 py-2 text-[13px] font-semibold font-inter bg-white dark:bg-[#1E2130] border border-slate-200 dark:border-white/10 rounded-lg text-slate-700 dark:text-slate-300 hover:bg-slate-50 dark:hover:bg-white/5 transition-colors cursor-pointer disabled:opacity-40 disabled:cursor-not-allowed">Next</button>
                   </div>
                 );
               }
@@ -657,44 +657,44 @@ export default function LoanAdminPaymentStatus() {
         )}
 
         {activeTab === 'loans' && !isSavingsRoute && (
-          <div className="loan-admin-mgmt-table-container">
-            <table className="loan-admin-mgmt-table">
+          <div className="bg-white dark:bg-[#1E2130] border border-slate-200 dark:border-white/10 rounded-xl overflow-x-auto shadow-sm">
+            <table className="w-full text-left border-collapse min-w-[700px]">
               <thead>
                 <tr>
-                  <th>Loan ID</th>
-                  <th>Member</th>
-                  <th>Amount</th>
-                  <th>Paid</th>
-                  <th>Balance</th>
-                  <th>Due Date</th>
-                  <th>Days Late</th>
-                  <th>Status</th>
+                  <th className="bg-slate-50 dark:bg-black/20 border-b border-slate-200 dark:border-white/10 px-4 py-3 font-inter font-semibold text-[11px] tracking-wider uppercase text-slate-500 dark:text-slate-400">Loan ID</th>
+                  <th className="bg-slate-50 dark:bg-black/20 border-b border-slate-200 dark:border-white/10 px-4 py-3 font-inter font-semibold text-[11px] tracking-wider uppercase text-slate-500 dark:text-slate-400">Member</th>
+                  <th className="bg-slate-50 dark:bg-black/20 border-b border-slate-200 dark:border-white/10 px-4 py-3 font-inter font-semibold text-[11px] tracking-wider uppercase text-slate-500 dark:text-slate-400">Amount</th>
+                  <th className="bg-slate-50 dark:bg-black/20 border-b border-slate-200 dark:border-white/10 px-4 py-3 font-inter font-semibold text-[11px] tracking-wider uppercase text-slate-500 dark:text-slate-400">Paid</th>
+                  <th className="bg-slate-50 dark:bg-black/20 border-b border-slate-200 dark:border-white/10 px-4 py-3 font-inter font-semibold text-[11px] tracking-wider uppercase text-slate-500 dark:text-slate-400">Balance</th>
+                  <th className="bg-slate-50 dark:bg-black/20 border-b border-slate-200 dark:border-white/10 px-4 py-3 font-inter font-semibold text-[11px] tracking-wider uppercase text-slate-500 dark:text-slate-400">Due Date</th>
+                  <th className="bg-slate-50 dark:bg-black/20 border-b border-slate-200 dark:border-white/10 px-4 py-3 font-inter font-semibold text-[11px] tracking-wider uppercase text-slate-500 dark:text-slate-400">Days Late</th>
+                  <th className="bg-slate-50 dark:bg-black/20 border-b border-slate-200 dark:border-white/10 px-4 py-3 font-inter font-semibold text-[11px] tracking-wider uppercase text-slate-500 dark:text-slate-400">Status</th>
                 </tr>
               </thead>
               <tbody>
                 {loading ? (
-                  <tr><td colSpan={8} style={{ textAlign: 'center', padding: '40px', color: '#9CA3AF' }}>Loading...</td></tr>
+                  <tr><td colSpan={8} className="text-center p-10 text-slate-400">Loading...</td></tr>
                 ) : filtered.length === 0 ? (
-                  <tr><td colSpan={8} style={{ textAlign: 'center', padding: '40px', color: '#9CA3AF' }}>No active loans found</td></tr>
+                  <tr><td colSpan={8} className="text-center p-10 text-slate-400">No active loans found</td></tr>
                 ) : (
                   filtered.map(loan => (
-                    <tr key={loan._id} onClick={() => setSelectedLoan(loan)} style={{ cursor: 'pointer' }} className="loan-admin-mgmt-table-row-hover">
-                      <td className="loan-admin-mgmt-table-id">{loan.loanId}</td>
-                      <td>
-                        <div className="loan-admin-mgmt-table-member">
-                          <p className="loan-admin-mgmt-table-member-name">{loan.memberName}</p>
-                          <p className="loan-admin-mgmt-table-member-email">{loan.email}</p>
+                    <tr key={loan._id} onClick={() => setSelectedLoan(loan)} className="cursor-pointer border-b border-slate-100 dark:border-white/5 hover:bg-slate-50 dark:hover:bg-white/5 transition-colors cursor-pointer">
+                      <td className="px-4 py-3 font-inter text-sm font-semibold text-blue-600 dark:text-blue-400 whitespace-nowrap">{loan.loanId}</td>
+                      <td className="px-4 py-3 whitespace-nowrap font-inter text-[13px] text-slate-700 dark:text-slate-300">
+                        <div className="flex flex-col">
+                          <p className="font-inter text-sm font-semibold text-slate-800 dark:text-white m-0">{loan.memberName}</p>
+                          <p className="font-inter text-[11px] text-slate-500 dark:text-slate-400 m-0 mt-0.5">{loan.email}</p>
                         </div>
                       </td>
-                      <td className="loan-admin-mgmt-table-amount">{fmt(loan.amount)}</td>
-                      <td style={{ fontSize: '13px' }}>{loan.paidMonths || 0}/{loan.termMonths || 0}</td>
-                      <td className="loan-admin-mgmt-table-amount">{fmt(loan.remainingBalance)}</td>
-                      <td>{fmtDate(loan.effectiveDueDate)}</td>
-                      <td style={{ fontWeight: 600, color: loan.daysLate > 0 ? '#DC2626' : '#16A34A' }}>
+                      <td className="px-4 py-3 whitespace-nowrap font-inter text-sm font-bold text-slate-800 dark:text-white">{fmt(loan.amount)}</td>
+                      <td className="text-[13px]">{loan.paidMonths || 0}/{loan.termMonths || 0}</td>
+                      <td className="px-4 py-3 whitespace-nowrap font-inter text-sm font-bold text-slate-800 dark:text-white">{fmt(loan.remainingBalance)}</td>
+                      <td className="px-4 py-3 whitespace-nowrap font-inter text-[13px] text-slate-700 dark:text-slate-300">{fmtDate(loan.effectiveDueDate)}</td>
+                      <td className={`font-semibold ${loan.daysLate > 0 ? 'text-rose-600 dark:text-rose-400' : 'text-emerald-600 dark:text-emerald-400'}`}>
                         {loan.daysLate > 0 ? `${loan.daysLate} days` : '—'}
                       </td>
-                      <td>
-                        <span className={`ps-status-badge ${loan.paymentStatus.cls}`}>{loan.paymentStatus.label}</span>
+                      <td className="px-4 py-3 whitespace-nowrap font-inter text-[13px] text-slate-700 dark:text-slate-300">
+                        <span className={`inline-block px-2.5 py-1 rounded-md text-[11px] font-bold tracking-wide uppercase ${loan.paymentStatus.cls === 'on-track' ? 'bg-emerald-100 text-emerald-700 dark:bg-emerald-500/20 dark:text-emerald-400' : loan.paymentStatus.cls === 'reminder' ? 'bg-amber-100 text-amber-700 dark:bg-amber-500/20 dark:text-amber-400' : loan.paymentStatus.cls === 'delinquent' ? 'bg-orange-100 text-orange-700 dark:bg-orange-500/20 dark:text-orange-400' : loan.paymentStatus.cls === 'high-risk' ? 'bg-rose-100 text-rose-700 dark:bg-rose-500/20 dark:text-rose-400' : 'bg-red-900 text-white'}`}>{loan.paymentStatus.label}</span>
                       </td>
                     </tr>
                   ))
@@ -706,58 +706,58 @@ export default function LoanAdminPaymentStatus() {
 
         {/* Pending Approvals Tab */}
         {activeTab === 'pending' && (
-          <div className="loan-admin-mgmt-table-container">
-            <table className="loan-admin-mgmt-table">
+          <div className="bg-white dark:bg-[#1E2130] border border-slate-200 dark:border-white/10 rounded-xl overflow-x-auto shadow-sm">
+            <table className="w-full text-left border-collapse min-w-[700px]">
               <thead>
                 <tr>
-                  <th>Date</th>
-                  <th>Member</th>
-                  <th>Type</th>
-                  <th>Amount</th>
-                  <th>Method</th>
-                  <th>Reference</th>
-                  <th>Proof</th>
-                  <th>Actions</th>
+                  <th className="bg-slate-50 dark:bg-black/20 border-b border-slate-200 dark:border-white/10 px-4 py-3 font-inter font-semibold text-[11px] tracking-wider uppercase text-slate-500 dark:text-slate-400">Date</th>
+                  <th className="bg-slate-50 dark:bg-black/20 border-b border-slate-200 dark:border-white/10 px-4 py-3 font-inter font-semibold text-[11px] tracking-wider uppercase text-slate-500 dark:text-slate-400">Member</th>
+                  <th className="bg-slate-50 dark:bg-black/20 border-b border-slate-200 dark:border-white/10 px-4 py-3 font-inter font-semibold text-[11px] tracking-wider uppercase text-slate-500 dark:text-slate-400">Type</th>
+                  <th className="bg-slate-50 dark:bg-black/20 border-b border-slate-200 dark:border-white/10 px-4 py-3 font-inter font-semibold text-[11px] tracking-wider uppercase text-slate-500 dark:text-slate-400">Amount</th>
+                  <th className="bg-slate-50 dark:bg-black/20 border-b border-slate-200 dark:border-white/10 px-4 py-3 font-inter font-semibold text-[11px] tracking-wider uppercase text-slate-500 dark:text-slate-400">Method</th>
+                  <th className="bg-slate-50 dark:bg-black/20 border-b border-slate-200 dark:border-white/10 px-4 py-3 font-inter font-semibold text-[11px] tracking-wider uppercase text-slate-500 dark:text-slate-400">Reference</th>
+                  <th className="bg-slate-50 dark:bg-black/20 border-b border-slate-200 dark:border-white/10 px-4 py-3 font-inter font-semibold text-[11px] tracking-wider uppercase text-slate-500 dark:text-slate-400">Proof</th>
+                  <th className="bg-slate-50 dark:bg-black/20 border-b border-slate-200 dark:border-white/10 px-4 py-3 font-inter font-semibold text-[11px] tracking-wider uppercase text-slate-500 dark:text-slate-400">Actions</th>
                 </tr>
               </thead>
               <tbody>
                 {pendingLoading ? (
-                  <tr><td colSpan={8} style={{ textAlign: 'center', padding: '40px', color: '#9CA3AF' }}>Loading...</td></tr>
+                  <tr><td colSpan={8} className="text-center p-10 text-slate-400">Loading...</td></tr>
                 ) : (isSavingsRoute ? pendingSavings : pendingLoanPayments).length === 0 ? (
-                  <tr><td colSpan={8} style={{ textAlign: 'center', padding: '40px', color: '#9CA3AF' }}>No pending approvals</td></tr>
+                  <tr><td colSpan={8} className="text-center p-10 text-slate-400">No pending approvals</td></tr>
                 ) : (
                   (isSavingsRoute ? pendingSavings : pendingLoanPayments).map(txn => (
-                    <tr key={txn._id} className="loan-admin-mgmt-table-row-hover">
-                      <td>{fmtDate(txn.submittedAt || txn.createdAt || txn.date)}</td>
-                      <td>
-                        <div className="loan-admin-mgmt-table-member">
-                          <p className="loan-admin-mgmt-table-member-name">{txn.memberName || txn.email}</p>
-                          <p className="loan-admin-mgmt-table-member-email">{isSavingsRoute ? `Goal: ${txn.goalId}` : `Loan: ${txn.loanId}`}</p>
+                    <tr key={txn._id} className="border-b border-slate-100 dark:border-white/5 hover:bg-slate-50 dark:hover:bg-white/5 transition-colors cursor-pointer">
+                      <td className="px-4 py-3 whitespace-nowrap font-inter text-[13px] text-slate-700 dark:text-slate-300">{fmtDate(txn.submittedAt || txn.createdAt || txn.date)}</td>
+                      <td className="px-4 py-3 whitespace-nowrap font-inter text-[13px] text-slate-700 dark:text-slate-300">
+                        <div className="flex flex-col">
+                          <p className="font-inter text-sm font-semibold text-slate-800 dark:text-white m-0">{txn.memberName || txn.email}</p>
+                          <p className="font-inter text-[11px] text-slate-500 dark:text-slate-400 m-0 mt-0.5">{isSavingsRoute ? `Goal: ${txn.goalId}` : `Loan: ${txn.loanId}`}</p>
                         </div>
                       </td>
-                      <td>
-                        <span style={{ display: 'inline-block', padding: '3px 8px', borderRadius: '6px', fontSize: '11px', fontWeight: 700, fontFamily: 'Inter', textTransform: 'capitalize', background: txn.paymentType === 'full' ? '#DCFCE7' : txn.paymentType === 'advance' ? '#DBEAFE' : '#F3F4F6', color: txn.paymentType === 'full' ? '#166534' : txn.paymentType === 'advance' ? '#1E3A8A' : '#374151' }}>
+                      <td className="px-4 py-3 whitespace-nowrap font-inter text-[13px] text-slate-700 dark:text-slate-300">
+                        <span className={`inline-block px-2 py-0.5 rounded-md text-[11px] font-bold font-inter capitalize ${txn.paymentType === 'full' ? 'bg-emerald-100 text-emerald-800 dark:bg-emerald-500/20 dark:text-emerald-400' : txn.paymentType === 'advance' ? 'bg-blue-100 text-blue-800 dark:bg-blue-500/20 dark:text-blue-400' : 'bg-slate-100 text-slate-700 dark:bg-white/10 dark:text-slate-300'}`}>
                           {txn.paymentType || 'regular'}
                           {txn.monthsCovered > 1 && ` (${txn.monthsCovered}mo)`}
                         </span>
                       </td>
-                      <td className="loan-admin-mgmt-table-amount" style={{ color: '#EA580C' }}>{fmt(txn.amount)}</td>
-                      <td style={{ textTransform: 'capitalize' }}>{txn.paymentMethod || 'cash'}</td>
-                      <td>{txn.referenceNumber || '—'}</td>
-                      <td>
+                      <td className="px-4 py-3 whitespace-nowrap font-inter text-sm font-bold text-slate-800 dark:text-white text-orange-600 dark:text-orange-400">{fmt(txn.amount)}</td>
+                      <td className="capitalize">{txn.paymentMethod || 'cash'}</td>
+                      <td className="px-4 py-3 whitespace-nowrap font-inter text-[13px] text-slate-700 dark:text-slate-300">{txn.referenceNumber || '—'}</td>
+                      <td className="px-4 py-3 whitespace-nowrap font-inter text-[13px] text-slate-700 dark:text-slate-300">
                         {(txn.proofData || txn.proofOfPayment) ? (
                           <img 
                             src={txn.proofData || txn.proofOfPayment} 
                             alt="Proof" 
-                            style={{ width: '32px', height: '32px', objectFit: 'cover', borderRadius: '4px', cursor: 'pointer', border: '1px solid #E5E7EB' }} 
+                            className="w-8 h-8 object-cover rounded shadow-sm cursor-pointer border border-slate-200 dark:border-white/10" 
                             onClick={(e) => { e.stopPropagation(); const win = window.open(); win.document.write(`<img src="${txn.proofData || txn.proofOfPayment}" style="max-width:100%;" />`); }}
                           />
                         ) : (
-                          <span style={{ fontSize: '12px', color: '#9CA3AF' }}>No Proof</span>
+                          <span className="text-xs text-slate-400">No Proof</span>
                         )}
                       </td>
-                      <td>
-                        <button onClick={() => { setPendingDetail(txn); setShowRejectInput(false); }} style={{ padding: '6px 12px', background: '#DBEAFE', color: '#1E3A8A', border: 'none', borderRadius: '6px', fontWeight: 600, fontSize: '12px', cursor: 'pointer' }}>Review</button>
+                      <td className="px-4 py-3 whitespace-nowrap font-inter text-[13px] text-slate-700 dark:text-slate-300">
+                        <button onClick={() => { setPendingDetail(txn); setShowRejectInput(false); }} className="px-3 py-1.5 rounded-md font-semibold text-xs border-none cursor-pointer transition-colors bg-blue-100 text-blue-800 hover:bg-blue-200 dark:bg-blue-500/20 dark:text-blue-400 dark:hover:bg-blue-500/30">Review</button>
                       </td>
                     </tr>
                   ))
@@ -769,45 +769,45 @@ export default function LoanAdminPaymentStatus() {
 
         {/* Payment History Tab (Loans Only) */}
         {activeTab === 'history' && !isSavingsRoute && (
-          <div className="loan-admin-mgmt-table-container">
-            <table className="loan-admin-mgmt-table">
+          <div className="bg-white dark:bg-[#1E2130] border border-slate-200 dark:border-white/10 rounded-xl overflow-x-auto shadow-sm">
+            <table className="w-full text-left border-collapse min-w-[700px]">
               <thead>
                 <tr>
-                  <th>Date</th>
-                  <th>Member</th>
-                  <th>Type</th>
-                  <th>Amount</th>
-                  <th>Method</th>
-                  <th>Reference</th>
-                  <th>Status</th>
+                  <th className="bg-slate-50 dark:bg-black/20 border-b border-slate-200 dark:border-white/10 px-4 py-3 font-inter font-semibold text-[11px] tracking-wider uppercase text-slate-500 dark:text-slate-400">Date</th>
+                  <th className="bg-slate-50 dark:bg-black/20 border-b border-slate-200 dark:border-white/10 px-4 py-3 font-inter font-semibold text-[11px] tracking-wider uppercase text-slate-500 dark:text-slate-400">Member</th>
+                  <th className="bg-slate-50 dark:bg-black/20 border-b border-slate-200 dark:border-white/10 px-4 py-3 font-inter font-semibold text-[11px] tracking-wider uppercase text-slate-500 dark:text-slate-400">Type</th>
+                  <th className="bg-slate-50 dark:bg-black/20 border-b border-slate-200 dark:border-white/10 px-4 py-3 font-inter font-semibold text-[11px] tracking-wider uppercase text-slate-500 dark:text-slate-400">Amount</th>
+                  <th className="bg-slate-50 dark:bg-black/20 border-b border-slate-200 dark:border-white/10 px-4 py-3 font-inter font-semibold text-[11px] tracking-wider uppercase text-slate-500 dark:text-slate-400">Method</th>
+                  <th className="bg-slate-50 dark:bg-black/20 border-b border-slate-200 dark:border-white/10 px-4 py-3 font-inter font-semibold text-[11px] tracking-wider uppercase text-slate-500 dark:text-slate-400">Reference</th>
+                  <th className="bg-slate-50 dark:bg-black/20 border-b border-slate-200 dark:border-white/10 px-4 py-3 font-inter font-semibold text-[11px] tracking-wider uppercase text-slate-500 dark:text-slate-400">Status</th>
                 </tr>
               </thead>
               <tbody>
                 {loading ? (
-                  <tr><td colSpan={7} style={{ textAlign: 'center', padding: '40px', color: '#9CA3AF' }}>Loading...</td></tr>
+                  <tr><td colSpan={7} className="text-center p-10 text-slate-400">Loading...</td></tr>
                 ) : loanHistory.length === 0 ? (
-                  <tr><td colSpan={7} style={{ textAlign: 'center', padding: '40px', color: '#9CA3AF' }}>No payment history found</td></tr>
+                  <tr><td colSpan={7} className="text-center p-10 text-slate-400">No payment history found</td></tr>
                 ) : (
                   loanHistory.map(txn => (
-                    <tr key={txn._id} className="loan-admin-mgmt-table-row-hover" onClick={() => setPendingDetail(txn)} style={{ cursor: 'pointer' }}>
-                      <td>{fmtDate(txn.submittedAt || txn.createdAt || txn.date)}</td>
-                      <td>
-                        <div className="loan-admin-mgmt-table-member">
-                          <p className="loan-admin-mgmt-table-member-name">{txn.memberName || txn.email}</p>
-                          <p className="loan-admin-mgmt-table-member-email">{`Loan: ${txn.loanId}`}</p>
+                    <tr key={txn._id} className="border-b border-slate-100 dark:border-white/5 hover:bg-slate-50 dark:hover:bg-white/5 transition-colors cursor-pointer cursor-pointer" onClick={() => setPendingDetail(txn)}>
+                      <td className="px-4 py-3 whitespace-nowrap font-inter text-[13px] text-slate-700 dark:text-slate-300">{fmtDate(txn.submittedAt || txn.createdAt || txn.date)}</td>
+                      <td className="px-4 py-3 whitespace-nowrap font-inter text-[13px] text-slate-700 dark:text-slate-300">
+                        <div className="flex flex-col">
+                          <p className="font-inter text-sm font-semibold text-slate-800 dark:text-white m-0">{txn.memberName || txn.email}</p>
+                          <p className="font-inter text-[11px] text-slate-500 dark:text-slate-400 m-0 mt-0.5">{`Loan: ${txn.loanId}`}</p>
                         </div>
                       </td>
-                      <td>
-                        <span style={{ display: 'inline-block', padding: '3px 8px', borderRadius: '6px', fontSize: '11px', fontWeight: 700, fontFamily: 'Inter', textTransform: 'capitalize', background: txn.paymentType === 'full' ? '#DCFCE7' : txn.paymentType === 'advance' ? '#DBEAFE' : '#F3F4F6', color: txn.paymentType === 'full' ? '#166534' : txn.paymentType === 'advance' ? '#1E3A8A' : '#374151' }}>
+                      <td className="px-4 py-3 whitespace-nowrap font-inter text-[13px] text-slate-700 dark:text-slate-300">
+                        <span className={`inline-block px-2 py-0.5 rounded-md text-[11px] font-bold font-inter capitalize ${txn.paymentType === 'full' ? 'bg-emerald-100 text-emerald-800 dark:bg-emerald-500/20 dark:text-emerald-400' : txn.paymentType === 'advance' ? 'bg-blue-100 text-blue-800 dark:bg-blue-500/20 dark:text-blue-400' : 'bg-slate-100 text-slate-700 dark:bg-white/10 dark:text-slate-300'}`}>
                           {txn.paymentType || 'regular'}
                           {txn.monthsCovered > 1 && ` (${txn.monthsCovered}mo)`}
                         </span>
                       </td>
-                      <td className="loan-admin-mgmt-table-amount" style={{ color: '#EA580C' }}>{fmt(txn.amount)}</td>
-                      <td style={{ textTransform: 'capitalize' }}>{txn.paymentMethod || 'cash'}</td>
-                      <td>{txn.referenceNumber || '—'}</td>
-                      <td>
-                        <span className={`ps-status-badge ${txn.status === 'confirmed' ? 'on-track' : 'default'}`}>
+                      <td className="px-4 py-3 whitespace-nowrap font-inter text-sm font-bold text-slate-800 dark:text-white text-orange-600 dark:text-orange-400">{fmt(txn.amount)}</td>
+                      <td className="capitalize">{txn.paymentMethod || 'cash'}</td>
+                      <td className="px-4 py-3 whitespace-nowrap font-inter text-[13px] text-slate-700 dark:text-slate-300">{txn.referenceNumber || '—'}</td>
+                      <td className="px-4 py-3 whitespace-nowrap font-inter text-[13px] text-slate-700 dark:text-slate-300">
+                        <span className={`inline-block px-2.5 py-1 rounded-md text-[11px] font-bold tracking-wide uppercase ${txn.status === 'confirmed' ? 'bg-emerald-100 text-emerald-700 dark:bg-emerald-500/20 dark:text-emerald-400' : 'bg-slate-100 text-slate-500 dark:bg-slate-800 dark:text-slate-400'}`}>
                           {txn.status === 'confirmed' ? 'Confirmed' : 'Rejected'}
                         </span>
                       </td>
@@ -818,18 +818,18 @@ export default function LoanAdminPaymentStatus() {
             </table>
 
             {historyTotalCount > HISTORY_PER_PAGE && (
-              <div className="la-pagination" style={{ margin: '20px 0 0 0' }}>
-                <button disabled={historyPage === 1} onClick={() => setHistoryPage(p => p - 1)} className="la-pagination-btn">Prev</button>
-                <span className="la-pagination-text">Page {historyPage} of {Math.ceil(historyTotalCount / HISTORY_PER_PAGE)}</span>
-                <button disabled={historyPage === Math.ceil(historyTotalCount / HISTORY_PER_PAGE)} onClick={() => setHistoryPage(p => p + 1)} className="la-pagination-btn">Next</button>
+              <div className="flex items-center justify-center gap-4 p-4" style={{ margin: '20px 0 0 0' }}>
+                <button disabled={historyPage === 1} onClick={() => setHistoryPage(p => p - 1)} className="px-4 py-2 text-[13px] font-semibold font-inter bg-white dark:bg-[#1E2130] border border-slate-200 dark:border-white/10 rounded-lg text-slate-700 dark:text-slate-300 hover:bg-slate-50 dark:hover:bg-white/5 transition-colors cursor-pointer disabled:opacity-40 disabled:cursor-not-allowed">Prev</button>
+                <span className="font-inter text-[13px] text-slate-500 dark:text-slate-400">Page {historyPage} of {Math.ceil(historyTotalCount / HISTORY_PER_PAGE)}</span>
+                <button disabled={historyPage === Math.ceil(historyTotalCount / HISTORY_PER_PAGE)} onClick={() => setHistoryPage(p => p + 1)} className="px-4 py-2 text-[13px] font-semibold font-inter bg-white dark:bg-[#1E2130] border border-slate-200 dark:border-white/10 rounded-lg text-slate-700 dark:text-slate-300 hover:bg-slate-50 dark:hover:bg-white/5 transition-colors cursor-pointer disabled:opacity-40 disabled:cursor-not-allowed">Next</button>
               </div>
             )}
           </div>
         )}
 
 
-        <div className="loan-admin-mgmt-pagination">
-          <p className="loan-admin-mgmt-pagination-info">
+        <div className="flex items-center justify-between p-4 bg-white dark:bg-[#1E2130] rounded-xl border border-slate-200 dark:border-white/10">
+          <p className="font-inter text-[13px] text-slate-500 dark:text-slate-400 m-0">
             {activeTab === 'loans' ? `Showing ${filtered.length} active loans` : ''}
           </p>
         </div>
@@ -837,11 +837,11 @@ export default function LoanAdminPaymentStatus() {
 
       {/* ── Loan Detail Modal ── */}
       {selectedLoan && (
-        <div className="loan-admin-mgmt-modal-overlay" onClick={() => { setSelectedLoan(null); setSelectedLoanPayments([]); }}>
-          <div className="loan-admin-mgmt-modal-container" style={{ maxWidth: '520px' }} onClick={(e) => e.stopPropagation()}>
-            <div className="loan-admin-mgmt-modal-header">
-              <h2 className="loan-admin-mgmt-modal-title">Loan Payment Progress</h2>
-              <button className="loan-admin-mgmt-modal-close" onClick={() => { setSelectedLoan(null); setSelectedLoanPayments([]); }}>
+        <div className="fixed inset-0 bg-black/50 backdrop-blur-sm flex items-center justify-center z-[1000] p-4" onClick={() => { setSelectedLoan(null); setSelectedLoanPayments([]); }}>
+          <div className="bg-white dark:bg-[#1E2130] rounded-2xl w-full max-w-[520px] flex flex-col border border-slate-200 dark:border-white/10 shadow-2xl" style={{ maxWidth: '520px' }} onClick={(e) => e.stopPropagation()}>
+            <div className="flex items-center justify-between p-[18px_24px] border-b border-slate-200 dark:border-white/10 shrink-0">
+              <h2 className="font-inter text-lg font-bold text-slate-800 dark:text-white m-0">Loan Payment Progress</h2>
+              <button className="w-8 h-8 border-none bg-slate-100 dark:bg-white/5 text-slate-500 rounded-lg cursor-pointer flex items-center justify-center text-lg font-bold hover:bg-slate-200 transition-colors" onClick={() => { setSelectedLoan(null); setSelectedLoanPayments([]); }}>
                 <X size={16} />
               </button>
             </div>
@@ -897,7 +897,7 @@ export default function LoanAdminPaymentStatus() {
               <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '8px' }}>
                 <div style={{ padding: '4px' }}>
                   <p style={{ margin: 0, marginBottom: '4px', fontSize: '12px', color: '#6B7280', fontFamily: 'Inter', fontWeight: 600 }}>Status</p>
-                  <span className={`ps-status-badge ${selectedLoan.paymentStatus.cls}`} style={{ fontSize: '14px', padding: '4px 10px', display: 'inline-block', fontWeight: 600 }}>{selectedLoan.paymentStatus.label}</span>
+                  <span className={`inline-block px-3 py-1 rounded-md text-sm font-bold tracking-wide uppercase ${selectedLoan.paymentStatus.cls === 'on-track' ? 'bg-emerald-100 text-emerald-700 dark:bg-emerald-500/20 dark:text-emerald-400' : selectedLoan.paymentStatus.cls === 'reminder' ? 'bg-amber-100 text-amber-700 dark:bg-amber-500/20 dark:text-amber-400' : selectedLoan.paymentStatus.cls === 'delinquent' ? 'bg-orange-100 text-orange-700 dark:bg-orange-500/20 dark:text-orange-400' : selectedLoan.paymentStatus.cls === 'high-risk' ? 'bg-rose-100 text-rose-700 dark:bg-rose-500/20 dark:text-rose-400' : 'bg-red-900 text-white'}`}>{selectedLoan.paymentStatus.label}</span>
                 </div>
                 <div style={{ padding: '4px' }}>
                   <p style={{ margin: 0, marginBottom: '4px', fontSize: '12px', color: '#6B7280', fontFamily: 'Inter', fontWeight: 600 }}>Days Late</p>
@@ -977,13 +977,13 @@ export default function LoanAdminPaymentStatus() {
 
       {/* ── Pending Detail Modal ── */}
       {pendingDetail && (
-        <div className="loan-admin-mgmt-modal-overlay" onClick={() => !actionLoading && setPendingDetail(null)} style={{ zIndex: 2000 }}>
-          <div className="loan-admin-mgmt-modal-container" style={{ maxWidth: '440px' }} onClick={(e) => e.stopPropagation()}>
-            <div className="loan-admin-mgmt-modal-header">
-              <h2 className="loan-admin-mgmt-modal-title">
+        <div className="fixed inset-0 bg-black/50 backdrop-blur-sm flex items-center justify-center z-[1000] p-4" onClick={() => !actionLoading && setPendingDetail(null)} style={{ zIndex: 2000 }}>
+          <div className="bg-white dark:bg-[#1E2130] rounded-2xl w-full max-w-[520px] flex flex-col border border-slate-200 dark:border-white/10 shadow-2xl" style={{ maxWidth: '440px' }} onClick={(e) => e.stopPropagation()}>
+            <div className="flex items-center justify-between p-[18px_24px] border-b border-slate-200 dark:border-white/10 shrink-0">
+              <h2 className="font-inter text-lg font-bold text-slate-800 dark:text-white m-0">
                 {pendingDetail.status === 'pending' ? 'Review Transaction' : 'Transaction Detail'}
               </h2>
-              <button className="loan-admin-mgmt-modal-close" onClick={() => setPendingDetail(null)}><X size={16} /></button>
+              <button className="w-8 h-8 border-none bg-slate-100 dark:bg-white/5 text-slate-500 rounded-lg cursor-pointer flex items-center justify-center text-lg font-bold hover:bg-slate-200 transition-colors" onClick={() => setPendingDetail(null)}><X size={16} /></button>
             </div>
             <div style={{ padding: '16px 24px' }}>
               <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', rowGap: '16px', columnGap: '12px', marginBottom: '16px' }}>
@@ -1073,11 +1073,11 @@ export default function LoanAdminPaymentStatus() {
 
       {/* ── Savings Detail Modal ── */}
       {selectedSavings && (
-        <div className="loan-admin-mgmt-modal-overlay" onClick={() => setSelectedSavings(null)} style={{ zIndex: 2000 }}>
-          <div className="loan-admin-mgmt-modal-container" style={{ maxWidth: '440px' }} onClick={(e) => e.stopPropagation()}>
-            <div className="loan-admin-mgmt-modal-header">
-              <h2 className="loan-admin-mgmt-modal-title">Savings Transaction Detail</h2>
-              <button className="loan-admin-mgmt-modal-close" onClick={() => setSelectedSavings(null)}><X size={16} /></button>
+        <div className="fixed inset-0 bg-black/50 backdrop-blur-sm flex items-center justify-center z-[1000] p-4" onClick={() => setSelectedSavings(null)} style={{ zIndex: 2000 }}>
+          <div className="bg-white dark:bg-[#1E2130] rounded-2xl w-full max-w-[520px] flex flex-col border border-slate-200 dark:border-white/10 shadow-2xl" style={{ maxWidth: '440px' }} onClick={(e) => e.stopPropagation()}>
+            <div className="flex items-center justify-between p-[18px_24px] border-b border-slate-200 dark:border-white/10 shrink-0">
+              <h2 className="font-inter text-lg font-bold text-slate-800 dark:text-white m-0">Savings Transaction Detail</h2>
+              <button className="w-8 h-8 border-none bg-slate-100 dark:bg-white/5 text-slate-500 rounded-lg cursor-pointer flex items-center justify-center text-lg font-bold hover:bg-slate-200 transition-colors" onClick={() => setSelectedSavings(null)}><X size={16} /></button>
             </div>
             <div style={{ padding: '16px 24px' }}>
               <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', rowGap: '16px', columnGap: '12px', marginBottom: '16px' }}>
@@ -1086,7 +1086,7 @@ export default function LoanAdminPaymentStatus() {
                 <div><p style={{ margin: 0, marginBottom: '4px', fontSize: '12px', color: '#6B7280' }}>Goal</p><p style={{ margin: 0, fontSize: '15px', fontWeight: 600 }}>{selectedSavings.goalName || 'General Savings'}</p></div>
                 <div><p style={{ margin: 0, marginBottom: '4px', fontSize: '12px', color: '#6B7280' }}>Type</p>
                   <p style={{ margin: 0, fontWeight: 700, textTransform: 'capitalize' }}>
-                    <span className={`savings-type-badge savings-type-${selectedSavings.type}`}>{selectedSavings.type}</span>
+                    <span className={`inline-block px-2.5 py-1 rounded-md text-[11px] font-bold tracking-wider uppercase ${selectedSavings.type === 'withdrawal' ? 'bg-rose-100 text-rose-700 dark:bg-rose-500/20 dark:text-rose-400' : 'bg-emerald-100 text-emerald-700 dark:bg-emerald-500/20 dark:text-emerald-400'}`}>{selectedSavings.type}</span>
                   </p>
                 </div>
                 <div><p style={{ margin: 0, marginBottom: '4px', fontSize: '12px', color: '#6B7280' }}>Amount</p><p style={{ margin: 0, fontSize: '16px', fontWeight: 700, color: selectedSavings.type === 'withdrawal' ? '#DC2626' : '#16A34A' }}>{fmt(selectedSavings.amount)}</p></div>
@@ -1112,14 +1112,14 @@ export default function LoanAdminPaymentStatus() {
 
       {/* ── Walk-in Transaction Modal ── */}
       {showWalkinModal && (
-        <div className="loan-admin-mgmt-modal-overlay" onClick={() => setShowWalkinModal(false)} style={{ zIndex: 2000 }}>
-          <div className="loan-admin-mgmt-modal-container" style={{ maxWidth: '440px', overflow: 'visible' }} onClick={(e) => e.stopPropagation()}>
-            <div className="loan-admin-mgmt-modal-header" style={{ borderBottom: '1px solid #E5E7EB', paddingBottom: '16px' }}>
+        <div className="fixed inset-0 bg-black/50 backdrop-blur-sm flex items-center justify-center z-[1000] p-4" onClick={() => setShowWalkinModal(false)} style={{ zIndex: 2000 }}>
+          <div className="bg-white dark:bg-[#1E2130] rounded-2xl w-full max-w-[520px] flex flex-col border border-slate-200 dark:border-white/10 shadow-2xl" style={{ maxWidth: '440px', overflow: 'visible' }} onClick={(e) => e.stopPropagation()}>
+            <div className="flex items-center justify-between p-[18px_24px] border-b border-slate-200 dark:border-white/10 shrink-0" style={{ borderBottom: '1px solid #E5E7EB', paddingBottom: '16px' }}>
               <div>
-                <h2 className="loan-admin-mgmt-modal-title" style={{ fontSize: '18px' }}>Process Walk-in Transaction</h2>
+                <h2 className="font-inter text-lg font-bold text-slate-800 dark:text-white m-0" style={{ fontSize: '18px' }}>Process Walk-in Transaction</h2>
                 <p style={{ fontSize: '13px', color: '#6B7280', margin: '4px 0 0', fontFamily: 'Inter' }}>Process payments or deposits directly on behalf of a user.</p>
               </div>
-              <button className="loan-admin-mgmt-modal-close" onClick={() => setShowWalkinModal(false)}>
+              <button className="w-8 h-8 border-none bg-slate-100 dark:bg-white/5 text-slate-500 rounded-lg cursor-pointer flex items-center justify-center text-lg font-bold hover:bg-slate-200 transition-colors" onClick={() => setShowWalkinModal(false)}>
                 <X size={16} />
               </button>
             </div>
@@ -1214,7 +1214,7 @@ export default function LoanAdminPaymentStatus() {
             <div style={{ padding: '16px 24px', borderTop: '1px solid #E5E7EB', display: 'flex', justifyContent: 'flex-end', gap: '10px', background: '#F9FAFB', borderBottomLeftRadius: '16px', borderBottomRightRadius: '16px' }}>
                <button onClick={() => setShowWalkinModal(false)} disabled={walkinLoading} style={{ background: '#fff', color: '#374151', border: '1px solid #D1D5DB', padding: '10px 20px', borderRadius: '8px', fontSize: '14px', fontWeight: 600, cursor: 'pointer', fontFamily: 'Inter' }}>Cancel</button>
                <button onClick={handleWalkinSubmit} disabled={walkinLoading} style={{ background: '#155DFC', color: '#fff', border: 'none', padding: '10px 20px', borderRadius: '8px', fontSize: '14px', fontWeight: 600, cursor: 'pointer', fontFamily: 'Inter', display: 'flex', alignItems: 'center', gap: '6px' }}>
-                 {walkinLoading ? <span className="btn-spinner" style={{ width: 14, height: 14 }} /> : null}
+                 {walkinLoading ? <Loader2 className="animate-spin" size={16} /> : null}
                  Submit & Confirm
                </button>
             </div>

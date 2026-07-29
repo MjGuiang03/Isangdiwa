@@ -3,7 +3,7 @@ import { useState, useEffect, useMemo } from 'react';
 import useSWR from 'swr';
 import { useAuth } from '../../context/AuthContext';
 // import Sidebar from '../components/Sidebar'; // Moved to UserLayout
-import '../styles/Loandetail.css';
+
 import API from '../../utils/api';
 import { Banknote, CheckCircle, Printer, Settings, X, UploadCloud, FileCheck2 } from 'lucide-react';
 

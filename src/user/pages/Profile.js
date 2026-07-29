@@ -3,11 +3,11 @@ import useSWR from 'swr';
 import { useNavigate } from 'react-router';
 import { useAuth } from '../../context/AuthContext';
 import API from '../../utils/api';
-import '../styles/Profile.css';
+
 import {
   Heart, CalendarDays, PiggyBank, FileText, Award,
   MapPin, Mail, Phone, Clock, Shield, TrendingUp,
-  Star, Flame, Target, Edit2, XCircle, Edit
+  Star, Flame, Target, Edit2, XCircle, Edit, Camera
 } from 'lucide-react';
 import VerifyEmailModal from '../components/VerifyEmail';
 import { BarChart, Bar, XAxis, YAxis, CartesianGrid, Tooltip, ResponsiveContainer } from 'recharts';
@@ -70,12 +70,29 @@ export default function Profile() {
     if (formError) setFormError('');
   };
 
-  const handlePhotoSelect = (e) => {
+  const handlePhotoSelect = async (e) => {
     const file = e.target.files?.[0];
     if (!file) return;
     setEditForm(prev => ({ ...prev, photoFile: file }));
     const reader = new FileReader();
-    reader.onload = ev => setPhotoPreview(ev.target.result);
+    reader.onload = async (ev) => {
+      const base64Data = ev.target.result;
+      setPhotoPreview(base64Data);
+      try {
+        const token = localStorage.getItem('token');
+        const photoRes = await fetch(`${API}/api/upload-photo`, {
+          method: 'PUT',
+          headers: { 'Content-Type': 'application/json', Authorization: `Bearer ${token}` },
+          body: JSON.stringify({ photoBase64: base64Data })
+        });
+        const photoData = await photoRes.json();
+        if (photoRes.ok && photoData.photoUrl) {
+          await updateProfile({ photoUrl: photoData.photoUrl });
+        }
+      } catch (err) {
+        console.error('Failed to upload profile photo:', err);
+      }
+    };
     reader.readAsDataURL(file);
   };
 
@@ -255,11 +272,8 @@ export default function Profile() {
     ? new Date(user.created_at || user.createdAt).toLocaleDateString('en-US', { month: 'long', year: 'numeric' })
     : '';
 
-  const getMaxHeatmap = () => Math.max(1, ...attendanceByMonth.map(m => m.count));
-  const maxAtt = getMaxHeatmap();
-
   return (
-    <div className="up-page">
+    <div className="space-y-6 w-full pb-8 font-inter">
       {showEmailOtp && (
         <VerifyEmailModal
           isOpen={showEmailOtp}
@@ -269,117 +283,273 @@ export default function Profile() {
           onResend={handleResendEmailOtp}
         />
       )}
-      {/* ── Hero Header ── */}
-      <div className="up-hero">
-        <div className="up-hero__bg" />
-        <div className="up-hero__content">
-          <div className="up-hero__avatar" onClick={() => isEditing && document.getElementById('up-hero-photo-input').click()} style={{ cursor: isEditing ? 'pointer' : 'default' }}>
-            {avatarSrc ? (
-              <img src={avatarSrc} alt="Profile" />
-            ) : (
-              <span className="up-hero__avatar-text">
-                {displayName.split(' ').map(n => n[0]).join('').slice(0, 2).toUpperCase()}
-              </span>
-            )}
-            {isEditing ? (
-              <div className="up-hero__avatar-edit" title="Change Photo">
-                <Edit size={14} />
+
+      {/* ── Page Header (Matching Portal Standards) ── */}
+      <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-3 pb-2.5 border-b border-slate-200/80 dark:border-white/10 font-inter">
+        <div>
+          <p className="text-[11px] font-bold text-blue-600 dark:text-blue-400 uppercase tracking-widest font-inter mb-0.5">Account &amp; Personal Info</p>
+          <h1 className="text-2xl sm:text-[26px] font-extrabold text-slate-900 dark:text-white font-dm leading-none tracking-tight">My Profile</h1>
+          <p className="text-xs text-slate-500 dark:text-slate-400 font-inter mt-1">Manage your identity, personal details, achievements &amp; engagement activity</p>
+        </div>
+      </div>
+
+      {/* ── 1. MOST IMPORTANT: Profile Identity Banner ── */}
+      <div className="relative overflow-hidden bg-gradient-to-r from-[#0D1F45] via-[#162B5B] to-[#1E3A8A] text-white rounded-3xl p-6 sm:p-7 shadow-lg border border-white/10">
+        <div className="absolute -top-20 -right-20 w-64 h-64 bg-blue-400/10 rounded-full blur-3xl pointer-events-none" />
+        
+        <div className="relative z-10 flex flex-col sm:flex-row items-center justify-between gap-6 text-center sm:text-left">
+          <div className="flex flex-col sm:flex-row items-center gap-5">
+            {/* Avatar - Clickable for Photo Upload */}
+            <div 
+              className="relative w-20 h-20 sm:w-22 sm:h-22 rounded-full overflow-hidden bg-white/10 border-4 border-white/20 shadow-xl flex items-center justify-center shrink-0 text-white font-bold font-dm text-2xl group cursor-pointer" 
+              onClick={() => document.getElementById('up-hero-photo-input').click()} 
+              title="Click to upload profile photo"
+            >
+              {avatarSrc ? (
+                <img src={avatarSrc} alt="Profile" className="w-full h-full object-cover" />
+              ) : (
+                <span className="tracking-wider">
+                  {displayName.split(' ').map(n => n[0]).join('').slice(0, 2).toUpperCase()}
+                </span>
+              )}
+              <div className="absolute bottom-0 inset-x-0 bg-black/60 group-hover:bg-black/80 py-1 flex items-center justify-center text-white transition-colors cursor-pointer border-none" title="Upload profile photo">
+                <Camera size={14} />
               </div>
-            ) : (
-              <button className="up-hero__avatar-edit" onClick={() => setIsEditing(true)} title="Edit Profile">
-                <Edit2 size={14} />
-              </button>
-            )}
-            <input id="up-hero-photo-input" type="file" accept="image/*" style={{ display: 'none' }} onChange={handlePhotoSelect} />
-          </div>
-          <div className="up-hero__info">
-            <h1 className="up-hero__name">{displayName}</h1>
-            <div className="up-hero__meta">
-              {profile?.branch && (
-                <span className="up-hero__meta-item">
-                  <MapPin size={13} /> {profile.branch}
-                </span>
-              )}
-              {memberSince && (
-                <span className="up-hero__meta-item">
-                  <Clock size={13} /> Member since {memberSince}
-                </span>
-              )}
+              <input id="up-hero-photo-input" type="file" accept="image/*" className="hidden" onChange={handlePhotoSelect} />
             </div>
-            <div className="up-hero__badges">
-              <span className={`up-badge ${isOfficer ? 'up-badge--officer' : 'up-badge--member'}`}>
-                <Shield size={12} />
-                {isOfficer ? `Officer · ${profile?.position}` : 'Member'}
-              </span>
-              {profile?.gender && (
-                <span className="up-badge up-badge--info">{profile.gender}</span>
-              )}
+
+            {/* Name & Quick Metadata */}
+            <div className="space-y-1.5">
+              <div className="flex flex-wrap items-center justify-center sm:justify-start gap-2.5">
+                <h2 className="font-inter text-2xl sm:text-3xl font-extrabold tracking-tight text-white leading-tight">{displayName}</h2>
+                <span className={`px-2.5 py-0.5 rounded-full text-[11px] font-bold flex items-center gap-1 shadow-xs ${isOfficer ? 'bg-[#F5C800] text-slate-950' : 'bg-white/20 text-white backdrop-blur-xs'}`}>
+                  <Shield size={12} />
+                  {isOfficer ? `Officer · ${profile?.position}` : 'Member'}
+                </span>
+              </div>
+
+              <div className="flex flex-wrap items-center justify-center sm:justify-start gap-3 text-xs text-white/80 font-inter">
+                {profile?.branch && (
+                  <span className="flex items-center gap-1 font-medium">
+                    <MapPin size={13} className="text-[#F5C800]" /> {profile.branch}
+                  </span>
+                )}
+                {memberSince && (
+                  <span className="flex items-center gap-1 font-medium">
+                    <Clock size={13} className="text-emerald-400" /> Member since {memberSince}
+                  </span>
+                )}
+              </div>
             </div>
           </div>
         </div>
       </div>
 
-      {/* ── Membership Stats ── */}
-      <div className="up-stats">
-        <div className="up-stat up-stat--donations" onClick={() => navigate('/donation')}>
-          <div className="up-stat__icon"><Heart size={18} /></div>
-          <div className="up-stat__body">
-            <span className="up-stat__value">{loading ? '—' : fmt(totalDonated)}</span>
-            <span className="up-stat__label">Total Donated</span>
+      {/* ── 2. CORE PERSONAL & ACCOUNT DETAILS (Top Priority Info) ── */}
+      <div className="p-6 bg-white dark:bg-[#1E2130] border border-slate-200/80 dark:border-white/10 rounded-2xl shadow-sm space-y-4">
+        <div className="flex items-center justify-between gap-2 pb-3 border-b border-slate-100 dark:border-white/5">
+          <div>
+            <h2 className="text-sm font-bold text-slate-900 dark:text-white uppercase tracking-wider font-inter flex items-center gap-2">
+              <Shield size={16} className="text-blue-600 dark:text-blue-400" />
+              Personal &amp; Account Details
+            </h2>
+            <p className="text-xs text-slate-500 dark:text-slate-400 mt-0.5">Your core membership contact and community profile</p>
           </div>
+          {!isEditing && (
+            <button 
+              className="px-3 py-1.5 bg-blue-50 dark:bg-blue-950/40 hover:bg-blue-100 dark:hover:bg-blue-900/50 text-blue-600 dark:text-blue-400 text-xs font-bold rounded-xl transition-colors flex items-center gap-1.5 cursor-pointer border-none" 
+              onClick={() => setIsEditing(true)}
+            >
+              <Edit2 size={13} />
+              Edit Information
+            </button>
+          )}
         </div>
-        <div className="up-stat up-stat--attendance" onClick={() => navigate('/attendance')}>
-          <div className="up-stat__icon"><CalendarDays size={18} /></div>
-          <div className="up-stat__body">
-            <span className="up-stat__value">{loading ? '—' : attendance.length}</span>
-            <span className="up-stat__label">Services Attended</span>
+        
+        {formError && (
+          <div className="flex items-center gap-2 bg-red-50 border border-red-200 dark:bg-red-950/40 dark:border-red-900/40 rounded-xl p-3 mb-4">
+            <XCircle size={16} className="text-red-500 shrink-0" />
+            <span className="text-xs text-red-700 dark:text-red-300 font-medium">{formError}</span>
           </div>
-        </div>
-        <div className="up-stat up-stat--savings" onClick={() => navigate('/savings')}>
-          <div className="up-stat__icon"><PiggyBank size={18} /></div>
-          <div className="up-stat__body">
-            <span className="up-stat__value">{loading ? '—' : fmt(savingsStats.totalSavings)}</span>
-            <span className="up-stat__label">Total Savings</span>
+        )}
+
+        {isEditing ? (
+          <div className="space-y-4 pt-1">
+            <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
+              <div className="space-y-1">
+                <label className="block text-[10px] font-bold uppercase tracking-wider text-slate-400 dark:text-slate-500">Full Name</label>
+                <input type="text" className="w-full px-3 py-2 bg-slate-100 dark:bg-slate-800/60 border border-slate-200 dark:border-white/10 rounded-xl text-xs text-slate-900 dark:text-white outline-none opacity-60 cursor-not-allowed font-medium" value={editForm.fullName} disabled={true} />
+              </div>
+              <div className="space-y-1">
+                <label className="block text-[10px] font-bold uppercase tracking-wider text-slate-400 dark:text-slate-500">Email Address</label>
+                <input type="email" className="w-full px-3 py-2 bg-slate-50 dark:bg-slate-800/60 border border-slate-200 dark:border-white/10 rounded-xl text-xs text-slate-900 dark:text-white outline-none focus:ring-2 focus:ring-blue-600 transition-all font-medium" value={editForm.email} onChange={e => handleEditChange('email', e.target.value)} />
+              </div>
+              <div className="space-y-1">
+                <label className="block text-[10px] font-bold uppercase tracking-wider text-slate-400 dark:text-slate-500">Phone Number</label>
+                <input type="tel" className="w-full px-3 py-2 bg-slate-50 dark:bg-slate-800/60 border border-slate-200 dark:border-white/10 rounded-xl text-xs text-slate-900 dark:text-white outline-none focus:ring-2 focus:ring-blue-600 transition-all font-medium" value={editForm.phone} onChange={e => handleEditChange('phone', e.target.value)} />
+              </div>
+              <div className="space-y-1">
+                <label className="block text-[10px] font-bold uppercase tracking-wider text-slate-400 dark:text-slate-500">Community Branch</label>
+                <select className="w-full px-3 py-2 bg-slate-50 dark:bg-slate-800/60 border border-slate-200 dark:border-white/10 rounded-xl text-xs text-slate-900 dark:text-white outline-none focus:ring-2 focus:ring-blue-600 transition-all font-medium" value={editForm.community} onChange={e => handleEditChange('community', e.target.value)}>
+                  <option value="">— Select Community —</option>
+                  {provinceOrder.map(prov => (
+                    <optgroup key={prov} label={prov}>
+                      {groupedBranches[prov].map(p => <option key={p}>{p}</option>)}
+                    </optgroup>
+                  ))}
+                </select>
+              </div>
+            </div>
+            <div className="flex justify-end gap-2 pt-2 border-t border-slate-100 dark:border-white/5">
+              <button onClick={handleCancelEdit} disabled={isSaving} className="px-4 py-2 bg-slate-100 dark:bg-slate-800 text-slate-700 dark:text-slate-300 rounded-xl font-bold text-xs border-none cursor-pointer hover:bg-slate-200 transition-colors">Cancel</button>
+              <button onClick={handleSaveChanges} disabled={isSaving} className="px-4 py-2 bg-blue-600 text-white rounded-xl font-bold text-xs border-none cursor-pointer hover:bg-blue-700 transition-colors">
+                {isSaving ? 'Saving...' : 'Save Changes'}
+              </button>
+            </div>
           </div>
-        </div>
-        {isOfficer && (
-          <div className="up-stat up-stat--loans" onClick={() => navigate('/loans')}>
-            <div className="up-stat__icon"><FileText size={18} /></div>
-            <div className="up-stat__body">
-              <span className="up-stat__value">{loading ? '—' : loanStats.completed}</span>
-              <span className="up-stat__label">Loans Completed</span>
+        ) : (
+          <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-3 pt-1">
+            <div className="flex items-center gap-3 p-3 rounded-xl bg-slate-50/70 dark:bg-slate-800/40 border border-slate-100 dark:border-white/5 text-slate-500 dark:text-slate-400">
+              <div className="w-9 h-9 rounded-lg bg-blue-50 dark:bg-blue-950/50 text-blue-600 dark:text-blue-400 flex items-center justify-center shrink-0">
+                <Mail size={16} />
+              </div>
+              <div className="min-w-0 flex-1">
+                <span className="block text-[10px] font-bold uppercase tracking-wider text-slate-400 dark:text-slate-500">Email Address</span>
+                <span className="block text-xs font-bold text-slate-900 dark:text-white truncate">{user?.email || '—'}</span>
+              </div>
+            </div>
+
+            <div className="flex items-center gap-3 p-3 rounded-xl bg-slate-50/70 dark:bg-slate-800/40 border border-slate-100 dark:border-white/5 text-slate-500 dark:text-slate-400">
+              <div className="w-9 h-9 rounded-lg bg-emerald-50 dark:bg-emerald-950/50 text-emerald-600 dark:text-emerald-400 flex items-center justify-center shrink-0">
+                <Phone size={16} />
+              </div>
+              <div className="min-w-0 flex-1">
+                <span className="block text-[10px] font-bold uppercase tracking-wider text-slate-400 dark:text-slate-500">Phone Number</span>
+                <span className="block text-xs font-bold text-slate-900 dark:text-white truncate">{profile?.phone || 'Not set'}</span>
+              </div>
+            </div>
+
+            <div className="flex items-center gap-3 p-3 rounded-xl bg-slate-50/70 dark:bg-slate-800/40 border border-slate-100 dark:border-white/5 text-slate-500 dark:text-slate-400">
+              <div className="w-9 h-9 rounded-lg bg-purple-50 dark:bg-purple-950/50 text-purple-600 dark:text-purple-400 flex items-center justify-center shrink-0">
+                <MapPin size={16} />
+              </div>
+              <div className="min-w-0 flex-1">
+                <span className="block text-[10px] font-bold uppercase tracking-wider text-slate-400 dark:text-slate-500">Community Branch</span>
+                <span className="block text-xs font-bold text-slate-900 dark:text-white truncate">{profile?.branch || 'Not assigned'}</span>
+              </div>
+            </div>
+
+            <div className="flex items-center gap-3 p-3 rounded-xl bg-slate-50/70 dark:bg-slate-800/40 border border-slate-100 dark:border-white/5 text-slate-500 dark:text-slate-400">
+              <div className="w-9 h-9 rounded-lg bg-amber-50 dark:bg-amber-950/50 text-amber-600 dark:text-amber-400 flex items-center justify-center shrink-0">
+                <CalendarDays size={16} />
+              </div>
+              <div className="min-w-0 flex-1">
+                <span className="block text-[10px] font-bold uppercase tracking-wider text-slate-400 dark:text-slate-500">Birthday</span>
+                <span className="block text-xs font-bold text-slate-900 dark:text-white truncate">
+                  {profile?.birthday || profile?.dateOfBirth
+                    ? new Date(profile.birthday || profile.dateOfBirth).toLocaleDateString('en-US', { month: 'long', day: 'numeric', year: 'numeric' })
+                    : 'Not set'}
+                </span>
+              </div>
             </div>
           </div>
         )}
       </div>
 
-      {/* ── Main Content Grid ── */}
-      <div className="up-grid">
+      {/* ── 3. KEY MEMBERSHIP & FINANCIAL STATS SUMMARY ── */}
+      <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-4">
+        <div className="p-4 bg-white dark:bg-[#1E2130] border border-slate-200/80 dark:border-white/10 rounded-2xl shadow-xs flex items-center gap-3.5 cursor-pointer hover:shadow-md hover:border-slate-300 dark:hover:border-white/20 transition-all group" onClick={() => navigate('/donation')}>
+          <div className="w-10 h-10 rounded-xl flex items-center justify-center shrink-0 bg-pink-50 dark:bg-pink-950/50 text-pink-600 dark:text-pink-400 group-hover:scale-105 transition-transform"><Heart size={18} /></div>
+          <div className="min-w-0 flex-1">
+            <span className="block text-lg font-extrabold font-dm text-slate-900 dark:text-white tracking-tight leading-tight">{loading ? '—' : fmt(totalDonated)}</span>
+            <span className="block text-xs text-slate-500 dark:text-slate-400 font-medium">Total Donated</span>
+          </div>
+        </div>
 
-        {/* Left Column */}
-        <div className="up-col-left">
+        <div className="p-4 bg-white dark:bg-[#1E2130] border border-slate-200/80 dark:border-white/10 rounded-2xl shadow-xs flex items-center gap-3.5 cursor-pointer hover:shadow-md hover:border-slate-300 dark:hover:border-white/20 transition-all group" onClick={() => navigate('/attendance')}>
+          <div className="w-10 h-10 rounded-xl flex items-center justify-center shrink-0 bg-teal-50 dark:bg-teal-950/50 text-teal-600 dark:text-teal-400 group-hover:scale-105 transition-transform"><CalendarDays size={18} /></div>
+          <div className="min-w-0 flex-1">
+            <span className="block text-lg font-extrabold font-dm text-slate-900 dark:text-white tracking-tight leading-tight">{loading ? '—' : attendance.length}</span>
+            <span className="block text-xs text-slate-500 dark:text-slate-400 font-medium">Services Attended</span>
+          </div>
+        </div>
 
-          {/* Donation Trend */}
-          <div className="up-card">
-            <div className="up-card__header">
-              <h2 className="up-card__title">
-                <TrendingUp size={16} />
+        <div className="p-4 bg-white dark:bg-[#1E2130] border border-slate-200/80 dark:border-white/10 rounded-2xl shadow-xs flex items-center gap-3.5 cursor-pointer hover:shadow-md hover:border-slate-300 dark:hover:border-white/20 transition-all group" onClick={() => navigate('/savings')}>
+          <div className="w-10 h-10 rounded-xl flex items-center justify-center shrink-0 bg-amber-50 dark:bg-amber-950/50 text-amber-600 dark:text-amber-400 group-hover:scale-105 transition-transform"><PiggyBank size={18} /></div>
+          <div className="min-w-0 flex-1">
+            <span className="block text-lg font-extrabold font-dm text-slate-900 dark:text-white tracking-tight leading-tight">{loading ? '—' : fmt(savingsStats.totalSavings)}</span>
+            <span className="block text-xs text-slate-500 dark:text-slate-400 font-medium">Total Savings</span>
+          </div>
+        </div>
+
+        {isOfficer ? (
+          <div className="p-4 bg-white dark:bg-[#1E2130] border border-slate-200/80 dark:border-white/10 rounded-2xl shadow-xs flex items-center gap-3.5 cursor-pointer hover:shadow-md hover:border-slate-300 dark:hover:border-white/20 transition-all group" onClick={() => navigate('/loans')}>
+            <div className="w-10 h-10 rounded-xl flex items-center justify-center shrink-0 bg-blue-50 dark:bg-blue-950/50 text-blue-600 dark:text-blue-400 group-hover:scale-105 transition-transform"><FileText size={18} /></div>
+            <div className="min-w-0 flex-1">
+              <span className="block text-lg font-extrabold font-dm text-slate-900 dark:text-white tracking-tight leading-tight">{loading ? '—' : loanStats.completed}</span>
+              <span className="block text-xs text-slate-500 dark:text-slate-400 font-medium">Loans Completed</span>
+            </div>
+          </div>
+        ) : null}
+      </div>
+
+      {/* ── 4. ACHIEVEMENTS & ANALYTICS GRID ── */}
+      <div className="grid grid-cols-1 lg:grid-cols-[0.8fr_1.2fr] gap-6">
+
+        {/* Column 1: Achievements & Badges */}
+        <div className="p-6 bg-white dark:bg-[#1E2130] border border-slate-200/80 dark:border-white/10 rounded-2xl shadow-sm space-y-4">
+          <div className="flex items-center justify-between gap-2 pb-3 border-b border-slate-100 dark:border-white/5">
+            <h2 className="text-sm font-bold text-slate-900 dark:text-white uppercase tracking-wider font-inter flex items-center gap-2">
+              <Award size={16} className="text-amber-500" />
+              Achievements &amp; Badges
+            </h2>
+            <span className="text-[11px] font-bold px-2 py-0.5 rounded-full bg-amber-50 dark:bg-amber-950/40 text-amber-600 dark:text-amber-400 font-inter">{achievements.length} Earned</span>
+          </div>
+
+          {achievements.length === 0 ? (
+            <div className="py-8 text-center text-slate-400 space-y-2 text-xs font-inter bg-slate-50/50 dark:bg-slate-800/20 rounded-xl border border-dashed border-slate-200 dark:border-white/10">
+              <Award size={28} strokeWidth={1.5} className="mx-auto opacity-40 text-amber-500" />
+              <p>Keep participating in church activities to unlock badges!</p>
+            </div>
+          ) : (
+            <div className="space-y-2.5">
+              {achievements.map((a, i) => (
+                <div key={i} className="p-3 rounded-xl bg-slate-50/70 dark:bg-slate-800/40 border border-slate-100 dark:border-white/5 flex items-center gap-3">
+                  <div className="w-9 h-9 rounded-xl flex items-center justify-center shrink-0 bg-white dark:bg-slate-800 shadow-xs text-blue-600 dark:text-blue-400">{a.icon}</div>
+                  <div className="space-y-0.5 min-w-0">
+                    <span className="block text-xs font-bold text-slate-900 dark:text-white">{a.title}</span>
+                    <span className="block text-[11px] text-slate-500 dark:text-slate-400">{a.desc}</span>
+                  </div>
+                </div>
+              ))}
+            </div>
+          )}
+        </div>
+
+        {/* Column 2: Financial & Activity Analytics */}
+        <div className="space-y-6">
+
+          {/* Giving Trend Chart */}
+          <div className="p-6 bg-white dark:bg-[#1E2130] border border-slate-200/80 dark:border-white/10 rounded-2xl shadow-sm space-y-4">
+            <div className="flex items-center justify-between gap-2 pb-2 border-b border-slate-100 dark:border-white/5">
+              <h2 className="text-sm font-bold text-slate-900 dark:text-white uppercase tracking-wider font-inter flex items-center gap-2">
+                <TrendingUp size={16} className="text-blue-600 dark:text-blue-400" />
                 Giving Trend
               </h2>
-              <span className="up-card__sub">{new Date().getFullYear()}</span>
+              <span className="text-xs font-semibold text-slate-400 dark:text-slate-500 font-inter">{new Date().getFullYear()}</span>
             </div>
-            <div className="up-chart-wrap">
+            <div className="pt-2">
               {loading ? (
-                <div className="up-skeleton-chart" />
+                <div className="h-[180px] w-full bg-slate-100 dark:bg-slate-800 animate-pulse rounded-xl" />
               ) : (
-                <ResponsiveContainer width="100%" height={200}>
+                <ResponsiveContainer width="100%" height={180}>
                   <BarChart data={donationTrend} margin={{ top: 5, right: 5, bottom: 0, left: -10 }}>
-                    <CartesianGrid strokeDasharray="3 3" stroke="var(--border)" />
-                    <XAxis dataKey="label" tick={{ fontSize: 11, fill: 'var(--text-muted)' }} axisLine={false} tickLine={false} />
-                    <YAxis tick={{ fontSize: 10, fill: 'var(--text-muted)' }} axisLine={false} tickLine={false} tickFormatter={v => v > 0 ? `₱${(v / 1000).toFixed(0)}k` : '0'} />
+                    <CartesianGrid strokeDasharray="3 3" stroke="#e2e8f0" />
+                    <XAxis dataKey="label" tick={{ fontSize: 11, fill: '#94a3b8' }} axisLine={false} tickLine={false} />
+                    <YAxis tick={{ fontSize: 10, fill: '#94a3b8' }} axisLine={false} tickLine={false} tickFormatter={v => v > 0 ? `₱${(v / 1000).toFixed(0)}k` : '0'} />
                     <Tooltip
                       formatter={(v) => [fmt(v), 'Donated']}
-                      contentStyle={{ background: 'var(--card)', border: '1px solid var(--border)', borderRadius: 8, fontSize: 12 }}
+                      contentStyle={{ background: '#ffffff', border: '1px solid #e2e8f0', borderRadius: 8, fontSize: 12 }}
                     />
                     <Bar dataKey="amount" fill="#1e3a8a" radius={[4, 4, 0, 0]} />
                   </BarChart>
@@ -388,162 +558,37 @@ export default function Profile() {
             </div>
           </div>
 
-          {/* Attendance Heatmap */}
-          <div className="up-card">
-            <div className="up-card__header">
-              <h2 className="up-card__title">
-                <CalendarDays size={16} />
+          {/* Attendance Overview Chart */}
+          <div className="p-6 bg-white dark:bg-[#1E2130] border border-slate-200/80 dark:border-white/10 rounded-2xl shadow-sm space-y-4">
+            <div className="flex items-center justify-between gap-2 pb-2 border-b border-slate-100 dark:border-white/5">
+              <h2 className="text-sm font-bold text-slate-900 dark:text-white uppercase tracking-wider font-inter flex items-center gap-2">
+                <CalendarDays size={16} className="text-teal-600 dark:text-teal-400" />
                 Attendance Overview
               </h2>
-              <span className="up-card__sub">{attendance.length} total</span>
+              <span className="text-xs font-semibold text-slate-400 dark:text-slate-500 font-inter">{attendance.length} total</span>
             </div>
-            <div className="up-heatmap">
-              {attendanceByMonth.map((m, i) => {
-                const intensity = m.count / maxAtt;
-                return (
-                  <div key={i} className="up-heatmap__cell" title={`${m.label}: ${m.count} service${m.count !== 1 ? 's' : ''}`}>
-                    <div
-                      className="up-heatmap__bar"
-                      style={{
-                        height: `${Math.max(4, intensity * 100)}%`,
-                        opacity: m.count > 0 ? 0.3 + intensity * 0.7 : 0.1,
-                      }}
+            <div className="pt-2">
+              {loading ? (
+                <div className="h-[180px] w-full bg-slate-100 dark:bg-slate-800 animate-pulse rounded-xl" />
+              ) : (
+                <ResponsiveContainer width="100%" height={180}>
+                  <BarChart data={attendanceByMonth} margin={{ top: 5, right: 5, bottom: 0, left: -20 }}>
+                    <CartesianGrid strokeDasharray="3 3" stroke="#e2e8f0" />
+                    <XAxis dataKey="label" tick={{ fontSize: 11, fill: '#94a3b8' }} axisLine={false} tickLine={false} />
+                    <YAxis allowDecimals={false} tick={{ fontSize: 10, fill: '#94a3b8' }} axisLine={false} tickLine={false} />
+                    <Tooltip
+                      formatter={(v) => [`${v} service${v !== 1 ? 's' : ''}`, 'Attended']}
+                      contentStyle={{ background: '#ffffff', border: '1px solid #e2e8f0', borderRadius: 8, fontSize: 12 }}
                     />
-                    <span className="up-heatmap__count">{m.count}</span>
-                    <span className="up-heatmap__label">{m.label}</span>
-                  </div>
-                );
-              })}
-            </div>
-          </div>
-        </div>
-
-        {/* Right Column */}
-        <div className="up-col-right">
-
-          {/* Achievements */}
-          <div className="up-card">
-            <div className="up-card__header">
-              <h2 className="up-card__title">
-                <Award size={16} />
-                Achievements
-              </h2>
-              <span className="up-card__sub">{achievements.length} earned</span>
-            </div>
-            {achievements.length === 0 ? (
-              <div className="up-empty">
-                <Award size={28} strokeWidth={1.5} />
-                <p>Keep participating to earn achievements!</p>
-              </div>
-            ) : (
-              <div className="up-achievements">
-                {achievements.map((a, i) => (
-                  <div key={i} className="up-achievement" style={{ '--accent': a.color }}>
-                    <div className="up-achievement__icon">{a.icon}</div>
-                    <div className="up-achievement__text">
-                      <span className="up-achievement__title">{a.title}</span>
-                      <span className="up-achievement__desc">{a.desc}</span>
-                    </div>
-                  </div>
-                ))}
-              </div>
-            )}
-          </div>
-
-          {/* Personal Info */}
-          <div className="up-card">
-            <div className="up-card__header">
-              <h2 className="up-card__title">
-                <Shield size={16} />
-                Personal Information
-              </h2>
-              {!isEditing && (
-                <button className="up-card__edit-btn" onClick={() => setIsEditing(true)}>
-                  <Edit2 size={13} />
-                  Edit
-                </button>
+                    <Bar dataKey="count" fill="#0D9488" radius={[4, 4, 0, 0]} />
+                  </BarChart>
+                </ResponsiveContainer>
               )}
             </div>
-            
-            {formError && (
-              <div style={{ display: 'flex', alignItems: 'center', gap: 8, background: '#FEF2F2', border: '1px solid #FECACA', borderRadius: 10, padding: '10px 14px', marginBottom: 16 }}>
-                <XCircle size={16} color="#F04438" />
-                <span style={{ fontSize: 13, color: '#B91C1C' }}>{formError}</span>
-              </div>
-            )}
-
-            {isEditing ? (
-              <div className="up-info-form">
-                <div className="up-info-item-edit">
-                  <label className="up-info-label">Full Name</label>
-                  <input type="text" className="up-info-input" value={editForm.fullName} disabled={true} />
-                </div>
-                <div className="up-info-item-edit">
-                  <label className="up-info-label">Email address</label>
-                  <input type="email" className="up-info-input" value={editForm.email} onChange={e => handleEditChange('email', e.target.value)} />
-                </div>
-                <div className="up-info-item-edit">
-                  <label className="up-info-label">Phone number</label>
-                  <input type="tel" className="up-info-input" value={editForm.phone} onChange={e => handleEditChange('phone', e.target.value)} />
-                </div>
-                <div className="up-info-item-edit">
-                  <label className="up-info-label">Community</label>
-                  <select className="up-info-input" value={editForm.community} onChange={e => handleEditChange('community', e.target.value)}>
-                    <option value="">— Select Community —</option>
-                    {provinceOrder.map(prov => (
-                      <optgroup key={prov} label={prov}>
-                        {groupedBranches[prov].map(p => <option key={p}>{p}</option>)}
-                      </optgroup>
-                    ))}
-                  </select>
-                </div>
-                <div className="up-info-form-actions" style={{ display: 'flex', justifyContent: 'flex-end', gap: '8px', marginTop: '16px' }}>
-                  <button onClick={handleCancelEdit} disabled={isSaving} style={{ padding: '8px 16px', background: '#F3F4F6', color: '#374151', borderRadius: '8px', border: 'none', cursor: 'pointer', fontWeight: 500, fontSize: '13px' }}>Cancel</button>
-                  <button onClick={handleSaveChanges} disabled={isSaving} style={{ padding: '8px 16px', background: '#155DFC', color: 'white', borderRadius: '8px', border: 'none', cursor: 'pointer', fontWeight: 500, fontSize: '13px' }}>
-                    {isSaving ? 'Saving...' : 'Save Changes'}
-                  </button>
-                </div>
-              </div>
-            ) : (
-              <div className="up-info-list">
-                <div className="up-info-item">
-                  <Mail size={15} />
-                  <div>
-                    <span className="up-info-label">Email</span>
-                    <span className="up-info-value">{user?.email || '—'}</span>
-                  </div>
-                </div>
-                <div className="up-info-item">
-                  <Phone size={15} />
-                  <div>
-                    <span className="up-info-label">Phone</span>
-                    <span className="up-info-value">{profile?.phone || 'Not set'}</span>
-                  </div>
-                </div>
-                <div className="up-info-item">
-                  <MapPin size={15} />
-                  <div>
-                    <span className="up-info-label">Community</span>
-                    <span className="up-info-value">{profile?.branch || 'Not assigned'}</span>
-                  </div>
-                </div>
-                <div className="up-info-item">
-                  <CalendarDays size={15} />
-                  <div>
-                    <span className="up-info-label">Birthday</span>
-                    <span className="up-info-value">
-                      {profile?.birthday || profile?.dateOfBirth
-                        ? new Date(profile.birthday || profile.dateOfBirth).toLocaleDateString('en-US', { month: 'long', day: 'numeric', year: 'numeric' })
-                        : 'Not set'}
-                    </span>
-                  </div>
-                </div>
-              </div>
-            )}
           </div>
 
-
         </div>
+
       </div>
     </div>
   );

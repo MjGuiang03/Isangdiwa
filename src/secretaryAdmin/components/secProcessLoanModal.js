@@ -1,7 +1,5 @@
 import { useState } from 'react';
-import '../styles/secProcessLoanModal.css';
 import { Banknote, Check, Smartphone, Building2, X, AlertTriangle } from 'lucide-react';
-
 
 export default function SecProcessLoanModal({ loan, onClose, onProcess }) {
     const [paymentMethod, setPaymentMethod] = useState(loan.disbursementMethod || 'e-wallet');
@@ -13,7 +11,6 @@ export default function SecProcessLoanModal({ loan, onClose, onProcess }) {
             alert('Please provide a reason for changing the payment method.');
             return;
         }
-
         setProcessing(true);
         try {
             await onProcess(paymentMethod, reason);
@@ -25,132 +22,136 @@ export default function SecProcessLoanModal({ loan, onClose, onProcess }) {
     };
 
     const isDigital = paymentMethod === 'e-wallet' || paymentMethod === 'bank';
+    const isOverride = paymentMethod !== (loan.disbursementMethod || 'cash');
+
+    const methodOptions = [
+        { key: 'cash',     label: 'Cash',          icon: <Banknote size={20} /> },
+        { key: 'e-wallet', label: 'E-Wallet',       icon: <Smartphone size={20} /> },
+        { key: 'bank',     label: 'Bank Transfer',  icon: <Building2 size={20} /> },
+    ];
 
     return (
-        <div className="sec-process-modal-overlay" onClick={onClose}>
-            <div className="sec-process-modal-container" onClick={(e) => e.stopPropagation()}>
-                {/* Icon */}
-                <div className="sec-process-modal-icon">
-                    <Banknote size={24} color="#155DFC" />
-                    <button className="sec-process-modal-close-top" onClick={onClose}>
+        <div className="fixed inset-0 bg-black/50 backdrop-blur-sm flex items-center justify-center z-[1000] p-4" onClick={onClose}>
+            <div
+                className="bg-white dark:bg-[#1E2130] rounded-2xl w-full max-w-[520px] flex flex-col shadow-2xl border border-slate-200 dark:border-white/10"
+                onClick={e => e.stopPropagation()}
+            >
+                {/* Header */}
+                <div className="flex items-center justify-between px-6 py-4 border-b border-slate-100 dark:border-white/5">
+                    <div className="flex items-center gap-3">
+                        <div className="w-9 h-9 rounded-xl bg-navy/10 dark:bg-blue-500/10 flex items-center justify-center">
+                            <Banknote size={18} className="text-navy dark:text-blue-400" />
+                        </div>
+                        <div>
+                            <h2 className="font-inter font-bold text-[16px] text-slate-900 dark:text-white m-0 leading-tight">Process Loan Disbursement</h2>
+                            <p >Loan ID: <span className="font-inter text-[12px] text-slate-500 dark:text-slate-400 m-0 font-semibold text-navy dark:text-blue-400">{loan.id}</span></p>
+                        </div>
+                    </div>
+                    <button
+                        onClick={onClose}
+                        className="w-8 h-8 flex items-center justify-center rounded-lg bg-transparent border-none text-slate-400 hover:text-slate-700 hover:bg-slate-100 dark:hover:bg-white/10 dark:hover:text-white cursor-pointer transition-colors"
+                    >
                         <X size={18} />
                     </button>
                 </div>
 
-                {/* Title */}
-                <h2 className="sec-process-modal-title">Process Loan Disbursement</h2>
-
-                {/* Subtitle */}
-                <p className="sec-process-modal-subtitle">
-                    Process payment for loan <strong>{loan.id}</strong>
-                </p>
-
-                {/* Info Box */}
-                <div className="sec-process-modal-info">
-                    <p className="sec-process-modal-info-text">
-                        <span className="label">Member:</span> <strong>{loan.member}</strong>
-                    </p>
-                    <p className="sec-process-modal-info-text">
-                        <span className="label">Amount:</span> <strong>₱{loan.amount.toLocaleString()}</strong>
-                    </p>
-                    <p className="sec-process-modal-info-text">
-                        <span className="label">Purpose:</span> <strong>{loan.purpose}</strong>
-                    </p>
-                    <p className="sec-process-modal-info-text" style={{ marginTop: '8px', paddingTop: '8px', borderTop: '1px solid #E5E7EB' }}>
-                        <span className="label">User Preference:</span> <strong style={{ textTransform: 'capitalize', color: '#155DFC' }}>{loan.disbursementMethod || 'N/A'}</strong>
-                    </p>
-                    {loan.disbursementAccount && (
-                        <p className="sec-process-modal-info-text">
-                            <span className="label">Account Info:</span> <strong style={{ color: '#111827' }}>{loan.disbursementAccount}</strong>
-                        </p>
-                    )}
-                </div>
-
-                {/* Payment Method Selection */}
-                <div className="sec-process-modal-payment-section">
-                    <label className="sec-process-modal-label">Select Payment Method</label>
-
-                    <div className="sec-process-modal-payment-options">
-                        <button
-                            className={`sec-process-payment-option ${paymentMethod === 'cash' ? 'active' : ''}`}
-                            onClick={() => setPaymentMethod('cash')}
-                        >
-                            <Banknote size={22} />
-                            <span>Cash</span>
-                        </button>
-
-                        <button
-                            className={`sec-process-payment-option ${paymentMethod === 'e-wallet' ? 'active' : ''}`}
-                            onClick={() => setPaymentMethod('e-wallet')}
-                        >
-                            <Smartphone size={22} />
-                            <span>E-Wallet</span>
-                        </button>
-
-                        <button
-                            className={`sec-process-payment-option ${paymentMethod === 'bank' ? 'active' : ''}`}
-                            onClick={() => setPaymentMethod('bank')}
-                        >
-                            <Building2 size={22} />
-                            <span>Bank Transfer</span>
-                        </button>
+                {/* Body */}
+                <div className="px-6 py-5 flex flex-col gap-4 overflow-y-auto max-h-[calc(90vh-130px)]">
+                    {/* Info Row */}
+                    <div className="grid grid-cols-3 gap-3">
+                        <div className="bg-slate-50 dark:bg-black/20 rounded-xl p-3 flex flex-col gap-0.5">
+                            <p className="font-inter text-[10px] font-semibold text-slate-400 uppercase tracking-wider m-0">Member</p>
+                            <p className="font-inter text-[13px] font-semibold text-slate-900 dark:text-white m-0 truncate">{loan.member}</p>
+                        </div>
+                        <div className="bg-navy/5 dark:bg-blue-500/10 border border-navy/10 dark:border-blue-500/20 rounded-xl p-3 flex flex-col gap-0.5">
+                            <p className="font-inter text-[10px] font-semibold text-slate-400 uppercase tracking-wider m-0">Amount</p>
+                            <p className="font-inter text-[15px] font-bold text-navy dark:text-blue-400 m-0">₱{loan.amount.toLocaleString()}</p>
+                        </div>
+                        <div className="bg-slate-50 dark:bg-black/20 rounded-xl p-3 flex flex-col gap-0.5">
+                            <p className="font-inter text-[10px] font-semibold text-slate-400 uppercase tracking-wider m-0">User Preference</p>
+                            <p className="font-inter text-[13px] font-semibold text-blue-600 dark:text-blue-400 m-0 capitalize">{loan.disbursementMethod || 'N/A'}</p>
+                        </div>
                     </div>
 
-                    {paymentMethod !== (loan.disbursementMethod || 'cash') && (
-                        <div style={{ marginTop: '16px' }}>
-                            <label className="sec-process-modal-label" style={{ color: '#E7000B' }}>
-                                Reason for overriding user preference <span style={{ color: 'red' }}>*</span>
+                    {loan.disbursementAccount && (
+                        <div className="bg-slate-50 dark:bg-black/20 rounded-xl px-4 py-2.5 flex items-center gap-3">
+                            <p className="font-inter text-[12px] text-slate-500 dark:text-slate-400 m-0">Account Info:</p>
+                            <p className="font-inter text-[13px] font-semibold text-slate-900 dark:text-white m-0">{loan.disbursementAccount}</p>
+                        </div>
+                    )}
+
+                    {/* Payment Method Selection */}
+                    <div>
+                        <label className="font-inter text-[11px] font-semibold text-slate-500 dark:text-slate-400 uppercase tracking-wider mb-2 block">Select Payment Method</label>
+                        <div className="grid grid-cols-3 gap-2">
+                            {methodOptions.map(({ key, label, icon }) => (
+                                <button
+                                    key={key}
+                                    onClick={() => setPaymentMethod(key)}
+                                    className={`flex flex-col items-center gap-2 py-3 px-2 rounded-xl border-2 font-inter text-[12px] font-semibold cursor-pointer transition-all ${
+                                        paymentMethod === key
+                                            ? 'border-navy bg-navy/5 text-navy dark:border-blue-400 dark:bg-blue-400/10 dark:text-blue-400'
+                                            : 'border-slate-200 dark:border-white/10 bg-white dark:bg-transparent text-slate-500 dark:text-slate-400 hover:border-slate-300 dark:hover:border-white/20'
+                                    }`}
+                                >
+                                    {icon}
+                                    <span>{label}</span>
+                                    {paymentMethod === key && <Check size={14} className="text-navy dark:text-blue-400" />}
+                                </button>
+                            ))}
+                        </div>
+                    </div>
+
+                    {/* Override reason */}
+                    {isOverride && (
+                        <div className="bg-red-50 dark:bg-red-900/10 border border-red-200 dark:border-red-900/30 rounded-xl p-4 flex flex-col gap-2">
+                            <label className="font-inter text-[11px] font-semibold text-red-600 dark:text-red-400 uppercase tracking-wider">
+                                Reason for overriding user preference <span className="text-red-500">*</span>
                             </label>
                             <textarea
                                 value={reason}
                                 onChange={e => setReason(e.target.value)}
-                                placeholder="State why the preferred method cannot be used"
-                                style={{
-                                    width: '100%',
-                                    marginTop: '8px',
-                                    padding: '12px',
-                                    border: '1px solid #D1D5DB',
-                                    borderRadius: '8px',
-                                    fontSize: '14px',
-                                    fontFamily: 'Inter',
-                                    minHeight: '80px',
-                                    boxSizing: 'border-box',
-                                    resize: 'none',
-                                    outline: 'none',
-                                }}
+                                placeholder="State why the preferred method cannot be used..."
+                                className="w-full resize-none rounded-lg border border-red-200 dark:border-red-900/30 bg-white dark:bg-[#1E2130] px-3 py-2.5 font-inter text-[13px] text-slate-800 dark:text-white placeholder:text-slate-400 outline-none focus:border-red-400 transition-colors"
+                                rows={3}
                             />
                         </div>
                     )}
+
+                    {/* Notice */}
+                    <div className={`flex items-start gap-3 p-3.5 rounded-xl border ${
+                        isDigital
+                            ? 'bg-blue-50 border-blue-200 dark:bg-blue-900/10 dark:border-blue-900/30 text-blue-700 dark:text-blue-400'
+                            : 'bg-amber-50 border-amber-200 dark:bg-amber-900/10 dark:border-amber-900/30 text-amber-700 dark:text-amber-400'
+                    }`}>
+                        {isDigital
+                            ? <Smartphone size={16} className="shrink-0 mt-0.5" />
+                            : <AlertTriangle size={16} className="shrink-0 mt-0.5" />
+                        }
+                        <p className="font-inter text-[12px] m-0 leading-relaxed">
+                            {isDigital
+                                ? <>The amount of <strong>₱{loan.amount.toLocaleString()}</strong> will be sent via <strong>PayMongo</strong> to <strong>{loan.disbursementAccount || "the member's account"}</strong>.</>
+                                : <>Cash disbursement of <strong>₱{loan.amount.toLocaleString()}</strong> — the member must pick up at the office.</>
+                            }
+                        </p>
+                    </div>
                 </div>
 
-                {/* Disbursement info notice */}
-                <div className="sec-process-modal-notice">
-                    {isDigital ? (
-                        <>
-                            <Smartphone size={16} color="#155DFC" />
-                            <p>
-                                The amount of <strong>₱{loan.amount.toLocaleString()}</strong> will be sent via <strong>PayMongo</strong> to{' '}
-                                <strong>{loan.disbursementAccount || 'the member\'s account'}</strong>.
-                            </p>
-                        </>
-                    ) : (
-                        <>
-                            <AlertTriangle size={16} color="#D97706" />
-                            <p>
-                                Cash disbursement of <strong>₱{loan.amount.toLocaleString()}</strong> — the member must pick up at the office.
-                            </p>
-                        </>
-                    )}
-                </div>
-
-                {/* Action Buttons */}
-                <div className="sec-process-modal-actions">
-                    <button className="sec-process-btn-cancel" onClick={onClose}>
+                {/* Footer */}
+                <div className="flex items-center justify-end gap-3 px-6 py-4 border-t border-slate-100 dark:border-white/5 shrink-0">
+                    <button
+                        onClick={onClose}
+                        className="h-9 px-4 bg-white dark:bg-transparent border border-slate-200 dark:border-white/10 text-slate-600 dark:text-slate-300 hover:bg-slate-50 dark:hover:bg-white/5 rounded-lg font-inter text-[13px] font-semibold cursor-pointer transition-colors"
+                    >
                         Cancel
                     </button>
-                    <button className="sec-process-btn-confirm" onClick={handleProcess} disabled={processing}>
-                        <Check size={16} color="white" />
-                        {processing ? <span className="btn-spinner" /> : isDigital ? 'Send via PayMongo' : 'Confirm Cash Disbursement'}
+                    <button
+                        onClick={handleProcess}
+                        disabled={processing}
+                        className="h-9 px-5 bg-navy hover:bg-blue-800 dark:bg-[#0D1F45] dark:hover:bg-blue-900 text-white border-none rounded-lg font-inter text-[13px] font-semibold cursor-pointer transition-colors flex items-center gap-2 disabled:opacity-60 disabled:cursor-not-allowed"
+                    >
+                        <Check size={15} />
+                        {processing ? 'Processing…' : isDigital ? 'Send via PayMongo' : 'Confirm Cash Disbursement'}
                     </button>
                 </div>
             </div>

@@ -2,7 +2,7 @@ import { useState, useEffect } from 'react';
 import { useNavigate } from 'react-router';
 import { useAuth } from '../../context/AuthContext';
 
-import '../styles/Settings.css';
+
 import { useTheme } from '../../context/ThemeContext';
 
 import API from '../../utils/api';
@@ -11,15 +11,32 @@ import { subscribeToPushNotifications, unsubscribeFromPushNotifications } from '
 
 /* ─── Community options removed in favor of dynamic fetching ─── */
 
-/* ─── Password strength helper ──────────────────────────────────────── */
+/* ─── Signup-aligned Password Validators & Helpers ───────────────────── */
+const passwordUppercase = /[A-Z]/;
+const passwordLowercase = /[a-z]/;
+const passwordNumber = /[0-9]/;
+const passwordSymbol = /[^A-Za-z0-9]/;
+
+function validateNewPassword(value) {
+  const errs = [];
+  if (!value) return ['New password is required'];
+  if (value.length < 8) errs.push('at least 8 characters');
+  if (value.length > 72) errs.push('maximum 72 characters');
+  if (!passwordUppercase.test(value)) errs.push('1 uppercase letter');
+  if (!passwordLowercase.test(value)) errs.push('1 lowercase letter');
+  if (!passwordNumber.test(value)) errs.push('1 number');
+  if (!passwordSymbol.test(value)) errs.push('1 symbol');
+  return errs;
+}
+
 function getPasswordStrength(password) {
   if (!password) return { score: 0, label: '', color: '' };
   let score = 0;
   if (password.length >= 8) score++;
   if (password.length >= 12) score++;
-  if (/[A-Z]/.test(password)) score++;
-  if (/[0-9]/.test(password)) score++;
-  if (/[^A-Za-z0-9]/.test(password)) score++;
+  if (passwordUppercase.test(password)) score++;
+  if (passwordNumber.test(password)) score++;
+  if (passwordSymbol.test(password)) score++;
 
   if (score <= 1) return { score: 1, label: 'Weak', color: '#EF4444' };
   if (score === 2) return { score: 2, label: 'Fair', color: '#F59E0B' };
@@ -93,6 +110,7 @@ export default function Settings() {
   const [showNew, setShowNew] = useState(false);
   const [showConfirm, setShowConfirm] = useState(false);
   const [showResetModal, setShowResetModal] = useState(false);
+  const [showPasswordConfirmModal, setShowPasswordConfirmModal] = useState(false);
   const [emailConfirmModal, setEmailConfirmModal] = useState({ show: false, names: '' });
   const [showLogoutModal, setShowLogoutModal] = useState(false);
 
@@ -186,7 +204,7 @@ export default function Settings() {
     }
   };
 
-  const handleUpdatePassword = async (e) => {
+  const handleUpdatePassword = (e) => {
     if (e) e.preventDefault();
     setPassError('');
     setPassSuccess('');
@@ -196,16 +214,23 @@ export default function Settings() {
       return;
     }
 
+    const passErrs = validateNewPassword(passForm.new);
+    if (passErrs.length > 0) {
+      setPassError(`New password requires: ${passErrs.join(', ')}.`);
+      return;
+    }
+
     if (passForm.new !== passForm.confirm) {
       setPassError('New passwords do not match.');
       return;
     }
 
-    if (passForm.new.length < 6) {
-      setPassError('New password must be at least 6 characters.');
-      return;
-    }
+    /* Open confirmation modal before proceeding */
+    setShowPasswordConfirmModal(true);
+  };
 
+  const executePasswordUpdate = async () => {
+    setShowPasswordConfirmModal(false);
     setPassLoading(true);
     try {
       const token = localStorage.getItem('token');
@@ -226,6 +251,7 @@ export default function Settings() {
 
       setPassSuccess('Password updated successfully!');
       setPassForm({ current: '', new: '', confirm: '' });
+      setIsChangingPassword(false);
       setShowCurrent(false);
       setShowNew(false);
       setShowConfirm(false);
@@ -259,112 +285,107 @@ export default function Settings() {
       )}
 
       {/* Main Content */}
-      <div className="user-settings-page-wrapper">
-        <div className="user-settings-page-header">
-          <h1 className="user-settings-page-title">Settings</h1>
-          <p className="user-settings-page-subtitle">Manage your account preferences</p>
+      <div className="space-y-6 max-w-4xl mx-auto">
+        <div>
+          <h1 className="text-2xl font-bold text-slate-900 dark:text-white tracking-tight">Settings</h1>
+          <p className="text-xs text-slate-500 dark:text-slate-400 mt-0.5">Manage your account preferences</p>
         </div>
 
-        <div className="user-settings-container">
+        <div className="space-y-6">
 
           {/* ── Appearance ─────────────────────────────────────────── */}
-          <div className="user-settings-section">
-            <div className="user-settings-section-header">
-              <div className="user-settings-icon-box" style={{ background: '#E6EFFF' }}>
-                <User className="user-settings-section-icon" size={20} color="#155DFC" />
+          <div className="p-6 bg-white dark:bg-[#1E2130] border border-slate-200 dark:border-white/10 rounded-2xl shadow-sm space-y-6">
+            <div className="flex items-center gap-3 border-b border-slate-100 dark:border-white/5 pb-4">
+              <div className="w-10 h-10 rounded-xl bg-blue-50 dark:bg-blue-950/50 text-blue-600 dark:text-blue-400 flex items-center justify-center shrink-0">
+                <User size={20} />
               </div>
-              <div className="user-settings-header-text">
-                <h2 className="user-settings-section-title">Appearance</h2>
-                <p className="user-settings-section-subtitle">Customize your interface theme</p>
+              <div>
+                <h2 className="text-base font-bold text-slate-900 dark:text-white">Appearance</h2>
+                <p className="text-xs text-slate-500 dark:text-slate-400">Customize your interface theme</p>
               </div>
             </div>
-            <div className="user-settings-group">
-              <div className="user-toggle-setting">
-                <div className="user-toggle-setting-info">
-                  <h3 className="user-toggle-title">Dark Mode</h3>
-                  <p className="user-toggle-description">Switch between light and dark themes</p>
+            <div className="space-y-4">
+              <div className="flex items-center justify-between">
+                <div>
+                  <h3 className="text-sm font-bold text-slate-900 dark:text-white">Dark Mode</h3>
+                  <p className="text-xs text-slate-500 dark:text-slate-400">Switch between light and dark themes</p>
                 </div>
-                <label className="user-toggle-switch">
-                  <input type="checkbox" checked={theme === 'dark'} onChange={toggleTheme} />
-                  <span className="user-toggle-slider"></span>
-                </label>
+                <button 
+                  onClick={toggleTheme}
+                  className={`w-12 h-6 rounded-full transition-colors relative p-0.5 cursor-pointer ${theme === 'dark' ? 'bg-blue-600' : 'bg-slate-200 dark:bg-slate-700'}`}
+                >
+                  <div className={`w-5 h-5 rounded-full bg-white transition-transform ${theme === 'dark' ? 'translate-x-6' : 'translate-x-0'}`} />
+                </button>
               </div>
             </div>
           </div>
 
           {/* ── Notifications ─────────────────────────────────────────── */}
-          <div className="user-settings-section">
-            <div className="user-settings-section-header">
-              <div className="user-settings-icon-box user-notifications-icon">
-                <Bell className="user-settings-section-icon" size={20} color="#155DFC" />
+          <div className="p-6 bg-white dark:bg-[#1E2130] border border-slate-200 dark:border-white/10 rounded-2xl shadow-sm space-y-6">
+            <div className="flex items-center gap-3 border-b border-slate-100 dark:border-white/5 pb-4">
+              <div className="w-10 h-10 rounded-xl bg-blue-50 dark:bg-blue-950/50 text-blue-600 dark:text-blue-400 flex items-center justify-center shrink-0">
+                <Bell size={20} />
               </div>
-              <div className="user-settings-header-text">
-                <h2 className="user-settings-section-title">Notifications</h2>
-                <p className="user-settings-section-subtitle">Manage how you receive updates</p>
+              <div>
+                <h2 className="text-base font-bold text-slate-900 dark:text-white">Notifications</h2>
+                <p className="text-xs text-slate-500 dark:text-slate-400">Manage how you receive updates</p>
               </div>
             </div>
-            <div className="user-settings-group">
-              <h3 className="user-settings-group-title">Communication channels</h3>
+            <div className="space-y-5">
+              <h3 className="text-xs font-bold text-slate-400 dark:text-slate-500 uppercase tracking-wider">Communication channels</h3>
 
               {/* Email toggle */}
-              <div className="user-toggle-setting">
-                <div className="user-toggle-setting-info">
-                  <h3 className="user-toggle-title">Email notifications</h3>
-                  <p className="user-toggle-description">{user?.email || 'Receive updates via email'}</p>
+              <div className="flex items-center justify-between">
+                <div>
+                  <h3 className="text-sm font-bold text-slate-900 dark:text-white">Email notifications</h3>
+                  <p className="text-xs text-slate-500 dark:text-slate-400">{user?.email || 'Receive updates via email'}</p>
                 </div>
-                <label className="user-toggle-switch">
-                  <input
-                    type="checkbox"
-                    checked={emailNotifications}
-                    onChange={e => handleEmailToggle(e.target.checked)}
-                  />
-                  <span className="user-toggle-slider"></span>
-                </label>
+                <button 
+                  onClick={() => handleEmailToggle(!emailNotifications)}
+                  className={`w-12 h-6 rounded-full transition-colors relative p-0.5 cursor-pointer ${emailNotifications ? 'bg-blue-600' : 'bg-slate-200 dark:bg-slate-700'}`}
+                >
+                  <div className={`w-5 h-5 rounded-full bg-white transition-transform ${emailNotifications ? 'translate-x-6' : 'translate-x-0'}`} />
+                </button>
               </div>
 
               {/* Push Notifications */}
-              <div className="user-toggle-setting">
-                <div className="user-toggle-setting-info">
-                  <h3 className="user-toggle-title">
-                    Push notifications
-                  </h3>
-                  <p className="user-toggle-description">Browser &amp; mobile alerts</p>
+              <div className="flex items-center justify-between">
+                <div>
+                  <h3 className="text-sm font-bold text-slate-900 dark:text-white">Push notifications</h3>
+                  <p className="text-xs text-slate-500 dark:text-slate-400">Browser &amp; mobile alerts</p>
                 </div>
-                <label className="user-toggle-switch">
-                  <input 
-                    type="checkbox" 
-                    checked={pushNotifications} 
-                    onChange={e => handlePushToggle(e.target.checked)} 
-                  />
-                  <span className="user-toggle-slider"></span>
-                </label>
+                <button 
+                  onClick={() => handlePushToggle(!pushNotifications)}
+                  className={`w-12 h-6 rounded-full transition-colors relative p-0.5 cursor-pointer ${pushNotifications ? 'bg-blue-600' : 'bg-slate-200 dark:bg-slate-700'}`}
+                >
+                  <div className={`w-5 h-5 rounded-full bg-white transition-transform ${pushNotifications ? 'translate-x-6' : 'translate-x-0'}`} />
+                </button>
               </div>
 
               {/* SMS — coming soon */}
-              <div className="user-toggle-setting user-toggle-setting--disabled">
-                <div className="user-toggle-setting-info">
-                  <h3 className="user-toggle-title">
+              <div className="flex items-center justify-between opacity-50">
+                <div>
+                  <h3 className="text-sm font-bold text-slate-900 dark:text-white flex items-center gap-2">
                     SMS
-                    <span className="user-coming-soon-badge">Coming soon</span>
+                    <span className="px-2 py-0.5 bg-slate-100 dark:bg-slate-800 text-slate-500 text-[10px] font-bold rounded-full uppercase">Coming soon</span>
                   </h3>
-                  <p className="user-toggle-description">Text message alerts</p>
+                  <p className="text-xs text-slate-500 dark:text-slate-400">Text message alerts</p>
                 </div>
-                <label className="user-toggle-switch" style={{ opacity: 0.4, pointerEvents: 'none' }}>
-                  <input type="checkbox" disabled />
-                  <span className="user-toggle-slider"></span>
-                </label>
+                <div className="w-12 h-6 rounded-full bg-slate-200 dark:bg-slate-700 relative p-0.5">
+                  <div className="w-5 h-5 rounded-full bg-white" />
+                </div>
               </div>
 
-              <div className="user-settings-divider" />
+              <div className="border-t border-slate-100 dark:border-white/5 pt-4" />
 
               {/* Categories header + select all */}
-              <div className="user-notif-categories-header">
+              <div className="flex items-center justify-between">
                 <div>
-                  <h3 className="user-settings-group-title" style={{ marginBottom: 2 }}>Notification categories</h3>
-                  <p className="user-settings-group-desc" style={{ marginBottom: 0 }}>Choose which activity you want to be notified about.</p>
+                  <h3 className="text-xs font-bold text-slate-400 dark:text-slate-500 uppercase tracking-wider">Notification categories</h3>
+                  <p className="text-xs text-slate-500 dark:text-slate-400 mt-0.5">Choose which activity you want to be notified about.</p>
                 </div>
                 <button
-                  className="user-notif-select-all-btn"
+                  className="text-xs font-semibold text-blue-600 dark:text-blue-400 hover:underline cursor-pointer"
                   onClick={allSelected ? handleDeselectAll : handleSelectAll}
                 >
                   {allSelected ? 'Deselect all' : 'Select all'}
@@ -372,20 +393,23 @@ export default function Settings() {
               </div>
 
               {/* Grouped pill categories */}
-              <div className={`user-notif-groups-wrap ${!emailNotifications ? 'user-notif-groups-wrap--dimmed' : ''}`}>
+              <div className={`space-y-4 ${!emailNotifications ? 'opacity-40 pointer-events-none' : ''}`}>
                 {NOTIF_GROUPS.map(({ group, items }) => (
-                  <div key={group} className="user-notif-group">
-                    <p className="user-notif-group-label">{group}</p>
-                    <div className="user-notif-pills-row">
+                  <div key={group} className="space-y-2">
+                    <p className="text-xs font-bold text-slate-500 dark:text-slate-400">{group}</p>
+                    <div className="flex flex-wrap gap-2">
                       {items.map(({ key, label }) => (
                         <button
                           key={key}
-                          className={`user-notif-pill ${notifPrefs[key] ? 'user-notif-pill--on' : ''}`}
+                          className={`px-3.5 py-1.5 rounded-xl text-xs font-semibold flex items-center gap-2 transition-all cursor-pointer border ${
+                            notifPrefs[key]
+                              ? 'bg-blue-50 dark:bg-blue-950/50 border-blue-200 dark:border-blue-800 text-blue-600 dark:text-blue-400'
+                              : 'bg-slate-50 dark:bg-slate-800/40 border-slate-200 dark:border-white/10 text-slate-600 dark:text-slate-400'
+                          }`}
                           onClick={() => !(!emailNotifications) && handleTogglePref(key)}
                           disabled={!emailNotifications}
-                          aria-pressed={notifPrefs[key]}
                         >
-                          <span className="user-notif-pill-dot" />
+                          <span className={`w-2 h-2 rounded-full ${notifPrefs[key] ? 'bg-blue-600 dark:bg-blue-400' : 'bg-slate-300 dark:bg-slate-600'}`} />
                           {label}
                         </button>
                       ))}
@@ -398,110 +422,134 @@ export default function Settings() {
           </div>
 
           {/* ── Security & Password ────────────────────────────────────── */}
-          <div className="user-settings-section">
-            <div className="user-settings-section-header">
-              <div className="user-settings-icon-box" style={{ background: '#E6EFFF' }}>
-                <Lock className="user-settings-section-icon" size={20} color="#155DFC" />
+          <div className="p-6 bg-white dark:bg-[#1E2130] border border-slate-200 dark:border-white/10 rounded-2xl shadow-xs space-y-6">
+            {/* Header */}
+            <div className="flex items-center gap-3 border-b border-slate-100 dark:border-white/5 pb-4">
+              <div className="w-10 h-10 rounded-xl bg-gradient-to-br from-blue-50 to-indigo-50 dark:from-blue-950/60 dark:to-indigo-950/60 text-blue-600 dark:text-blue-400 border border-blue-100 dark:border-blue-900/30 flex items-center justify-center shrink-0 shadow-xs">
+                <Lock size={20} />
               </div>
-              <div className="user-settings-header-text">
-                <h2 className="user-settings-section-title">Security &amp; Password</h2>
-                <p className="user-settings-section-subtitle">Manage your password and account security</p>
+              <div>
+                <h2 className="text-base font-bold text-slate-900 dark:text-white">Security &amp; Password</h2>
+                <p className="text-xs text-slate-500 dark:text-slate-400">Manage your password and account authentication</p>
               </div>
             </div>
 
-            <div className="user-settings-group">
-              <h3 className="user-settings-group-title">Update password</h3>
+            <div className="space-y-4">
+              <div className="flex items-center justify-between">
+                <h3 className="text-xs font-bold text-slate-400 dark:text-slate-500 uppercase tracking-wider">Account Password</h3>
+              </div>
 
               {passError && (
-                <div style={{ display: 'flex', alignItems: 'center', gap: 8, background: '#FEF2F2', border: '1px solid #FECACA', borderRadius: 10, padding: '10px 14px', marginBottom: 16 }}>
-                  <XCircle size={16} color="#F04438" />
-                  <span style={{ fontSize: 13, color: '#B91C1C' }}>{passError}</span>
+                <div className="p-3 bg-red-50 dark:bg-red-950/40 border border-red-200 dark:border-red-800/40 rounded-xl flex items-center gap-2 text-xs text-red-600 dark:text-red-400">
+                  <XCircle size={16} className="shrink-0" />
+                  <span>{passError}</span>
                 </div>
               )}
               {passSuccess && (
-                <div style={{ display: 'flex', alignItems: 'center', gap: 8, background: '#F0FDF4', border: '1px solid #BBF7D0', borderRadius: 10, padding: '10px 14px', marginBottom: 16 }}>
-                  <Check size={16} color="#16A34A" />
-                  <span style={{ fontSize: 13, color: '#16A34A' }}>{passSuccess}</span>
+                <div className="p-3 bg-emerald-50 dark:bg-emerald-950/40 border border-emerald-200 dark:border-emerald-800/40 rounded-xl flex items-center gap-2 text-xs text-emerald-600 dark:text-emerald-400">
+                  <Check size={16} className="shrink-0" />
+                  <span>{passSuccess}</span>
                 </div>
               )}
 
               {!isChangingPassword ? (
-                <button
-                  className="user-pi-btn-edit-bottom"
-                  onClick={() => setIsChangingPassword(true)}
-                  style={{ alignSelf: 'flex-start' }}
-                >
-                  <Lock size={14} />
-                  Change password
-                </button>
+                /* Collapsed View: Info Banner + Change Password CTA */
+                <div className="p-4 rounded-xl bg-slate-50 dark:bg-slate-800/40 border border-slate-200/80 dark:border-white/5 flex flex-col sm:flex-row sm:items-center justify-between gap-4">
+                  <div className="space-y-1">
+                    <div className="flex items-center gap-2">
+                      <span className="text-xs font-bold text-slate-900 dark:text-white">Current Password</span>
+                      <span className="font-mono text-xs text-slate-400 tracking-widest">••••••••••••</span>
+                    </div>
+                    <p className="text-xs text-slate-500 dark:text-slate-400">
+                      It is recommended to use a strong, unique password to secure your account.
+                    </p>
+                  </div>
+                  <button
+                    className="px-4 py-2 bg-blue-600 hover:bg-blue-700 text-white text-xs font-bold rounded-xl shadow-md transition-all flex items-center justify-center gap-2 cursor-pointer border-none shrink-0 self-start sm:self-auto"
+                    onClick={() => setIsChangingPassword(true)}
+                  >
+                    <Lock size={14} />
+                    <span>Change Password</span>
+                  </button>
+                </div>
               ) : (
-                <>
-                  <div className="user-pi-form-grid" style={{ marginBottom: 16 }}>
+                /* Expanded View: Password Form Card */
+                <div className="p-4 sm:p-5 rounded-2xl bg-slate-50/70 dark:bg-slate-800/40 border border-slate-200/80 dark:border-white/10 space-y-4">
+                  <div className="pb-2 border-b border-slate-200/60 dark:border-white/5">
+                    <span className="text-xs font-bold text-slate-900 dark:text-white">Update Account Password</span>
+                  </div>
 
+                  <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
                     {/* Current password */}
-                    <div className="user-pi-form-field user-pi-form-field-full">
-                      <label className="user-pi-form-label">Current password</label>
-                      <div className="user-pass-input-wrap">
+                    <div className="space-y-1.5 sm:col-span-2">
+                      <div className="flex items-center justify-between">
+                        <label className="text-xs font-bold text-slate-700 dark:text-slate-300">Current Password</label>
+                        <button 
+                          className="text-[11px] text-blue-600 dark:text-blue-400 hover:underline cursor-pointer flex items-center gap-1 font-semibold border-none bg-transparent" 
+                          type="button" 
+                          onClick={() => setShowResetModal(true)}
+                        >
+                          <Mail size={11} /> Forgot current password?
+                        </button>
+                      </div>
+                      <div className="relative">
+                        <div className="absolute left-3 top-1/2 -translate-y-1/2 text-slate-400 pointer-events-none">
+                          <Lock size={15} />
+                        </div>
                         <input
                           type={showCurrent ? 'text' : 'password'}
-                          className="user-pi-form-input user-pass-input"
+                          className="w-full pl-9 pr-10 py-2.5 bg-white dark:bg-[#1E2130] border border-slate-200 dark:border-white/10 rounded-xl text-xs text-slate-900 dark:text-white outline-none focus:ring-2 focus:ring-blue-600 transition-all font-inter"
                           value={passForm.current}
                           onChange={e => setPassForm({ ...passForm, current: e.target.value })}
-                          placeholder="••••••••"
+                          placeholder="Enter your current password"
                         />
                         <button
                           type="button"
-                          className="user-pass-eye-btn"
+                          className="absolute right-3 top-1/2 -translate-y-1/2 text-slate-400 hover:text-slate-600 dark:hover:text-white cursor-pointer p-1"
                           onClick={() => setShowCurrent(v => !v)}
-                          tabIndex={-1}
-                          aria-label={showCurrent ? 'Hide password' : 'Show password'}
                         >
-                          {showCurrent ? <EyeOff size={16} /> : <Eye size={16} />}
+                          {showCurrent ? <EyeOff size={15} /> : <Eye size={15} />}
                         </button>
                       </div>
-                      <span className="user-pass-hint">
-                        <Mail size={11} />
-                        Forgot your current password? <button className="user-pass-link" type="button" onClick={() => setShowResetModal(true)}>Reset via email</button>
-                      </span>
                     </div>
 
                     {/* New password */}
-                    <div className="user-pi-form-field">
-                      <label className="user-pi-form-label">New password</label>
-                      <div className="user-pass-input-wrap">
+                    <div className="space-y-1.5">
+                      <label className="text-xs font-bold text-slate-700 dark:text-slate-300">New Password</label>
+                      <div className="relative">
+                        <div className="absolute left-3 top-1/2 -translate-y-1/2 text-slate-400 pointer-events-none">
+                          <Lock size={15} />
+                        </div>
                         <input
                           type={showNew ? 'text' : 'password'}
-                          className="user-pi-form-input user-pass-input"
+                          className="w-full pl-9 pr-10 py-2.5 bg-white dark:bg-[#1E2130] border border-slate-200 dark:border-white/10 rounded-xl text-xs text-slate-900 dark:text-white outline-none focus:ring-2 focus:ring-blue-600 transition-all font-inter"
                           value={passForm.new}
                           onChange={e => setPassForm({ ...passForm, new: e.target.value })}
-                          placeholder="••••••••"
+                          placeholder="At least 6 characters"
                         />
                         <button
                           type="button"
-                          className="user-pass-eye-btn"
+                          className="absolute right-3 top-1/2 -translate-y-1/2 text-slate-400 hover:text-slate-600 dark:hover:text-white cursor-pointer p-1"
                           onClick={() => setShowNew(v => !v)}
-                          tabIndex={-1}
-                          aria-label={showNew ? 'Hide password' : 'Show password'}
                         >
-                          {showNew ? <EyeOff size={16} /> : <Eye size={16} />}
+                          {showNew ? <EyeOff size={15} /> : <Eye size={15} />}
                         </button>
                       </div>
                       {/* Strength indicator */}
                       {passForm.new.length > 0 && (
-                        <div className="user-pass-strength">
-                          <div className="user-pass-strength-bars">
+                        <div className="flex items-center gap-2 pt-1">
+                          <div className="flex gap-1 flex-1">
                             {[1, 2, 3, 4].map(n => (
                               <div
                                 key={n}
-                                className="user-pass-strength-bar"
+                                className="h-1.5 flex-1 rounded-full transition-all duration-300"
                                 style={{
-                                  background: n <= strength.score ? strength.color : 'var(--border)',
-                                  transition: 'background 0.25s ease'
+                                  background: n <= strength.score ? strength.color : 'rgba(203, 213, 225, 0.4)'
                                 }}
                               />
                             ))}
                           </div>
-                          <span className="user-pass-strength-label" style={{ color: strength.color }}>
+                          <span className="text-[10px] font-bold uppercase tracking-wider" style={{ color: strength.color }}>
                             {strength.label}
                           </span>
                         </div>
@@ -509,44 +557,67 @@ export default function Settings() {
                     </div>
 
                     {/* Confirm new password */}
-                    <div className="user-pi-form-field">
-                      <label className="user-pi-form-label">Confirm new password</label>
-                      <div className="user-pass-input-wrap">
+                    <div className="space-y-1.5">
+                      <label className="text-xs font-bold text-slate-700 dark:text-slate-300">Confirm New Password</label>
+                      <div className="relative">
+                        <div className="absolute left-3 top-1/2 -translate-y-1/2 text-slate-400 pointer-events-none">
+                          <Lock size={15} />
+                        </div>
                         <input
                           type={showConfirm ? 'text' : 'password'}
-                          className={`user-pi-form-input user-pass-input ${passwordsMismatch ? 'user-pass-input--error' : ''} ${passwordsMatch ? 'user-pass-input--success' : ''}`}
+                          className="w-full pl-9 pr-10 py-2.5 bg-white dark:bg-[#1E2130] border border-slate-200 dark:border-white/10 rounded-xl text-xs text-slate-900 dark:text-white outline-none focus:ring-2 focus:ring-blue-600 transition-all font-inter"
                           value={passForm.confirm}
                           onChange={e => setPassForm({ ...passForm, confirm: e.target.value })}
-                          placeholder="••••••••"
+                          placeholder="Re-enter new password"
                         />
                         <button
                           type="button"
-                          className="user-pass-eye-btn"
+                          className="absolute right-3 top-1/2 -translate-y-1/2 text-slate-400 hover:text-slate-600 dark:hover:text-white cursor-pointer p-1"
                           onClick={() => setShowConfirm(v => !v)}
-                          tabIndex={-1}
-                          aria-label={showConfirm ? 'Hide password' : 'Show password'}
                         >
-                          {showConfirm ? <EyeOff size={16} /> : <Eye size={16} />}
+                          {showConfirm ? <EyeOff size={15} /> : <Eye size={15} />}
                         </button>
                       </div>
                       {/* Match feedback */}
                       {passwordsMatch && (
-                        <span className="user-pass-match user-pass-match--ok">
+                        <span className="text-[11px] text-emerald-600 dark:text-emerald-400 font-semibold flex items-center gap-1 pt-0.5">
                           <Check size={12} /> Passwords match
                         </span>
                       )}
                       {passwordsMismatch && (
-                        <span className="user-pass-match user-pass-match--err">
+                        <span className="text-[11px] text-red-500 dark:text-red-400 font-semibold flex items-center gap-1 pt-0.5">
                           <XCircle size={12} /> Passwords don't match
                         </span>
                       )}
                     </div>
 
+                    {/* Password Requirements Checklist Box (Matched with Signup) */}
+                    <div className="p-3.5 rounded-xl bg-slate-100/80 dark:bg-slate-800/50 border border-slate-200/80 dark:border-white/10 space-y-1.5 sm:col-span-2">
+                      <p className="text-[11px] font-bold text-slate-700 dark:text-slate-300">Password must include:</p>
+                      <ul className="grid grid-cols-1 sm:grid-cols-2 gap-1.5 text-[11px]">
+                        <li className={!passForm.new ? 'text-slate-400' : (passForm.new.length >= 8 ? 'text-emerald-600 dark:text-emerald-400 font-bold' : 'text-red-500 font-semibold')}>
+                          ✓ Minimum 8 characters
+                        </li>
+                        <li className={!passForm.new ? 'text-slate-400' : (passwordUppercase.test(passForm.new) ? 'text-emerald-600 dark:text-emerald-400 font-bold' : 'text-red-500 font-semibold')}>
+                          ✓ At least 1 uppercase letter (A–Z)
+                        </li>
+                        <li className={!passForm.new ? 'text-slate-400' : (passwordLowercase.test(passForm.new) ? 'text-emerald-600 dark:text-emerald-400 font-bold' : 'text-red-500 font-semibold')}>
+                          ✓ At least 1 lowercase letter (a–z)
+                        </li>
+                        <li className={!passForm.new ? 'text-slate-400' : (passwordNumber.test(passForm.new) ? 'text-emerald-600 dark:text-emerald-400 font-bold' : 'text-red-500 font-semibold')}>
+                          ✓ At least 1 number (0–9)
+                        </li>
+                        <li className={!passForm.new ? 'text-slate-400' : (passwordSymbol.test(passForm.new) ? 'text-emerald-600 dark:text-emerald-400 font-bold' : 'text-red-500 font-semibold')}>
+                          ✓ At least 1 symbol (@ # $ % * _)
+                        </li>
+                      </ul>
+                    </div>
                   </div>
 
-                  <div style={{ display: 'flex', gap: '8px' }}>
+                  <div className="flex items-center justify-end gap-2.5 pt-3 border-t border-slate-200/60 dark:border-white/5">
                     <button
-                      className="user-pi-btn-cancel-bottom"
+                      type="button"
+                      className="px-4 py-2.5 bg-slate-200/70 dark:bg-slate-800 text-slate-700 dark:text-slate-300 font-semibold rounded-xl text-xs hover:bg-slate-300/70 dark:hover:bg-slate-700 transition-colors cursor-pointer border-none"
                       onClick={() => {
                         setIsChangingPassword(false);
                         setPassForm({ current: '', new: '', confirm: '' });
@@ -561,29 +632,40 @@ export default function Settings() {
                       Cancel
                     </button>
                     <button
-                      className="user-pi-btn-save-bottom"
+                      type="button"
+                      className="px-5 py-2.5 bg-blue-600 hover:bg-blue-700 disabled:opacity-50 text-white font-bold rounded-xl shadow-md text-xs transition-all cursor-pointer border-none flex items-center gap-1.5"
                       onClick={handleUpdatePassword}
                       disabled={passLoading || passwordsMismatch}
                     >
-                      {passLoading ? <span className="btn-spinner" /> : 'Update password'}
+                      {passLoading ? (
+                        <>
+                          <span className="w-3.5 h-3.5 border-2 border-white border-t-transparent rounded-full animate-spin" />
+                          <span>Updating...</span>
+                        </>
+                      ) : (
+                        'Update Password'
+                      )}
                     </button>
                   </div>
-                </>
+                </div>
               )}
 
             </div>
           </div>
 
           {/* ── Sign Out ────────────────────────────────────────── */}
-          <div className="user-settings-section user-settings-logout-section">
+          <div className="p-6 bg-white dark:bg-[#1E2130] border border-slate-200 dark:border-white/10 rounded-2xl shadow-sm flex flex-col sm:flex-row sm:items-center justify-between gap-4">
+            <div>
+              <h3 className="text-sm font-bold text-slate-900 dark:text-white">Sign Out</h3>
+              <p className="text-xs text-slate-500 dark:text-slate-400">You will be redirected to the welcome page.</p>
+            </div>
             <button
-              className="user-settings-logout-btn"
+              className="px-4 py-2.5 bg-red-50 dark:bg-red-950/40 hover:bg-red-100 dark:hover:bg-red-900/40 text-red-600 dark:text-red-400 font-semibold rounded-xl text-xs flex items-center gap-2 border border-red-200/60 dark:border-red-800/40 transition-all cursor-pointer self-start sm:self-auto"
               onClick={() => setShowLogoutModal(true)}
             >
-              <LogOut size={18} />
+              <LogOut size={16} />
               Sign out
             </button>
-            <p className="user-settings-logout-hint">You will be redirected to the welcome page.</p>
           </div>
 
         </div>
@@ -591,13 +673,59 @@ export default function Settings() {
 
       {/* Logout Confirmation Modal */}
       {showLogoutModal && (
-        <div className="user-logout-modal-overlay" style={{ position: 'fixed', top: 0, left: 0, width: '100vw', height: '100vh', zIndex: 99999 }}>
-          <div className="logout-modal-content">
-            <h2 className="user-logout-modal-title">Confirm Logout</h2>
-            <p className="user-logout-modal-message">Are you sure you want to log out of your account?</p>
-            <div className="user-logout-modal-actions">
-              <button className="user-logout-modal-cancel" onClick={() => setShowLogoutModal(false)}>Cancel</button>
-              <button className="user-logout-modal-confirm" onClick={handleSignOut}>Sign out</button>
+        <div className="fixed inset-0 z-[9999] bg-black/60 backdrop-blur-xs flex items-center justify-center p-4 animate-fadeIn" onClick={() => setShowLogoutModal(false)}>
+          <div className="bg-white dark:bg-[#1E2130] rounded-2xl p-6 max-w-md w-full shadow-2xl border border-slate-200 dark:border-white/10 font-inter" onClick={e => e.stopPropagation()}>
+            <h2 className="font-inter text-xl font-bold text-slate-900 dark:text-white m-0 mb-3">Confirm Logout</h2>
+            <p className="font-inter text-sm text-slate-500 dark:text-slate-400 m-0 mb-6 leading-relaxed">
+              Are you sure you want to log out of your account?
+            </p>
+            <div className="flex gap-3 justify-end">
+              <button 
+                className="px-5 py-2.5 bg-slate-100 dark:bg-slate-800 text-slate-700 dark:text-slate-300 border border-slate-200 dark:border-white/10 hover:bg-slate-200 dark:hover:bg-slate-700 rounded-xl font-inter text-sm font-semibold cursor-pointer transition-colors" 
+                onClick={() => setShowLogoutModal(false)}
+              >
+                Cancel
+              </button>
+              <button 
+                className="px-5 py-2.5 bg-red-600 hover:bg-red-700 text-white border-none rounded-xl font-inter text-sm font-semibold cursor-pointer transition-colors" 
+                onClick={handleSignOut}
+              >
+                Sign out
+              </button>
+            </div>
+          </div>
+        </div>
+      )}
+
+      {/* Password Change Confirmation Modal */}
+      {showPasswordConfirmModal && (
+        <div className="fixed inset-0 z-[9999] bg-black/60 backdrop-blur-sm flex items-center justify-center p-4 overflow-y-auto" onClick={() => setShowPasswordConfirmModal(false)}>
+          <div className="relative w-full max-w-sm bg-white dark:bg-[#1E2130] rounded-2xl p-6 shadow-2xl border border-slate-200 dark:border-white/10 my-auto text-left space-y-4 font-inter" onClick={e => e.stopPropagation()}>
+            <div className="flex items-center gap-3">
+              <div className="w-10 h-10 rounded-xl bg-blue-50 dark:bg-blue-950/40 border border-blue-200/60 dark:border-blue-800/40 flex items-center justify-center text-blue-600 dark:text-blue-400 shrink-0">
+                <Lock size={20} />
+              </div>
+              <div>
+                <h2 className="text-base font-bold text-slate-900 dark:text-white">Confirm Password Change</h2>
+                <p className="text-[11px] text-slate-500 dark:text-slate-400">Security Verification</p>
+              </div>
+            </div>
+            <p className="text-xs text-slate-600 dark:text-slate-300 leading-relaxed">
+              Are you sure you want to update your password? You will be required to sign in with your new password next time.
+            </p>
+            <div className="flex items-center justify-end gap-2.5 pt-2 border-t border-slate-100 dark:border-white/5">
+              <button 
+                className="px-4 py-2 bg-slate-100 dark:bg-slate-800 hover:bg-slate-200 dark:hover:bg-slate-700 text-slate-700 dark:text-slate-300 font-semibold rounded-xl transition-all text-xs border-none cursor-pointer" 
+                onClick={() => setShowPasswordConfirmModal(false)}
+              >
+                Cancel
+              </button>
+              <button 
+                className="px-4 py-2 bg-blue-600 hover:bg-blue-700 text-white font-bold rounded-xl shadow-md transition-all text-xs border-none cursor-pointer"
+                onClick={executePasswordUpdate}
+              >
+                Confirm Update
+              </button>
             </div>
           </div>
         </div>
@@ -605,20 +733,19 @@ export default function Settings() {
 
       {/* Password Reset Modal */}
       {showResetModal && (
-        <div className="user-logout-modal-overlay" style={{ position: 'fixed', top: 0, left: 0, width: '100vw', height: '100vh', zIndex: 99999 }}>
-          <div className="user-logout-modal-content">
-            <h2 className="user-logout-modal-title">Reset Password</h2>
-            <p className="user-logout-modal-message">A password reset link will be sent to your registered email address ({user?.email || 'your email'}). Please check your inbox.</p>
-            <div className="user-logout-modal-actions" style={{ justifyContent: 'flex-end', marginTop: 24 }}>
+        <div className="fixed inset-0 z-[9999] bg-black/60 backdrop-blur-sm flex items-center justify-center p-4 overflow-y-auto" onClick={() => setShowResetModal(false)}>
+          <div className="relative w-full max-w-md bg-white dark:bg-[#1E2130] rounded-2xl p-6 shadow-2xl border border-slate-200 dark:border-white/10 my-auto text-left space-y-4" onClick={e => e.stopPropagation()}>
+            <h2 className="text-lg font-bold text-slate-900 dark:text-white">Reset Password</h2>
+            <p className="text-xs text-slate-600 dark:text-slate-300 leading-relaxed">A password reset link will be sent to your registered email address (<strong className="text-blue-600 dark:text-blue-400">{user?.email || 'your email'}</strong>). Please check your inbox.</p>
+            <div className="flex items-center justify-end gap-3 pt-2">
               <button 
-                className="user-logout-modal-cancel" 
+                className="px-4 py-2 bg-slate-100 dark:bg-slate-800 hover:bg-slate-200 dark:hover:bg-slate-700 text-slate-700 dark:text-slate-300 font-semibold rounded-xl transition-all text-xs" 
                 onClick={() => setShowResetModal(false)}
               >
                 Cancel
               </button>
               <button 
-                className="user-logout-modal-confirm" 
-                style={{ background: '#155DFC', borderColor: '#155DFC' }}
+                className="px-4 py-2 bg-blue-600 hover:bg-blue-700 text-white font-semibold rounded-xl shadow-md transition-all text-xs"
                 onClick={() => {
                   setShowResetModal(false);
                   showToast('Reset link sent to your email');
@@ -634,7 +761,7 @@ export default function Settings() {
       {/* Email Disable Confirm Modal */}
       {emailConfirmModal.show && (
         <div 
-          className="user-email-disable-modal-overlay"
+          className="fixed inset-0 z-[9999] bg-black/60 backdrop-blur-sm flex items-center justify-center p-4 overflow-y-auto"
           role="dialog"
           aria-modal="true"
           aria-labelledby="email-disable-title"
@@ -644,41 +771,39 @@ export default function Settings() {
           }}
           ref={(el) => { if (el) el.focus(); }}
         >
-          <div className="user-email-disable-modal">
-            <div className="user-email-disable-header">
-              <div className="user-email-disable-icon-ring">
-                <AlertTriangle size={20} color="#DC2626" strokeWidth={2.5} />
+          <div className="relative w-full max-w-md bg-white dark:bg-[#1E2130] rounded-2xl p-6 shadow-2xl border border-slate-200 dark:border-white/10 my-auto text-left space-y-4" onClick={e => e.stopPropagation()}>
+            <div className="flex items-center gap-3">
+              <div className="w-10 h-10 rounded-xl bg-red-50 dark:bg-red-950/40 border border-red-200/60 dark:border-red-800/40 flex items-center justify-center text-red-600 dark:text-red-400 flex-shrink-0">
+                <AlertTriangle size={20} />
               </div>
-              <h2 id="email-disable-title" className="user-email-disable-title">Disable email notifications?</h2>
+              <h2 id="email-disable-title" className="text-lg font-bold text-slate-900 dark:text-white">Disable email notifications?</h2>
             </div>
             
-            <div className="user-email-disable-body">
-              <p className="user-email-disable-text">
+            <div className="space-y-2 text-xs">
+              <p className="text-slate-600 dark:text-slate-300">
                 {emailConfirmModal.names 
                   ? "You'll stop receiving email alerts for these categories:"
                   : "No active categories will be affected."}
               </p>
               {emailConfirmModal.names && (
-                <div className="user-email-disable-chips">
+                <div className="flex flex-wrap gap-1.5 pt-1">
                   {emailConfirmModal.names.split(', ').map(name => (
-                    <span key={name} className="user-email-disable-chip">{name}</span>
+                    <span key={name} className="px-2.5 py-1 bg-slate-100 dark:bg-slate-800 text-slate-700 dark:text-slate-300 font-semibold rounded-lg text-[11px]">{name}</span>
                   ))}
                 </div>
               )}
             </div>
 
-            <hr className="user-email-disable-divider" />
-
-            <div className="user-email-disable-actions">
+            <div className="flex items-center justify-end gap-3 pt-3 border-t border-slate-100 dark:border-white/5">
               <button 
-                className="user-email-disable-btn-cancel" 
+                className="px-4 py-2 bg-slate-100 dark:bg-slate-800 hover:bg-slate-200 dark:hover:bg-slate-700 text-slate-700 dark:text-slate-300 font-semibold rounded-xl transition-all text-xs" 
                 onClick={() => setEmailConfirmModal({ show: false, names: '' })}
                 autoFocus
               >
                 Keep enabled
               </button>
               <button 
-                className="user-email-disable-btn-confirm" 
+                className="px-4 py-2 bg-red-600 hover:bg-red-700 text-white font-semibold rounded-xl shadow-md transition-all text-xs" 
                 onClick={() => {
                   setEmailNotifications(false);
                   setEmailConfirmModal({ show: false, names: '' });

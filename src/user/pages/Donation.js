@@ -3,7 +3,7 @@ import useSWR from 'swr';
 import { useAuth } from '../../context/AuthContext';
 import { Banknote, CalendarDays, ChevronDown, Download, Heart, Receipt, Share2, X, UploadCloud, FileCheck2 } from 'lucide-react';
 
-import '../styles/Donation.css';
+import { branchData, REGION_ORDER } from '../components/branchData';
 import ewalletLogo from '../../assets/gcashlogo.png';
 import bank from '../../assets/bank.png';
 import iconGeneral from '../../assets/icon_general.png';
@@ -11,7 +11,7 @@ import iconChildren from '../../assets/icon_children.png';
 import iconBuilding from '../../assets/icon_building.png';
 import iconYouth from '../../assets/icon_youth.png';
 import iconMission from '../../assets/icon_mission.png';
-import { branchData, REGION_ORDER } from '../components/branchData';
+
 
 import API from '../../utils/api';
 
@@ -39,7 +39,7 @@ const EWalletIcon = () => (
   <img
     src={ewalletLogo}
     alt="E-Wallet"
-    className="user-donation-e-wallet-icon"
+    className="w-5 h-5 object-contain shrink-0"
   />
 );
 
@@ -47,7 +47,7 @@ const BankIcon = () => (
   <img
     src={bank}
     alt="Bank Transfer"
-    className="user-donation-bank-icon"
+    className="w-5 h-5 object-contain shrink-0 brightness-0 invert opacity-90 dark:invert-0"
   />
 );
 
@@ -84,7 +84,7 @@ export default function Donation() {
   const [modalHistory, setModalHistory] = useState([]);
   const [modalTotalPages, setModalTotalPages] = useState(1);
   const [modalLoading, setModalLoading] = useState(false);
-  const MODAL_LIMIT = 10;
+  const MODAL_LIMIT = 5;
   const HISTORY_PER_PAGE = 5;
 
   const token = localStorage.getItem('token');
@@ -237,57 +237,97 @@ export default function Donation() {
 
   return (
     <>
-      <div className="user-donations-container">
+      <div className="space-y-4 w-full pb-8 font-inter">
 
-        {/* Header */}
-        <div className="user-donation-page-header">
-          <h1 className="user-donation-page-title">Donations</h1>
-          <p className="user-donation-page-subtitle">Support the church and track your giving</p>
+        {/* Page Header */}
+        <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-3 pb-2.5 border-b border-slate-200/80 dark:border-white/10">
+          <div>
+            <p className="text-[11px] font-bold text-blue-600 dark:text-blue-400 uppercase tracking-widest font-inter mb-0.5">Community Giving &amp; Impact</p>
+            <h1 className="text-2xl sm:text-[26px] font-extrabold text-slate-900 dark:text-white font-dm leading-none tracking-tight">Donations</h1>
+            <p className="text-xs text-slate-500 dark:text-slate-400 font-inter mt-1">Support church ministries, causes &amp; track your contributions</p>
+          </div>
+
+          {/* Right Action Buttons */}
+          <div className="flex items-center gap-2.5 shrink-0">
+            <button 
+              className="h-10 px-4 rounded-xl bg-white dark:bg-[#1E2130] border border-slate-200/90 dark:border-white/10 text-slate-800 dark:text-white hover:bg-slate-50 dark:hover:bg-white/5 text-xs font-bold font-inter flex items-center gap-2 shadow-sm transition-all cursor-pointer"
+              onClick={handleOpenHistory}
+            >
+              <Receipt size={16} className="text-blue-600 dark:text-blue-400" />
+              <span>Donation History</span>
+            </button>
+          </div>
         </div>
 
-        {/* Stats */}
-        <div className="user-donations-stats">
-          <div className="user-donation-stat-card">
-            <div className="user-donation-stat-header">
-              <p className="user-donation-stat-label">Total Donated</p>
-              <Banknote className="user-donation-stat-icon" size={20} color="#155DFC" />
+        {/* Stats Grid matching Loans & Savings */}
+        <div className="grid grid-cols-1 sm:grid-cols-3 gap-4">
+          {/* Total Donated */}
+          <div className="bg-white dark:bg-[#1E2130] border border-slate-200/80 dark:border-white/10 rounded-2xl p-4 shadow-md shadow-slate-200/50 dark:shadow-none flex flex-col gap-1 group hover:shadow-lg hover:-translate-y-0.5 transition-all duration-200 font-inter">
+            <div className="flex justify-between items-center">
+              <span className="text-xs font-semibold text-slate-500 dark:text-slate-400 font-inter">Total Donated</span>
+              <div className="w-8 h-8 rounded-lg bg-blue-50 dark:bg-blue-950/50 text-blue-600 dark:text-blue-400 flex items-center justify-center border border-blue-100/60 dark:border-blue-900/30 shrink-0 group-hover:scale-105 transition-transform">
+                <Banknote size={16} />
+              </div>
             </div>
-            {loading ? <div className="user-skeleton user-donation-stat-skeleton"></div> : <p className="user-donation-stat-value user-fade-in">{fmt(stats.totalDonated)}</p>}
+            <div className="text-xl sm:text-2xl font-extrabold font-dm text-slate-900 dark:text-white tracking-tight leading-none">
+              {loading ? <div className="h-7 w-24 bg-slate-200 dark:bg-slate-800 animate-pulse rounded-lg" /> : fmt(stats.totalDonated)}
+            </div>
+            <p className="text-[11px] text-slate-500 dark:text-slate-400 font-inter mt-0.5">
+              Lifetime contributions
+            </p>
           </div>
-          <div className="user-donation-stat-card">
-            <div className="user-donation-stat-header">
-              <p className="user-donation-stat-label">This Year</p>
-              <CalendarDays className="user-donation-stat-icon" size={20} color="#155DFC" />
+
+          {/* This Year */}
+          <div className="bg-white dark:bg-[#1E2130] border border-slate-200/80 dark:border-white/10 rounded-2xl p-4 shadow-md shadow-slate-200/50 dark:shadow-none flex flex-col gap-1 group hover:shadow-lg hover:-translate-y-0.5 transition-all duration-200 font-inter">
+            <div className="flex justify-between items-center">
+              <span className="text-xs font-semibold text-slate-500 dark:text-slate-400 font-inter">This Year</span>
+              <div className="w-8 h-8 rounded-lg bg-emerald-50 dark:bg-emerald-950/50 text-emerald-600 dark:text-emerald-400 flex items-center justify-center border border-emerald-100/60 dark:border-emerald-900/30 shrink-0 group-hover:scale-105 transition-transform">
+                <CalendarDays size={16} />
+              </div>
             </div>
-            {loading ? <div className="user-skeleton user-donation-stat-skeleton"></div> : <p className="user-donation-stat-value user-fade-in">{fmt(stats.thisYearTotal)}</p>}
+            <div className="text-xl sm:text-2xl font-extrabold font-dm text-slate-900 dark:text-white tracking-tight leading-none">
+              {loading ? <div className="h-7 w-24 bg-slate-200 dark:bg-slate-800 animate-pulse rounded-lg" /> : fmt(stats.thisYearTotal)}
+            </div>
+            <p className="text-[11px] text-slate-500 dark:text-slate-400 font-inter mt-0.5">
+              Current year total
+            </p>
           </div>
-          <div className="user-donation-stat-card">
-            <div className="user-donation-stat-header">
-              <p className="user-donation-stat-label">Total Donations</p>
-              <Heart className="user-donation-stat-icon" size={20} color="#155DFC" />
+
+          {/* Total Contributions */}
+          <div className="bg-white dark:bg-[#1E2130] border border-slate-200/80 dark:border-white/10 rounded-2xl p-4 shadow-md shadow-slate-200/50 dark:shadow-none flex flex-col gap-1 group hover:shadow-lg hover:-translate-y-0.5 transition-all duration-200 font-inter">
+            <div className="flex justify-between items-center">
+              <span className="text-xs font-semibold text-slate-500 dark:text-slate-400 font-inter">Total Contributions</span>
+              <div className="w-8 h-8 rounded-lg bg-rose-50 dark:bg-rose-950/50 text-rose-600 dark:text-rose-400 flex items-center justify-center border border-rose-100/60 dark:border-rose-900/30 shrink-0 group-hover:scale-105 transition-transform">
+                <Heart size={16} />
+              </div>
             </div>
-            {loading ? <div className="user-skeleton user-donation-stat-skeleton-sm"></div> : <p className="user-donation-stat-value user-fade-in">{stats.totalCount}</p>}
+            <div className="text-xl sm:text-2xl font-extrabold font-dm text-slate-900 dark:text-white tracking-tight leading-none">
+              {loading ? <div className="h-7 w-12 bg-slate-200 dark:bg-slate-800 animate-pulse rounded-lg" /> : stats.totalCount}
+            </div>
+            <p className="text-[11px] text-slate-500 dark:text-slate-400 font-inter mt-0.5">
+              {stats.totalCount > 0 ? `${stats.totalCount} donation record(s)` : 'No donations recorded'}
+            </p>
           </div>
         </div>
 
         {/* Two-column grid */}
-        <div className="user-donations-content-grid">
+        <div className="grid grid-cols-1 lg:grid-cols-12 gap-6 items-start pt-1">
 
-          {/* Left: Make a Donation */}
-          <div className="user-donation-form-card">
-            <div className="user-card-header-row">
-              <h2 className="user-donation-section-title">Make a Donation</h2>
+          {/* Left: Make a Donation Card */}
+          <div className="lg:col-span-7 p-5 sm:p-6 bg-white dark:bg-[#1E2130] border border-slate-200/80 dark:border-white/10 rounded-2xl shadow-md shadow-slate-200/50 dark:shadow-none font-inter space-y-5">
+            <div className="flex items-center justify-between pb-3 border-b border-slate-100 dark:border-white/10">
+              <h2 className="text-sm font-bold text-slate-900 dark:text-white uppercase tracking-wider font-inter">Make a Donation</h2>
             </div>
-            <div className="user-donation-form">
+            <div className="space-y-5 text-left">
 
               {/* Amount */}
-              <div className="user-donation-form-group">
-                <label className="user-donation-form-label">Donation Amount</label>
-                <div className="user-amount-input-wrapper">
-                  <span className="user-currency-symbol">₱</span>
+              <div className="space-y-1.5">
+                <label className="block text-xs font-semibold text-slate-700 dark:text-slate-300">Donation Amount</label>
+                <div className="relative">
+                  <span className="absolute left-4 top-1/2 -translate-y-1/2 text-slate-400 font-bold text-base">₱</span>
                   <input
                     type="text"
-                    className="user-amount-input"
+                    className="w-full pl-9 pr-4 py-2.5 bg-slate-50 dark:bg-slate-800/60 border border-slate-200/80 dark:border-white/10 rounded-xl text-base font-bold text-slate-900 dark:text-white outline-none focus:ring-2 focus:ring-blue-600 transition-all placeholder-slate-400 font-dm"
                     placeholder="Enter amount"
                     value={donationAmount}
                     onChange={(e) => {
@@ -305,11 +345,15 @@ export default function Donation() {
                     disabled={submitting}
                   />
                 </div>
-                <div className="user-quick-amounts user-quick-amounts-wrapper">
+                <div className="flex flex-wrap gap-2 pt-1">
                   {QUICK_AMOUNTS.map((q) => (
                     <button
                       key={q}
-                      className={`user-quick-amount-btn${Number(String(donationAmount).replace(/,/g, '')) === q ? ' user-quick-amount-active' : ''}`}
+                      className={`px-3.5 py-1.5 rounded-xl text-xs font-bold font-inter transition-all cursor-pointer border-none ${
+                        Number(String(donationAmount).replace(/,/g, '')) === q
+                          ? 'bg-[#1E3A8A] text-white shadow-sm'
+                          : 'bg-slate-100 dark:bg-slate-800/80 hover:bg-slate-200 dark:hover:bg-slate-700 text-slate-700 dark:text-slate-300'
+                      }`}
                       onClick={() => { setDonationAmount(q.toLocaleString('en-US')); setFormError(''); }}
                       disabled={submitting}
                     >
@@ -320,11 +364,11 @@ export default function Donation() {
               </div>
 
               {/* Category */}
-              <div className="user-donation-form-group">
-                <label className="user-donation-form-label">Donation Category</label>
-                <div className="user-select-wrapper">
+              <div className="space-y-1.5">
+                <label className="block text-xs font-semibold text-slate-700 dark:text-slate-300">Donation Category</label>
+                <div className="relative">
                   <select
-                    className="user-donation-form-select user-category-select"
+                    className="w-full px-3.5 py-2.5 bg-slate-50 dark:bg-slate-800/60 border border-slate-200/80 dark:border-white/10 rounded-xl text-xs text-slate-900 dark:text-white outline-none focus:ring-2 focus:ring-blue-600 appearance-none pr-10"
                     value={donationCategory}
                     onChange={(e) => { setDonationCategory(e.target.value); setFormError(''); }}
                     disabled={submitting}
@@ -334,16 +378,16 @@ export default function Donation() {
                       <option key={c.name} value={c.name}>{c.name}</option>
                     ))}
                   </select>
-                  <ChevronDown className="user-select-icon" size={18} />
+                  <ChevronDown className="absolute right-3 top-1/2 -translate-y-1/2 text-slate-400 pointer-events-none" size={18} />
                 </div>
               </div>
 
               {/* Community */}
-              <div className="user-donation-form-group">
-                <label className="user-donation-form-label">Community <span style={{ color: '#dc2626' }}>*</span></label>
-                <div className="user-select-wrapper">
+              <div className="space-y-1.5">
+                <label className="block text-xs font-semibold text-slate-700 dark:text-slate-300">Community <span className="text-red-500">*</span></label>
+                <div className="relative">
                   <select
-                    className="user-donation-form-select user-category-select"
+                    className="w-full px-3.5 py-2.5 bg-slate-50 dark:bg-slate-800/60 border border-slate-200/80 dark:border-white/10 rounded-xl text-xs text-slate-900 dark:text-white outline-none focus:ring-2 focus:ring-blue-600 appearance-none pr-10"
                     value={donationCommunity}
                     onChange={(e) => { setDonationCommunity(e.target.value); setFormError(''); }}
                     disabled={submitting}
@@ -367,16 +411,20 @@ export default function Donation() {
                       });
                     })}
                   </select>
-                  <ChevronDown className="user-select-icon" size={18} />
+                  <ChevronDown className="absolute right-3 top-1/2 -translate-y-1/2 text-slate-400 pointer-events-none" size={18} />
                 </div>
               </div>
 
               {/* Payment Method */}
-              <div className="user-donation-form-group">
-                <label className="user-donation-form-label">Payment Method</label>
-                <div className="user-payment-methods">
+              <div className="space-y-1.5">
+                <label className="block text-xs font-semibold text-slate-700 dark:text-slate-300">Payment Method</label>
+                <div className="grid grid-cols-2 gap-3">
                   <button
-                    className={`user-payment-method-btn${paymentMethod === 'E-Wallet' ? ' active' : ''}`}
+                    className={`p-3 rounded-xl border flex items-center justify-center gap-2 text-xs font-semibold transition-all cursor-pointer ${
+                      paymentMethod === 'E-Wallet' 
+                        ? 'bg-blue-50 dark:bg-blue-950/50 border-blue-600 text-blue-600 dark:text-blue-400 shadow-sm' 
+                        : 'bg-slate-50 dark:bg-slate-800/60 border-slate-200/80 dark:border-white/10 text-slate-700 dark:text-slate-300'
+                    }`}
                     onClick={() => setPaymentMethod(paymentMethod === 'E-Wallet' ? '' : 'E-Wallet')}
                     disabled={submitting}
                   >
@@ -384,7 +432,11 @@ export default function Donation() {
                     <span>E-Wallet</span>
                   </button>
                   <button
-                    className={`user-payment-method-btn${paymentMethod === 'Bank' ? ' active' : ''}`}
+                    className={`p-3 rounded-xl border flex items-center justify-center gap-2 text-xs font-semibold transition-all cursor-pointer ${
+                      paymentMethod === 'Bank' 
+                        ? 'bg-blue-50 dark:bg-blue-950/50 border-blue-600 text-blue-600 dark:text-blue-400 shadow-sm' 
+                        : 'bg-slate-50 dark:bg-slate-800/60 border-slate-200/80 dark:border-white/10 text-slate-700 dark:text-slate-300'
+                    }`}
                     onClick={() => setPaymentMethod(paymentMethod === 'Bank' ? '' : 'Bank')}
                     disabled={submitting}
                   >
@@ -393,24 +445,24 @@ export default function Donation() {
                   </button>
                 </div>
                 {paymentMethod && (
-                  <div className="user-payment-info-wrapper expanded">
+                  <div className="pt-2 space-y-3">
                     {approvalMethod === 'manual' ? (
-                      <div style={{ marginTop: '16px' }}>
-                        <p style={{ fontSize: '14px', color: '#6B7280', marginBottom: '8px' }}>
-                          Please transfer your donation to our <strong>{paymentMethod}</strong> account and upload the receipt below.
+                      <div className="p-4 bg-slate-50 dark:bg-slate-800/40 border border-slate-200/80 dark:border-white/10 rounded-xl space-y-3">
+                        <p className="text-xs text-slate-500 dark:text-slate-400">
+                          Please transfer your donation to our <strong className="font-bold text-slate-900 dark:text-white">{paymentMethod}</strong> account and upload the receipt below.
                         </p>
 
-                        <div className="user-donation-manual-info-grid">
-                          <div className="user-donation-input-group">
-                            <label className="user-donation-form-label">{paymentMethod} Option</label>
+                        <div className="space-y-3">
+                          <div className="space-y-1">
+                            <label className="block text-xs font-semibold text-slate-700 dark:text-slate-300">{paymentMethod} Option</label>
                             {paymentMethod === 'E-Wallet' ? (
-                              <select className="user-donation-select" value={subMethod} onChange={(e) => setSubMethod(e.target.value)}>
+                              <select className="w-full px-3 py-2 bg-white dark:bg-slate-800 border border-slate-200/80 dark:border-white/10 rounded-xl text-xs text-slate-900 dark:text-white outline-none" value={subMethod} onChange={(e) => setSubMethod(e.target.value)}>
                                 <option value="">Select E-Wallet</option>
                                 <option value="GCash">GCash</option>
                                 <option value="Maya">Maya</option>
                               </select>
                             ) : (
-                              <select className="user-donation-select" value={subMethod} onChange={(e) => setSubMethod(e.target.value)}>
+                              <select className="w-full px-3 py-2 bg-white dark:bg-slate-800 border border-slate-200/80 dark:border-white/10 rounded-xl text-xs text-slate-900 dark:text-white outline-none" value={subMethod} onChange={(e) => setSubMethod(e.target.value)}>
                                 <option value="">Select Bank</option>
                                 <optgroup label="Card Payments">
                                   <option value="Master Card">Master Card</option>
@@ -428,21 +480,21 @@ export default function Donation() {
                               </select>
                             )}
                           </div>
-                          <div className="user-donation-input-group">
-                            <label className="user-donation-form-label">Sender Account Name <span style={{ color: '#dc2626' }}>*</span></label>
+                          <div className="space-y-1">
+                            <label className="block text-xs font-semibold text-slate-700 dark:text-slate-300">Sender Account Name <span className="text-red-500">*</span></label>
                             <input 
                               type="text" 
-                              className="user-donation-input" 
+                              className="w-full px-3 py-2 bg-white dark:bg-slate-800 border border-slate-200/80 dark:border-white/10 rounded-xl text-xs text-slate-900 dark:text-white outline-none" 
                               placeholder="Juan Dela Cruz"
                               value={accountName}
                               onChange={(e) => setAccountName(e.target.value)}
                             />
                           </div>
-                          <div className="user-donation-input-group">
-                            <label className="user-donation-form-label">Sender Account Number <span style={{ color: '#dc2626' }}>*</span></label>
+                          <div className="space-y-1">
+                            <label className="block text-xs font-semibold text-slate-700 dark:text-slate-300">Sender Account Number <span className="text-red-500">*</span></label>
                             <input 
                               type="text" 
-                              className="user-donation-input" 
+                              className="w-full px-3 py-2 bg-white dark:bg-slate-800 border border-slate-200/80 dark:border-white/10 rounded-xl text-xs text-slate-900 dark:text-white outline-none" 
                               placeholder="09123456789"
                               maxLength={11}
                               value={accountNumber}
@@ -451,26 +503,26 @@ export default function Donation() {
                           </div>
                         </div>
                         
-                        <label className="user-file-upload-zone" style={{ marginTop: '16px' }}>
-                          <input type="file" accept="image/*" onChange={handleFileChange} className="user-file-upload-input" />
-                          <div className="user-file-upload-content">
-                            <UploadCloud className="user-file-upload-icon" size={28} />
-                            <p className="user-file-upload-text"><span>Click to upload</span> or drag and drop</p>
-                            <p style={{ fontSize: '12px', color: '#9ca3af', margin: 0 }}>PNG, JPG, JPEG up to 5MB</p>
+                        <label className="flex flex-col items-center justify-center p-4 border-2 border-dashed border-slate-300 dark:border-white/10 rounded-xl bg-white dark:bg-slate-800/60 hover:bg-slate-50 dark:hover:bg-slate-800 cursor-pointer transition-all text-center">
+                          <input type="file" accept="image/*" onChange={handleFileChange} className="hidden" />
+                          <div className="flex flex-col items-center gap-1">
+                            <UploadCloud className="text-slate-400" size={28} />
+                            <p className="text-xs font-semibold text-slate-700 dark:text-slate-300"><span className="text-blue-600 dark:text-blue-400 hover:underline">Click to upload</span> or drag and drop</p>
+                            <p className="text-[11px] text-slate-400 m-0">PNG, JPG, JPEG up to 5MB</p>
                           </div>
                         </label>
 
                         {proofFile && (
-                          <div className="user-file-attached">
+                          <div className="flex items-center gap-2 p-2 bg-emerald-50 dark:bg-emerald-950/40 border border-emerald-200 dark:border-emerald-800/50 rounded-lg text-xs font-semibold text-emerald-600 dark:text-emerald-400">
                             <FileCheck2 size={16} />
-                            <span style={{ overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }}>
+                            <span className="truncate">
                               {proofFile.name}
                             </span>
                           </div>
                         )}
                       </div>
                     ) : (
-                      <p style={{ fontSize: '14px', color: '#6B7280', marginTop: '10px' }}>
+                      <p className="text-xs text-slate-500 dark:text-slate-400 pt-1">
                         You will be securely redirected to PayMongo to complete your {paymentMethod} transaction.
                       </p>
                     )}
@@ -478,13 +530,17 @@ export default function Donation() {
                 )}
               </div>
 
-              {formError && <p className="user-donation-form-error">{formError}</p>}
+              {formError && <p className="text-xs font-semibold text-red-600 dark:text-red-400">{formError}</p>}
 
-              <button className="user-donate-btn" onClick={handleDonate} disabled={submitting} style={{ opacity: (!isFormComplete || submitting) ? 0.6 : 1, cursor: (!isFormComplete || submitting) ? 'not-allowed' : 'pointer' }}>
-                {submitting ? <span className="btn-spinner" /> : (
+              <button 
+                className="w-full h-11 bg-[#1E3A8A] hover:bg-[#2B4EAF] text-white font-bold font-inter rounded-xl shadow-md transition-all flex items-center justify-center gap-2 text-xs cursor-pointer border-none disabled:opacity-60 disabled:cursor-not-allowed active:scale-[0.99]" 
+                onClick={handleDonate} 
+                disabled={submitting || !isFormComplete}
+              >
+                {submitting ? <span className="w-5 h-5 border-2 border-white border-t-transparent rounded-full animate-spin" /> : (
                   <>
-                    <Heart className="user-donate-icon" size={20} color="white" />
-                    Donate Now
+                    <Heart size={16} />
+                    <span>Donate Now</span>
                   </>
                 )}
               </button>
@@ -492,66 +548,21 @@ export default function Donation() {
           </div>
 
           {/* Right Column Container */}
-          <div className="user-donations-right-col">
-            {/* Donation History (Preview) */}
-            <div className="user-donation-history-card">
-              <div className="user-card-header-row">
-                <h2 className="user-donation-section-title">Donation History</h2>
-                <button className="user-view-history-btn" onClick={handleOpenHistory}>View History</button>
+          <div className="lg:col-span-5 space-y-4">
+            {/* Where your giving goes Card */}
+            <div className="p-5 bg-white dark:bg-[#1E2130] border border-slate-200/80 dark:border-white/10 rounded-2xl shadow-md shadow-slate-200/50 dark:shadow-none space-y-4 font-inter">
+              <div className="pb-3 border-b border-slate-100 dark:border-white/10">
+                <h2 className="text-sm font-bold text-slate-900 dark:text-white uppercase tracking-wider font-inter">Where Your Giving Goes</h2>
               </div>
-
-              {/* Category Pie Chart & Recent Donations */}
-              {!loading && (
-                <div className="user-donation-history-preview-layout">
-
-
-                  <div className="user-donation-recent-list-container">
-                    <div className="user-donation-recent-list">
-                      {recentDonations.slice(0, 5).map(d => (
-                        <div key={d._id} className="user-donation-recent-item" onClick={() => handleOpenReceipt(d)}>
-                          <div className="user-donation-recent-info">
-                            <span className="user-donation-recent-fund">{d.category}</span>
-                            <span className="user-donation-recent-date">{fmtDate(d.createdAt || d.date)}</span>
-                          </div>
-                          <div className="user-donation-recent-amount">
-                            <span className="user-donation-recent-amt">{fmt(d.amount)}</span>
-                            <span className={`user-donation-recent-status status-${d.status || 'pending'}`}>
-                              {d.status === 'confirmed' ? 'Successful' : d.status === 'rejected' ? 'Failed' : 'Incomplete'}
-                            </span>
-                          </div>
-                        </div>
-                      ))}
-                    </div>
-                  </div>
-                </div>
-              )}
-
-              {/* Empty State */}
-              {!loading && (!stats.categoryBreakdown || Object.keys(stats.categoryBreakdown).length === 0) && (
-                <div className="user-donation-empty-state">
-                  <div className="user-donation-empty-icon-wrap">
-                    <Heart size={28} color="#1E3A8A" />
-                  </div>
-                  <p className="user-donation-empty-title">No donations yet</p>
-                  <p className="user-donation-empty-subtitle">Your giving history will appear here. Every contribution makes a difference!</p>
-                </div>
-              )}
-            </div>
-
-            {/* Where your giving goes */}
-            <div className="user-donation-history-card">
-              <div className="user-card-header-row user-giving-goes-header">
-                <h2 className="user-donation-section-title">Where Your Giving Goes</h2>
-              </div>
-              <div className="user-donation-empty-categories">
+              <div className="space-y-2.5">
                 {CATEGORIES.map((cat) => (
-                  <div key={cat.name} className="user-donation-empty-category-item">
-                    <div className="user-donation-3d-icon-wrap">
+                  <div key={cat.name} className="p-3 bg-slate-50/70 dark:bg-slate-800/40 border border-slate-200/60 dark:border-white/5 rounded-xl flex items-center gap-3.5 hover:bg-slate-100 dark:hover:bg-slate-800/70 transition-all">
+                    <div className="w-9 h-9 rounded-xl bg-blue-50 dark:bg-blue-950/50 border border-blue-100 dark:border-blue-900/30 text-blue-600 dark:text-blue-400 flex items-center justify-center shrink-0">
                       {cat.icon}
                     </div>
-                    <div className="user-donation-empty-category-info">
-                      <p className="user-donation-empty-category-name">{cat.name}</p>
-                      <p className="user-donation-empty-category-desc">{cat.description}</p>
+                    <div className="space-y-0.5 min-w-0">
+                      <p className="text-xs font-bold text-slate-900 dark:text-white truncate">{cat.name}</p>
+                      <p className="text-[11px] text-slate-500 dark:text-slate-400 leading-tight">{cat.description}</p>
                     </div>
                   </div>
                 ))}
@@ -564,19 +575,23 @@ export default function Donation() {
 
       {/* ── Donation History Modal ── */}
       {isHistoryModalOpen && (
-        <div className="user-donation-modal-overlay" onClick={() => setIsHistoryModalOpen(false)}>
-          <div className="user-donation-modal-content" onClick={e => e.stopPropagation()}>
-            <div className="user-modal-header">
-              <h2 className="user-modal-title">Donation History</h2>
-              <button className="user-modal-close-btn" onClick={() => setIsHistoryModalOpen(false)}>×</button>
+        <div className="fixed inset-0 z-[9999] bg-black/60 backdrop-blur-sm flex items-center justify-center p-4 overflow-y-auto" onClick={() => setIsHistoryModalOpen(false)}>
+          <div className="relative w-full max-w-xl bg-white dark:bg-[#1E2130] rounded-2xl p-5 sm:p-6 shadow-2xl border border-slate-200 dark:border-white/10 flex flex-col my-auto text-left font-inter" onClick={e => e.stopPropagation()}>
+            {/* Header */}
+            <div className="flex items-center justify-between pb-3 border-b border-slate-100 dark:border-white/10">
+              <h2 className="text-base font-bold text-slate-900 dark:text-white uppercase tracking-wider font-inter">Donation History</h2>
+              <button className="text-slate-400 hover:text-slate-600 dark:hover:text-white p-1 rounded-lg transition-colors cursor-pointer border-none bg-transparent" onClick={() => setIsHistoryModalOpen(false)}>
+                <X size={18} />
+              </button>
             </div>
 
-            <div className="user-modal-filters">
-              <div className="user-donation-filter-group">
-                <label className="user-donation-filter-label">Filter by Category</label>
-                <div className="user-select-wrapper">
+            {/* Filters */}
+            <div className="grid grid-cols-1 sm:grid-cols-2 gap-3 py-3 border-b border-slate-100 dark:border-white/10">
+              <div className="space-y-1">
+                <label className="block text-xs font-semibold text-slate-600 dark:text-slate-400">Category</label>
+                <div className="relative flex items-center">
                   <select
-                    className="user-donation-form-select user-donation-filter-select"
+                    className="w-full px-3 py-1.5 bg-slate-50 dark:bg-slate-800/60 border border-slate-200/80 dark:border-white/10 rounded-xl text-xs text-slate-900 dark:text-white outline-none appearance-none pr-8 cursor-pointer"
                     value={modalCategory}
                     onChange={(e) => {
                       setModalCategory(e.target.value);
@@ -588,14 +603,14 @@ export default function Donation() {
                       <option key={c.name} value={c.name}>{c.name}</option>
                     ))}
                   </select>
-                  <ChevronDown className="user-select-icon" size={16} />
+                  <ChevronDown className="absolute right-2.5 text-slate-400 pointer-events-none" size={14} />
                 </div>
               </div>
-              <div className="user-donation-filter-group">
-                <label className="user-donation-filter-label">Payment Method</label>
-                <div className="user-select-wrapper">
+              <div className="space-y-1">
+                <label className="block text-xs font-semibold text-slate-600 dark:text-slate-400">Payment Method</label>
+                <div className="relative flex items-center">
                   <select
-                    className="user-donation-form-select user-donation-filter-select"
+                    className="w-full px-3 py-1.5 bg-slate-50 dark:bg-slate-800/60 border border-slate-200/80 dark:border-white/10 rounded-xl text-xs text-slate-900 dark:text-white outline-none appearance-none pr-8 cursor-pointer"
                     value={modalPaymentMethod}
                     onChange={(e) => {
                       setModalPaymentMethod(e.target.value);
@@ -606,38 +621,40 @@ export default function Donation() {
                     <option value="E-Wallet">E-Wallet</option>
                     <option value="Bank">Bank Transfer</option>
                   </select>
-                  <ChevronDown className="user-select-icon" size={16} />
+                  <ChevronDown className="absolute right-2.5 text-slate-400 pointer-events-none" size={14} />
                 </div>
               </div>
             </div>
 
-            <div className="user-modal-body user-history-modal-body">
+            {/* List */}
+            <div className="py-3 space-y-2">
               {modalLoading ? (
-                <p className="user-modal-loading">Loading history...</p>
+                <p className="text-center text-xs text-slate-400 py-6">Loading history...</p>
               ) : modalHistory.length === 0 ? (
-                <p className="user-modal-empty">No donations found for this filter.</p>
+                <p className="text-center text-xs text-slate-400 py-6">No donations found for this filter.</p>
               ) : (
-                <div className="user-modal-history-list">
+                <div className="space-y-2">
                   {modalHistory.map((d) => (
                     <div
                       key={d._id || d.donationId}
-                      className="user-donation-history-item user-modal-item user-clickable"
+                      className="flex items-center justify-between p-3 bg-slate-50/70 dark:bg-slate-800/40 hover:bg-slate-100 dark:hover:bg-slate-800/70 rounded-xl border border-slate-200/60 dark:border-white/5 cursor-pointer transition-all"
                       onClick={() => handleOpenReceipt(d)}
                     >
-                      <div className="user-donation-history-main">
-                        <div className="user-modal-icon-wrapper">
-                          <Receipt size={18} color="#155DFC" />
+                      <div className="flex items-center gap-3 min-w-0">
+                        <div className="w-9 h-9 rounded-xl bg-blue-50 dark:bg-blue-950/40 border border-blue-100 dark:border-blue-900/30 flex items-center justify-center text-blue-600 dark:text-blue-400 shrink-0">
+                          <Receipt size={16} />
                         </div>
-                        <div className="user-donation-history-info">
-                          <h3 className="user-donation-fund">{d.category}</h3>
-                          <p className="user-donation-id">{d.donationId} · {fmtDate(d.createdAt || d.date)}</p>
-                          <p className="user-donation-details">{d.method || d.paymentMethod}</p>
+                        <div className="min-w-0">
+                          <h3 className="text-xs font-bold text-slate-900 dark:text-white truncate">{d.category}</h3>
+                          <p className="text-[11px] text-slate-400 leading-tight mt-0.5">{d.donationId} · {fmtDate(d.createdAt || d.date)}</p>
                         </div>
                       </div>
-                      <div className="user-donation-history-amount-col">
-                        <p className="user-donation-history-amount">{fmt(d.amount)}</p>
-                        <span className={`user-donation-status-badge user-donation-status-${d.status || 'pending'}`}>
-                          {d.status === 'confirmed' ? 'Successful' : d.status === 'rejected' ? 'Failed' : 'Incomplete'}
+                      <div className="text-right shrink-0">
+                        <p className="text-xs font-extrabold font-dm text-slate-900 dark:text-white">{fmt(d.amount)}</p>
+                        <span className={`inline-block px-2 py-0.5 text-[9px] font-extrabold uppercase tracking-wider rounded-full mt-0.5 ${
+                          d.status === 'confirmed' ? 'text-emerald-600 bg-emerald-50 dark:bg-emerald-950/50 border border-emerald-100 dark:border-emerald-900/30' : d.status === 'rejected' ? 'text-red-600 bg-red-50 dark:bg-red-950/50 border border-red-100 dark:border-red-900/30' : 'text-amber-600 bg-amber-50 dark:bg-amber-950/50 border border-amber-100 dark:border-amber-900/30'
+                        }`}>
+                          {d.status === 'confirmed' ? 'Successful' : d.status === 'rejected' ? 'Failed' : 'Pending'}
                         </span>
                       </div>
                     </div>
@@ -646,16 +663,17 @@ export default function Donation() {
               )}
             </div>
 
+            {/* Pagination Footer */}
             {modalTotalPages > 1 && (
-              <div className="user-modal-pagination">
+              <div className="flex items-center justify-between pt-2.5 border-t border-slate-100 dark:border-white/10 text-xs">
                 <button
-                  className="user-modal-page-btn"
+                  className="px-3 py-1 bg-slate-100 dark:bg-slate-800 text-slate-700 dark:text-slate-300 rounded-lg hover:bg-slate-200 dark:hover:bg-slate-700 disabled:opacity-40 transition-colors text-xs font-bold cursor-pointer border-none"
                   onClick={() => setModalPage(p => Math.max(1, p - 1))}
                   disabled={modalPage === 1 || modalLoading}
                 >‹ Prev</button>
-                <span className="user-modal-page-info">Page {modalPage} of {modalTotalPages}</span>
+                <span className="text-xs font-semibold text-slate-500 dark:text-slate-400">Page {modalPage} of {modalTotalPages}</span>
                 <button
-                  className="user-modal-page-btn"
+                  className="px-3 py-1 bg-slate-100 dark:bg-slate-800 text-slate-700 dark:text-slate-300 rounded-lg hover:bg-slate-200 dark:hover:bg-slate-700 disabled:opacity-40 transition-colors text-xs font-bold cursor-pointer border-none"
                   onClick={() => setModalPage(p => Math.min(modalTotalPages, p + 1))}
                   disabled={modalPage === modalTotalPages || modalLoading}
                 >Next ›</button>
@@ -666,70 +684,68 @@ export default function Donation() {
       )}
       {/* ── Receipt Modal ── */}
       {isReceiptModalOpen && selectedDonation && (
-        <div className="user-receipt-modal-overlay" onClick={() => setIsReceiptModalOpen(false)}>
-          <div className="user-receipt-modal-card" onClick={e => e.stopPropagation()}>
-            <div className="user-receipt-header-gradient">
-              <div className="user-receipt-header-content">
-                <Receipt className="user-receipt-main-icon" size={32} />
-                <h2 className="user-receipt-header-title">Donation Receipt</h2>
-                <p className="user-receipt-header-subtitle">IsangDiwa Official Record</p>
-              </div>
+        <div className="fixed inset-0 z-[9999] bg-black/60 backdrop-blur-sm flex items-center justify-center p-4 overflow-y-auto" onClick={() => setIsReceiptModalOpen(false)}>
+          <div className="relative w-full max-w-md bg-white dark:bg-[#1E2130] rounded-2xl overflow-hidden shadow-2xl border border-slate-200 dark:border-white/10 my-auto text-left" onClick={e => e.stopPropagation()}>
+            <div className="bg-gradient-to-r from-blue-600 to-indigo-600 p-6 text-white text-center relative">
               <button
-                className="user-receipt-close-btn"
+                className="absolute top-4 right-4 text-white/80 hover:text-white p-1.5 rounded-full transition-colors"
                 onClick={() => setIsReceiptModalOpen(false)}
               >
                 <X size={20} />
               </button>
+              <Receipt className="w-10 h-10 mx-auto mb-2 text-white/90" />
+              <h2 className="text-xl font-bold">Donation Receipt</h2>
+              <p className="text-xs text-white/80">IsangDiwa Official Record</p>
             </div>
 
-            <div className="user-receipt-body">
-              <div className="user-receipt-amount-section">
-                <p className="user-receipt-amount-label">Amount Contributed</p>
-                <h1 className="user-receipt-amount-value">{fmt(selectedDonation.amount)}</h1>
-                <div className={`user-receipt-status-badge user-receipt-status-${selectedDonation.status || 'pending'}`}>
+            <div className="p-6 space-y-6">
+              <div className="text-center pb-4 border-b border-slate-100 dark:border-white/5">
+                <p className="text-xs text-slate-400">Amount Contributed</p>
+                <h1 className="text-3xl font-extrabold text-slate-900 dark:text-white mt-1">{fmt(selectedDonation.amount)}</h1>
+                <div className={`inline-block px-3 py-1 text-xs font-bold rounded-full mt-2 ${selectedDonation.status === 'confirmed' ? 'bg-emerald-100 text-emerald-700 dark:bg-emerald-950/60 dark:text-emerald-400' : selectedDonation.status === 'rejected' ? 'bg-red-100 text-red-700 dark:bg-red-950/60 dark:text-red-400' : 'bg-amber-100 text-amber-700 dark:bg-amber-950/60 dark:text-amber-400'}`}>
                   {selectedDonation.status === 'confirmed' ? 'Successful' : selectedDonation.status === 'rejected' ? 'Failed' : 'Incomplete'}
                 </div>
               </div>
 
-              <div className="user-receipt-details-list">
-                <div className="user-receipt-detail-item">
-                  <span className="user-receipt-detail-label">Donor Name</span>
-                  <span className="user-receipt-detail-value">{user?.fullName || 'Valued Member'}</span>
+              <div className="space-y-2.5 text-xs">
+                <div className="flex items-center justify-between py-1 border-b border-slate-100 dark:border-white/5">
+                  <span className="text-slate-400 font-medium">Donor Name</span>
+                  <span className="text-slate-900 dark:text-white font-bold">{user?.fullName || 'Valued Member'}</span>
                 </div>
-                <div className="user-receipt-detail-item">
-                  <span className="user-receipt-detail-label">Fund Category</span>
-                  <span className="user-receipt-detail-value">{selectedDonation.category}</span>
+                <div className="flex items-center justify-between py-1 border-b border-slate-100 dark:border-white/5">
+                  <span className="text-slate-400 font-medium">Fund Category</span>
+                  <span className="text-slate-900 dark:text-white font-bold">{selectedDonation.category}</span>
                 </div>
-                <div className="user-receipt-detail-item">
-                  <span className="user-receipt-detail-label">Transaction ID</span>
-                  <span className="user-receipt-detail-value">{selectedDonation.donationId}</span>
+                <div className="flex items-center justify-between py-1 border-b border-slate-100 dark:border-white/5">
+                  <span className="text-slate-400 font-medium">Transaction ID</span>
+                  <span className="text-slate-900 dark:text-white font-bold">{selectedDonation.donationId}</span>
                 </div>
-                <div className="user-receipt-detail-item">
-                  <span className="user-receipt-detail-label">Date & Time</span>
-                  <span className="user-receipt-detail-value">{fmtDate(selectedDonation.createdAt || selectedDonation.date)}</span>
+                <div className="flex items-center justify-between py-1 border-b border-slate-100 dark:border-white/5">
+                  <span className="text-slate-400 font-medium">Date & Time</span>
+                  <span className="text-slate-900 dark:text-white font-bold">{fmtDate(selectedDonation.createdAt || selectedDonation.date)}</span>
                 </div>
-                <div className="user-receipt-detail-item">
-                  <span className="user-receipt-detail-label">Payment Method</span>
-                  <span className="user-receipt-detail-value">{selectedDonation.method || selectedDonation.paymentMethod}</span>
+                <div className="flex items-center justify-between py-1 border-b border-slate-100 dark:border-white/5">
+                  <span className="text-slate-400 font-medium">Payment Method</span>
+                  <span className="text-slate-900 dark:text-white font-bold">{selectedDonation.method || selectedDonation.paymentMethod}</span>
                 </div>
-                <div className="user-receipt-detail-item">
-                  <span className="user-receipt-detail-label">Reference No.</span>
-                  <span className="user-receipt-detail-value">{selectedDonation.referenceNumber || selectedDonation.donationId}</span>
+                <div className="flex items-center justify-between py-1">
+                  <span className="text-slate-400 font-medium">Reference No.</span>
+                  <span className="text-slate-900 dark:text-white font-bold">{selectedDonation.referenceNumber || selectedDonation.donationId}</span>
                 </div>
               </div>
 
-              <div className="user-receipt-footer-note">
-                <p>Thank you for your generous support of God's work. Your contribution makes a difference in our community.</p>
+              <div className="p-3 bg-blue-50/60 dark:bg-blue-950/30 border border-blue-100 dark:border-blue-900/40 rounded-xl text-center">
+                <p className="text-[11px] text-slate-500 dark:text-slate-400">Thank you for your generous support of God's work. Your contribution makes a difference in our community.</p>
               </div>
 
-              <div className="user-receipt-actions">
-                <button className="user-receipt-action-btn secondary">
+              <div className="flex items-center gap-3">
+                <button className="flex-1 py-2.5 bg-slate-100 dark:bg-slate-800 hover:bg-slate-200 dark:hover:bg-slate-700 text-slate-700 dark:text-slate-300 font-semibold rounded-xl transition-all flex items-center justify-center gap-2 text-xs">
                   <Share2 size={16} />
                   <span>Share</span>
                 </button>
-                <button className="user-receipt-action-btn primary">
+                <button className="flex-1 py-2.5 bg-blue-600 hover:bg-blue-700 text-white font-semibold rounded-xl shadow-md transition-all flex items-center justify-center gap-2 text-xs">
                   <Download size={16} />
-                  <span>Download PDF</span>
+                  <span>Download</span>
                 </button>
               </div>
             </div>

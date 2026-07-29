@@ -3,11 +3,10 @@ import { useState, useEffect, useMemo } from 'react';
 import useSWR from 'swr';
 import { PieChart, Pie, Cell, BarChart, Bar, XAxis, YAxis, CartesianGrid, Tooltip, ResponsiveContainer, Label, Legend, AreaChart, Area, LineChart, Line } from 'recharts';
 import SecretaryAdminSidebar from '../components/secretaryAdminSidebar';
-import '../../admin/styles/AdminDashboard.css';
-import '../../loanAdmin/styles/loanAdminDashboard.css';
-import '../styles/secretaryAdminDashboard.css';
+
+
 import API from '../../utils/api';
-import { Banknote, Clock, CheckCircle, CalendarDays, X, Filter, Expand } from 'lucide-react';
+import { Banknote, Clock, CheckCircle, CalendarDays, X, Filter, Maximize2 } from 'lucide-react';
 
 
 const fmt = (n) => n != null ? `₱${Number(n).toLocaleString('en-PH', { minimumFractionDigits: 0 })}` : '₱0';
@@ -207,121 +206,148 @@ export default function SecretaryAdminDashboard() {
   };
 
   return (
-    <div className="sec-admin-dashboard-page">
+    <div className="flex h-screen overflow-hidden bg-slate-100 dark:bg-[#161922]">
       <SecretaryAdminSidebar />
-      <div className="sec-admin-dashboard-content">
+      <div className="p-[20px_24px] flex-1 flex flex-col gap-2.5 bg-transparent overflow-y-auto">
         {!expandedChart && (
           <>
             {/* Header */}
-        <div className="adm-dashboard-header">
-          <div className="adm-dashboard-header-left">
-            <h1 className="adm-dashboard-greeting">
+        <div className="flex items-center justify-between pb-2 mb-[2px] max-md:flex-col max-md:items-start max-md:gap-3">
+          <div className="flex flex-col gap-0.5">
+            <h1 className="font-inter text-lg font-normal text-gray-600 m-0 tracking-[-0.01em] dark:text-gray-400">
               {(() => {
                 const h = new Date().getHours();
                 return h < 12 ? 'Good Morning' : h < 18 ? 'Good Afternoon' : 'Good Evening';
-              })()}, <span className="adm-dashboard-greeting-name">Secretary</span>
+              })()}, <span className="text-gray-900 font-bold dark:text-gray-200">Secretary</span>
             </h1>
-            <p className="adm-dashboard-subtitle">
+            <p className="font-inter text-[13px] text-gray-400 m-0 font-normal dark:text-gray-400/60">
               Disbursement overview for <strong>{new Date().toLocaleDateString('en-US', { weekday: 'long', month: 'long', day: 'numeric', year: 'numeric' })}</strong>
             </p>
           </div>
         </div>
 
         {loading ? (
-          <div className="adm-loading-msg">Loading dashboard data...</div>
+          <div className="p-10 text-center text-gray-400 text-[13px]">Loading dashboard data...</div>
         ) : (
           <>
-            {/* Row 1 — 4 Stat Cards */}
-            <div className="adm-stats-grid sec-adm-stats-grid-4 sec-adm-mb-6">
-              <div className="adm-stat-card sec-adm-clickable-card" onClick={() => setShowAwaitingModal(true)}>
-                <div className="adm-stat-top">
-                  <span className="adm-stat-label">Awaiting Processing</span>
-                  <div className="adm-stat-icon adm-icon-yellow">
-                    <Clock size={16} color="white" />
+            {/* Asymmetrical Layout with Consistent White Design */}
+            <div className="grid grid-cols-1 lg:grid-cols-12 gap-5 mb-8">
+              
+              {/* Left Column: Disbursement Hero Card (Combines Total, This Month Amount, Last Month Amount) */}
+              <div className="lg:col-span-5 group relative bg-white dark:bg-[#1E2130] border border-slate-200 dark:border-white/10 rounded-2xl p-6 shadow-[0_2px_12px_-4px_rgba(0,0,0,0.05)] overflow-hidden transition-all duration-300 hover:shadow-[0_12px_32px_rgba(0,0,0,0.08)] dark:hover:shadow-[0_12px_32px_rgba(0,0,0,0.3)] hover:-translate-y-1 cursor-pointer flex flex-col justify-between" onClick={openDisbModal}>
+                <div className="absolute top-0 right-0 w-32 h-32 bg-blue-500/10 rounded-full blur-3xl -mr-10 -mt-10 transition-transform duration-500 group-hover:scale-150"></div>
+                
+                <div className="flex items-start justify-between relative z-10 mb-4">
+                  <div>
+                    <span className="text-xs font-semibold text-slate-500 dark:text-slate-400 font-inter uppercase tracking-wider mb-2 block">Total Lifetime Disbursed</span>
+                    <h3 className="text-4xl lg:text-5xl font-bold text-slate-800 dark:text-white font-inter tracking-tight">{dash(fmt(stats.disbursed))}</h3>
+                  </div>
+                  <div className="w-12 h-12 rounded-[14px] bg-gradient-to-br from-blue-50 to-blue-100/50 dark:from-blue-500/20 dark:to-blue-500/10 text-blue-600 dark:text-blue-400 flex items-center justify-center shrink-0 border border-blue-200/60 dark:border-blue-500/30 transition-transform duration-300 group-hover:scale-110 shadow-sm">
+                    <Banknote size={24} strokeWidth={2.2} />
                   </div>
                 </div>
-                <span className="adm-stat-value">{dash(stats.awaiting)}</span>
-              </div>
 
-              <div className="adm-stat-card sec-adm-clickable-card" onClick={() => setShowTodayModal(true)}>
-                <div className="adm-stat-top">
-                  <span className="adm-stat-label">Processed Today</span>
-                  <div className="adm-stat-icon adm-icon-blue">
-                    <CheckCircle size={16} color="white" />
+                {/* MoM Comparison integrated into the Hero Card */}
+                <div className="flex items-center gap-4 pt-5 border-t border-slate-100 dark:border-white/5 mt-auto relative z-10">
+                  <div className="flex-1">
+                    <p className="text-[11px] font-bold text-slate-400 dark:text-slate-500 uppercase tracking-wider mb-1">This Month</p>
+                    <div className="flex items-end gap-2">
+                      <span className="text-lg font-bold text-slate-800 dark:text-white">{dash(fmt(stats.thisMonthAmount))}</span>
+                      {(() => {
+                        if (stats.prevMonthDisbursed === 0) return null;
+                        const diff = stats.thisMonthAmount - stats.prevMonthDisbursed;
+                        const pct = Math.round((diff / stats.prevMonthDisbursed) * 100);
+                        const isUp = pct >= 0;
+                        return (
+                          <span className={`text-[10px] font-bold px-1.5 py-0.5 rounded-md ${isUp ? 'bg-emerald-50 text-emerald-600 dark:bg-emerald-500/10 dark:text-emerald-400' : 'bg-red-50 text-red-600 dark:bg-red-500/10 dark:text-red-400'}`}>
+                            {isUp ? '↑' : '↓'} {Math.abs(pct)}%
+                          </span>
+                        );
+                      })()}
+                    </div>
+                  </div>
+                  <div className="w-px h-10 bg-slate-200 dark:bg-white/5"></div>
+                  <div className="flex-1">
+                    <p className="text-[11px] font-bold text-slate-400 dark:text-slate-500 uppercase tracking-wider mb-1">Last Month</p>
+                    <span className="text-lg font-bold text-slate-600 dark:text-slate-400">{dash(fmt(stats.prevMonthDisbursed))}</span>
                   </div>
                 </div>
-                <span className="adm-stat-value">{dash(stats.today)}</span>
               </div>
 
-              <div className="adm-stat-card sec-adm-clickable-card" onClick={openMonthModal}>
-                <div className="adm-stat-top">
-                  <span className="adm-stat-label">This Month</span>
-                  <div className="adm-stat-icon adm-icon-blue">
-                    <CalendarDays size={16} color="white" />
+              {/* Right Column: 3 Operational Stat Cards */}
+              <div className="lg:col-span-7">
+                <div className="grid grid-cols-1 sm:grid-cols-3 gap-5">
+                  
+                  {/* Card 1: Awaiting */}
+                  <div className="group relative bg-white dark:bg-[#1E2130] border border-slate-200 dark:border-white/10 rounded-2xl p-5 shadow-[0_2px_12px_-4px_rgba(0,0,0,0.05)] overflow-hidden transition-all duration-300 hover:shadow-[0_12px_32px_rgba(0,0,0,0.08)] dark:hover:shadow-[0_12px_32px_rgba(0,0,0,0.3)] hover:-translate-y-1 cursor-pointer flex flex-col justify-between" onClick={() => setShowAwaitingModal(true)}>
+                    <div className="absolute top-0 right-0 w-28 h-28 bg-amber-500/10 rounded-full blur-2xl -mr-8 -mt-8 transition-transform duration-500 group-hover:scale-150"></div>
+                    
+                    <div className="flex items-start justify-between relative z-10 mb-3">
+                      <span className="text-[11px] font-semibold text-slate-500 dark:text-slate-400 font-inter uppercase tracking-wider leading-tight pr-2 mt-1">Awaiting Processing</span>
+                      <div className="w-10 h-10 rounded-xl bg-gradient-to-br from-amber-50 to-amber-100/50 dark:from-amber-500/20 dark:to-amber-500/10 text-amber-600 dark:text-amber-400 flex items-center justify-center shrink-0 border border-amber-200/60 dark:border-amber-500/30 transition-transform duration-300 group-hover:scale-110 shadow-sm">
+                        <Clock size={20} strokeWidth={2.2} />
+                      </div>
+                    </div>
+                    <h3 className="text-[28px] font-extrabold text-slate-900 dark:text-white font-inter tracking-tight m-0 relative z-10 mt-auto">{dash(stats.awaiting)}</h3>
                   </div>
-                </div>
-                <span className="adm-stat-value">{dash(stats.month)}</span>
-              </div>
 
-              <div className="adm-stat-card sec-adm-clickable-card" onClick={openDisbModal}>
-                <div className="adm-stat-top">
-                  <span className="adm-stat-label">Total Disbursed</span>
-                  <div className="adm-stat-icon adm-icon-green">
-                    <Banknote size={16} color="white" />
+                  {/* Card 2: Processed Today */}
+                  <div className="group relative bg-white dark:bg-[#1E2130] border border-slate-200 dark:border-white/10 rounded-2xl p-5 shadow-[0_2px_12px_-4px_rgba(0,0,0,0.05)] overflow-hidden transition-all duration-300 hover:shadow-[0_12px_32px_rgba(0,0,0,0.08)] dark:hover:shadow-[0_12px_32px_rgba(0,0,0,0.3)] hover:-translate-y-1 cursor-pointer flex flex-col justify-between" onClick={() => setShowTodayModal(true)}>
+                    <div className="absolute top-0 right-0 w-28 h-28 bg-emerald-500/10 rounded-full blur-2xl -mr-8 -mt-8 transition-transform duration-500 group-hover:scale-150"></div>
+                    
+                    <div className="flex items-start justify-between relative z-10 mb-3">
+                      <span className="text-[11px] font-semibold text-slate-500 dark:text-slate-400 font-inter uppercase tracking-wider leading-tight pr-2 mt-1">Processed Today</span>
+                      <div className="w-10 h-10 rounded-xl bg-gradient-to-br from-emerald-50 to-emerald-100/50 dark:from-emerald-500/20 dark:to-emerald-500/10 text-emerald-600 dark:text-emerald-400 flex items-center justify-center shrink-0 border border-emerald-200/60 dark:border-emerald-500/30 transition-transform duration-300 group-hover:scale-110 shadow-sm">
+                        <CheckCircle size={20} strokeWidth={2.2} />
+                      </div>
+                    </div>
+                    <h3 className="text-[28px] font-extrabold text-slate-900 dark:text-white font-inter tracking-tight m-0 relative z-10 mt-auto">{dash(stats.today)}</h3>
                   </div>
-                </div>
-                <span className="adm-stat-value">{dash(fmt(stats.disbursed))}</span>
-              </div>
-            </div>
 
-            {/* MoM Comparison */}
-            <div className="adm-stats-grid sec-adm-stats-grid-mom">
-              <div className="adm-stat-card">
-                <div className="adm-stat-top">
-                  <span className="adm-stat-label">This Month ({MONTH_NAMES[now.getMonth()]})</span>
+                  {/* Card 3: This Month (Count) */}
+                  <div className="group relative bg-white dark:bg-[#1E2130] border border-slate-200 dark:border-white/10 rounded-2xl p-5 shadow-[0_2px_12px_-4px_rgba(0,0,0,0.05)] overflow-hidden transition-all duration-300 hover:shadow-[0_12px_32px_rgba(0,0,0,0.08)] dark:hover:shadow-[0_12px_32px_rgba(0,0,0,0.3)] hover:-translate-y-1 cursor-pointer flex flex-col justify-between" onClick={openMonthModal}>
+                    <div className="absolute top-0 right-0 w-28 h-28 bg-blue-500/10 rounded-full blur-2xl -mr-8 -mt-8 transition-transform duration-500 group-hover:scale-150"></div>
+                    
+                    <div className="flex items-start justify-between relative z-10 mb-3">
+                      <div className="flex flex-col gap-1 pr-2 mt-1">
+                        <span className="text-[11px] font-semibold text-slate-500 dark:text-slate-400 font-inter uppercase tracking-wider leading-tight">Loans This Month</span>
+                        <span className="text-[10px] font-bold text-slate-400 dark:text-slate-500 uppercase tracking-wider bg-slate-50 dark:bg-white/5 px-2 py-0.5 rounded w-fit">{MONTH_NAMES[now.getMonth()]}</span>
+                      </div>
+                      <div className="w-10 h-10 rounded-xl bg-gradient-to-br from-blue-50 to-blue-100/50 dark:from-blue-500/20 dark:to-blue-500/10 text-blue-600 dark:text-blue-400 flex items-center justify-center shrink-0 border border-blue-200/60 dark:border-blue-500/30 transition-transform duration-300 group-hover:scale-110 shadow-sm">
+                        <CalendarDays size={20} strokeWidth={2.2} />
+                      </div>
+                    </div>
+                    <h3 className="text-[28px] font-extrabold text-slate-900 dark:text-white font-inter tracking-tight m-0 relative z-10 mt-auto">{dash(stats.month)}</h3>
+                  </div>
+
                 </div>
-                <div className="sec-adm-mom-val-wrap">
-                  <span className="adm-stat-value">{dash(fmt(stats.thisMonthAmount))}</span>
-                  {(() => {
-                    if (stats.prevMonthDisbursed === 0) return null;
-                    const diff = stats.thisMonthAmount - stats.prevMonthDisbursed;
-                    const pct = Math.round((diff / stats.prevMonthDisbursed) * 100);
-                    const isUp = pct >= 0;
-                    return (
-                      <span className={`sec-adm-mom-delta ${isUp ? 'sec-adm-mom-delta-up' : 'sec-adm-mom-delta-down'}`}>
-                        {isUp ? '↑' : '↓'} {Math.abs(pct)}%
-                      </span>
-                    );
-                  })()}
-                </div>
-              </div>
-              <div className="adm-stat-card">
-                <div className="adm-stat-top">
-                  <span className="adm-stat-label">Last Month ({MONTH_NAMES[now.getMonth() === 0 ? 11 : now.getMonth() - 1]})</span>
-                </div>
-                <span className="adm-stat-value">{dash(fmt(stats.prevMonthDisbursed))}</span>
               </div>
             </div>
 
             {/* Row 2 — Charts */}
-            <div className="adm-analytics-row adm-analytics-row-sec sec-adm-mt-16">
+            <div className="grid grid-cols-[7fr_3fr] gap-5 w-full min-w-0 mt-6">
               {/* Monthly Disbursements */}
-              <div className="adm-card">
-                <div className="adm-card-header">
+              <div className="group relative bg-white dark:bg-[#1E2130] border border-slate-100 dark:border-white/5 rounded-2xl p-6 shadow-[0_2px_12px_-4px_rgba(0,0,0,0.04)] overflow-hidden transition-all duration-300">
+                <div className="absolute top-0 right-0 w-32 h-32 bg-blue-500/5 rounded-full blur-3xl -mr-10 -mt-10 pointer-events-none transition-transform duration-500 group-hover:scale-125"></div>
+                <div className="relative z-10">
+                <div className="flex items-baseline justify-between mb-2.5">
                   <div>
-                    <h3 className="adm-card-title">Monthly Disbursements</h3>
-                    <span className="adm-card-sub">Funds released per month</span>
+                    <h3 className="text-sm font-semibold text-gray-900 m-0 font-dm">Monthly Disbursements</h3>
+                    <span className="text-[11px] text-gray-400 font-inter">Funds released per month</span>
                     {(() => {
                       const ytd = moneyFlowData.reduce((s, d) => s + d.released, 0);
-                      return <div className="sec-adm-ytd-text">YTD: ₱{ytd.toLocaleString()}</div>;
+                      return <div className="text-[11px] font-semibold text-gray-600 mt-1 dark:text-gray-300">YTD: ₱{ytd.toLocaleString()}</div>;
                     })()}
                   </div>
-                  <div className="la-ex-legend-item">
-                    <select value={chartYear} onChange={e => setChartYear(parseInt(e.target.value))} className="adm-filter-select">
-                      {YEAR_OPTIONS.map(y => <option key={y} value={y}>{y}</option>)}
-                    </select>
-                    <button className="la-chart-expand-btn" onClick={() => setExpandedChart('disbursements')} title="Expand Chart">
-                      <Expand size={18} color="#4B5563" strokeWidth={2.5} />
+                  <div className="flex items-center gap-2">
+                    <div className="relative flex items-center">
+                      <select value={chartYear} onChange={e => setChartYear(parseInt(e.target.value))} className="h-[32px] pl-3 pr-8 appearance-none rounded-lg border border-gray-300 text-[13px] font-semibold font-inter text-gray-800 bg-gray-50 cursor-pointer transition-colors hover:border-blue-500 hover:bg-blue-50 focus:outline-none focus:border-blue-500 focus:ring-2 focus:ring-blue-500/15 dark:bg-gray-800 dark:border-gray-700 dark:text-gray-200">
+                        {YEAR_OPTIONS.map(y => <option key={y} value={y}>{y}</option>)}
+                      </select>
+                      <svg xmlns="http://www.w3.org/2000/svg" width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" className="absolute right-2.5 text-gray-500 pointer-events-none"><path d="m6 9 6 6 6-6"/></svg>
+                    </div>
+                    <button className="bg-transparent border-none text-gray-400 cursor-pointer p-1.5 rounded-md flex items-center justify-center transition-colors hover:bg-gray-100 hover:text-gray-900 dark:hover:bg-gray-800 dark:hover:text-gray-100" onClick={() => setExpandedChart('disbursements')} title="Expand Chart">
+                      <Maximize2 size={16} color="#4B5563" strokeWidth={2} />
                     </button>
                   </div>
                 </div>
@@ -347,17 +373,20 @@ export default function SecretaryAdminDashboard() {
                     );
                   })()}
                 </ResponsiveContainer>
+                </div>
               </div>
 
               {/* Payment Method Pie */}
-              <div className="adm-card">
-                <div className="adm-card-header">
+              <div className="group relative bg-white dark:bg-[#1E2130] border border-slate-100 dark:border-white/5 rounded-2xl p-6 shadow-[0_2px_12px_-4px_rgba(0,0,0,0.04)] overflow-hidden transition-all duration-300">
+                <div className="absolute top-0 right-0 w-32 h-32 bg-indigo-500/5 rounded-full blur-3xl -mr-10 -mt-10 pointer-events-none transition-transform duration-500 group-hover:scale-125"></div>
+                <div className="relative z-10">
+                <div className="flex items-baseline justify-between mb-2.5">
                   <div>
-                    <h3 className="adm-card-title">Payment Method</h3>
-                    <span className="adm-card-sub">Disbursement distribution</span>
+                    <h3 className="text-sm font-semibold text-gray-900 m-0 font-dm">Payment Method</h3>
+                    <span className="text-[11px] text-gray-400 font-inter">Disbursement distribution</span>
                   </div>
-                  <button className="la-chart-expand-btn" onClick={() => setExpandedChart('paymentMethod')} title="Expand Chart">
-                    <Expand size={18} color="#4B5563" strokeWidth={2.5} />
+                  <button className="bg-transparent border-none text-gray-400 cursor-pointer p-1.5 rounded-md flex items-center justify-center transition-colors hover:bg-gray-100 hover:text-gray-900 dark:hover:bg-gray-800 dark:hover:text-gray-100" onClick={() => setExpandedChart('paymentMethod')} title="Expand Chart">
+                    <Maximize2 size={16} color="#4B5563" strokeWidth={2} />
                   </button>
                 </div>
                 <ResponsiveContainer width="100%" height={220}>
@@ -367,8 +396,8 @@ export default function SecretaryAdminDashboard() {
                     const totalVal = activeMethods.reduce((s, d) => s + d.value, 0);
                     const PIE_COLORS = ['#1e3a5f', '#4a90d9', '#9CA3AF'];
                     return (
-                      <div className="sec-adm-pie-wrapper">
-                        <div className="sec-adm-pie-inner">
+                      <div className="h-full flex flex-col">
+                        <div className="flex-1">
                           <ResponsiveContainer width="100%" height="100%">
                             <PieChart>
                               <Pie data={activeMethods} cx="50%" cy="50%" innerRadius={40} outerRadius={65} paddingAngle={3} dataKey="value">
@@ -376,24 +405,24 @@ export default function SecretaryAdminDashboard() {
                                   <Cell key={`cell-${index}`} fill={PIE_COLORS[index % PIE_COLORS.length]} />
                                 ))}
                                 {/* Centered label for recharts Pie */}
-                                <Label value={`₱${totalVal >= 1000 ? (totalVal / 1000).toFixed(1).replace(/\\.0$/, '') + 'k' : totalVal}`} position="center" fill="#1e3a5f" style={{ fontSize: '14px', fontWeight: 'bold' }} />
-                                <Label value="Total" position="center" dy={16} fill="#6B7280" style={{ fontSize: '10px' }} />
+                                <Label value={`₱${totalVal >= 1000 ? (totalVal / 1000).toFixed(1).replace(/\\.0$/, '') + 'k' : totalVal}`} position="center" fill="#1e3a5f" className="text-sm font-bold font-inter" />
+                                <Label value="Total" position="center" dy={16} fill="#6B7280" className="text-[10px] font-inter uppercase tracking-wider" />
                               </Pie>
                               <Tooltip formatter={(value) => '₱' + value.toLocaleString()} />
                             </PieChart>
                           </ResponsiveContainer>
                         </div>
-                        <div className="adm-pie-legend adm-pie-legend-spaced">
+                        <div className="flex flex-col gap-[5px] mt-2">
                           {activeMethods.map((entry, i) => (
-                            <div key={i} className="adm-pie-legend-item">
-                              <div className="adm-pie-dot" style={{ background: PIE_COLORS[i % PIE_COLORS.length] }} />
-                              <span className="adm-pie-label">{entry.name}</span>
-                              <span className="adm-pie-val">₱{entry.value >= 1000 ? (entry.value / 1000).toFixed(0) + 'k' : entry.value} ({entry.percentage}%)</span>
+                            <div key={i} className="flex items-center gap-1.5 text-[11px] font-inter">
+                              <div className="w-2 h-2 rounded-full shrink-0" style={{ backgroundColor: PIE_COLORS[i % PIE_COLORS.length] }} />
+                              <span className="flex-1 text-gray-700 dark:text-gray-400">{entry.name}</span>
+                              <span className="font-semibold text-gray-900 dark:text-gray-100">₱{entry.value >= 1000 ? (entry.value / 1000).toFixed(0) + 'k' : entry.value} ({entry.percentage}%)</span>
                             </div>
                           ))}
                         </div>
                         {zeroMethods.length > 0 && (
-                          <div className="sec-adm-zero-methods">
+                          <div className="text-[10px] text-gray-400 text-center mt-2 italic dark:text-gray-500">
                             ({zeroMethods.map(m => m.name).join(', ')}: 0%)
                           </div>
                         )}
@@ -401,94 +430,104 @@ export default function SecretaryAdminDashboard() {
                     );
                   })()}
                 </ResponsiveContainer>
+                </div>
               </div>
             </div>
 
             {/* Row 3 — Processing Overview */}
-            <div className="adm-card sec-adm-mt-16">
-              <div className="adm-card-header">
+            <div className="group relative bg-white dark:bg-[#1E2130] border border-slate-100 dark:border-white/5 rounded-2xl p-6 shadow-[0_2px_12px_-4px_rgba(0,0,0,0.04)] overflow-hidden transition-all duration-300 mt-5">
+              <div className="absolute top-0 right-0 w-32 h-32 bg-emerald-500/5 rounded-full blur-3xl -mr-10 -mt-10 pointer-events-none transition-transform duration-500 group-hover:scale-125"></div>
+              <div className="relative z-10">
+              <div className="flex items-baseline justify-between mb-2.5">
                 <div>
-                  <h3 className="adm-card-title">Processing Overview</h3>
-                  <span className="adm-card-sub">Key disbursement metrics</span>
+                  <h3 className="text-sm font-semibold text-gray-900 m-0 font-dm">Processing Overview</h3>
+                  <span className="text-[11px] text-gray-400 font-inter">Key disbursement metrics</span>
                 </div>
               </div>
-              <div className="adm-stats-grid sec-adm-stats-overview-grid">
-                <div className="adm-summary-card">
-                  <span className="adm-summary-label">Total Amount Requested</span>
-                  <span className="adm-summary-value green">₱{reportStats.totalReceived.toLocaleString()}</span>
+              <div className="grid grid-cols-4 gap-2.5 w-full">
+                <div className="bg-white rounded-lg p-[12px_14px] shadow-sm flex flex-col gap-0.5 flex-1 transition-transform hover:-translate-y-0.5">
+                  <span className="text-[11px] text-gray-500 font-inter font-medium">Total Amount Requested</span>
+                  <span className="text-[15px] font-bold font-inter text-[#00A63E]">₱{reportStats.totalReceived.toLocaleString()}</span>
                 </div>
-                <div className="adm-summary-card">
-                  <span className="adm-summary-label">Total Approved</span>
-                  <span className="adm-summary-value blue">₱{reportStats.totalProcessed.toLocaleString()}</span>
+                <div className="bg-white rounded-lg p-[12px_14px] shadow-sm flex flex-col gap-0.5 flex-1 transition-transform hover:-translate-y-0.5">
+                  <span className="text-[11px] text-gray-500 font-inter font-medium">Total Approved</span>
+                  <span className="text-[15px] font-bold font-inter text-blue-600">₱{reportStats.totalProcessed.toLocaleString()}</span>
                 </div>
-                <div className="adm-summary-card">
-                  <span className="adm-summary-label">Total Released</span>
-                  <span className="adm-summary-value sec-adm-color-red">₱{reportStats.totalReleased.toLocaleString()}</span>
+                <div className="bg-white rounded-lg p-[12px_14px] shadow-sm flex flex-col gap-0.5 flex-1 transition-transform hover:-translate-y-0.5">
+                  <span className="text-[11px] text-gray-500 font-inter font-medium">Total Released</span>
+                  <span className="text-[15px] font-bold font-inter text-red-500">₱{reportStats.totalReleased.toLocaleString()}</span>
                 </div>
-                <div className="adm-summary-card">
-                  <span className="adm-summary-label">Processing Rate</span>
-                  <span className="adm-summary-value sec-adm-color-purple">{reportStats.processingRate}%</span>
+                <div className="bg-white rounded-lg p-[12px_14px] shadow-sm flex flex-col gap-0.5 flex-1 transition-transform hover:-translate-y-0.5">
+                  <span className="text-[11px] text-gray-500 font-inter font-medium">Processing Rate</span>
+                  <span className="text-[15px] font-bold font-inter text-purple-500">{reportStats.processingRate}%</span>
                 </div>
+              </div>
               </div>
             </div>
 
             {/* Row 4 — Recent Transactions */}
-            <div className="adm-card sec-adm-mt-16">
-              <div className="adm-card-header">
-                <h3 className="adm-card-title">Recent Transactions</h3>
+            <div className="group relative bg-white dark:bg-[#1E2130] border border-slate-100 dark:border-white/5 rounded-2xl p-6 shadow-[0_2px_12px_-4px_rgba(0,0,0,0.04)] overflow-hidden transition-all duration-300 mt-5">
+              <div className="absolute top-0 right-0 w-32 h-32 bg-slate-500/5 dark:bg-white/5 rounded-full blur-3xl -mr-10 -mt-10 pointer-events-none transition-transform duration-500 group-hover:scale-125"></div>
+              <div className="relative z-10">
+              <div className="flex items-baseline justify-between mb-2.5">
+                <h3 className="text-sm font-semibold text-gray-900 m-0 font-dm">Recent Transactions</h3>
               </div>
-              <div className="sec-adm-table-container">
-                <table className="sec-adm-table">
+              <div className="overflow-x-auto p-[0_16px_16px]">
+                <table className="w-full border-collapse text-[13px] text-left">
                   <thead>
-                    <tr className="sec-adm-table-thead-tr">
-                      <th className="sec-adm-table-th">Date</th>
-                      <th className="sec-adm-table-th">Member</th>
-                      <th className="sec-adm-table-th">Amount</th>
-                      <th className="sec-adm-table-th">Method</th>
-                      <th className="sec-adm-table-th">Status</th>
+                    <tr className="border-b border-gray-200 text-gray-500 dark:border-gray-700 dark:text-gray-400">
+                      <th className="p-[12px_8px] font-semibold">Date</th>
+                      <th className="p-[12px_8px] font-semibold">Member</th>
+                      <th className="p-[12px_8px] font-semibold">Amount</th>
+                      <th className="p-[12px_8px] font-semibold">Method</th>
+                      <th className="p-[12px_8px] font-semibold">Status</th>
                     </tr>
                   </thead>
                   <tbody>
                     {disbursedLoans.slice(0, 5).map(l => (
-                      <tr key={l._id} className="sec-adm-table-tbody-tr">
-                        <td className="sec-adm-table-td-date">{fmtDate(l.disbursementDate)}</td>
-                        <td className="sec-adm-table-td-member">{l.memberName || 'N/A'}</td>
-                        <td className="sec-adm-table-td-amount">{fmt(l.amount)}</td>
-                        <td className="sec-adm-table-td">
-                          <span className="sec-adm-table-badge-method">
+                      <tr key={l._id} className="border-b border-gray-100 dark:border-white/5 hover:bg-black/5 dark:hover:bg-white/5">
+                        <td className="p-[12px_8px] text-gray-700 dark:text-gray-300">{fmtDate(l.disbursementDate)}</td>
+                        <td className="p-[12px_8px] text-gray-900 font-medium dark:text-gray-100">{l.memberName || 'N/A'}</td>
+                        <td className="p-[12px_8px] text-navy font-semibold dark:text-blue-400">{fmt(l.amount)}</td>
+                        <td className="p-[12px_8px]">
+                          <span className="p-[4px_8px] rounded-xl text-[11px] bg-gray-100 text-gray-600 dark:bg-gray-800 dark:text-gray-300">
                             {l.paymentMethod || 'Cash'}
                           </span>
                         </td>
-                        <td className="sec-adm-table-td">
-                          <span className="sec-adm-table-badge-status">
+                        <td className="p-[12px_8px]">
+                          <span className="p-[4px_8px] rounded-xl text-[11px] bg-emerald-100 text-emerald-800 font-semibold dark:bg-emerald-500/15 dark:text-emerald-400">
                             Completed
                           </span>
                         </td>
                       </tr>
                     ))}
                     {disbursedLoans.length === 0 && (
-                      <tr><td colSpan="5" className="sec-adm-table-empty">No recent transactions.</td></tr>
+                      <tr><td colSpan="5" className="p-4 text-center text-gray-500 dark:text-gray-400">No recent transactions.</td></tr>
                     )}
                   </tbody>
                 </table>
+              </div>
               </div>
             </div>
           </>
         )}
       </>
-      )}
+        )}
+      </div>
 
-        {/* ── Expanded Chart Overlay ── */}
-        {expandedChart && (
-          <div className="adm-expand-overlay">
-          <div className="adm-expand-modal">
-            <div className="adm-expand-header">
-              <h2 className="adm-expand-title">
+      {/* ── Expanded Chart Overlay ── */}
+      {expandedChart && (
+        <div className="fixed inset-0 z-[999] bg-slate-900/60 backdrop-blur-sm flex items-center justify-center p-4" onClick={() => setExpandedChart(null)}>
+          <div className="bg-white dark:bg-[#1E2130] rounded-2xl w-full max-w-[1140px] max-h-[95vh] flex flex-col shadow-2xl border border-slate-200 dark:border-white/10" onClick={e => e.stopPropagation()}>
+            <div className="flex items-center justify-between px-6 py-4 border-b border-slate-100 dark:border-white/5 shrink-0">
+              <h2 className="font-inter font-bold text-[16px] text-slate-900 dark:text-white m-0">
                 {expandedChart === 'disbursements' ? 'Monthly Disbursements — Detailed View' : 'Payment Method — Detailed View'}
               </h2>
-              <button className="adm-expand-close" onClick={() => setExpandedChart(null)}><X size={22} /></button>
+              <button className="w-8 h-8 flex items-center justify-center rounded-lg bg-transparent border-none text-slate-400 hover:text-slate-700 hover:bg-slate-100 dark:hover:bg-white/10 dark:hover:text-white cursor-pointer transition-colors" onClick={() => setExpandedChart(null)}>
+                <X size={18} />
+              </button>
             </div>
-            <div className="adm-expand-body">
+            <div className="p-[24px_28px] flex-1 overflow-y-auto flex flex-col gap-3">
 
               {expandedChart === 'disbursements' && (() => {
                 const ytd = moneyFlowData.reduce((s, d) => s + d.released, 0);
@@ -499,32 +538,32 @@ export default function SecretaryAdminDashboard() {
                 return (
                 <>
                   {/* Section 1 — Scorecard */}
-                  <div className="la-ex-scorecard la-ex-scorecard-4">
+                  <div className="grid grid-cols-2 md:grid-cols-4 gap-3 mb-5">
                     {[
                       { label: 'YTD Total Disbursed', value: fmt(ytd), color: '#3B82F6' },
                       { label: 'Highest Month', value: highestMonth ? `${highestMonth.month} · ${fmt(highestMonth.released)}` : '—', color: '#10B981' },
                       { label: 'Avg Monthly', value: fmt(avgMonthly), color: '#8B5CF6' },
                       { label: 'Total Transactions', value: totalCount, color: '#F59E0B' },
                     ].map((s, i) => (
-                      <div key={i} className="la-ex-tile" style={{ background: '#0D1F45', borderLeft: `4px solid ${s.color}` }}>
-                        <div className="la-ex-tile-value" style={{ color: '#fff' }}>{s.value}</div>
-                        <div className="la-ex-tile-label" style={{ color: 'rgba(255,255,255,0.7)' }}>{s.label}</div>
+                      <div key={i} className="bg-slate-50 rounded-lg p-[14px_16px] text-center dark:bg-[#1E2130] bg-white dark:bg-[#1E2130] border border-slate-200 dark:border-white/10 rounded-xl shadow-sm p-[14px_16px] text-center" style={{ borderLeft: `4px solid ${s.color}` }}>
+                        <div className="text-xl font-bold text-navy dark:text-gray-100 text-xl font-bold text-slate-800 dark:text-white">{s.value}</div>
+                        <div className="text-[11px] text-gray-500 font-medium mb-1 dark:text-gray-400 text-[11px] text-slate-500 font-medium mb-1 dark:text-slate-400">{s.label}</div>
                       </div>
                     ))}
                   </div>
 
                   {/* Section 2 — Monthly Breakdown Table */}
-                  <div className="la-ex-section-lg">
-                    <h4 className="adm-expand-panel-title la-ex-section-title">MONTHLY BREAKDOWN</h4>
-                    <div className="la-ex-table-scroll">
-                      <table className="la-ex-table la-ex-table-sm">
+                  <div className="mb-6">
+                    <h4 className="font-inter text-[13px] font-semibold text-gray-700 m-[0_0_12px] uppercase tracking-[0.03em] mb-2 dark:text-gray-100">MONTHLY BREAKDOWN</h4>
+                    <div className="max-h-[320px] overflow-auto border border-gray-200 rounded-lg dark:border-gray-700">
+                      <table className="w-full border-collapse text-[12px]">
                         <thead >
-                          <tr className="la-ex-thead-row">
-                            <th >Month</th>
-                            <th className="la-ex-text-right">Total Disbursed</th>
-                            <th className="la-ex-text-center">Transactions</th>
-                            <th className="la-ex-text-right">Avg / Txn</th>
-                            <th className="la-ex-text-right">MoM Change</th>
+                          <tr className="border-b-2 border-gray-200 text-left dark:border-gray-700">
+                            <th className="p-[8px_10px] text-gray-700 font-semibold sticky top-0 bg-white z-10 dark:bg-[#2C2F36] dark:text-gray-300 dark:border-gray-700">Month</th>
+                            <th className="text-right">Total Disbursed</th>
+                            <th className="text-center">Transactions</th>
+                            <th className="text-right">Avg / Txn</th>
+                            <th className="text-right">MoM Change</th>
                           </tr>
                         </thead>
                         <tbody>
@@ -536,13 +575,13 @@ export default function SecretaryAdminDashboard() {
                             const momPct = i === 0 || isFuture || (prev === 0 && d.released === 0) ? null : prev === 0 ? null : Math.round(((d.released - prev) / prev) * 100);
                             const isBold = d.released > avgMonthly && d.released > 0;
                             return (
-                              <tr key={i} style={{ borderBottom: '1px solid #F3F4F6', opacity: isFuture ? 0.35 : 1, fontWeight: isBold ? 700 : 400, background: i % 2 !== 0 ? '#F9FAFB' : '#ffffff' }}>
+                              <tr key={i} className={`border-b border-slate-100 dark:border-white/5 ${isFuture ? 'opacity-50' : 'opacity-100'} ${isBold ? 'font-bold' : 'font-normal'} ${i % 2 !== 0 ? 'bg-slate-50 dark:bg-white/5' : 'bg-white dark:bg-[#1E2130]'}`}>
                                 <td >{d.month}</td>
-                                <td className="la-ex-text-right">{d.released > 0 ? fmt(d.released) : '—'}</td>
-                                <td className="la-ex-text-center">{monthLoansCount || '—'}</td>
-                                <td className="la-ex-text-right">{avgPerTxn > 0 ? fmt(avgPerTxn) : '—'}</td>
-                                <td className="la-ex-text-right">
-                                  {momPct === null ? '—' : <span style={{ color: momPct >= 0 ? '#10B981' : '#EF4444', fontWeight: 600 }}>{momPct >= 0 ? '↑' : '↓'} {Math.abs(momPct)}%</span>}
+                                <td className="text-right">{d.released > 0 ? fmt(d.released) : '—'}</td>
+                                <td className="text-center">{monthLoansCount || '—'}</td>
+                                <td className="text-right">{avgPerTxn > 0 ? fmt(avgPerTxn) : '—'}</td>
+                                <td className="text-right">
+                                  {momPct === null ? '—' : <span className={`font-semibold ${momPct >= 0 ? 'text-emerald-600 dark:text-emerald-400' : 'text-rose-600 dark:text-rose-400'}`}>{momPct >= 0 ? '↑' : '↓'} {Math.abs(momPct)}%</span>}
                                 </td>
                               </tr>
                             );
@@ -553,17 +592,17 @@ export default function SecretaryAdminDashboard() {
                   </div>
 
                   {/* Section 3 — Branch Table */}
-                  <div className="la-ex-section-sm">
-                    <h4 className="adm-expand-panel-title la-ex-section-title">DISBURSEMENTS BY BRANCH</h4>
-                    <div className="la-ex-table-scroll la-ex-table-scroll-sm">
-                      <table className="la-ex-table la-ex-table-sm">
+                  <div className="mb-4">
+                    <h4 className="font-inter text-[13px] font-semibold text-gray-700 m-[0_0_12px] uppercase tracking-[0.03em] mb-2 dark:text-gray-100">DISBURSEMENTS BY BRANCH</h4>
+                    <div className="max-h-[280px] overflow-auto border border-gray-200 rounded-lg dark:border-gray-700">
+                      <table className="w-full border-collapse text-[12px]">
                         <thead >
-                          <tr className="la-ex-thead-row">
-                            <th >Branch</th>
-                            <th className="la-ex-text-right">Total Disbursed</th>
-                            <th className="la-ex-text-center">Transactions</th>
-                            <th className="la-ex-text-center">Top Method</th>
-                            <th className="la-ex-text-right">% Share</th>
+                          <tr className="border-b-2 border-gray-200 text-left dark:border-gray-700">
+                            <th className="p-[8px_10px] text-gray-700 font-semibold sticky top-0 bg-white z-10 dark:bg-[#2C2F36] dark:text-gray-300 dark:border-gray-700">Branch</th>
+                            <th className="text-right">Total Disbursed</th>
+                            <th className="text-center">Transactions</th>
+                            <th className="text-center">Top Method</th>
+                            <th className="text-right">% Share</th>
                           </tr>
                         </thead>
                         <tbody>
@@ -587,12 +626,12 @@ export default function SecretaryAdminDashboard() {
                               const badge = METHOD_BADGE[topName] || { bg: '#EFF6FF', color: '#1D4ED8' };
                               const share = totalAll > 0 ? ((b.total / totalAll) * 100).toFixed(1) : 0;
                               return (
-                                <tr key={idx} style={{ borderBottom: '1px solid #F3F4F6', background: idx % 2 !== 0 ? '#F9FAFB' : '#ffffff' }}>
-                                  <td className="la-ex-fw-500">{b.branch}</td>
-                                  <td className="la-ex-text-right">{fmt(b.total)}</td>
-                                  <td className="la-ex-text-center">{b.count}</td>
-                                  <td className="la-ex-text-center"><span style={{ background: badge.bg, color: badge.color, padding: '4px 10px', borderRadius: '12px', fontSize: '11px', fontWeight: 600 }}>{topName}</span></td>
-                                  <td className="la-ex-text-right">{share}%</td>
+                                <tr key={idx} className={`border-b border-slate-100 dark:border-white/5 ${idx % 2 !== 0 ? 'bg-slate-50 dark:bg-white/5' : 'bg-white dark:bg-[#1E2130]'}`}>
+                                  <td className="font-medium">{b.branch}</td>
+                                  <td className="text-right">{fmt(b.total)}</td>
+                                  <td className="text-center">{b.count}</td>
+                                  <td ><span className="text-center inline-flex items-center px-2.5 py-1 rounded-full text-[11px] font-bold tracking-wide" style={{ backgroundColor: badge.bg, color: badge.color }}>{topName}</span></td>
+                                  <td className="text-right">{share}%</td>
                                 </tr>
                               );
                             });
@@ -602,7 +641,7 @@ export default function SecretaryAdminDashboard() {
                     </div>
                   </div>
 
-                  <div className="adm-expand-interpretation">
+                  <div className="mt-4 p-[14px_16px] bg-slate-50 rounded-lg border-l-4 border-navy text-[13px] text-gray-700 leading-relaxed dark:bg-[#1E2130] dark:border-blue-400 dark:text-gray-300">
                     <strong>Interpretation:</strong> The scorecard shows year-to-date totals. Bold rows in the monthly table exceed the average monthly disbursement. MoM change shows directional momentum — consecutive red arrows may signal declining demand. The branch table identifies where the most funds are flowing.
                   </div>
                 </>
@@ -617,7 +656,7 @@ export default function SecretaryAdminDashboard() {
                 return (
                 <>
                   {/* Section 1 — Method Scorecard */}
-                  <div className="la-ex-scorecard la-ex-scorecard-3">
+                  <div className="grid grid-cols-1 md:grid-cols-3 gap-3 mb-5">
                     {paymentMethodData.map((m, i) => {
                       const count = yearLoans.filter(l => {
                         const pm = (l.paymentMethod || 'Cash').toLowerCase();
@@ -626,28 +665,28 @@ export default function SecretaryAdminDashboard() {
                         return pm === 'cash' || !l.paymentMethod;
                       }).length;
                       return (
-                        <div key={i} style={{ background: '#0D1F45', borderRadius: '10px', padding: '16px', borderLeft: `4px solid ${METHOD_BORDERS[m.name] || PIE_COLORS_EX[i]}`, boxShadow: '0 4px 6px -1px rgba(0, 0, 0, 0.1)', display: 'flex', flexDirection: 'column', gap: '4px' }}>
-                          <div className="la-ex-tile-value" style={{ color: '#fff' }}>{fmt(m.value)}</div>
-                          <div className="la-ex-tile-label" style={{ color: 'rgba(255,255,255,0.7)' }}>{m.name}</div>
-                          <div className="la-ex-tile-sub" style={{ color: 'rgba(255,255,255,0.5)' }}>{count} txn · {m.percentage}%</div>
+                        <div key={i} className="bg-white dark:bg-[#1E2130] rounded-xl p-4 border border-slate-200 dark:border-white/10 shadow-sm flex flex-col gap-1" style={{ borderLeft: `4px solid ${METHOD_BORDERS[m.name] || PIE_COLORS_EX[i]}` }}>
+                          <div className="text-xl font-bold text-navy dark:text-gray-100 text-xl font-bold text-slate-800 dark:text-white">{fmt(m.value)}</div>
+                          <div className="text-[11px] text-gray-500 font-medium mb-1 dark:text-gray-400 text-[11px] text-slate-500 font-medium mb-1 dark:text-slate-400">{m.name}</div>
+                          <div className="text-[11px] text-gray-500 dark:text-gray-400 text-[11px] text-slate-400 dark:text-slate-500">{count} txn · {m.percentage}%</div>
                         </div>
                       );
                     })}
                   </div>
 
                   {/* Section 2 — Branch Table */}
-                  <div className="la-ex-section-lg">
-                    <h4 className="adm-expand-panel-title la-ex-section-title">PAYMENT METHOD BY BRANCH</h4>
-                    <div className="la-ex-table-scroll la-ex-table-scroll-md">
-                      <table className="la-ex-table la-ex-table-sm">
+                  <div className="mb-6">
+                    <h4 className="font-inter text-[13px] font-semibold text-gray-700 m-[0_0_12px] uppercase tracking-[0.03em] mb-2 dark:text-gray-100">PAYMENT METHOD BY BRANCH</h4>
+                    <div className="max-h-[300px] overflow-auto border border-gray-200 rounded-lg dark:border-gray-700">
+                      <table className="w-full border-collapse text-[12px]">
                         <thead >
-                          <tr className="la-ex-thead-row">
-                            <th >Branch</th>
-                            <th className="la-ex-text-right" style={{ color: '#4a90d9' }}>E-Wallet</th>
-                            <th className="la-ex-text-right" style={{ color: '#1e3a5f' }}>Bank</th>
-                            <th className="la-ex-text-right la-ex-color-gray">Cash</th>
-                            <th className="la-ex-text-right">Total</th>
-                            <th className="la-ex-text-center">Dominant</th>
+                          <tr className="border-b-2 border-gray-200 text-left dark:border-gray-700">
+                            <th className="p-[8px_10px] text-gray-700 font-semibold sticky top-0 bg-white z-10 dark:bg-[#2C2F36] dark:text-gray-300 dark:border-gray-700">Branch</th>
+                            <th className="text-right text-blue-500">E-Wallet</th>
+                            <th className="text-right text-slate-700 dark:text-slate-300">Bank</th>
+                            <th className="p-[8px_10px] font-semibold sticky top-0 bg-white z-10 text-right text-gray-500 dark:bg-[#2C2F36] dark:text-gray-400 dark:border-gray-700">Cash</th>
+                            <th className="text-right">Total</th>
+                            <th className="text-center">Dominant</th>
                           </tr>
                         </thead>
                         <tbody>
@@ -667,14 +706,14 @@ export default function SecretaryAdminDashboard() {
                               const dominant = b.ewallet >= b.bank && b.ewallet >= b.cash ? 'E-Wallet' : b.bank >= b.cash ? 'Bank' : 'Cash';
                               const dColor = dominant === 'E-Wallet' ? '#4a90d9' : dominant === 'Bank' ? '#1e3a5f' : '#6B7280';
                               return (
-                                <tr key={idx} style={{ borderBottom: '1px solid #F3F4F6', background: idx % 2 !== 0 ? '#F9FAFB' : '#ffffff' }}>
-                                  <td className="la-ex-fw-500">{b.branch}</td>
-                                  <td className="la-ex-text-right">{b.ewallet > 0 ? fmt(b.ewallet) : '—'}</td>
-                                  <td className="la-ex-text-right">{b.bank > 0 ? fmt(b.bank) : '—'}</td>
-                                  <td className="la-ex-text-right">{b.cash > 0 ? fmt(b.cash) : '—'}</td>
-                                  <td className="la-ex-text-right">{fmt(b.total)}</td>
-                                  <td className="la-ex-text-center">
-                                    <span style={{ background: `${dColor}15`, color: dColor, padding: '4px 10px', borderRadius: '12px', fontSize: '11px', fontWeight: 600 }}>{dominant}</span>
+                                <tr key={idx} className={`border-b border-slate-100 dark:border-white/5 ${idx % 2 !== 0 ? 'bg-slate-50 dark:bg-white/5' : 'bg-white dark:bg-[#1E2130]'}`}>
+                                  <td className="font-medium">{b.branch}</td>
+                                  <td className="text-right">{b.ewallet > 0 ? fmt(b.ewallet) : '—'}</td>
+                                  <td className="text-right">{b.bank > 0 ? fmt(b.bank) : '—'}</td>
+                                  <td className="text-right">{b.cash > 0 ? fmt(b.cash) : '—'}</td>
+                                  <td className="text-right">{fmt(b.total)}</td>
+                                  <td className="text-center">
+                                    <span className="inline-flex items-center px-2.5 py-1 rounded-full text-[11px] font-bold tracking-wide" style={{ backgroundColor: `${dColor}20`, color: dColor }}>{dominant}</span>
                                   </td>
                                 </tr>
                               );
@@ -686,9 +725,9 @@ export default function SecretaryAdminDashboard() {
                   </div>
 
                   {/* Section 3 — Monthly Trend */}
-                  <div className="la-ex-section-sm">
-                    <h4 className="adm-expand-panel-title la-ex-section-title">MONTHLY TREND BY PAYMENT METHOD</h4>
-                    <div className="la-ex-chart-260">
+                  <div className="mb-4">
+                    <h4 className="font-inter text-[13px] font-semibold text-gray-700 m-[0_0_12px] uppercase tracking-[0.03em] mb-2 dark:text-gray-100">MONTHLY TREND BY PAYMENT METHOD</h4>
+                    <div className="h-[260px]">
                       <ResponsiveContainer width="100%" height="100%">
                         <LineChart data={(() => {
                           return MONTH_NAMES.map((month, idx) => {
@@ -717,7 +756,7 @@ export default function SecretaryAdminDashboard() {
                     </div>
                   </div>
 
-                  <div className="adm-expand-interpretation">
+                  <div className="mt-4 p-[14px_16px] bg-slate-50 rounded-lg border-l-4 border-navy text-[13px] text-gray-700 leading-relaxed dark:bg-[#1E2130] dark:border-blue-400 dark:text-gray-300">
                     <strong>Interpretation:</strong> The scorecards show each method's total and share. The branch table reveals which branches are cash-heavy vs digital — cash-dominant branches may benefit from e-wallet adoption campaigns. The trend chart shows whether digital payment usage is growing month-over-month.
                   </div>
                 </>
@@ -731,38 +770,37 @@ export default function SecretaryAdminDashboard() {
 
       {/* ── Awaiting Processing Modal ── */}
       {showAwaitingModal && (
-        <div className="sec-adm-modal-overlay" onClick={() => setShowAwaitingModal(false)}>
-          <div className="sec-adm-modal" onClick={e => e.stopPropagation()}>
-            <div className="sec-adm-modal-header">
+        <div className="fixed inset-0 bg-black/50 backdrop-blur-sm flex items-center justify-center z-[1000] p-4" onClick={() => setShowAwaitingModal(false)}>
+          <div className="bg-white dark:bg-[#1E2130] rounded-2xl w-full max-w-[680px] max-h-[85vh] flex flex-col shadow-2xl border border-slate-200 dark:border-white/10" onClick={e => e.stopPropagation()}>
+            <div className="flex items-center justify-between px-6 py-4 border-b border-slate-100 dark:border-white/5 shrink-0">
               <div>
-                <h2 className="sec-adm-modal-title">Awaiting Processing</h2>
-                <p className="sec-adm-modal-subtitle">{awaitingLoans.length} loan(s) pending disbursement</p>
+                <h2 className="font-inter font-bold text-[16px] text-slate-900 dark:text-white m-0">Awaiting Processing</h2>
+                <p className="font-inter text-[12px] text-slate-500 dark:text-slate-400 m-0 mt-0.5">{awaitingLoans.length} loan(s) pending disbursement</p>
               </div>
-              <button className="sec-adm-modal-close" onClick={() => setShowAwaitingModal(false)}>
-                <X size={20} />
+              <button className="w-8 h-8 flex items-center justify-center rounded-lg bg-transparent border-none text-slate-400 hover:text-slate-700 hover:bg-slate-100 dark:hover:bg-white/10 dark:hover:text-white cursor-pointer transition-colors" onClick={() => setShowAwaitingModal(false)}>
+                <X size={18} />
               </button>
             </div>
-            <div className="sec-adm-modal-body">
+            <div className="overflow-y-auto flex-1 px-6 py-4">
               {awaitingLoans.length === 0 ? (
-                <div className="sec-adm-modal-empty">No loans currently awaiting processing.</div>
+                <div className="text-center text-slate-400 dark:text-slate-500 py-16 font-inter text-sm">No loans currently awaiting processing.</div>
               ) : (
-                <div className="sec-adm-modal-table-wrapper">
-                  <table className="sec-adm-modal-table">
+                <div className="overflow-x-auto">
+                  <table className="w-full border-collapse font-inter">
                     <thead>
                       <tr>
-                        <th>Loan ID</th>
-                        <th>Member</th>
-                        <th>Amount</th>
-                        <th>Approved Date</th>
+                        {['Loan ID','Member','Amount','Approved Date'].map(h => (
+                          <th key={h} className="bg-slate-50 dark:bg-black/20 border-b border-slate-200 dark:border-white/5 px-3 py-2.5 text-left font-inter font-semibold text-[11px] tracking-wider uppercase text-slate-500 dark:text-slate-400 sticky top-0">{h}</th>
+                        ))}
                       </tr>
                     </thead>
                     <tbody>
                       {awaitingLoans.map(l => (
-                        <tr key={l._id}>
-                          <td className="sec-adm-modal-loan-id">{l.loanId}</td>
-                          <td>{l.memberName || 'N/A'}</td>
-                          <td className="sec-adm-modal-amount">{fmt(l.amount)}</td>
-                          <td>{fmtDate(l.updatedAt)}</td>
+                        <tr key={l._id} className="hover:bg-slate-50/50 dark:hover:bg-white/5 transition-colors">
+                          <td className="px-3 py-3 border-b border-slate-100 dark:border-white/5 font-inter text-[13px] font-semibold text-blue-600 dark:text-blue-400 whitespace-nowrap">{l.loanId}</td>
+                          <td className="px-3 py-3 border-b border-slate-100 dark:border-white/5 font-inter text-[13px] text-slate-700 dark:text-slate-300 whitespace-nowrap">{l.memberName || 'N/A'}</td>
+                          <td className="px-3 py-3 border-b border-slate-100 dark:border-white/5 font-inter text-[13px] font-semibold text-slate-900 dark:text-white whitespace-nowrap">{fmt(l.amount)}</td>
+                          <td className="px-3 py-3 border-b border-slate-100 dark:border-white/5 font-inter text-[13px] text-slate-700 dark:text-slate-300 whitespace-nowrap">{fmtDate(l.updatedAt)}</td>
                         </tr>
                       ))}
                     </tbody>
@@ -776,38 +814,45 @@ export default function SecretaryAdminDashboard() {
 
       {/* ── Processed Today Modal ── */}
       {showTodayModal && (
-        <div className="sec-adm-modal-overlay" onClick={() => setShowTodayModal(false)}>
-          <div className="sec-adm-modal" onClick={e => e.stopPropagation()}>
-            <div className="sec-adm-modal-header">
+        <div className="fixed inset-0 bg-black/50 backdrop-blur-sm flex items-center justify-center z-[1000] p-4" onClick={() => setShowTodayModal(false)}>
+          <div className="bg-white dark:bg-[#1E2130] rounded-2xl w-full max-w-[680px] max-h-[85vh] flex flex-col shadow-2xl border border-slate-200 dark:border-white/10" onClick={e => e.stopPropagation()}>
+            <div className="flex items-center justify-between px-6 py-4 border-b border-slate-100 dark:border-white/5 shrink-0">
               <div>
-                <h2 className="sec-adm-modal-title">Processed Today</h2>
-                <p className="sec-adm-modal-subtitle">{new Date().toLocaleDateString('en-US', { month: 'long', day: 'numeric', year: 'numeric' })} — {todayLoans.length} loan(s)</p>
+                <h2 className="font-inter font-bold text-[16px] text-slate-900 dark:text-white m-0">Processed Today</h2>
+                <p className="font-inter text-[12px] text-slate-500 dark:text-slate-400 m-0 mt-0.5">{new Date().toLocaleDateString('en-US', { month: 'long', day: 'numeric', year: 'numeric' })} &mdash; {todayLoans.length} loan(s)</p>
               </div>
-              <button className="sec-adm-modal-close" onClick={() => setShowTodayModal(false)}>
-                <X size={20} />
+              <button className="w-8 h-8 flex items-center justify-center rounded-lg bg-transparent border-none text-slate-400 hover:text-slate-700 hover:bg-slate-100 dark:hover:bg-white/10 dark:hover:text-white cursor-pointer transition-colors" onClick={() => setShowTodayModal(false)}>
+                <X size={18} />
               </button>
             </div>
-            <div className="sec-adm-modal-body">
+            <div className="overflow-y-auto flex-1 px-6 py-4">
               {todayLoans.length === 0 ? (
-                <div className="sec-adm-modal-empty">No loans processed today.</div>
+                <div className="text-center text-slate-400 dark:text-slate-500 py-16 font-inter text-sm">No loans processed today.</div>
               ) : (
-                <div className="sec-adm-modal-table-wrapper">
-                  <table className="sec-adm-modal-table">
+                <div className="overflow-x-auto">
+                  <table className="w-full border-collapse font-inter">
                     <thead>
                       <tr>
-                        <th>Loan ID</th>
-                        <th>Member</th>
-                        <th>Amount</th>
-                        <th>Method</th>
+                        {['Loan ID','Member','Amount','Method'].map(h => (
+                          <th key={h} className="bg-slate-50 dark:bg-black/20 border-b border-slate-200 dark:border-white/5 px-3 py-2.5 text-left font-inter font-semibold text-[11px] tracking-wider uppercase text-slate-500 dark:text-slate-400 sticky top-0">{h}</th>
+                        ))}
                       </tr>
                     </thead>
                     <tbody>
                       {todayLoans.map(l => (
-                        <tr key={l._id}>
-                          <td className="sec-adm-modal-loan-id">{l.loanId}</td>
-                          <td>{l.memberName || 'N/A'}</td>
-                          <td className="sec-adm-modal-amount">{fmt(l.amount)}</td>
-                          <td><span className={`sec-adm-method-badge sec-adm-method-${(l.paymentMethod || 'cash').toLowerCase()}`}>{l.paymentMethod || 'Cash'}</span></td>
+                        <tr key={l._id} className="hover:bg-slate-50/50 dark:hover:bg-white/5 transition-colors">
+                          <td className="px-3 py-3 border-b border-slate-100 dark:border-white/5 font-inter text-[13px] font-semibold text-blue-600 dark:text-blue-400 whitespace-nowrap">{l.loanId}</td>
+                          <td className="px-3 py-3 border-b border-slate-100 dark:border-white/5 font-inter text-[13px] text-slate-700 dark:text-slate-300 whitespace-nowrap">{l.memberName || 'N/A'}</td>
+                          <td className="px-3 py-3 border-b border-slate-100 dark:border-white/5 font-inter text-[13px] font-semibold text-slate-900 dark:text-white whitespace-nowrap">{fmt(l.amount)}</td>
+                          <td className="px-3 py-3 border-b border-slate-100 dark:border-white/5 whitespace-nowrap">
+                            <span className={`inline-flex px-2.5 py-1 rounded-md font-inter font-semibold text-[11px] capitalize ${
+                              ((l.paymentMethod || 'cash').toLowerCase() === 'e-wallet' || (l.paymentMethod || 'cash').toLowerCase() === 'gcash')
+                                ? 'bg-blue-50 text-blue-700 dark:bg-blue-500/10 dark:text-blue-400'
+                                : (l.paymentMethod || 'cash').toLowerCase().includes('bank')
+                                ? 'bg-emerald-50 text-emerald-700 dark:bg-emerald-500/10 dark:text-emerald-400'
+                                : 'bg-amber-50 text-amber-700 dark:bg-amber-500/10 dark:text-amber-400'
+                            }`}>{l.paymentMethod || 'Cash'}</span>
+                          </td>
                         </tr>
                       ))}
                     </tbody>
@@ -818,124 +863,142 @@ export default function SecretaryAdminDashboard() {
           </div>
         </div>
       )}
-      </div>
 
       {/* ── This Month Modal ── */}
       {showMonthModal && (
-        <div className="sec-adm-modal-overlay" onClick={() => setShowMonthModal(false)}>
-          <div className="sec-adm-modal" onClick={e => e.stopPropagation()}>
-            <div className="sec-adm-modal-header">
+        <div className="fixed inset-0 bg-black/50 backdrop-blur-sm flex items-center justify-center z-[1000] p-4" onClick={() => setShowMonthModal(false)}>
+          <div className="bg-white dark:bg-[#1E2130] rounded-2xl w-full max-w-[680px] max-h-[85vh] flex flex-col shadow-2xl border border-slate-200 dark:border-white/10" onClick={e => e.stopPropagation()}>
+            <div className="flex items-center justify-between px-6 py-4 border-b border-slate-100 dark:border-white/5 shrink-0">
               <div>
-                <h2 className="sec-adm-modal-title">Monthly Disbursements</h2>
-                <p className="sec-adm-modal-subtitle">{getMonthModalLabel()} — {filteredMonthLoans.length} loan(s) processed</p>
+                <h2 className="font-inter font-bold text-[16px] text-slate-900 dark:text-white m-0">Monthly Disbursements</h2>
+                <p className="font-inter text-[12px] text-slate-500 dark:text-slate-400 m-0 mt-0.5">{getMonthModalLabel()} &mdash; {filteredMonthLoans.length} loan(s) processed</p>
               </div>
-              <button className="sec-adm-modal-close" onClick={() => setShowMonthModal(false)}>
-                <X size={20} />
+              <button className="w-8 h-8 flex items-center justify-center rounded-lg bg-transparent border-none text-slate-400 hover:text-slate-700 hover:bg-slate-100 dark:hover:bg-white/10 dark:hover:text-white cursor-pointer transition-colors" onClick={() => setShowMonthModal(false)}>
+                <X size={18} />
               </button>
             </div>
-            <div className="sec-adm-modal-filters">
-              <Filter size={14} color="#6B7280" />
-              <select value={monthModalMonth} onChange={e => setMonthModalMonth(e.target.value)} className="sec-adm-modal-filter-select">
+            <div className="flex items-center gap-3 px-6 py-3 bg-slate-50 dark:bg-black/20 border-b border-slate-100 dark:border-white/5 shrink-0">
+              <Filter size={14} className="text-slate-400" />
+              <select value={monthModalMonth} onChange={e => setMonthModalMonth(e.target.value)} className="h-8 px-3 border border-slate-200 dark:border-white/10 rounded-lg font-inter text-[13px] text-slate-700 dark:text-slate-300 bg-white dark:bg-[#1E2130] cursor-pointer outline-none focus:border-navy dark:focus:border-blue-400 transition-colors">
                 {MONTH_NAMES.map((m, i) => <option key={i} value={i}>{m}</option>)}
               </select>
-              <select value={monthModalYear} onChange={e => setMonthModalYear(parseInt(e.target.value))} className="sec-adm-modal-filter-select">
+              <select value={monthModalYear} onChange={e => setMonthModalYear(parseInt(e.target.value))} className="h-8 px-3 border border-slate-200 dark:border-white/10 rounded-lg font-inter text-[13px] text-slate-700 dark:text-slate-300 bg-white dark:bg-[#1E2130] cursor-pointer outline-none focus:border-navy dark:focus:border-blue-400 transition-colors">
                 {YEAR_OPTIONS.map(y => <option key={y} value={y}>{y}</option>)}
               </select>
             </div>
-            <div className="sec-adm-modal-body">
+            <div className="overflow-y-auto flex-1 px-6 py-4">
               {filteredMonthLoans.length === 0 ? (
-                <div className="sec-adm-modal-empty">No disbursements for {getMonthModalLabel()}.</div>
+                <div className="text-center text-slate-400 dark:text-slate-500 py-16 font-inter text-sm">No disbursements for {getMonthModalLabel()}.</div>
               ) : (
-                <div className="sec-adm-modal-table-wrapper">
-                  <table className="sec-adm-modal-table">
+                <div className="overflow-x-auto">
+                  <table className="w-full border-collapse font-inter">
                     <thead>
                       <tr>
-                        <th>Loan ID</th>
-                        <th>Member</th>
-                        <th>Amount</th>
-                        <th>Method</th>
-                        <th>Date</th>
+                        {['Loan ID','Member','Amount','Method','Date'].map(h => (
+                          <th key={h} className="bg-slate-50 dark:bg-black/20 border-b border-slate-200 dark:border-white/5 px-3 py-2.5 text-left font-inter font-semibold text-[11px] tracking-wider uppercase text-slate-500 dark:text-slate-400 sticky top-0">{h}</th>
+                        ))}
                       </tr>
                     </thead>
                     <tbody>
                       {filteredMonthLoans.map(l => (
-                        <tr key={l._id}>
-                          <td className="sec-adm-modal-loan-id">{l.loanId}</td>
-                          <td>{l.memberName || 'N/A'}</td>
-                          <td className="sec-adm-modal-amount">{fmt(l.amount)}</td>
-                          <td><span className={`sec-adm-method-badge sec-adm-method-${(l.paymentMethod || 'cash').toLowerCase()}`}>{l.paymentMethod || 'Cash'}</span></td>
-                          <td>{fmtDate(l.disbursementDate)}</td>
+                        <tr key={l._id} className="hover:bg-slate-50/50 dark:hover:bg-white/5 transition-colors">
+                          <td className="px-3 py-3 border-b border-slate-100 dark:border-white/5 font-inter text-[13px] font-semibold text-blue-600 dark:text-blue-400 whitespace-nowrap">{l.loanId}</td>
+                          <td className="px-3 py-3 border-b border-slate-100 dark:border-white/5 font-inter text-[13px] text-slate-700 dark:text-slate-300 whitespace-nowrap">{l.memberName || 'N/A'}</td>
+                          <td className="px-3 py-3 border-b border-slate-100 dark:border-white/5 font-inter text-[13px] font-semibold text-slate-900 dark:text-white whitespace-nowrap">{fmt(l.amount)}</td>
+                          <td className="px-3 py-3 border-b border-slate-100 dark:border-white/5 whitespace-nowrap">
+                            <span className={`inline-flex px-2.5 py-1 rounded-md font-inter font-semibold text-[11px] capitalize ${
+                              ((l.paymentMethod || 'cash').toLowerCase() === 'e-wallet' || (l.paymentMethod || 'cash').toLowerCase() === 'gcash')
+                                ? 'bg-blue-50 text-blue-700 dark:bg-blue-500/10 dark:text-blue-400'
+                                : (l.paymentMethod || 'cash').toLowerCase().includes('bank')
+                                ? 'bg-emerald-50 text-emerald-700 dark:bg-emerald-500/10 dark:text-emerald-400'
+                                : 'bg-amber-50 text-amber-700 dark:bg-amber-500/10 dark:text-amber-400'
+                            }`}>{l.paymentMethod || 'Cash'}</span>
+                          </td>
+                          <td className="px-3 py-3 border-b border-slate-100 dark:border-white/5 font-inter text-[13px] text-slate-700 dark:text-slate-300 whitespace-nowrap">{fmtDate(l.disbursementDate)}</td>
                         </tr>
                       ))}
                     </tbody>
                   </table>
                 </div>
               )}
-              <div className="sec-adm-modal-summary">
-                <span>Total for {getMonthModalLabel()}</span>
-                <span className="sec-adm-modal-summary-value">{fmt(filteredMonthLoans.reduce((s, l) => s + (Number(l.amount) || 0), 0))}</span>
+            </div>
+            <div className="px-6 py-3 border-t border-slate-100 dark:border-white/5 shrink-0">
+              <div className="flex items-center justify-between bg-navy/5 dark:bg-blue-500/10 border border-navy/10 dark:border-blue-500/20 rounded-xl px-4 py-3">
+                <span className="font-inter text-[13px] font-semibold text-slate-600 dark:text-slate-300">Total for {getMonthModalLabel()}</span>
+                <span className="font-inter text-[18px] font-bold text-navy dark:text-blue-400">{fmt(filteredMonthLoans.reduce((s, l) => s + (Number(l.amount) || 0), 0))}</span>
               </div>
             </div>
           </div>
         </div>
       )}
 
-      {/* ── Total Disbursed Modal ── */}
       {showDisbursedModal && (
-        <div className="sec-adm-modal-overlay" onClick={() => setShowDisbursedModal(false)}>
-          <div className="sec-adm-modal" onClick={e => e.stopPropagation()}>
-            <div className="sec-adm-modal-header">
+        <div className="fixed inset-0 bg-black/50 backdrop-blur-sm flex items-center justify-center z-[1000] p-4" onClick={() => setShowDisbursedModal(false)}>
+          <div className="bg-white dark:bg-[#1E2130] rounded-2xl w-full max-w-[680px] max-h-[85vh] flex flex-col shadow-2xl border border-slate-200 dark:border-white/10" onClick={e => e.stopPropagation()}>
+            {/* Header */}
+            <div className="flex items-center justify-between px-6 py-4 border-b border-slate-100 dark:border-white/5 shrink-0">
               <div>
-                <h2 className="sec-adm-modal-title">All Disbursements</h2>
-                <p className="sec-adm-modal-subtitle">{getDisbModalLabel()} — {filteredDisbLoans.length} loan(s) — {fmt(filteredDisbLoans.reduce((s, l) => s + (Number(l.amount) || 0), 0))}</p>
+                <h2 className="font-inter font-bold text-[16px] text-slate-900 dark:text-white m-0">All Disbursements</h2>
+                <p >{getDisbModalLabel()} &mdash; {filteredDisbLoans.length} loan(s) &mdash; <span className="font-inter text-[12px] text-slate-500 dark:text-slate-400 m-0 mt-0.5 font-semibold text-navy dark:text-blue-400">{fmt(filteredDisbLoans.reduce((s, l) => s + (Number(l.amount) || 0), 0))}</span></p>
               </div>
-              <button className="sec-adm-modal-close" onClick={() => setShowDisbursedModal(false)}>
-                <X size={20} />
+              <button className="w-8 h-8 flex items-center justify-center rounded-lg bg-transparent border-none text-slate-400 hover:text-slate-700 hover:bg-slate-100 dark:hover:bg-white/10 dark:hover:text-white cursor-pointer transition-colors" onClick={() => setShowDisbursedModal(false)}>
+                <X size={18} />
               </button>
             </div>
-            <div className="sec-adm-modal-filters">
-              <Filter size={14} color="#6B7280" />
-              <select value={disbModalMonth} onChange={e => setDisbModalMonth(e.target.value)} className="sec-adm-modal-filter-select">
+            {/* Filter Bar */}
+            <div className="flex items-center gap-3 px-6 py-3 bg-slate-50 dark:bg-black/20 border-b border-slate-100 dark:border-white/5 shrink-0">
+              <Filter size={14} className="text-slate-400" />
+              <select value={disbModalMonth} onChange={e => setDisbModalMonth(e.target.value)} className="h-8 px-3 border border-slate-200 dark:border-white/10 rounded-lg font-inter text-[13px] text-slate-700 dark:text-slate-300 bg-white dark:bg-[#1E2130] cursor-pointer outline-none focus:border-navy dark:focus:border-blue-400 transition-colors">
                 <option value="all">All Months</option>
                 {MONTH_NAMES.map((m, i) => <option key={i} value={i}>{m}</option>)}
               </select>
-              <select value={disbModalYear} onChange={e => setDisbModalYear(e.target.value)} className="sec-adm-modal-filter-select">
+              <select value={disbModalYear} onChange={e => setDisbModalYear(e.target.value)} className="h-8 px-3 border border-slate-200 dark:border-white/10 rounded-lg font-inter text-[13px] text-slate-700 dark:text-slate-300 bg-white dark:bg-[#1E2130] cursor-pointer outline-none focus:border-navy dark:focus:border-blue-400 transition-colors">
                 <option value="all">All Years</option>
                 {YEAR_OPTIONS.map(y => <option key={y} value={y}>{y}</option>)}
               </select>
             </div>
-            <div className="sec-adm-modal-body">
+            {/* Table */}
+            <div className="overflow-y-auto flex-1 px-6 py-4">
               {filteredDisbLoans.length === 0 ? (
-                <div className="sec-adm-modal-empty">No disbursements for {getDisbModalLabel()}.</div>
+                <div className="text-center text-slate-400 dark:text-slate-500 py-16 font-inter text-sm">No disbursements for {getDisbModalLabel()}.</div>
               ) : (
-                <div className="sec-adm-modal-table-wrapper">
-                  <table className="sec-adm-modal-table">
+                <div className="overflow-x-auto">
+                  <table className="w-full border-collapse font-inter">
                     <thead>
                       <tr>
-                        <th>Loan ID</th>
-                        <th>Member</th>
-                        <th>Amount</th>
-                        <th>Method</th>
-                        <th>Date</th>
+                        {['Loan ID','Member','Amount','Method','Date'].map(h => (
+                          <th key={h} className="bg-slate-50 dark:bg-black/20 border-b border-slate-200 dark:border-white/5 px-3 py-2.5 text-left font-inter font-semibold text-[11px] tracking-wider uppercase text-slate-500 dark:text-slate-400 sticky top-0">{h}</th>
+                        ))}
                       </tr>
                     </thead>
                     <tbody>
                       {filteredDisbLoans.map(l => (
-                        <tr key={l._id}>
-                          <td className="sec-adm-modal-loan-id">{l.loanId}</td>
-                          <td>{l.memberName || 'N/A'}</td>
-                          <td className="sec-adm-modal-amount">{fmt(l.amount)}</td>
-                          <td><span className={`sec-adm-method-badge sec-adm-method-${(l.paymentMethod || 'cash').toLowerCase()}`}>{l.paymentMethod || 'Cash'}</span></td>
-                          <td>{fmtDate(l.disbursementDate)}</td>
+                        <tr key={l._id} className="hover:bg-slate-50/50 dark:hover:bg-white/5 transition-colors">
+                          <td className="px-3 py-3 border-b border-slate-100 dark:border-white/5 font-inter text-[13px] font-semibold text-blue-600 dark:text-blue-400 whitespace-nowrap">{l.loanId}</td>
+                          <td className="px-3 py-3 border-b border-slate-100 dark:border-white/5 font-inter text-[13px] text-slate-700 dark:text-slate-300 whitespace-nowrap">{l.memberName || 'N/A'}</td>
+                          <td className="px-3 py-3 border-b border-slate-100 dark:border-white/5 font-inter text-[13px] font-semibold text-slate-900 dark:text-white whitespace-nowrap">{fmt(l.amount)}</td>
+                          <td className="px-3 py-3 border-b border-slate-100 dark:border-white/5 whitespace-nowrap">
+                            <span className={`inline-flex px-2.5 py-1 rounded-md font-inter font-semibold text-[11px] capitalize ${
+                              ((l.paymentMethod || 'cash').toLowerCase() === 'e-wallet' || (l.paymentMethod || 'cash').toLowerCase() === 'gcash')
+                                ? 'bg-blue-50 text-blue-700 dark:bg-blue-500/10 dark:text-blue-400'
+                                : (l.paymentMethod || 'cash').toLowerCase().includes('bank')
+                                ? 'bg-emerald-50 text-emerald-700 dark:bg-emerald-500/10 dark:text-emerald-400'
+                                : 'bg-amber-50 text-amber-700 dark:bg-amber-500/10 dark:text-amber-400'
+                            }`}>{l.paymentMethod || 'Cash'}</span>
+                          </td>
+                          <td className="px-3 py-3 border-b border-slate-100 dark:border-white/5 font-inter text-[13px] text-slate-700 dark:text-slate-300 whitespace-nowrap">{fmtDate(l.disbursementDate)}</td>
                         </tr>
                       ))}
                     </tbody>
                   </table>
                 </div>
               )}
-              <div className="sec-adm-modal-summary">
-                <span>Total ({getDisbModalLabel()})</span>
-                <span className="sec-adm-modal-summary-value">{fmt(filteredDisbLoans.reduce((s, l) => s + (Number(l.amount) || 0), 0))}</span>
+            </div>
+            {/* Footer Total */}
+            <div className="px-6 py-3 border-t border-slate-100 dark:border-white/5 shrink-0">
+              <div className="flex items-center justify-between bg-navy/5 dark:bg-blue-500/10 border border-navy/10 dark:border-blue-500/20 rounded-xl px-4 py-3">
+                <span className="font-inter text-[13px] font-semibold text-slate-600 dark:text-slate-300">Total ({getDisbModalLabel()})</span>
+                <span className="font-inter text-[18px] font-bold text-navy dark:text-blue-400">{fmt(filteredDisbLoans.reduce((s, l) => s + (Number(l.amount) || 0), 0))}</span>
               </div>
             </div>
           </div>

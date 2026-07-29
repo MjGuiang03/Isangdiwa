@@ -1,7 +1,7 @@
 
 import { useAuth } from '../../context/AuthContext';
 
-import '../styles/Branches.css';
+
 import { useState, useMemo, useEffect, useRef, Suspense, lazy } from 'react';
 import useSWR from 'swr';
 import { MapPin, Search, X, ChevronDown, Check } from 'lucide-react';
@@ -118,29 +118,29 @@ export default function Branches() {
 
   return (
     <>
-      <div className="ubr-map-shell">
+      <div className="flex flex-col lg:flex-row h-[calc(100vh-100px)] w-full rounded-2xl overflow-hidden border border-slate-200 dark:border-white/10 bg-white dark:bg-[#1E2130] shadow-sm">
         {/* Left sidebar */}
-        <div className="ubr-map-sidebar">
+        <div className="w-full lg:w-80 flex flex-col border-b lg:border-b-0 lg:border-r border-slate-200 dark:border-white/10 bg-white dark:bg-[#1E2130] shrink-0 max-h-[350px] lg:max-h-full overflow-hidden">
           {/* Home branch banner */}
           {userBranch && (
-            <div className="ubr-map-home-banner" onClick={() => { flyToRef.current?.(userBranch); setActiveBranch(userBranch); }}>
-              <div className="ubr-map-home-label">Your Home Community</div>
-              <div className="ubr-map-home-name">{userBranch.name}</div>
-              <div className="ubr-map-home-meta">{userBranch.region} · {userBranch.province}</div>
+            <div className="p-4 bg-blue-600 text-white space-y-1 cursor-pointer hover:bg-blue-700 transition-colors" onClick={() => { flyToRef.current?.(userBranch); setActiveBranch(userBranch); }}>
+              <div className="text-[10px] uppercase tracking-wider font-bold text-blue-200">Your Home Community</div>
+              <div className="text-base font-bold tracking-tight">{userBranch.name}</div>
+              <div className="text-xs text-blue-100">{userBranch.region} · {userBranch.province}</div>
             </div>
           )}
 
           {/* Search */}
-          <div style={{ padding: '12px 14px', borderBottom: '0.8px solid var(--border)', flexShrink: 0 }}>
-            <div style={{ position: 'relative' }}>
-              <Search className="ubr-search-icon" size={16} />
-              <input className="ubr-search-input" placeholder="Search communities…"
+          <div className="p-3 border-b border-slate-200 dark:border-white/10 shrink-0">
+            <div className="relative">
+              <Search className="absolute left-3 top-1/2 -translate-y-1/2 text-slate-400" size={16} />
+              <input className="w-full pl-9 pr-3 py-2 bg-slate-50 dark:bg-slate-800/60 border border-slate-200 dark:border-white/10 rounded-xl text-xs text-slate-900 dark:text-white outline-none focus:ring-2 focus:ring-blue-600 placeholder-slate-400" placeholder="Search communities…"
                 value={search} onChange={e => setSearch(e.target.value)} />
             </div>
           </div>
 
           {/* Region accordion list */}
-          <div className="ubr-map-region-list">
+          <div className="flex-1 overflow-y-auto divide-y divide-slate-100 dark:divide-white/5">
             {REGION_ORDER.map(regionKey => {
               const regionBranches = branchData.filter(b => b.region === regionKey);
               const filtered = search
@@ -149,26 +149,32 @@ export default function Branches() {
               if (filtered.length === 0) return null;
               const isOpen = openRegions.has(regionKey);
               return (
-                <div key={regionKey} className="ubr-map-region-group">
-                  <button className="ubr-map-region-header"
+                <div key={regionKey} className="space-y-1">
+                  <button className="w-full p-3 flex items-center gap-2 hover:bg-slate-50 dark:hover:bg-slate-800/40 text-left transition-colors cursor-pointer"
                     onClick={() => toggleRegion(regionKey)}>
-                    <span className="ubr-region-badge">{regionKey}</span>
-                    <span className="ubr-map-region-label">{REGION_LABELS[regionKey]}</span>
-                    <span className="ubr-map-region-count">{filtered.length}</span>
-                    <ChevronDown size={14} style={{ transform: isOpen ? 'rotate(180deg)' : '', transition: 'transform 0.2s', color: '#9aa3b8', marginLeft: 'auto' }} />
+                    <span className="px-2 py-0.5 bg-blue-100 dark:bg-blue-950 text-blue-600 dark:text-blue-400 font-bold rounded text-[10px]">{regionKey}</span>
+                    <span className="text-xs font-bold text-slate-900 dark:text-white flex-1 truncate">{REGION_LABELS[regionKey]}</span>
+                    <span className="text-[11px] text-slate-400 font-medium px-1.5 py-0.5 bg-slate-100 dark:bg-slate-800 rounded">{filtered.length}</span>
+                    <ChevronDown size={14} className={`text-slate-400 transition-transform duration-200 ${isOpen ? 'rotate-180' : ''}`} />
                   </button>
                   {isOpen && (
-                    <div className="ubr-map-branch-list">
+                    <div className="pl-4 pr-2 pb-2 space-y-1">
                       {filtered.map((branch, i) => {
                         const isVisited = visitedStats[branch.name]?.count > 0;
+                        const isSelected = activeBranch?.name === branch.name;
+                        const isMine = userBranch?.name === branch.name;
                         return (
                           <button key={i}
-                            className={`ubr-map-branch-item ${activeBranch?.name === branch.name ? 'active' : ''} ${userBranch?.name === branch.name ? 'mine' : ''}`}
-                            onClick={() => { flyToRef.current?.(branch); setActiveBranch(branch); }}>
-                            <MapPin size={12} />
-                            <span>{branch.name}</span>
-                            {userBranch?.name === branch.name && <span className="ubr-my-tag">Mine</span>}
-                            {isVisited && <span className="ubr-visited-tag">✓ Visited</span>}
+                            className={`w-full px-3 py-2 rounded-xl text-xs font-semibold flex items-center gap-2 text-left transition-all cursor-pointer ${
+                              isSelected
+                                ? 'bg-blue-600 text-white shadow-sm'
+                                : 'text-slate-700 dark:text-slate-300 hover:bg-slate-100 dark:hover:bg-slate-800/60'
+                            }`}
+                            onClick={() => { flyToRef.current?.(branch); setActiveBranch(branch); openDrawer(branch); }}>
+                            <MapPin size={12} className={isSelected ? 'text-white' : 'text-slate-400'} />
+                            <span className="flex-1 truncate">{branch.name}</span>
+                            {isMine && <span className={`px-1.5 py-0.2 text-[9px] font-bold rounded uppercase ${isSelected ? 'bg-white text-blue-600' : 'bg-blue-100 text-blue-600'}`}>Mine</span>}
+                            {isVisited && <span className={`text-[10px] font-bold ${isSelected ? 'text-emerald-200' : 'text-emerald-600'}`}>✓ Visited</span>}
                           </button>
                         );
                       })}
@@ -180,8 +186,8 @@ export default function Branches() {
           </div>
         </div>
 
-        <div className="ubr-map-area" style={{ position: 'relative', overflow: 'hidden' }}>
-          <Suspense fallback={<div style={{ display: 'flex', justifyContent: 'center', alignItems: 'center', height: '100%', width: '100%', color: '#64748b', fontSize: '14px' }}>Loading Map...</div>}>
+        <div className="flex-1 relative h-full w-full bg-slate-100 dark:bg-slate-900">
+          <Suspense fallback={<div className="flex justify-center items-center h-full w-full text-slate-400 text-xs font-semibold">Loading Map...</div>}>
             <BranchMap
               branches={branchData}
               userBranch={userBranch}
@@ -193,126 +199,128 @@ export default function Branches() {
           {/* ── Drawer ─────────────────────────────────────────────── */}
           {drawerMounted && (
             <>
-              <div className={`user-drawer-overlay${drawerVisible ? ' user-visible' : ''}`} onClick={closeDrawer} />
-              <div className={`user-branch-drawer${drawerVisible ? ' user-visible' : ''}`}>
-                <div className="user-drawer-header">
-                  <div className={`user-drawer-header-icon${userBranchName && drawerBranch?.name === userBranchName ? ' user-my-branch-icon' : ''}`}>
+              <div className={`fixed inset-0 z-40 bg-black/40 backdrop-blur-xs transition-opacity duration-300 ${drawerVisible ? 'opacity-100' : 'opacity-0 pointer-events-none'}`} onClick={closeDrawer} />
+              <div className={`fixed top-0 right-0 z-50 h-full w-full max-w-md bg-white dark:bg-[#1E2130] shadow-2xl border-l border-slate-200 dark:border-white/10 flex flex-col transition-transform duration-300 ease-out ${drawerVisible ? 'translate-x-0' : 'translate-x-full'}`}>
+                <div className="p-6 border-b border-slate-100 dark:border-white/5 flex items-start gap-4">
+                  <div className={`w-10 h-10 rounded-xl flex items-center justify-center shrink-0 ${
+                    userBranchName && drawerBranch?.name === userBranchName
+                      ? 'bg-blue-600 text-white'
+                      : 'bg-blue-50 dark:bg-blue-950/50 text-blue-600 dark:text-blue-400'
+                  }`}>
                     <MapPin size={20} />
                   </div>
-                  <div className="user-drawer-header-text">
-                    <div style={{ display: 'flex', alignItems: 'center', gap: '8px' }}>
-                      <h2 className="user-drawer-branch-name">{drawerBranch?.name}</h2>
+                  <div className="flex-1 space-y-1">
+                    <div className="flex items-center gap-2">
+                      <h2 className="text-lg font-bold text-slate-900 dark:text-white leading-tight">{drawerBranch?.name}</h2>
                       {userBranchName && drawerBranch?.name === userBranchName && (
-                        <span className="user-drawer-my-badge">My Community</span>
+                        <span className="px-2 py-0.5 bg-blue-100 dark:bg-blue-950 text-blue-600 dark:text-blue-400 font-bold rounded text-[10px]">My Community</span>
                       )}
                     </div>
-                    <div className="user-drawer-branch-meta">
-                      <span className="user-detail-region-badge">{drawerBranch?.region}</span>
+                    <div className="flex items-center gap-2 text-xs">
+                      <span className="px-2 py-0.5 bg-slate-100 dark:bg-slate-800 text-slate-600 dark:text-slate-300 font-semibold rounded text-[10px]">{drawerBranch?.region}</span>
                       {drawerBranch?.province !== drawerBranch?.region && (
-                        <span className="user-drawer-province">{drawerBranch?.province}</span>
+                        <span className="text-slate-400">{drawerBranch?.province}</span>
                       )}
                     </div>
                   </div>
-                  <button className="user-drawer-close" onClick={closeDrawer}>
-                    <X size={18} color="#6b7280" />
+                  <button className="text-slate-400 hover:text-slate-600 dark:hover:text-white p-1 rounded-full transition-colors cursor-pointer" onClick={closeDrawer}>
+                    <X size={20} />
                   </button>
                 </div>
 
-                <div className="user-drawer-body">
-                  <div className="user-drawer-section">
-                    <p className="user-drawer-section-label">Contact Information</p>
-                    <div className="user-drawer-contact-list">
+                <div className="flex-1 overflow-y-auto p-6 space-y-6">
+                  <div className="space-y-2">
+                    <p className="text-xs font-bold text-slate-400 dark:text-slate-500 uppercase tracking-wider">Contact Information</p>
+                    <div className="space-y-2 text-xs">
                       {[
                         { icon: '📍', val: `${drawerBranch?.name}, ${drawerBranch?.province}` },
                         { icon: '📞', val: '+63 90 000 0000' },
                         { icon: '✉️', val: 'isangdiwa@gmail.com' },
                       ].map(({ icon, val }) => (
-                        <div key={val} className="user-drawer-contact-row">
-                          <span className="user-drawer-contact-emoji">{icon}</span>
-                          <span className="user-drawer-contact-val">{val}</span>
+                        <div key={val} className="p-3 bg-slate-50 dark:bg-slate-800/40 rounded-xl flex items-center gap-3">
+                          <span className="text-base">{icon}</span>
+                          <span className="font-semibold text-slate-700 dark:text-slate-300">{val}</span>
                         </div>
                       ))}
                     </div>
                   </div>
 
-                  <div className="user-drawer-section">
-                    <p className="user-drawer-section-label">Service Times</p>
-                    <div className="user-drawer-service-list">
+                  <div className="space-y-2">
+                    <p className="text-xs font-bold text-slate-400 dark:text-slate-500 uppercase tracking-wider">Service Times</p>
+                    <div className="space-y-2">
                       {drawerBranch?.serviceTimes.map((s, i) => (
-                        <div key={i} className="user-drawer-service-row">
-                          <span className="user-drawer-day-pill" style={DAY_COLORS[s.day] || {}}>{s.day}</span>
-                          <span className="user-drawer-time">{s.time}</span>
+                        <div key={i} className="p-3 bg-slate-50 dark:bg-slate-800/40 rounded-xl flex items-center justify-between text-xs">
+                          <span className="px-2.5 py-1 rounded-lg font-bold text-[11px]" style={DAY_COLORS[s.day] || {}}>{s.day}</span>
+                          <span className="font-semibold text-slate-700 dark:text-slate-300">{s.time}</span>
                         </div>
                       ))}
                     </div>
                   </div>
 
-                  <div className="user-drawer-section">
-                    <p className="user-drawer-section-label">Community Statistics</p>
-                    <div className="user-drawer-stats-grid">
-                      <div className="user-drawer-stat-card">
-                        <div className="user-drawer-stat-val">
+                  <div className="space-y-2">
+                    <p className="text-xs font-bold text-slate-400 dark:text-slate-500 uppercase tracking-wider">Community Statistics</p>
+                    <div className="grid grid-cols-2 gap-3">
+                      <div className="p-4 bg-slate-50 dark:bg-slate-800/40 rounded-xl text-center space-y-1">
+                        <div className="text-xl font-bold text-slate-900 dark:text-white">
                           {branchStats[drawerBranch?.name]?.members || 0}
                         </div>
-                        <div className="user-drawer-stat-label">MEMBERS</div>
+                        <div className="text-[10px] font-bold text-slate-400 uppercase tracking-wider">MEMBERS</div>
                       </div>
-                      <div className="user-drawer-stat-card">
-                        <div className="user-drawer-stat-val">
+                      <div className="p-4 bg-slate-50 dark:bg-slate-800/40 rounded-xl text-center space-y-1">
+                        <div className="text-xl font-bold text-slate-900 dark:text-white">
                           {branchStats[drawerBranch?.name]?.officers || 0}
                         </div>
-                        <div className="user-drawer-stat-label">OFFICERS</div>
+                        <div className="text-[10px] font-bold text-slate-400 uppercase tracking-wider">OFFICERS</div>
                       </div>
                     </div>
                   </div>
 
                   {visitedStats[drawerBranch?.name] && (
-                    <div className="user-drawer-section">
-                      <p className="user-drawer-section-label">Your Visit History</p>
-                      <div className="user-drawer-visit-card">
-                        <div className="user-drawer-visit-header">
-                          <span className="user-drawer-visit-badge">
-                            <Check size={10} style={{ marginRight: '3px', strokeWidth: 3 }} />
+                    <div className="space-y-2">
+                      <p className="text-xs font-bold text-slate-400 dark:text-slate-500 uppercase tracking-wider">Your Visit History</p>
+                      <div className="p-4 bg-emerald-50 dark:bg-emerald-950/30 border border-emerald-200 dark:border-emerald-800/40 rounded-xl space-y-3">
+                        <div className="flex items-center justify-between text-xs">
+                          <span className="px-2 py-0.5 bg-emerald-600 text-white rounded text-[10px] font-bold flex items-center gap-1">
+                            <Check size={10} strokeWidth={3} />
                             Visited
                           </span>
-                          <span className="user-drawer-visit-count">
+                          <span className="font-bold text-emerald-700 dark:text-emerald-400">
                             {visitedStats[drawerBranch.name].count} {visitedStats[drawerBranch.name].count === 1 ? 'visit' : 'visits'}
                           </span>
                         </div>
-                        <div className="user-drawer-visit-meta">
-                          Last visited on <strong>{visitedStats[drawerBranch.name].lastVisited}</strong>
+                        <div className="text-xs text-slate-600 dark:text-slate-300">
+                          Last visited on <strong className="font-bold">{visitedStats[drawerBranch.name].lastVisited}</strong>
                         </div>
 
-                        <div className="user-drawer-visit-toggle-wrap">
-                          <button 
-                            className="user-drawer-visit-toggle-btn"
-                            onClick={() => navigate('/attendance', { state: { highlightBranch: drawerBranch.name } })}
-                          >
-                            View Visit History
-                          </button>
-                        </div>
+                        <button 
+                          className="w-full py-2 bg-emerald-600 hover:bg-emerald-700 text-white font-semibold rounded-lg text-xs transition-colors cursor-pointer"
+                          onClick={() => navigate('/attendance', { state: { highlightBranch: drawerBranch.name } })}
+                        >
+                          View Visit History
+                        </button>
                       </div>
                     </div>
                   )}
 
-                  <div className="user-drawer-section">
-                    <p className="user-drawer-section-label">Upcoming Events</p>
+                  <div className="space-y-2">
+                    <p className="text-xs font-bold text-slate-400 dark:text-slate-500 uppercase tracking-wider">Upcoming Events</p>
                     {branchEvents.length > 0 ? (
-                      <div className="user-drawer-events-list">
+                      <div className="space-y-2">
                         {branchEvents.slice(0, 3).map((ev, idx) => (
-                          <div key={idx} className="user-drawer-event-card">
-                            <div className="user-drawer-event-icon">
-                              <Calendar size={18} color="#1E3A8A" />
+                          <div key={idx} className="p-3 bg-slate-50 dark:bg-slate-800/40 rounded-xl flex items-start gap-3">
+                            <div className="w-8 h-8 rounded-lg bg-blue-100 dark:bg-blue-900/50 text-blue-600 dark:text-blue-400 flex items-center justify-center shrink-0">
+                              <Calendar size={18} />
                             </div>
-                            <div className="user-drawer-event-info">
-                              <div className="user-drawer-event-title">
+                            <div className="space-y-1">
+                              <div className="text-xs font-bold text-slate-900 dark:text-white">
                                 {ev.title}
                               </div>
-                              <div className="user-drawer-event-meta">
+                              <div className="text-[11px] text-slate-400 flex items-center gap-2">
                                 <span>{new Date(ev.createdAt).toLocaleDateString()}</span>
                                 {ev.category && (
                                   <>
                                     <span>•</span>
-                                    <span className="user-drawer-event-cat">{ev.category}</span>
+                                    <span className="font-semibold text-blue-600 dark:text-blue-400">{ev.category}</span>
                                   </>
                                 )}
                               </div>
@@ -321,15 +329,15 @@ export default function Branches() {
                         ))}
                       </div>
                     ) : (
-                      <div style={{ padding: '16px', textAlign: 'center', background: '#f8fafc', borderRadius: '8px', border: '0.8px solid var(--border)', marginTop: '4px' }}>
-                        <span style={{ fontSize: '12px', color: 'var(--text-muted)', fontWeight: '500' }}>No upcoming events scheduled.</span>
+                      <div className="p-4 text-center bg-slate-50 dark:bg-slate-800/40 rounded-xl border border-slate-200/60 dark:border-white/5">
+                        <span className="text-xs text-slate-400 font-medium">No upcoming events scheduled.</span>
                       </div>
                     )}
                   </div>
                 </div>
 
-                <div className="user-drawer-footer">
-                  <button className="user-get-directions-btn">Get Directions</button>
+                <div className="p-4 border-t border-slate-100 dark:border-white/5">
+                  <button className="w-full py-3 bg-blue-600 hover:bg-blue-700 text-white font-semibold rounded-xl shadow-md transition-all text-xs cursor-pointer">Get Directions</button>
                 </div>
               </div>
             </>

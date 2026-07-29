@@ -1,16 +1,14 @@
 import { useState, useEffect, useMemo } from 'react';
 import useSWR from 'swr';
-import { useNavigate } from 'react-router';
+import { useNavigate } from 'react-router-dom';
 import { toast } from 'sonner';
 import useDebounce from '../../hooks/useDebounce';
-import '../styles/AdminDonations.css';
-import '../../styles/sharedPagination.css';
 
 import API from '../../utils/api';
 import { Banknote, Search, Heart } from 'lucide-react';
 import CommunityDonationChart from '../components/CommunityDonationChart';
 import DonationCategoriesPie from '../components/DonationCategoriesPie';
-
+import Pagination from '../../components/Pagination';
 
 const fmt = (n) =>
   n != null ? `₱${Number(n).toLocaleString('en-PH')}` : '₱0';
@@ -29,7 +27,7 @@ const StatusBadge = ({ status }) => {
     pending:   { label: 'Pending Review',   cls: 'admin-don-status-pending'   },
   };
   const s = map[status] || map.pending;
-  return <span className={`admin-don-status-badge ${s.cls}`}>{s.label}</span>;
+  return <span className={`inline-flex items-center px-2.5 py-1 rounded-full text-[11px] font-bold tracking-wide uppercase ${s.label === 'Successful' ? 'bg-emerald-100 text-emerald-700 dark:bg-emerald-500/20 dark:text-emerald-400' : s.label === 'Failed' ? 'bg-rose-100 text-rose-700 dark:bg-rose-500/20 dark:text-rose-400' : 'bg-amber-100 text-amber-700 dark:bg-amber-500/20 dark:text-amber-400'}`}>{s.label}</span>;
 };
 
 export default function AdminDonationsNew() {
@@ -167,66 +165,93 @@ export default function AdminDonationsNew() {
   const goPrev = () => goTo(currentPage - 1);
   const goNext = () => goTo(currentPage + 1);
 
-  const buildPageNumbers = () => {
-    if (totalPages <= 7) return Array.from({ length: totalPages }, (_, i) => i + 1);
-    const curr = currentPage;
-    const pages = [];
-    if (curr <= 4)                    pages.push(1, 2, 3, 4, 5, '…', totalPages);
-    else if (curr >= totalPages - 3)  pages.push(1, '…', totalPages - 4, totalPages - 3, totalPages - 2, totalPages - 1, totalPages);
-    else                              pages.push(1, '…', curr - 1, curr, curr + 1, '…', totalPages);
-    return pages;
-  };
-
-
   /* ── Render ── */
   return (
-    <div className="admin-don-new-main">
+    <div className="flex flex-col gap-6 p-6 max-w-[1400px] mx-auto w-full h-full bg-slate-100 dark:bg-[#161922]">
       {/* Header */}
-      <div className="admin-don-new-header">
-        <h1 className="admin-don-new-title">Donations</h1>
+      <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-4 shrink-0">
+        <h1 className="m-0 font-inter text-2xl font-bold text-slate-800 dark:text-white">Donations</h1>
 
       </div>
 
 
 
       {/* Main Content Layout */}
-      <div className="admin-don-content-layout" style={{ marginBottom: '24px' }}>
-        {/* Left Column: Chart */}
-        <div className="admin-don-chart-col">
-          <CommunityDonationChart communityBreakdown={stats.communityBreakdown || {}} />
-        </div>
-
-        {/* Right Column: Card & Pie Chart */}
-        <div className="admin-don-chart-col">
-          <div className="admin-don-new-stats">
-            <div className="admin-don-new-stat-card">
-              <div className="admin-don-new-stat-header">
-                <span className="admin-don-new-stat-label">Total This Month</span>
-                <div className="adm-stat-icon-wrap"><Banknote size={20} color="white" /></div>
-              </div>
-              <p className="admin-don-new-stat-value">{fmt(stats.totalThisMonth)}</p>
-              <p className="admin-don-new-stat-change">{stats.percentageChange} from last month</p>
+      <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-4 mb-2">
+        {/* Total This Month */}
+        <div className="group relative bg-white dark:bg-[#1E2130] border border-emerald-500/50 shadow-md ring-1 ring-emerald-500/20 rounded-2xl p-5 flex flex-col gap-1 overflow-hidden transition-all duration-300 hover:shadow-lg hover:-translate-y-1">
+          <div className="flex items-center justify-between relative z-10">
+            <span className="font-inter font-bold text-[11px] tracking-widest text-slate-500 dark:text-slate-400 uppercase">Total This Month</span>
+            <div className="w-10 h-10 rounded-xl flex items-center justify-center shrink-0 transition-transform duration-300 group-hover:scale-110 shadow-sm bg-emerald-600 text-white">
+              <Banknote size={20} strokeWidth={2.2} />
             </div>
           </div>
+          <p className="font-inter font-extrabold text-[28px] tracking-tight text-slate-900 dark:text-white m-0 mt-2 relative z-10">{fmt(stats.totalThisMonth)}</p>
+          <p className="text-[12px] font-medium text-emerald-600 dark:text-emerald-400 mt-1 relative z-10">{stats.percentageChange} from last month</p>
+          <div className="absolute -right-6 -bottom-6 w-32 h-32 bg-emerald-500/10 rounded-full blur-3xl pointer-events-none opacity-0 group-hover:opacity-100 transition-opacity duration-300"></div>
+        </div>
+
+        {/* Total Donors */}
+        <div className="group relative bg-white dark:bg-[#1E2130] border border-slate-200 dark:border-white/10 rounded-2xl p-5 flex flex-col gap-1 overflow-hidden transition-all duration-300 hover:shadow-lg hover:-translate-y-1 hover:border-blue-500/30">
+          <div className="flex items-center justify-between relative z-10">
+            <span className="font-inter font-bold text-[11px] tracking-widest text-slate-500 dark:text-slate-400 uppercase">Total Donors</span>
+            <div className="w-10 h-10 rounded-xl flex items-center justify-center shrink-0 transition-transform duration-300 group-hover:scale-110 shadow-sm bg-gradient-to-br from-blue-50 to-blue-100/50 dark:from-blue-500/20 dark:to-blue-500/10 text-blue-600 dark:text-blue-400 border border-blue-200/60 dark:border-blue-500/30">
+              <Heart size={20} strokeWidth={2.2} />
+            </div>
+          </div>
+          <p className="font-inter font-extrabold text-[28px] tracking-tight text-slate-900 dark:text-white m-0 mt-2 relative z-10">{stats.totalDonors.toLocaleString()}</p>
+          <div className="absolute -right-6 -bottom-6 w-32 h-32 bg-blue-500/10 rounded-full blur-3xl pointer-events-none opacity-0 group-hover:opacity-100 transition-opacity duration-300"></div>
+        </div>
+
+        {/* Average Donation */}
+        <div className="group relative bg-white dark:bg-[#1E2130] border border-slate-200 dark:border-white/10 rounded-2xl p-5 flex flex-col gap-1 overflow-hidden transition-all duration-300 hover:shadow-lg hover:-translate-y-1 hover:border-indigo-500/30">
+          <div className="flex items-center justify-between relative z-10">
+            <span className="font-inter font-bold text-[11px] tracking-widest text-slate-500 dark:text-slate-400 uppercase">Average Donation</span>
+            <div className="w-10 h-10 rounded-xl flex items-center justify-center shrink-0 transition-transform duration-300 group-hover:scale-110 shadow-sm bg-gradient-to-br from-indigo-50 to-indigo-100/50 dark:from-indigo-500/20 dark:to-indigo-500/10 text-indigo-600 dark:text-indigo-400 border border-indigo-200/60 dark:border-indigo-500/30">
+              <Banknote size={20} strokeWidth={2.2} />
+            </div>
+          </div>
+          <p className="font-inter font-extrabold text-[28px] tracking-tight text-slate-900 dark:text-white m-0 mt-2 relative z-10">{fmt(stats.avgDonation)}</p>
+          <div className="absolute -right-6 -bottom-6 w-32 h-32 bg-indigo-500/10 rounded-full blur-3xl pointer-events-none opacity-0 group-hover:opacity-100 transition-opacity duration-300"></div>
+        </div>
+
+        {/* Pending Review */}
+        <div className="group relative bg-white dark:bg-[#1E2130] border border-slate-200 dark:border-white/10 rounded-2xl p-5 flex flex-col gap-1 overflow-hidden transition-all duration-300 hover:shadow-lg hover:-translate-y-1 hover:border-amber-500/30">
+          <div className="flex items-center justify-between relative z-10">
+            <span className="font-inter font-bold text-[11px] tracking-widest text-slate-500 dark:text-slate-400 uppercase">Pending Review</span>
+            <div className="w-10 h-10 rounded-xl flex items-center justify-center shrink-0 transition-transform duration-300 group-hover:scale-110 shadow-sm bg-gradient-to-br from-amber-50 to-amber-100/50 dark:from-amber-500/20 dark:to-amber-500/10 text-amber-600 dark:text-amber-400 border border-amber-200/60 dark:border-amber-500/30">
+              <Search size={20} strokeWidth={2.2} />
+            </div>
+          </div>
+          <p className="font-inter font-extrabold text-[28px] tracking-tight text-slate-900 dark:text-white m-0 mt-2 relative z-10">{stats.pendingCount || stats.rejectedCount || 0}</p>
+          <div className="absolute -right-6 -bottom-6 w-32 h-32 bg-amber-500/10 rounded-full blur-3xl pointer-events-none opacity-0 group-hover:opacity-100 transition-opacity duration-300"></div>
+        </div>
+      </div>
+
+      <div className="grid grid-cols-1 lg:grid-cols-3 gap-6 mb-6">
+        <div className="lg:col-span-2">
+          <CommunityDonationChart communityBreakdown={stats.communityBreakdown || {}} />
+        </div>
+        <div className="lg:col-span-1">
           <DonationCategoriesPie categoryBreakdown={stats.categoryBreakdown || {}} />
         </div>
       </div>
 
       {/* Donations Table */}
-      <div className="admin-don-new-section">
-        <div className="admin-don-search-toolbar">
-          <div className="admin-don-search-wrapper">
-            <Search className="admin-don-search-icon" size={18} />
+      <div className="flex-1 flex flex-col bg-white dark:bg-[#1E2130] border border-slate-200 dark:border-white/10 rounded-xl shadow-sm overflow-hidden min-h-[500px]">
+        <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-4 p-4 border-b border-slate-200 dark:border-white/10 bg-slate-50 dark:bg-black/20 shrink-0">
+          <div className="relative flex-1 max-w-[400px]">
+            <Search className="absolute left-3 top-1/2 -translate-y-1/2 text-slate-400 pointer-events-none" size={18} />
             <input
               type="text"
-              className="admin-don-search-input"
+              className="w-full h-10 pl-10 pr-4 bg-white dark:bg-[#161922] border border-slate-300 dark:border-white/10 rounded-lg text-sm font-inter text-slate-800 dark:text-white outline-none focus:border-blue-500 transition-all"
               placeholder="Search member, ID..."
               value={search}
               onChange={(e) => setSearch(e.target.value)}
             />
           </div>
           <select
-            className="admin-don-status-filter"
+            className="flex items-center gap-2"
             value={statusFilter}
             onChange={(e) => setStatusFilter(e.target.value)}
           >
@@ -237,74 +262,74 @@ export default function AdminDonationsNew() {
           </select>
         </div>
 
-        <div className="admin-table-container">
-          <table className="admin-table">
+        <div className="flex-1 overflow-x-auto overflow-y-auto custom-scrollbar">
+          <table className="w-full text-left border-collapse min-w-[900px]">
             <thead>
               <tr>
-                <th>Donation ID</th>
-                <th>Member</th>
-                <th>Community</th>
-                <th>Amount</th>
-                <th>Purpose</th>
-                <th>Date</th>
-                <th>Status</th>
-                <th>Proof</th>
-                <th>Actions</th>
+                <th className="px-4 py-2 bg-slate-50 dark:bg-black/20 border-b border-slate-200 dark:border-white/10 font-semibold text-[10px] tracking-wider uppercase text-slate-500 dark:text-slate-400 whitespace-nowrap sticky top-0 z-10">Donation ID</th>
+                <th className="px-4 py-2 bg-slate-50 dark:bg-black/20 border-b border-slate-200 dark:border-white/10 font-semibold text-[10px] tracking-wider uppercase text-slate-500 dark:text-slate-400 whitespace-nowrap sticky top-0 z-10">Member</th>
+                <th className="px-4 py-2 bg-slate-50 dark:bg-black/20 border-b border-slate-200 dark:border-white/10 font-semibold text-[10px] tracking-wider uppercase text-slate-500 dark:text-slate-400 whitespace-nowrap sticky top-0 z-10">Community</th>
+                <th className="px-4 py-2 bg-slate-50 dark:bg-black/20 border-b border-slate-200 dark:border-white/10 font-semibold text-[10px] tracking-wider uppercase text-slate-500 dark:text-slate-400 whitespace-nowrap sticky top-0 z-10">Amount</th>
+                <th className="px-4 py-2 bg-slate-50 dark:bg-black/20 border-b border-slate-200 dark:border-white/10 font-semibold text-[10px] tracking-wider uppercase text-slate-500 dark:text-slate-400 whitespace-nowrap sticky top-0 z-10">Purpose</th>
+                <th className="px-4 py-2 bg-slate-50 dark:bg-black/20 border-b border-slate-200 dark:border-white/10 font-semibold text-[10px] tracking-wider uppercase text-slate-500 dark:text-slate-400 whitespace-nowrap sticky top-0 z-10">Date</th>
+                <th className="px-4 py-2 bg-slate-50 dark:bg-black/20 border-b border-slate-200 dark:border-white/10 font-semibold text-[10px] tracking-wider uppercase text-slate-500 dark:text-slate-400 whitespace-nowrap sticky top-0 z-10">Status</th>
+                <th className="px-4 py-2 bg-slate-50 dark:bg-black/20 border-b border-slate-200 dark:border-white/10 font-semibold text-[10px] tracking-wider uppercase text-slate-500 dark:text-slate-400 whitespace-nowrap sticky top-0 z-10">Proof</th>
+                <th className="px-4 py-2 bg-slate-50 dark:bg-black/20 border-b border-slate-200 dark:border-white/10 font-semibold text-[10px] tracking-wider uppercase text-slate-500 dark:text-slate-400 whitespace-nowrap sticky top-0 z-10">Actions</th>
               </tr>
             </thead>
             <tbody>
               {loading ? (
                 <tr>
-                  <td colSpan={8} className="admin-don-empty-cell">
+                  <td colSpan={8} className="px-4 py-12 text-center text-slate-500 dark:text-slate-400">
                     Loading donations…
                   </td>
                 </tr>
               ) : donations.length === 0 ? (
                 <tr>
-                  <td colSpan={8} className="admin-don-empty-cell">
+                  <td colSpan={8} className="px-4 py-12 text-center text-slate-500 dark:text-slate-400">
                     No donations found
                   </td>
                 </tr>
               ) : (
                 donations.map((donation, index) => (
-                  <tr key={donation._id || index} className="admin-table-row-hover">
-                    <td className="admin-don-cell-bold-dark">
+                  <tr key={donation._id || index} className="hover:bg-slate-50 dark:hover:bg-white/5 transition-colors border-b border-slate-100 dark:border-white/5">
+                    <td className="px-4 py-2 text-[13px] font-inter font-semibold text-slate-800 dark:text-white">
                       {donation.donationId || `D-${String(index + 1).padStart(3, '0')}`}
                     </td>
-                    <td>
+                    <td className="px-4 py-2 text-[13px] font-inter text-slate-700 dark:text-slate-300">
                       {donation.member || '—'}
                     </td>
-                    <td className="admin-don-cell-muted">
+                    <td className="px-4 py-2 text-[13px] font-inter text-slate-500 dark:text-slate-400">
                       {donation.community || 'General'}
                     </td>
-                    <td className="admin-don-cell-green-bold">
+                    <td className="px-4 py-2 text-[13px] font-inter font-bold text-emerald-600 dark:text-emerald-400 whitespace-nowrap">
                       {fmt(donation.amount)}
                     </td>
-                    <td className="admin-don-cell-muted">
+                    <td className="px-4 py-2 text-[13px] font-inter text-slate-500 dark:text-slate-400">
                       {donation.category || donation.purpose || 'General Fund'}
                     </td>
-                    <td className="admin-don-cell-date">
+                    <td className="px-4 py-2 text-[13px] font-inter text-slate-600 dark:text-slate-400 whitespace-nowrap">
                       {fmtDate(donation.createdAt || donation.date)}
                     </td>
-                    <td>
+                    <td className="px-4 py-2 text-[13px] font-inter text-slate-700 dark:text-slate-300">
                       <StatusBadge status={donation.status || 'pending'} />
                     </td>
-                    <td>
+                    <td className="px-4 py-2 text-[13px] font-inter text-slate-700 dark:text-slate-300">
                       {(donation.proofData || donation.proofOfPayment) ? (
                         <img 
                           src={donation.proofData || donation.proofOfPayment} 
                           alt="Proof" 
-                          style={{ width: '32px', height: '32px', objectFit: 'cover', borderRadius: '4px', cursor: 'pointer', border: '1px solid #E5E7EB' }} 
+                          style={{ width: '28px', height: '28px', objectFit: 'cover', borderRadius: '4px', cursor: 'pointer', border: '1px solid #E5E7EB' }} 
                           onClick={(e) => { e.stopPropagation(); const win = window.open(); win.document.write(`<img src="${donation.proofData || donation.proofOfPayment}" style="max-width:100%;" />`); }}
                         />
                       ) : (
-                        <span style={{ fontSize: '12px', color: '#9CA3AF' }}>No Proof</span>
+                        <span style={{ fontSize: '11px', color: '#9CA3AF' }}>No Proof</span>
                       )}
                     </td>
-                    <td>
-                      <div className="admin-don-action-group">
+                    <td className="px-4 py-2 text-[13px] font-inter text-slate-700 dark:text-slate-300">
+                      <div className="flex items-center justify-end gap-2">
                         <button
-                          className="admin-don-action-btn admin-don-action-view"
+                          className="flex items-center gap-1.5 px-3 py-1 rounded-md text-xs font-semibold text-blue-600 hover:bg-blue-50 dark:hover:bg-blue-500/10 transition-colors border-none bg-transparent cursor-pointer"
                           onClick={() => setDetailModal(donation)}
                           title="View Details"
                         >
@@ -321,224 +346,225 @@ export default function AdminDonationsNew() {
 
         {/* Pagination */}
         {!loading && totalPages > 1 && (
-          <div className="pg-bar">
-            <span className="pg-info">
-              Showing {(currentPage - 1) * ITEMS_PER_PAGE + 1}–{Math.min(currentPage * ITEMS_PER_PAGE, totalCount)} of {totalCount}
-            </span>
-            <div className="pg-controls">
-              <button className="pg-btn" onClick={goPrev} disabled={currentPage === 1}>
-                ← Prev
-              </button>
-              {buildPageNumbers().map((pNum, i) =>
-                pNum === '…' ? (
-                  <span key={`dots-${i}`} className="pg-dots">…</span>
-                ) : (
-                  <button
-                    key={i}
-                    className={`pg-btn pg-num${currentPage === pNum ? ' active' : ''}`}
-                    onClick={() => goTo(pNum)}
-                  >
-                    {pNum}
-                  </button>
-                )
-              )}
-              <button className="pg-btn" onClick={goNext} disabled={currentPage === totalPages}>
-                Next →
-              </button>
-            </div>
+          <div className="border-t border-slate-200 dark:border-white/10 shrink-0 bg-white dark:bg-[#1E2130]">
+            <Pagination
+              currentPage={currentPage}
+              totalPages={totalPages}
+              onPageChange={setCurrentPage}
+              totalItems={totalCount}
+              itemsPerPage={ITEMS_PER_PAGE}
+              itemName="donations"
+            />
           </div>
         )}
       </div>
 
       {/* ── Detail Modal ── */}
       {detailModal && (
-        <div className="admin-don-modal-overlay" onClick={() => !actionLoading && setDetailModal(null)}>
-          <div className="admin-don-modal-content admin-don-modal-enhanced" onClick={(e) => e.stopPropagation()}>
-            <div className="admin-don-modal-header-enhanced">
-              <div className="admin-don-modal-icon-wrapper">
-                  <Heart size={24} />
+        <div className="fixed inset-0 bg-black/50 backdrop-blur-sm z-[1000] flex items-center justify-center p-4" onClick={() => !actionLoading && setDetailModal(null)}>
+          <div className="bg-white dark:bg-[#1E2130] rounded-2xl w-full max-w-[850px] shadow-2xl border border-slate-200 dark:border-white/10 flex flex-col max-h-[90vh] overflow-hidden relative" onClick={(e) => e.stopPropagation()}>
+            {/* Header */}
+            <div className="flex items-start justify-between p-6 border-b border-slate-200 dark:border-white/10 bg-slate-50 dark:bg-black/20 shrink-0">
+              <div className="flex items-center gap-4">
+                <div className="w-14 h-14 rounded-2xl bg-emerald-100 text-emerald-600 dark:bg-emerald-500/20 dark:text-emerald-400 flex items-center justify-center shadow-sm shrink-0">
+                    <Heart size={24} />
+                </div>
+                <div>
+                  <h2 className="m-0 font-inter text-xl font-bold text-slate-800 dark:text-white">Donation Details</h2>
+                  <span className="font-mono text-sm text-slate-500 dark:text-slate-400 mt-1">Reference: {detailModal.donationId}</span>
+                </div>
               </div>
-              <div className="admin-don-modal-header-info">
-                  <div className="admin-don-modal-header-top">
-                      <div>
-                          <h2 className="admin-don-modal-title">Donation Details</h2>
-                          <span className="admin-don-modal-ref">Reference: {detailModal.donationId}</span>
-                      </div>
-                      <button className="admin-don-modal-close-btn" onClick={() => setDetailModal(null)}>×</button>
-                  </div>
-              </div>
+              <button 
+                className="w-8 h-8 flex items-center justify-center rounded-lg bg-white dark:bg-white/5 text-slate-500 hover:bg-slate-100 dark:hover:bg-white/10 transition-colors border border-slate-200 dark:border-white/10 cursor-pointer" 
+                onClick={() => setDetailModal(null)}
+              >
+                ×
+              </button>
             </div>
 
-            <div className="admin-don-modal-body-enhanced">
-              <div className="admin-don-modal-split-layout">
-                {/* Left Column: Details */}
-                <div className="admin-don-modal-left-col">
-                  <div className="admin-don-modal-details-container">
-                    <div className="admin-don-modal-detail-row">
-                      <span className="admin-don-modal-detail-label">Status</span>
-                      <div className="admin-don-modal-detail-value-container">
-                        <StatusBadge status={detailModal.status || 'pending'} />
-                      </div>
-                    </div>
-                    <div className="admin-don-modal-detail-row">
-                      <span className="admin-don-modal-detail-label">Member</span>
-                      <span className="admin-don-modal-detail-value">{detailModal.member}</span>
-                    </div>
-                    <div className="admin-don-modal-detail-row">
-                      <span className="admin-don-modal-detail-label">Community</span>
-                      <span className="admin-don-modal-detail-value">{detailModal.community || 'General'}</span>
-                    </div>
-                    <div className="admin-don-modal-detail-row">
-                      <span className="admin-don-modal-detail-label">Amount</span>
-                      <span className="admin-don-modal-detail-value admin-don-modal-amount">{fmt(detailModal.amount)}</span>
-                    </div>
-                    <div className="admin-don-modal-detail-row">
-                      <span className="admin-don-modal-detail-label">Purpose</span>
-                      <span className="admin-don-modal-detail-value">{detailModal.category || 'General Fund'}</span>
-                    </div>
-                    <div className="admin-don-modal-detail-row">
-                      <span className="admin-don-modal-detail-label">Payment Method</span>
-                      <span className="admin-don-modal-detail-value">
-                        {detailModal.method || '—'} 
-                        {detailModal.subMethod ? ` (${detailModal.subMethod})` : ''}
-                      </span>
-                    </div>
-                    {detailModal.referenceNumber && (
-                      <div className="admin-don-modal-detail-row">
-                        <span className="admin-don-modal-detail-label">Reference No.</span>
-                        <span className="admin-don-modal-detail-value">{detailModal.referenceNumber}</span>
-                      </div>
-                    )}
-                    {detailModal.accountName && (
-                      <div className="admin-don-modal-detail-row">
-                        <span className="admin-don-modal-detail-label">Sender Account Name</span>
-                        <span className="admin-don-modal-detail-value">{detailModal.accountName}</span>
-                      </div>
-                    )}
-                    {detailModal.accountNumber && (
-                      <div className="admin-don-modal-detail-row">
-                        <span className="admin-don-modal-detail-label">Sender Account No.</span>
-                        <span className="admin-don-modal-detail-value">{detailModal.accountNumber}</span>
-                      </div>
-                    )}
-                    <div className="admin-don-modal-detail-row">
-                      <span className="admin-don-modal-detail-label">Date Submitted</span>
-                      <span className="admin-don-modal-detail-value">{fmtDate(detailModal.createdAt || detailModal.date)}</span>
-                    </div>
-                    <div className="admin-don-modal-detail-row">
-                      <span className="admin-don-modal-detail-label">Type</span>
-                      <span className="admin-don-modal-detail-value">{detailModal.type || 'One-time'}</span>
-                    </div>
-                  </div>
-                </div>
-
-                {/* Right Column: Proof and Reject Reason */}
-                <div className="admin-don-modal-right-col">
-                  {detailModal.rejectReason && (
-                    <div className="admin-don-modal-reject-reason-enhanced">
-                      <span className="admin-don-modal-reject-label">Reject Reason</span>
-                      <p>{detailModal.rejectReason}</p>
-                    </div>
-                  )}
-
-                  <div className="admin-don-modal-proof-wrapper">
-                    <span className="admin-don-modal-detail-label">Proof of Payment</span>
-                    {(detailModal.proofData || detailModal.proofOfPayment) ? (
-                      <img 
-                        src={detailModal.proofData || detailModal.proofOfPayment} 
-                        alt="Proof" 
-                        className="admin-don-modal-proof-img" 
-                        onClick={(e) => { e.stopPropagation(); const win = window.open(); win.document.write(`<img src="${detailModal.proofData || detailModal.proofOfPayment}" style="max-width:100%;" />`); }}
-                      />
-                    ) : (
-                      <div className="admin-don-modal-no-proof">
-                        No proof provided
-                      </div>
-                    )}
-                  </div>
-                </div>
-              </div>
-
-              {detailModal.status === 'pending' && (
-                <div style={{ marginTop: '24px', display: 'flex', flexDirection: 'column', gap: '10px' }}>
-                  {!showRejectInput ? (
-                    <div style={{ display: 'flex', gap: '10px', justifyContent: 'flex-end' }}>
-                      <button 
-                        onClick={() => setShowRejectInput(true)} 
-                        disabled={actionLoading}
-                        style={{ padding: '8px 16px', borderRadius: '6px', border: 'none', backgroundColor: '#FEE2E2', color: '#DC2626', fontWeight: 600, cursor: 'pointer' }}>
-                        Reject
-                      </button>
-                      <button 
-                        onClick={() => handleApprove(detailModal._id)} 
-                        disabled={actionLoading}
-                        style={{ padding: '8px 16px', borderRadius: '6px', border: 'none', backgroundColor: '#16A34A', color: 'white', fontWeight: 600, cursor: 'pointer' }}>
-                        {actionLoading ? 'Approving...' : 'Approve'}
-                      </button>
-                    </div>
-                  ) : (
-                    <div style={{ display: 'flex', flexDirection: 'column', gap: '8px' }}>
-                      <textarea
-                        value={rejectReason}
-                        onChange={(e) => setRejectReason(e.target.value)}
-                        placeholder="Enter reason for rejection..."
-                        style={{ padding: '10px', borderRadius: '6px', border: '1px solid #D1D5DB', width: '100%', minHeight: '80px', fontFamily: 'inherit', fontSize: '14px' }}
-                      />
-                      <div style={{ display: 'flex', gap: '10px', justifyContent: 'flex-end' }}>
-                        <button 
-                          onClick={() => { setShowRejectInput(false); setRejectReason(''); }}
-                          style={{ padding: '8px 16px', borderRadius: '6px', border: '1px solid #D1D5DB', backgroundColor: 'white', color: '#374151', fontWeight: 500, cursor: 'pointer' }}>
-                          Cancel
-                        </button>
-                        <button 
-                          onClick={() => handleReject(detailModal._id)} 
-                          disabled={actionLoading || !rejectReason.trim()}
-                          style={{ padding: '8px 16px', borderRadius: '6px', border: 'none', backgroundColor: '#DC2626', color: 'white', fontWeight: 600, cursor: 'pointer' }}>
-                          {actionLoading ? 'Rejecting...' : 'Confirm Rejection'}
-                        </button>
-                      </div>
-                    </div>
-                  )}
+            <div className="flex flex-col flex-1 overflow-y-auto custom-scrollbar">
+              {detailModal.rejectReason && (
+                <div className="m-6 mb-0 p-4 rounded-xl bg-rose-50 dark:bg-rose-500/10 border border-rose-200 dark:border-rose-500/30 text-rose-800 dark:text-rose-300">
+                  <span className="font-inter text-sm font-bold uppercase tracking-wide block mb-1">Reject Reason</span>
+                  <p className="m-0 font-inter text-sm">{detailModal.rejectReason}</p>
                 </div>
               )}
+
+              <div className="flex flex-col md:flex-row gap-6 p-6">
+                
+                {/* Left Column: Details Grid */}
+                <div className="flex-1 flex flex-col gap-6">
+                  <div className="bg-white dark:bg-[#161922] rounded-xl border border-slate-200 dark:border-white/10 p-5 shadow-sm">
+                    <h3 className="m-0 font-inter text-xs font-bold text-slate-800 dark:text-white mb-4 uppercase tracking-widest border-b border-slate-100 dark:border-white/5 pb-3">Donation Information</h3>
+                    <div className="grid grid-cols-2 gap-y-5 gap-x-6">
+                      <div className="flex flex-col gap-1.5">
+                        <span className="font-inter text-[10px] font-bold text-slate-500 dark:text-slate-400 uppercase tracking-widest">Status</span>
+                        <div className="flex items-center">
+                          <StatusBadge status={detailModal.status || 'pending'} />
+                        </div>
+                      </div>
+                      <div className="flex flex-col gap-1.5">
+                        <span className="font-inter text-[10px] font-bold text-slate-500 dark:text-slate-400 uppercase tracking-widest">Amount</span>
+                        <span className="m-0 font-inter text-xl font-extrabold text-emerald-600 dark:text-emerald-400">{fmt(detailModal.amount)}</span>
+                      </div>
+                      <div className="flex flex-col gap-1.5">
+                        <span className="font-inter text-[10px] font-bold text-slate-500 dark:text-slate-400 uppercase tracking-widest">Member</span>
+                        <span className="font-inter text-sm font-semibold text-slate-800 dark:text-white">{detailModal.member}</span>
+                      </div>
+                      <div className="flex flex-col gap-1.5">
+                        <span className="font-inter text-[10px] font-bold text-slate-500 dark:text-slate-400 uppercase tracking-widest">Community</span>
+                        <span className="font-inter text-sm font-medium text-slate-700 dark:text-slate-300">{detailModal.community || 'General'}</span>
+                      </div>
+                      <div className="flex flex-col gap-1.5">
+                        <span className="font-inter text-[10px] font-bold text-slate-500 dark:text-slate-400 uppercase tracking-widest">Purpose</span>
+                        <span className="font-inter text-sm font-medium text-slate-700 dark:text-slate-300">{detailModal.category || 'General Fund'}</span>
+                      </div>
+                      <div className="flex flex-col gap-1.5">
+                        <span className="font-inter text-[10px] font-bold text-slate-500 dark:text-slate-400 uppercase tracking-widest">Date Submitted</span>
+                        <span className="font-inter text-sm font-medium text-slate-700 dark:text-slate-300">{fmtDate(detailModal.createdAt || detailModal.date)}</span>
+                      </div>
+                      <div className="flex flex-col gap-1.5">
+                        <span className="font-inter text-[10px] font-bold text-slate-500 dark:text-slate-400 uppercase tracking-widest">Type</span>
+                        <span className="font-inter text-sm font-medium text-slate-700 dark:text-slate-300">{detailModal.type || 'One-time'}</span>
+                      </div>
+                    </div>
+                  </div>
+
+                  <div className="bg-white dark:bg-[#161922] rounded-xl border border-slate-200 dark:border-white/10 p-5 shadow-sm">
+                    <h3 className="m-0 font-inter text-xs font-bold text-slate-800 dark:text-white mb-4 uppercase tracking-widest border-b border-slate-100 dark:border-white/5 pb-3">Payment Details</h3>
+                    <div className="grid grid-cols-2 gap-y-5 gap-x-6">
+                      <div className="flex flex-col gap-1.5">
+                        <span className="font-inter text-[10px] font-bold text-slate-500 dark:text-slate-400 uppercase tracking-widest">Method</span>
+                        <span className="font-inter text-sm font-medium text-slate-800 dark:text-white">
+                          {detailModal.method || '—'} {detailModal.subMethod ? ` (${detailModal.subMethod})` : ''}
+                        </span>
+                      </div>
+                      {detailModal.referenceNumber && (
+                        <div className="flex flex-col gap-1.5">
+                          <span className="font-inter text-[10px] font-bold text-slate-500 dark:text-slate-400 uppercase tracking-widest">Reference No.</span>
+                          <span className="font-inter text-sm font-medium text-slate-800 dark:text-white">{detailModal.referenceNumber}</span>
+                        </div>
+                      )}
+                      {detailModal.accountName && (
+                        <div className="flex flex-col gap-1.5">
+                          <span className="font-inter text-[10px] font-bold text-slate-500 dark:text-slate-400 uppercase tracking-widest">Account Name</span>
+                          <span className="font-inter text-sm font-medium text-slate-800 dark:text-white">{detailModal.accountName}</span>
+                        </div>
+                      )}
+                      {detailModal.accountNumber && (
+                        <div className="flex flex-col gap-1.5">
+                          <span className="font-inter text-[10px] font-bold text-slate-500 dark:text-slate-400 uppercase tracking-widest">Account No.</span>
+                          <span className="font-inter text-sm font-medium text-slate-800 dark:text-white">{detailModal.accountNumber}</span>
+                        </div>
+                      )}
+                    </div>
+                  </div>
+                </div>
+
+                {/* Right Column: Proof */}
+                <div className="flex-1 max-w-full md:max-w-[350px] flex flex-col gap-6">
+                  <div className="bg-white dark:bg-[#161922] rounded-xl border border-slate-200 dark:border-white/10 p-5 shadow-sm flex flex-col h-full">
+                    <h3 className="m-0 font-inter text-xs font-bold text-slate-800 dark:text-white mb-4 uppercase tracking-widest border-b border-slate-100 dark:border-white/5 pb-3 text-center">Proof of Payment</h3>
+                    <div className="flex-1 flex items-center justify-center bg-slate-50 dark:bg-black/20 rounded-lg border border-slate-100 dark:border-white/5 overflow-hidden p-2 min-h-[250px]">
+                      {(detailModal.proofData || detailModal.proofOfPayment) ? (
+                        <img 
+                          src={detailModal.proofData || detailModal.proofOfPayment} 
+                          alt="Proof" 
+                          className="max-w-full max-h-[300px] object-contain rounded cursor-pointer hover:opacity-90 transition-opacity" 
+                          onClick={(e) => { e.stopPropagation(); const win = window.open(); win.document.write(`<img src="${detailModal.proofData || detailModal.proofOfPayment}" style="max-width:100%;" />`); }}
+                        />
+                      ) : (
+                        <div className="text-slate-400 dark:text-slate-500 flex flex-col items-center justify-center gap-2 py-10 text-sm font-inter">
+                          No proof provided
+                        </div>
+                      )}
+                    </div>
+                  </div>
+                </div>
+              </div>
             </div>
+
+            {/* Sticky Footer Actions */}
+            {detailModal.status === 'pending' && (
+              <div className="border-t border-slate-200 dark:border-white/10 p-5 bg-slate-50 dark:bg-black/20 flex flex-col gap-4 shrink-0">
+                {!showRejectInput ? (
+                  <div className="flex items-center justify-end gap-3">
+                    <button 
+                      onClick={() => setShowRejectInput(true)} 
+                      disabled={actionLoading}
+                      className="px-5 py-2.5 rounded-xl border border-rose-200 dark:border-rose-500/30 bg-rose-50 dark:bg-rose-500/10 text-rose-700 dark:text-rose-400 font-inter font-semibold text-sm cursor-pointer hover:bg-rose-100 dark:hover:bg-rose-500/20 transition-colors">
+                      Reject
+                    </button>
+                    <button 
+                      onClick={() => handleApprove(detailModal._id)} 
+                      disabled={actionLoading}
+                      className="px-6 py-2.5 rounded-xl border-none bg-emerald-600 text-white font-inter font-semibold text-sm cursor-pointer hover:bg-emerald-700 transition-colors shadow-sm">
+                      {actionLoading ? 'Approving...' : 'Approve Donation'}
+                    </button>
+                  </div>
+                ) : (
+                  <div className="flex flex-col gap-3">
+                    <textarea
+                      value={rejectReason}
+                      onChange={(e) => setRejectReason(e.target.value)}
+                      placeholder="Enter reason for rejection..."
+                      className="w-full p-4 rounded-xl border border-slate-300 dark:border-white/10 bg-white dark:bg-[#161922] text-sm font-inter text-slate-800 dark:text-white outline-none focus:border-rose-500 focus:ring-2 focus:ring-rose-500/20 resize-none transition-all"
+                      rows={3}
+                    />
+                    <div className="flex justify-end gap-3">
+                      <button 
+                        onClick={() => { setShowRejectInput(false); setRejectReason(''); }}
+                        className="px-5 py-2.5 rounded-xl border border-slate-300 dark:border-white/10 bg-white dark:bg-[#1E2130] text-slate-700 dark:text-slate-300 font-inter font-semibold text-sm cursor-pointer hover:bg-slate-50 dark:hover:bg-white/5 transition-colors">
+                        Cancel
+                      </button>
+                      <button 
+                        onClick={() => handleReject(detailModal._id)} 
+                        disabled={actionLoading || !rejectReason.trim()}
+                        className="px-6 py-2.5 rounded-xl border-none bg-rose-600 text-white font-inter font-semibold text-sm cursor-pointer hover:bg-rose-700 transition-colors shadow-sm disabled:opacity-50 disabled:cursor-not-allowed">
+                        {actionLoading ? 'Rejecting...' : 'Confirm Rejection'}
+                      </button>
+                    </div>
+                  </div>
+                )}
+              </div>
+            )}
           </div>
         </div>
       )}
 
       {/* ── Rejected List Modal ── */}
       {showRejectedModal && (
-        <div className="admin-don-modal-overlay" onClick={() => setShowRejectedModal(false)}>
-          <div className="admin-don-modal-content admin-don-modal-content-wide" onClick={(e) => e.stopPropagation()}>
-            <div className="admin-don-modal-header">
-              <h2 className="admin-don-modal-title">Rejected Donations</h2>
-              <button className="admin-don-modal-close" onClick={() => setShowRejectedModal(false)}>×</button>
+        <div className="fixed inset-0 bg-black/50 backdrop-blur-sm z-[1000] flex items-center justify-center p-4" onClick={() => setShowRejectedModal(false)}>
+          <div className="bg-white dark:bg-[#1E2130] rounded-2xl w-full max-w-[800px] shadow-2xl border border-slate-200 dark:border-white/10 flex flex-col max-h-[90vh] overflow-hidden relative" onClick={(e) => e.stopPropagation()}>
+            <div className="relative p-6 border-b border-slate-200 dark:border-white/10 bg-slate-50 dark:bg-black/20 shrink-0 flex items-center justify-between">
+              <h2 className="m-0 font-inter text-xl font-bold text-slate-800 dark:text-white">Rejected Donations</h2>
+              <button className="w-8 h-8 flex items-center justify-center rounded-lg bg-white dark:bg-white/5 text-slate-500 hover:bg-slate-100 dark:hover:bg-white/10 transition-colors border border-slate-200 dark:border-white/10 cursor-pointer" onClick={() => setShowRejectedModal(false)}>×</button>
             </div>
-            <div className="admin-don-modal-body admin-don-modal-scrollable-body">
+            <div className="flex-1 overflow-y-auto custom-scrollbar p-6">
               {rejectedLoading ? (
                 <p>Loading...</p>
               ) : rejectedList.length === 0 ? (
                 <p>No rejected donations found.</p>
               ) : (
-                <div className="admin-table-container">
-                  <table className="admin-table">
+                <div className="flex-1 overflow-x-auto overflow-y-auto custom-scrollbar">
+                  <table className="w-full text-left border-collapse min-w-[900px]">
                     <thead>
                       <tr>
-                        <th>ID</th>
-                        <th>Member</th>
-                        <th>Amount</th>
-                        <th>Reason</th>
-                        <th>Date</th>
+                        <th className="px-4 py-3 bg-slate-50 dark:bg-black/20 border-b border-slate-200 dark:border-white/10 font-semibold text-[11px] tracking-wider uppercase text-slate-500 dark:text-slate-400 whitespace-nowrap sticky top-0 z-10">ID</th>
+                        <th className="px-4 py-3 bg-slate-50 dark:bg-black/20 border-b border-slate-200 dark:border-white/10 font-semibold text-[11px] tracking-wider uppercase text-slate-500 dark:text-slate-400 whitespace-nowrap sticky top-0 z-10">Member</th>
+                        <th className="px-4 py-3 bg-slate-50 dark:bg-black/20 border-b border-slate-200 dark:border-white/10 font-semibold text-[11px] tracking-wider uppercase text-slate-500 dark:text-slate-400 whitespace-nowrap sticky top-0 z-10">Amount</th>
+                        <th className="px-4 py-3 bg-slate-50 dark:bg-black/20 border-b border-slate-200 dark:border-white/10 font-semibold text-[11px] tracking-wider uppercase text-slate-500 dark:text-slate-400 whitespace-nowrap sticky top-0 z-10">Reason</th>
+                        <th className="px-4 py-3 bg-slate-50 dark:bg-black/20 border-b border-slate-200 dark:border-white/10 font-semibold text-[11px] tracking-wider uppercase text-slate-500 dark:text-slate-400 whitespace-nowrap sticky top-0 z-10">Date</th>
                       </tr>
                     </thead>
                     <tbody>
                       {rejectedList.map(r => (
-                        <tr key={r._id} className="admin-table-row-hover">
-                          <td className="admin-don-fw-600">{r.donationId}</td>
-                          <td>{r.member}</td>
-                          <td>{fmt(r.amount)}</td>
-                          <td className="admin-don-text-red">{r.rejectReason || 'Admin review'}</td>
-                          <td>{fmtDate(r.createdAt)}</td>
+                        <tr key={r._id} className="hover:bg-slate-50 dark:hover:bg-white/5 transition-colors border-b border-slate-100 dark:border-white/5">
+                          <td className="px-4 py-3 text-sm font-inter font-semibold text-slate-800 dark:text-white">{r.donationId}</td>
+                          <td className="px-4 py-3 border-b border-slate-100 dark:border-white/5 text-sm font-inter text-slate-700 dark:text-slate-300">{r.member}</td>
+                          <td className="px-4 py-3 border-b border-slate-100 dark:border-white/5 text-sm font-inter text-slate-700 dark:text-slate-300">{fmt(r.amount)}</td>
+                          <td className="text-rose-500">{r.rejectReason || 'Admin review'}</td>
+                          <td className="px-4 py-3 border-b border-slate-100 dark:border-white/5 text-sm font-inter text-slate-700 dark:text-slate-300">{fmtDate(r.createdAt)}</td>
                         </tr>
                       ))}
                     </tbody>
@@ -546,8 +572,8 @@ export default function AdminDonationsNew() {
                 </div>
               )}
             </div>
-            <div className="admin-don-modal-footer">
-               <button className="admin-don-action-btn admin-don-action-view" onClick={() => setShowRejectedModal(false)}>Close</button>
+            <div className="p-5 border-t border-slate-200 dark:border-white/10 bg-slate-50 dark:bg-black/20 flex items-center justify-end gap-3 shrink-0">
+               <button className="flex items-center gap-1.5 px-3 py-1.5 rounded-md text-xs font-semibold text-blue-600 hover:bg-blue-50 dark:hover:bg-blue-500/10 transition-colors border-none bg-transparent cursor-pointer" onClick={() => setShowRejectedModal(false)}>Close</button>
             </div>
           </div>
         </div>

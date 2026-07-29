@@ -10,8 +10,8 @@ import {
   ReferenceLine, LabelList, AreaChart, Area, Label
 } from 'recharts';
 import LoanAdminSidebar from './loanAdminSidebar';
-import '../../admin/styles/AdminDashboard.css';
-import '../styles/loanAdminDashboard.css';
+
+
 import API from '../../utils/api';
 import { Banknote, CheckCircle, LayoutDashboard, PiggyBank, X, Filter, Expand } from 'lucide-react';
 
@@ -315,96 +315,115 @@ export default function LoanAdminDashboard() {
   }, [filteredDisbLoans]);
 
   return (
-    <div className="loan-admin-dashboard-page">
+    <div className="flex h-screen overflow-hidden bg-slate-100 dark:bg-[#161922]">
       <LoanAdminSidebar />
-      <div className="loan-admin-dashboard-content">
+      <div className="p-[20px_24px] flex-1 flex flex-col gap-2.5 bg-transparent overflow-y-auto">
         {!expandedChart && (<>
         {/* Header */}
-        <div className="adm-dashboard-header">
-          <div className="adm-dashboard-header-left">
-            <h1 className="adm-dashboard-greeting">
+        {/* Header */}
+        <div className="flex items-center justify-between pb-2 mb-[2px] max-md:flex-col max-md:items-start max-md:gap-3">
+          <div className="flex flex-col gap-0.5">
+            <h1 className="font-inter text-lg font-normal text-gray-600 m-0 tracking-[-0.01em] dark:text-gray-400">
               {(() => {
                 const h = new Date().getHours();
                 return h < 12 ? 'Good Morning' : h < 18 ? 'Good Afternoon' : 'Good Evening';
-              })()}, <span className="adm-dashboard-greeting-name">Loan Staff</span>
+              })()}, <span className="text-gray-900 font-bold dark:text-gray-200">Loan Staff</span>
             </h1>
-            <p className="adm-dashboard-subtitle">
+            <p className="font-inter text-[13px] text-gray-400 m-0 font-normal dark:text-gray-400/60">
               Loan operations overview for <strong>{new Date().toLocaleDateString('en-US', { weekday: 'long', month: 'long', day: 'numeric', year: 'numeric' })}</strong>
             </p>
           </div>
         </div>
+
         {/* Row 1 — 5 Stat Cards */}
-        <div className="adm-stats-grid">
-          <div className="adm-stat-card adm-clickable-card" onClick={() => navigate('/loan-admin/loan-management')}>
-            <div className="adm-stat-top">
-              <span className="adm-stat-label">Pending Review</span>
-              <div className="adm-stat-icon adm-icon-yellow">
-                <LayoutDashboard size={16} color="white" />
+        <div className="grid grid-cols-2 md:grid-cols-3 lg:grid-cols-5 gap-5 mb-6">
+          {/* Pending Review */}
+          <div className="group relative bg-white dark:bg-[#1E2130] border border-slate-200 dark:border-white/10 rounded-2xl p-5 shadow-[0_2px_12px_-4px_rgba(0,0,0,0.05)] overflow-hidden transition-all duration-300 hover:shadow-[0_12px_32px_rgba(0,0,0,0.08)] dark:hover:shadow-[0_12px_32px_rgba(0,0,0,0.3)] hover:-translate-y-1 cursor-pointer flex flex-col justify-between min-h-[140px]" onClick={() => navigate('/loan-admin/loan-management')}>
+            <div className="absolute top-0 right-0 w-28 h-28 bg-amber-500/10 rounded-full blur-2xl -mr-8 -mt-8 transition-transform duration-500 group-hover:scale-150"></div>
+            
+            <div className="flex items-start justify-between relative z-10">
+              <span className="font-inter font-semibold text-xs tracking-wider uppercase text-slate-500 dark:text-slate-400 mt-1 pr-2">Pending Review</span>
+              <div className="w-10 h-10 rounded-xl bg-gradient-to-br from-amber-50 to-amber-100/50 dark:from-amber-500/20 dark:to-amber-500/10 text-amber-600 dark:text-amber-400 flex items-center justify-center shrink-0 border border-amber-200/60 dark:border-amber-500/30 transition-transform duration-300 group-hover:scale-110 shadow-sm">
+                <LayoutDashboard size={20} strokeWidth={2.2} />
               </div>
             </div>
-            <span className="adm-stat-value">{dash(stats.pending)}</span>
+            <div className="font-inter font-extrabold text-[28px] text-slate-900 dark:text-white tracking-tight leading-none relative z-10 mt-4">{dash(stats.pending)}</div>
           </div>
 
-          <div className="adm-stat-card adm-clickable-card" onClick={() => navigate('/loan-admin/loan-management')}>
-            <div className="adm-stat-top">
-              <span className="adm-stat-label">Approved Loans</span>
-              <div className="adm-stat-icon adm-icon-green">
-                <CheckCircle size={16} color="white" />
+          {/* Approved Loans */}
+          <div className="group relative bg-white dark:bg-[#1E2130] border border-slate-200 dark:border-white/10 rounded-2xl p-5 shadow-[0_2px_12px_-4px_rgba(0,0,0,0.05)] overflow-hidden transition-all duration-300 hover:shadow-[0_12px_32px_rgba(0,0,0,0.08)] dark:hover:shadow-[0_12px_32px_rgba(0,0,0,0.3)] hover:-translate-y-1 cursor-pointer flex flex-col justify-between min-h-[140px]" onClick={() => navigate('/loan-admin/loan-management')}>
+            <div className="absolute top-0 right-0 w-28 h-28 bg-emerald-500/10 rounded-full blur-2xl -mr-8 -mt-8 transition-transform duration-500 group-hover:scale-150"></div>
+            
+            <div className="flex items-start justify-between relative z-10">
+              <span className="font-inter font-semibold text-xs tracking-wider uppercase text-slate-500 dark:text-slate-400 mt-1 pr-2">Approved Loans</span>
+              <div className="w-10 h-10 rounded-xl bg-gradient-to-br from-emerald-50 to-emerald-100/50 dark:from-emerald-500/20 dark:to-emerald-500/10 text-emerald-600 dark:text-emerald-400 flex items-center justify-center shrink-0 border border-emerald-200/60 dark:border-emerald-500/30 transition-transform duration-300 group-hover:scale-110 shadow-sm">
+                <CheckCircle size={20} strokeWidth={2.2} />
               </div>
             </div>
-            <span className="adm-stat-value">{dash(stats.active)}</span>
+            <div className="font-inter font-extrabold text-[28px] text-slate-900 dark:text-white tracking-tight leading-none relative z-10 mt-4">{dash(stats.active)}</div>
           </div>
 
-          <div className="adm-stat-card la-clickable-card" onClick={openMonthModal}>
-            <div className="adm-stat-top">
-              <span className="adm-stat-label">Total This Month</span>
-              <div className="adm-stat-icon adm-icon-blue">
-                <LayoutDashboard size={16} color="white" />
+          {/* Total This Month */}
+          <div className="group relative bg-white dark:bg-[#1E2130] border border-slate-200 dark:border-white/10 rounded-2xl p-5 shadow-[0_2px_12px_-4px_rgba(0,0,0,0.05)] overflow-hidden transition-all duration-300 hover:shadow-[0_12px_32px_rgba(0,0,0,0.08)] dark:hover:shadow-[0_12px_32px_rgba(0,0,0,0.3)] hover:-translate-y-1 cursor-pointer flex flex-col justify-between min-h-[140px]" onClick={openMonthModal}>
+            <div className="absolute top-0 right-0 w-28 h-28 bg-blue-500/10 rounded-full blur-2xl -mr-8 -mt-8 transition-transform duration-500 group-hover:scale-150"></div>
+            
+            <div className="flex items-start justify-between relative z-10">
+              <span className="font-inter font-semibold text-xs tracking-wider uppercase text-slate-500 dark:text-slate-400 mt-1 pr-2">Total This Month</span>
+              <div className="w-10 h-10 rounded-xl bg-gradient-to-br from-blue-50 to-blue-100/50 dark:from-blue-500/20 dark:to-blue-500/10 text-blue-600 dark:text-blue-400 flex items-center justify-center shrink-0 border border-blue-200/60 dark:border-blue-500/30 transition-transform duration-300 group-hover:scale-110 shadow-sm">
+                <LayoutDashboard size={20} strokeWidth={2.2} />
               </div>
             </div>
-            <span className="adm-stat-value">{dash(stats.totalThisMonth)}</span>
+            <div className="font-inter font-extrabold text-[28px] text-slate-900 dark:text-white tracking-tight leading-none relative z-10 mt-4">{dash(stats.totalThisMonth)}</div>
           </div>
 
-          <div className="adm-stat-card la-clickable-card" onClick={openDisbModal}>
-            <div className="adm-stat-top">
-              <span className="adm-stat-label">Total Disbursed</span>
-              <div className="adm-stat-icon adm-icon-navy">
-                <Banknote size={16} color="white" />
+          {/* Total Disbursed */}
+          <div className="group relative bg-white dark:bg-[#1E2130] border border-slate-200 dark:border-white/10 rounded-2xl p-5 shadow-[0_2px_12px_-4px_rgba(0,0,0,0.05)] overflow-hidden transition-all duration-300 hover:shadow-[0_12px_32px_rgba(0,0,0,0.08)] dark:hover:shadow-[0_12px_32px_rgba(0,0,0,0.3)] hover:-translate-y-1 cursor-pointer flex flex-col justify-between min-h-[140px]" onClick={openDisbModal}>
+            <div className="absolute top-0 right-0 w-28 h-28 bg-slate-500/10 dark:bg-blue-500/10 rounded-full blur-2xl -mr-8 -mt-8 transition-transform duration-500 group-hover:scale-150"></div>
+            
+            <div className="flex items-start justify-between relative z-10">
+              <span className="font-inter font-semibold text-xs tracking-wider uppercase text-slate-500 dark:text-slate-400 mt-1 pr-2">Total Disbursed</span>
+              <div className="w-10 h-10 rounded-xl bg-gradient-to-br from-slate-100 to-slate-200/50 dark:from-slate-700/50 dark:to-slate-800/50 text-[#0D1F45] dark:text-[#BFDBFE] flex items-center justify-center shrink-0 border border-slate-200/60 dark:border-white/10 transition-transform duration-300 group-hover:scale-110 shadow-sm">
+                <Banknote size={20} strokeWidth={2.2} />
               </div>
             </div>
-            <span className="adm-stat-value">{dash(fmt(stats.totalDisbursed))}</span>
+            <div className="font-inter font-extrabold text-[28px] text-slate-900 dark:text-white tracking-tight leading-none relative z-10 mt-4 truncate">{dash(fmt(stats.totalDisbursed))}</div>
           </div>
 
-          <div className="adm-stat-card adm-clickable-card" onClick={() => navigate('/loan-admin/payments/savings')}>
-            <div className="adm-stat-top">
-              <span className="adm-stat-label">Total Savings</span>
-              <div className="adm-stat-icon adm-icon-purple">
-                <PiggyBank size={16} color="white" />
+          {/* Total Savings */}
+          <div className="group relative bg-white dark:bg-[#1E2130] border border-slate-200 dark:border-white/10 rounded-2xl p-5 shadow-[0_2px_12px_-4px_rgba(0,0,0,0.05)] overflow-hidden transition-all duration-300 hover:shadow-[0_12px_32px_rgba(0,0,0,0.08)] dark:hover:shadow-[0_12px_32px_rgba(0,0,0,0.3)] hover:-translate-y-1 cursor-pointer flex flex-col justify-between min-h-[140px]" onClick={() => navigate('/loan-admin/payments/savings')}>
+            <div className="absolute top-0 right-0 w-28 h-28 bg-purple-500/10 rounded-full blur-2xl -mr-8 -mt-8 transition-transform duration-500 group-hover:scale-150"></div>
+            
+            <div className="flex items-start justify-between relative z-10">
+              <span className="font-inter font-semibold text-xs tracking-wider uppercase text-slate-500 dark:text-slate-400 mt-1 pr-2">Total Savings</span>
+              <div className="w-10 h-10 rounded-xl bg-gradient-to-br from-purple-50 to-purple-100/50 dark:from-purple-500/20 dark:to-purple-500/10 text-purple-600 dark:text-purple-400 flex items-center justify-center shrink-0 border border-purple-200/60 dark:border-purple-500/30 transition-transform duration-300 group-hover:scale-110 shadow-sm">
+                <PiggyBank size={20} strokeWidth={2.2} />
               </div>
             </div>
-            <span className="adm-stat-value">{dash(fmt(totalSavings))}</span>
+            <div className="font-inter font-extrabold text-[28px] text-slate-900 dark:text-white tracking-tight leading-none relative z-10 mt-4 truncate">{dash(fmt(totalSavings))}</div>
           </div>
         </div>
 
         {/* Row 2 — Charts */}
-        <div className="adm-analytics-row adm-analytics-row-loan">
+        <div className="grid grid-cols-1 lg:grid-cols-2 gap-5 mb-5">
           {/* Money In vs Money Out */}
-          <div className="adm-card">
-            <div className="adm-card-header">
+          <div className="group relative bg-white dark:bg-[#1E2130] rounded-2xl p-6 border border-slate-100 dark:border-white/5 shadow-[0_2px_12px_-4px_rgba(0,0,0,0.04)] overflow-hidden">
+            <div className="absolute top-0 right-0 w-32 h-32 bg-blue-500/5 rounded-full blur-3xl -mr-10 -mt-10 pointer-events-none transition-transform duration-500 group-hover:scale-125"></div>
+            <div className="relative z-10">
+            <div className="flex items-start justify-between mb-6">
               <div>
-                <h3 className="adm-card-title">Money In vs Money Out</h3>
-                <span className="adm-card-sub">Monthly comparison of received funds and loan disbursements</span>
-                <div className="la-cashflow-header">
-                  <div className="la-cashflow-badges">
-                    <span className="la-cashflow-badge-in">Total In: ₱{(moneyInVsOutSummary.totalIn/1000).toFixed(1)}k</span>
-                    <span className="la-cashflow-badge-out">Total Out: ₱{(moneyInVsOutSummary.totalOut/1000).toFixed(1)}k</span>
-                    <span className={`la-cashflow-badge-net ${moneyInVsOutSummary.net >= 0 ? 'la-cashflow-badge-net-positive' : 'la-cashflow-badge-net-negative'}`}>
+                <h3 className="text-base font-bold text-slate-800 dark:text-white font-inter tracking-tight m-0">Money In vs Money Out</h3>
+                <span className="text-[13px] text-slate-500 dark:text-slate-400 font-inter mt-1 block">Monthly comparison of received funds and loan disbursements</span>
+                <div className="mt-4">
+                  <div className="flex flex-wrap items-center gap-2">
+                    <span className="px-2.5 py-1 rounded-md text-xs font-semibold bg-emerald-50 dark:bg-emerald-500/10 text-emerald-600 dark:text-emerald-400">Total In: ₱{(moneyInVsOutSummary.totalIn/1000).toFixed(1)}k</span>
+                    <span className="px-2.5 py-1 rounded-md text-xs font-semibold bg-blue-50 dark:bg-blue-500/10 text-blue-600 dark:text-blue-400">Total Out: ₱{(moneyInVsOutSummary.totalOut/1000).toFixed(1)}k</span>
+                    <span className={`px-2.5 py-1 rounded-md text-xs font-semibold ${moneyInVsOutSummary.net >= 0 ? 'bg-emerald-50 dark:bg-emerald-500/10 text-emerald-600 dark:text-emerald-400' : 'bg-rose-50 dark:bg-rose-500/10 text-rose-600 dark:text-rose-400'}`}>
                       Net: {moneyInVsOutSummary.net < 0 ? '-' : '+'}₱{(Math.abs(moneyInVsOutSummary.net)/1000).toFixed(1)}k
                     </span>
                   </div>
                 </div>
               </div>
-              <button className="la-chart-expand-btn" onClick={() => setExpandedChart('moneyIn')} title="Expand Chart">
+              <button className="w-8 h-8 rounded-lg bg-slate-50 dark:bg-white/5 flex items-center justify-center cursor-pointer transition-colors hover:bg-slate-100 dark:hover:bg-white/10 border-none shrink-0" onClick={() => setExpandedChart('moneyIn')} title="Expand Chart">
                 <Expand size={18} color="#4B5563" strokeWidth={2.5} />
               </button>
             </div>
@@ -419,31 +438,34 @@ export default function LoanAdminDashboard() {
                 <Bar dataKey="disbursed" fill="#60A5FA" name="Money Released" radius={[4, 4, 0, 0]} />
               </BarChart>
             </ResponsiveContainer>
+            </div>
           </div>
 
           {/* Disbursements by Type */}
-          <div className="adm-card">
-            <div className="adm-card-header">
+          <div className="group relative bg-white dark:bg-[#1E2130] rounded-2xl p-6 border border-slate-100 dark:border-white/5 shadow-[0_2px_12px_-4px_rgba(0,0,0,0.04)] overflow-hidden">
+            <div className="absolute top-0 right-0 w-32 h-32 bg-indigo-500/5 rounded-full blur-3xl -mr-10 -mt-10 pointer-events-none transition-transform duration-500 group-hover:scale-125"></div>
+            <div className="relative z-10">
+            <div className="flex items-start justify-between mb-6">
               <div>
-                <h3 className="adm-card-title">Disbursements by Type</h3>
-                <span className="adm-card-sub">Funds allocated by loan type</span>
-                <div className="la-stat-mini-group">
-                  <div className="la-stat-mini-chip">
-                    <div className="la-stat-mini-chip-value">₱{disbursementSummary.total >= 1000000 ? (disbursementSummary.total/1000000).toFixed(1).replace(/\.0$/, '') + 'M' : disbursementSummary.total >= 1000 ? (disbursementSummary.total/1000).toFixed(1).replace(/\.0$/, '') + 'k' : disbursementSummary.total.toLocaleString()}</div>
-                    <div className="la-stat-mini-chip-label">Total Disbursed</div>
+                <h3 className="text-base font-bold text-slate-800 dark:text-white font-inter tracking-tight m-0">Disbursements by Type</h3>
+                <span className="text-[13px] text-slate-500 dark:text-slate-400 font-inter mt-1 block">Funds allocated by loan type</span>
+                <div className="flex items-center gap-4 mt-4">
+                  <div className="bg-slate-50 dark:bg-[#252836] p-[8px_12px] rounded-lg border border-slate-100 dark:border-white/5 min-w-[100px]">
+                    <div className="text-sm font-bold text-slate-800 dark:text-white font-inter">₱{disbursementSummary.total >= 1000000 ? (disbursementSummary.total/1000000).toFixed(1).replace(/\.0$/, '') + 'M' : disbursementSummary.total >= 1000 ? (disbursementSummary.total/1000).toFixed(1).replace(/\.0$/, '') + 'k' : disbursementSummary.total.toLocaleString()}</div>
+                    <div className="text-[10px] text-slate-500 dark:text-slate-400 font-inter uppercase tracking-wider mt-0.5">Total Disbursed</div>
                   </div>
-                  <div className="la-stat-mini-chip">
-                    <div className="la-stat-mini-chip-value">{disbursementByTypeDetail.reduce((s, d) => s + (d.count || 0), 0)}</div>
-                    <div className="la-stat-mini-chip-label">Total Loans</div>
+                  <div className="bg-slate-50 dark:bg-[#252836] p-[8px_12px] rounded-lg border border-slate-100 dark:border-white/5 min-w-[100px]">
+                    <div className="text-sm font-bold text-slate-800 dark:text-white font-inter">{disbursementByTypeDetail.reduce((s, d) => s + (d.count || 0), 0)}</div>
+                    <div className="text-[10px] text-slate-500 dark:text-slate-400 font-inter uppercase tracking-wider mt-0.5">Total Loans</div>
                   </div>
                 </div>
               </div>
-              <button className="la-chart-expand-btn" onClick={() => setExpandedChart('disbursements')} title="Expand Chart">
+              <button className="w-8 h-8 rounded-lg bg-slate-50 dark:bg-white/5 flex items-center justify-center cursor-pointer transition-colors hover:bg-slate-100 dark:hover:bg-white/10 border-none shrink-0" onClick={() => setExpandedChart('disbursements')} title="Expand Chart">
                 <Expand size={18} color="#4B5563" strokeWidth={2.5} />
               </button>
             </div>
-            <div className="la-ex-pie-row">
-              <div className="la-ex-pie-chart">
+            <div className="flex items-center mt-2 max-md:flex-col">
+              <div className="w-[45%] max-md:w-full">
                 <ResponsiveContainer width="100%" height={220}>
                   <PieChart>
                     <Pie
@@ -473,21 +495,21 @@ export default function LoanAdminDashboard() {
                   </PieChart>
                 </ResponsiveContainer>
               </div>
-              <div className="la-ex-pie-legend">
+              <div className="w-[55%] flex flex-col gap-3 pl-4 max-md:w-full max-md:pl-0 max-md:mt-4">
                 {(() => {
                   const CHART_COLORS = ['#0D1F45', '#1E3A8A', '#2563EB', '#3B82F6', '#60A5FA'];
                   return disbursementByTypeDetail.map((d, i) => (
-                    <div key={i} className="la-ex-legend-item">
-                      <span className="la-ex-legend-dot" style={{ background: CHART_COLORS[i % CHART_COLORS.length] }} />
-                      <div className="la-ex-legend-info">
-                        <div className="la-ex-legend-value">{d.count} loans · ₱{d.amount >= 1000 ? (d.amount / 1000).toFixed(1).replace(/\.0$/, '') + 'k' : d.amount.toLocaleString()}</div>
-                        <div className="la-ex-legend-label">{d.label}</div>
+                    <div key={i} className="flex items-start gap-2.5">
+                      <span className="w-2.5 h-2.5 rounded-full mt-1 shrink-0" style={{ background: CHART_COLORS[i % CHART_COLORS.length] }} />
+                      <div className="flex-1">
+                        <div className="text-[13px] font-semibold text-slate-800 dark:text-white font-inter leading-tight">{d.count} loans · ₱{d.amount >= 1000 ? (d.amount / 1000).toFixed(1).replace(/\.0$/, '') + 'k' : d.amount.toLocaleString()}</div>
+                        <div className="text-[11px] text-slate-500 dark:text-slate-400 font-inter mt-0.5">{d.label}</div>
                       </div>
                     </div>
                   ));
                 })()}
                 {disbursementSummary.zeroDisbursements.length > 0 && (
-                  <div className="la-ex-legend-zero">
+                  <div className="text-[11px] text-slate-400 dark:text-slate-500 italic mt-2">
                     {disbursementSummary.zeroDisbursements.map(d => d.type).join(', ')}: ₱0
                   </div>
                 )}
@@ -497,13 +519,13 @@ export default function LoanAdminDashboard() {
         </div>
 
         {/* Savings Trend */}
-        <div className="adm-card">
-          <div className="adm-card-header">
+        <div className="bg-white dark:bg-[#1E2130] rounded-xl p-6 border border-slate-200 dark:border-white/5 shadow-sm">
+          <div className="flex items-start justify-between mb-6">
             <div>
-              <h3 className="adm-card-title">Savings Trend</h3>
-              <span className="adm-card-sub">Monthly member savings deposits this year</span>
+              <h3 className="text-base font-bold text-slate-800 dark:text-white font-inter tracking-tight m-0">Savings Trend</h3>
+              <span className="text-[13px] text-slate-500 dark:text-slate-400 font-inter mt-1 block">Monthly member savings deposits this year</span>
             </div>
-            <button className="la-chart-expand-btn" onClick={() => setExpandedChart('savings')} title="Expand Chart">
+            <button className="w-8 h-8 rounded-lg bg-slate-50 dark:bg-white/5 flex items-center justify-center cursor-pointer transition-colors hover:bg-slate-100 dark:hover:bg-white/10 border-none shrink-0" onClick={() => setExpandedChart('savings')} title="Expand Chart">
               <Expand size={18} color="#4B5563" strokeWidth={2.5} />
             </button>
           </div>
@@ -517,23 +539,26 @@ export default function LoanAdminDashboard() {
               <Line type="monotone" dataKey="actualSavings" stroke="#0D1F45" strokeWidth={2} dot={({ cx, cy, payload }) => payload.actualSavings != null ? <circle cx={cx} cy={cy} r={3} fill="#0D1F45" /> : null} name="Savings" connectNulls />
             </LineChart>
           </ResponsiveContainer>
+          </div>
         </div>
 
         {/* Row 3 — New Analytics Charts */}
-        <div className="adm-analytics-row adm-analytics-row-loan">
+        <div className="grid grid-cols-1 lg:grid-cols-2 gap-5 mb-5">
           {/* Loan Status Distribution (Donut) */}
-          <div className="adm-card">
-            <div className="adm-card-header">
+          <div className="group relative bg-white dark:bg-[#1E2130] rounded-2xl p-6 border border-slate-100 dark:border-white/5 shadow-[0_2px_12px_-4px_rgba(0,0,0,0.04)] overflow-hidden">
+            <div className="absolute top-0 right-0 w-32 h-32 bg-emerald-500/5 rounded-full blur-3xl -mr-10 -mt-10 pointer-events-none transition-transform duration-500 group-hover:scale-125"></div>
+            <div className="relative z-10">
+            <div className="flex items-start justify-between mb-6">
               <div>
-                <h3 className="adm-card-title">Loan Status Distribution</h3>
-                <span className="adm-card-sub">Portfolio breakdown by current loan status</span>
+                <h3 className="text-base font-bold text-slate-800 dark:text-white font-inter tracking-tight m-0">Loan Status Distribution</h3>
+                <span className="text-[13px] text-slate-500 dark:text-slate-400 font-inter mt-1 block">Portfolio breakdown by current loan status</span>
               </div>
-              <button className="la-chart-expand-btn" onClick={() => setExpandedChart('statusDist')} title="Expand Chart">
+              <button className="w-8 h-8 rounded-lg bg-slate-50 dark:bg-white/5 flex items-center justify-center cursor-pointer transition-colors hover:bg-slate-100 dark:hover:bg-white/10 border-none shrink-0" onClick={() => setExpandedChart('statusDist')} title="Expand Chart">
                 <Expand size={18} color="#4B5563" strokeWidth={2.5} />
               </button>
             </div>
-            <div className="la-ex-pie-row">
-              <div className="la-ex-pie-chart-half">
+            <div className="flex items-center mt-2 max-md:flex-col">
+              <div className="w-[50%] max-md:w-full">
                 <ResponsiveContainer width="100%" height={220}>
                   <PieChart>
                     <Pie data={statusDistribution} cx="55%" cy="50%" innerRadius={38} outerRadius={78} paddingAngle={2} dataKey="value" label={renderSliceLabel} labelLine={false}>
@@ -547,33 +572,36 @@ export default function LoanAdminDashboard() {
                   </PieChart>
                 </ResponsiveContainer>
               </div>
-              <div className="la-ex-pie-legend-half">
+              <div className="w-[50%] flex flex-col gap-3 pl-4 max-md:w-full max-md:pl-0 max-md:mt-4">
                 {statusDistribution.map((entry, i) => {
                   const pct = statusDistributionSummary.total > 0 ? ((entry.value / statusDistributionSummary.total) * 100).toFixed(0) : 0;
                   const color = STATUS_COLORS[entry.name] || PIE_COLORS[i % PIE_COLORS.length];
                   return (
-                    <div key={i} className="la-ex-legend-item">
-                      <span className="la-ex-legend-dot" style={{ background: color }} />
-                      <div className="la-ex-legend-info">
-                        <div className="la-ex-legend-value">{entry.value} {entry.value === 1 ? 'loan' : 'loans'} · {pct}%</div>
-                        <div className="la-ex-legend-label">{entry.name}</div>
+                    <div key={i} className="flex items-start gap-2.5">
+                      <span className="w-2.5 h-2.5 rounded-full mt-1 shrink-0" style={{ background: color }} />
+                      <div className="flex-1">
+                        <div className="text-[13px] font-semibold text-slate-800 dark:text-white font-inter leading-tight">{entry.value} {entry.value === 1 ? 'loan' : 'loans'} · {pct}%</div>
+                        <div className="text-[11px] text-slate-500 dark:text-slate-400 font-inter mt-0.5">{entry.name}</div>
                       </div>
                     </div>
                   );
                 })}
               </div>
             </div>
+            </div>
           </div>
 
           {/* Repayment Performance */}
-          <div className="adm-card">
-            <div className="adm-card-header">
+          <div className="group relative bg-white dark:bg-[#1E2130] rounded-2xl p-6 border border-slate-100 dark:border-white/5 shadow-[0_2px_12px_-4px_rgba(0,0,0,0.04)] overflow-hidden">
+            <div className="absolute top-0 right-0 w-32 h-32 bg-rose-500/5 rounded-full blur-3xl -mr-10 -mt-10 pointer-events-none transition-transform duration-500 group-hover:scale-125"></div>
+            <div className="relative z-10">
+            <div className="flex items-start justify-between mb-6">
               <div>
-                <h3 className="adm-card-title">Repayment Performance</h3>
-                <span className="adm-card-sub">On-time vs late payment ratio this year</span>
-                <div className={`la-card-total ${repaymentPerformanceSummary.pct >= 80 ? 'la-rate-good' : 'la-rate-warn'}`}>{repaymentPerformanceSummary.pct}% On-Time Rate</div>
+                <h3 className="text-base font-bold text-slate-800 dark:text-white font-inter tracking-tight m-0">Repayment Performance</h3>
+                <span className="text-[13px] text-slate-500 dark:text-slate-400 font-inter mt-1 block">On-time vs late payment ratio this year</span>
+                <div className={`mt-3 inline-block px-3 py-1 rounded-full text-xs font-bold font-inter ${repaymentPerformanceSummary.pct >= 80 ? 'bg-emerald-50 dark:bg-emerald-500/10 text-emerald-600 dark:text-emerald-400' : 'bg-amber-50 dark:bg-amber-500/10 text-amber-600 dark:text-amber-400'}`}>{repaymentPerformanceSummary.pct}% On-Time Rate</div>
               </div>
-              <button className="la-chart-expand-btn" onClick={() => setExpandedChart('repayment')} title="Expand Chart">
+              <button className="w-8 h-8 rounded-lg bg-slate-50 dark:bg-white/5 flex items-center justify-center cursor-pointer transition-colors hover:bg-slate-100 dark:hover:bg-white/10 border-none shrink-0" onClick={() => setExpandedChart('repayment')} title="Expand Chart">
                 <Expand size={18} color="#4B5563" strokeWidth={2.5} />
               </button>
             </div>
@@ -590,19 +618,22 @@ export default function LoanAdminDashboard() {
                 </Bar>
               </BarChart>
             </ResponsiveContainer>
+            </div>
           </div>
         </div>
 
         {/* Row 4 — Applications Trend + Delinquency */}
-        <div className="adm-analytics-row adm-analytics-row-loan">
+        <div className="grid grid-cols-1 lg:grid-cols-2 gap-5 mb-5">
           {/* Monthly Loan Applications Trend */}
-          <div className="adm-card">
-            <div className="adm-card-header">
+          <div className="group relative bg-white dark:bg-[#1E2130] rounded-2xl p-6 border border-slate-100 dark:border-white/5 shadow-[0_2px_12px_-4px_rgba(0,0,0,0.04)] overflow-hidden">
+            <div className="absolute top-0 right-0 w-32 h-32 bg-blue-500/5 rounded-full blur-3xl -mr-10 -mt-10 pointer-events-none transition-transform duration-500 group-hover:scale-125"></div>
+            <div className="relative z-10">
+            <div className="flex items-start justify-between mb-6">
               <div>
-                <h3 className="adm-card-title">Loan Applications Trend</h3>
-                <span className="adm-card-sub">YTD {new Date().getFullYear()} — Monthly applications with approval/rejection breakdown</span>
+                <h3 className="text-base font-bold text-slate-800 dark:text-white font-inter tracking-tight m-0">Loan Applications Trend</h3>
+                <span className="text-[13px] text-slate-500 dark:text-slate-400 font-inter mt-1 block">YTD {new Date().getFullYear()} — Monthly applications with approval/rejection breakdown</span>
               </div>
-              <button className="la-chart-expand-btn" onClick={() => setExpandedChart('appTrend')} title="Expand Chart">
+              <button className="w-8 h-8 rounded-lg bg-slate-50 dark:bg-white/5 flex items-center justify-center cursor-pointer transition-colors hover:bg-slate-100 dark:hover:bg-white/10 border-none shrink-0" onClick={() => setExpandedChart('appTrend')} title="Expand Chart">
                 <Expand size={18} color="#4B5563" strokeWidth={2.5} />
               </button>
             </div>
@@ -624,17 +655,20 @@ export default function LoanAdminDashboard() {
                 <Line type="monotone" dataKey="rejected" stroke="#EF4444" strokeWidth={2} dot={{ r: 3 }} name="Rejected" />
               </AreaChart>
             </ResponsiveContainer>
+            </div>
           </div>
 
           {/* Delinquency Rate */}
-          <div className="adm-card">
-            <div className="adm-card-header">
+          <div className="group relative bg-white dark:bg-[#1E2130] rounded-2xl p-6 border border-slate-100 dark:border-white/5 shadow-[0_2px_12px_-4px_rgba(0,0,0,0.04)] overflow-hidden">
+            <div className="absolute top-0 right-0 w-32 h-32 bg-rose-500/5 rounded-full blur-3xl -mr-10 -mt-10 pointer-events-none transition-transform duration-500 group-hover:scale-125"></div>
+            <div className="relative z-10">
+            <div className="flex items-start justify-between mb-6">
               <div>
-                <h3 className="adm-card-title">Delinquency Rate</h3>
-                <span className="adm-card-sub">Percentage of late payments per month</span>
-                <div className={`la-card-total ${delinquencyRateSummary.avgRate <= 10 ? 'la-rate-good' : delinquencyRateSummary.avgRate <= 25 ? 'la-rate-warn' : 'la-rate-bad'}`}>Avg: {delinquencyRateSummary.avgRate}%</div>
+                <h3 className="text-base font-bold text-slate-800 dark:text-white font-inter tracking-tight m-0">Delinquency Rate</h3>
+                <span className="text-[13px] text-slate-500 dark:text-slate-400 font-inter mt-1 block">Percentage of late payments per month</span>
+                <div className={`mt-3 inline-block px-3 py-1 rounded-full text-xs font-bold font-inter ${delinquencyRateSummary.avgRate <= 10 ? 'bg-emerald-50 dark:bg-emerald-500/10 text-emerald-600 dark:text-emerald-400' : delinquencyRateSummary.avgRate <= 25 ? 'bg-amber-50 dark:bg-amber-500/10 text-amber-600 dark:text-amber-400' : 'bg-rose-50 dark:bg-rose-500/10 text-rose-600 dark:text-rose-400'}`}>Avg: {delinquencyRateSummary.avgRate}%</div>
               </div>
-              <button className="la-chart-expand-btn" onClick={() => setExpandedChart('delinquency')} title="Expand Chart">
+              <button className="w-8 h-8 rounded-lg bg-slate-50 dark:bg-white/5 flex items-center justify-center cursor-pointer transition-colors hover:bg-slate-100 dark:hover:bg-white/10 border-none shrink-0" onClick={() => setExpandedChart('delinquency')} title="Expand Chart">
                 <Expand size={18} color="#4B5563" strokeWidth={2.5} />
               </button>
             </div>
@@ -648,34 +682,35 @@ export default function LoanAdminDashboard() {
                 <Line type="monotone" dataKey="rate" stroke="#0D1F45" strokeWidth={2.5} dot={{ r: 4, fill: '#0D1F45' }} name="Delinquency %" />
               </LineChart>
             </ResponsiveContainer>
+            </div>
           </div>
         </div>
 
         {/* Row 5 — Recent Loan Applications */}
-        <div className="adm-card">
-          <div className="adm-card-header">
-            <h3 className="adm-card-title">Recent Loan Applications</h3>
-            <button className="loan-admin-dashboard-view-all" onClick={() => navigate('/loan-admin/loan-management')}>View All</button>
+        <div className="bg-white dark:bg-[#1E2130] rounded-2xl p-6 border border-slate-100 dark:border-white/5 shadow-[0_2px_12px_-4px_rgba(0,0,0,0.04)]">
+          <div className="flex items-start justify-between mb-6">
+            <h3 className="text-base font-bold text-slate-800 dark:text-white font-inter tracking-tight m-0">Recent Loan Applications</h3>
+            <button className="text-[13px] font-semibold text-blue-600 dark:text-blue-400 bg-transparent border-none cursor-pointer hover:underline p-0" onClick={() => navigate('/loan-admin/loan-management')}>View All</button>
           </div>
-          <div className="loan-admin-dashboard-payments-list">
+          <div className="flex flex-col gap-3 mt-4">
             {recentLoans.length === 0 ? (
-              <p className="la-empty-text">No recent loan applications.</p>
+              <p className="text-center text-slate-400 dark:text-slate-500 text-[13px] font-inter py-6">No recent loan applications.</p>
             ) : (
               recentLoans.map(loan => (
-                <div className="loan-admin-dashboard-payment-card" key={loan._id}>
-                  <div className="loan-admin-dashboard-payment-left">
-                    <div className="loan-admin-dashboard-payment-icon" style={{ background: loan.status === 'pending' ? '#FEF3C7' : '#EFF6FF' }}>
+                <div className="flex items-center justify-between p-4 bg-slate-50 dark:bg-[#252836] rounded-xl border border-slate-100 dark:border-white/5 hover:bg-slate-100 dark:hover:bg-white/10 transition-colors" key={loan._id}>
+                  <div className="flex items-center gap-3">
+                    <div className="w-10 h-10 rounded-lg flex items-center justify-center shrink-0" style={{ background: loan.status === 'pending' ? '#FEF3C7' : '#EFF6FF' }}>
                       <Banknote size={18} />
                     </div>
-                    <div className="loan-admin-dashboard-payment-info">
-                      <p className="loan-admin-dashboard-payment-name">{loan.memberName}</p>
-                      <p className="loan-admin-dashboard-payment-number">{loan.loanId}</p>
-                      <p className="loan-admin-dashboard-payment-due">Applied: {fmtDate(loan.appliedDate)}</p>
+                    <div className="flex flex-col">
+                      <p className="text-sm font-bold text-slate-800 dark:text-white font-inter m-0">{loan.memberName}</p>
+                      <p className="text-[11px] text-slate-500 dark:text-slate-400 font-inter m-0">{loan.loanId}</p>
+                      <p className="text-[11px] text-slate-400 font-inter mt-0.5 m-0">Applied: {fmtDate(loan.appliedDate)}</p>
                     </div>
                   </div>
-                  <div className="loan-admin-dashboard-payment-right">
-                    <p className="loan-admin-dashboard-payment-amount">{fmt(loan.amount)}</p>
-                    <p className="loan-admin-dashboard-payment-days" style={{ color: loan.status === 'pending' ? '#F59E0B' : '#155DFC', fontWeight: 600 }}>
+                  <div className="flex flex-col items-end gap-1">
+                    <p className="text-sm font-bold text-slate-800 dark:text-white font-inter m-0">{fmt(loan.amount)}</p>
+                    <p className={`text-sm font-semibold ${loan.status === 'pending' ? 'text-amber-500' : 'text-blue-600 dark:text-blue-400'}`}>
                       {loan.status.charAt(0).toUpperCase() + loan.status.slice(1)}
                     </p>
                   </div>
@@ -688,58 +723,57 @@ export default function LoanAdminDashboard() {
 
       {/* ── This Month Modal ── */}
       {showMonthModal && (
-        <div className="la-modal-overlay" onClick={() => setShowMonthModal(false)}>
-          <div className="la-modal" onClick={e => e.stopPropagation()}>
-            <div className="la-modal-header">
+        <div className="fixed inset-0 bg-black/50 backdrop-blur-sm flex items-center justify-center z-[1000] p-4 animate-fadeIn" onClick={() => setShowMonthModal(false)}>
+          <div className="bg-white dark:bg-[#1E2130] rounded-2xl w-full max-w-[700px] max-h-[85vh] flex flex-col shadow-2xl border border-slate-200 dark:border-white/10 overflow-hidden animate-slideUp" onClick={e => e.stopPropagation()}>
+            <div className="flex items-start justify-between p-6 border-b border-slate-100 dark:border-white/10 shrink-0">
               <div>
-                <h2 className="la-modal-title">Monthly Disbursements</h2>
-                <p className="la-modal-subtitle">{getMonthModalLabel()} — {filteredMonthLoans.length} loan(s) processed</p>
+                <h2 className="text-xl font-bold text-slate-900 dark:text-white font-inter m-0">Monthly Disbursements</h2>
+                <p className="text-[13px] text-slate-500 dark:text-slate-400 font-inter mt-1">{getMonthModalLabel()} — {filteredMonthLoans.length} loan(s) processed</p>
               </div>
-              <button className="la-modal-close" onClick={() => setShowMonthModal(false)}>
+              <button className="w-8 h-8 flex items-center justify-center rounded-lg bg-slate-50 dark:bg-white/5 text-slate-500 dark:text-slate-400 cursor-pointer border-none hover:bg-slate-100 dark:hover:bg-white/10 transition-colors" onClick={() => setShowMonthModal(false)}>
                 <X size={20} />
               </button>
             </div>
-            <div className="la-modal-filters">
+            <div className="flex items-center gap-3 p-[12px_24px] bg-slate-50 dark:bg-[#252836] border-b border-slate-100 dark:border-white/5 shrink-0">
               <Filter size={14} color="#6B7280" />
-              <select value={monthModalMonth} onChange={e => setMonthModalMonth(e.target.value)} className="la-modal-filter-select">
+              <select value={monthModalMonth} onChange={e => setMonthModalMonth(e.target.value)} className="appearance-none bg-white dark:bg-[#1E2130] border border-slate-200 dark:border-white/10 rounded-lg p-[6px_32px_6px_12px] text-[13px] font-inter text-slate-700 dark:text-slate-300 outline-none cursor-pointer hover:border-blue-500 transition-colors ">
                 {MONTH_NAMES.map((m, i) => <option key={i} value={i}>{m}</option>)}
               </select>
-              <select value={monthModalYear} onChange={e => setMonthModalYear(parseInt(e.target.value))} className="la-modal-filter-select">
+              <select value={monthModalYear} onChange={e => setMonthModalYear(parseInt(e.target.value))} className="appearance-none bg-white dark:bg-[#1E2130] border border-slate-200 dark:border-white/10 rounded-lg p-[6px_32px_6px_12px] text-[13px] font-inter text-slate-700 dark:text-slate-300 outline-none cursor-pointer hover:border-blue-500 transition-colors ">
                 {YEAR_OPTIONS.map(y => <option key={y} value={y}>{y}</option>)}
               </select>
             </div>
-            <div className="la-modal-body">
+            <div className="p-0 overflow-y-auto flex-1 custom-scrollbar">
               {filteredMonthLoans.length === 0 ? (
-                <div className="la-modal-empty">No disbursements for {getMonthModalLabel()}.</div>
+                <div className="p-10 text-center text-slate-500 dark:text-slate-400 text-sm font-inter">No disbursements for {getMonthModalLabel()}.</div>
               ) : (
-                <div className="la-modal-table-wrapper">
-                  <table className="la-modal-table">
-                    <thead>
-                      <tr>
-                        <th>Loan ID</th>
-                        <th>Member</th>
-                        <th>Amount</th>
-                        <th>Method</th>
-                        <th>Date</th>
+                <div className="w-full overflow-x-auto">
+                  <table className="w-full border-collapse font-inter text-left">
+                    <thead ><tr className="sticky top-0 bg-slate-50 dark:bg-[#252836] z-10 shadow-sm border-b border-slate-200 dark:border-white/10">
+                        <th className="p-[12px_16px] text-[11px] font-semibold text-slate-500 dark:text-slate-400 uppercase tracking-wider whitespace-nowrap">Loan ID</th>
+                        <th className="p-[12px_16px] text-[11px] font-semibold text-slate-500 dark:text-slate-400 uppercase tracking-wider whitespace-nowrap">Member</th>
+                        <th className="p-[12px_16px] text-[11px] font-semibold text-slate-500 dark:text-slate-400 uppercase tracking-wider whitespace-nowrap">Amount</th>
+                        <th className="p-[12px_16px] text-[11px] font-semibold text-slate-500 dark:text-slate-400 uppercase tracking-wider whitespace-nowrap">Method</th>
+                        <th className="p-[12px_16px] text-[11px] font-semibold text-slate-500 dark:text-slate-400 uppercase tracking-wider whitespace-nowrap">Date</th>
                       </tr>
                     </thead>
-                    <tbody>
+                    <tbody className="divide-y divide-slate-100 dark:divide-white/5">
                       {filteredMonthLoans.map(l => (
                         <tr key={l._id}>
-                          <td className="la-modal-loan-id">{l.loanId}</td>
-                          <td>{l.memberName || 'N/A'}</td>
-                          <td className="la-modal-amount">{fmt(l.amount)}</td>
-                          <td><span className={`la-method-badge la-method-${(l.paymentMethod || 'cash').toLowerCase()}`}>{l.paymentMethod || 'Cash'}</span></td>
-                          <td>{fmtDate(l.disbursementDate)}</td>
+                          <td className="font-semibold text-blue-600 dark:text-blue-400">{l.loanId}</td>
+                          <td className="p-[14px_16px] text-[13px] text-slate-600 dark:text-slate-300 whitespace-nowrap">{l.memberName || 'N/A'}</td>
+                          <td className="font-semibold text-slate-800 dark:text-white">{fmt(l.amount)}</td>
+                          <td className="p-[14px_16px] text-[13px] text-slate-600 dark:text-slate-300 whitespace-nowrap"><span className={`inline-block px-2.5 py-1 rounded-md text-[11px] font-bold tracking-wide uppercase ${ (l.paymentMethod || 'cash').toLowerCase() === 'e-wallet' || (l.paymentMethod || 'cash').toLowerCase() === 'gcash' ? 'bg-blue-100 text-blue-700 dark:bg-blue-500/20 dark:text-blue-400' : (l.paymentMethod || 'cash').toLowerCase().includes('bank') ? 'bg-emerald-100 text-emerald-700 dark:bg-emerald-500/20 dark:text-emerald-400' : 'bg-amber-100 text-amber-700 dark:bg-amber-500/20 dark:text-amber-400'}`}>{l.paymentMethod || 'Cash'}</span></td>
+                          <td className="p-[14px_16px] text-[13px] text-slate-600 dark:text-slate-300 whitespace-nowrap">{fmtDate(l.disbursementDate)}</td>
                         </tr>
                       ))}
                     </tbody>
                   </table>
                 </div>
               )}
-              <div className="la-modal-summary">
+              <div className="flex items-center justify-between p-5 bg-blue-50 dark:bg-blue-500/10 border-t border-blue-100 dark:border-blue-500/20 text-[13px] font-semibold text-blue-800 dark:text-blue-300 mt-auto shrink-0">
                 <span>Total for {getMonthModalLabel()}</span>
-                <span className="la-modal-summary-value">{fmt(monthModalTotal)}</span>
+                <span className="text-lg font-bold text-blue-700 dark:text-blue-400">{fmt(monthModalTotal)}</span>
               </div>
             </div>
           </div>
@@ -748,60 +782,59 @@ export default function LoanAdminDashboard() {
 
       {/* ── Total Disbursed Modal ── */}
       {showDisbursedModal && (
-        <div className="la-modal-overlay" onClick={() => setShowDisbursedModal(false)}>
-          <div className="la-modal" onClick={e => e.stopPropagation()}>
-            <div className="la-modal-header">
+        <div className="fixed inset-0 bg-black/50 backdrop-blur-sm flex items-center justify-center z-[1000] p-4 animate-fadeIn" onClick={() => setShowDisbursedModal(false)}>
+          <div className="bg-white dark:bg-[#1E2130] rounded-2xl w-full max-w-[700px] max-h-[85vh] flex flex-col shadow-2xl border border-slate-200 dark:border-white/10 overflow-hidden animate-slideUp" onClick={e => e.stopPropagation()}>
+            <div className="flex items-start justify-between p-6 border-b border-slate-100 dark:border-white/10 shrink-0">
               <div>
-                <h2 className="la-modal-title">All Disbursements</h2>
-                <p className="la-modal-subtitle">{getDisbModalLabel()} — {filteredDisbLoans.length} loan(s) — {fmt(disbModalTotal)}</p>
+                <h2 className="text-xl font-bold text-slate-900 dark:text-white font-inter m-0">All Disbursements</h2>
+                <p className="text-[13px] text-slate-500 dark:text-slate-400 font-inter mt-1">{getDisbModalLabel()} — {filteredDisbLoans.length} loan(s) — {fmt(disbModalTotal)}</p>
               </div>
-              <button className="la-modal-close" onClick={() => setShowDisbursedModal(false)}>
+              <button className="w-8 h-8 flex items-center justify-center rounded-lg bg-slate-50 dark:bg-white/5 text-slate-500 dark:text-slate-400 cursor-pointer border-none hover:bg-slate-100 dark:hover:bg-white/10 transition-colors" onClick={() => setShowDisbursedModal(false)}>
                 <X size={20} />
               </button>
             </div>
-            <div className="la-modal-filters">
+            <div className="flex items-center gap-3 p-[12px_24px] bg-slate-50 dark:bg-[#252836] border-b border-slate-100 dark:border-white/5 shrink-0">
               <Filter size={14} color="#6B7280" />
-              <select value={disbModalMonth} onChange={e => setDisbModalMonth(e.target.value)} className="la-modal-filter-select">
+              <select value={disbModalMonth} onChange={e => setDisbModalMonth(e.target.value)} className="appearance-none bg-white dark:bg-[#1E2130] border border-slate-200 dark:border-white/10 rounded-lg p-[6px_32px_6px_12px] text-[13px] font-inter text-slate-700 dark:text-slate-300 outline-none cursor-pointer hover:border-blue-500 transition-colors ">
                 <option value="all">All Months</option>
                 {MONTH_NAMES.map((m, i) => <option key={i} value={i}>{m}</option>)}
               </select>
-              <select value={disbModalYear} onChange={e => setDisbModalYear(e.target.value)} className="la-modal-filter-select">
+              <select value={disbModalYear} onChange={e => setDisbModalYear(e.target.value)} className="appearance-none bg-white dark:bg-[#1E2130] border border-slate-200 dark:border-white/10 rounded-lg p-[6px_32px_6px_12px] text-[13px] font-inter text-slate-700 dark:text-slate-300 outline-none cursor-pointer hover:border-blue-500 transition-colors ">
                 <option value="all">All Years</option>
                 {YEAR_OPTIONS.map(y => <option key={y} value={y}>{y}</option>)}
               </select>
             </div>
-            <div className="la-modal-body">
+            <div className="p-0 overflow-y-auto flex-1 custom-scrollbar">
               {filteredDisbLoans.length === 0 ? (
-                <div className="la-modal-empty">No disbursements for {getDisbModalLabel()}.</div>
+                <div className="p-10 text-center text-slate-500 dark:text-slate-400 text-sm font-inter">No disbursements for {getDisbModalLabel()}.</div>
               ) : (
-                <div className="la-modal-table-wrapper">
-                  <table className="la-modal-table">
-                    <thead>
-                      <tr>
-                        <th>Loan ID</th>
-                        <th>Member</th>
-                        <th>Amount</th>
-                        <th>Method</th>
-                        <th>Date</th>
+                <div className="w-full overflow-x-auto">
+                  <table className="w-full border-collapse font-inter text-left">
+                    <thead ><tr className="sticky top-0 bg-slate-50 dark:bg-[#252836] z-10 shadow-sm border-b border-slate-200 dark:border-white/10">
+                        <th className="p-[12px_16px] text-[11px] font-semibold text-slate-500 dark:text-slate-400 uppercase tracking-wider whitespace-nowrap">Loan ID</th>
+                        <th className="p-[12px_16px] text-[11px] font-semibold text-slate-500 dark:text-slate-400 uppercase tracking-wider whitespace-nowrap">Member</th>
+                        <th className="p-[12px_16px] text-[11px] font-semibold text-slate-500 dark:text-slate-400 uppercase tracking-wider whitespace-nowrap">Amount</th>
+                        <th className="p-[12px_16px] text-[11px] font-semibold text-slate-500 dark:text-slate-400 uppercase tracking-wider whitespace-nowrap">Method</th>
+                        <th className="p-[12px_16px] text-[11px] font-semibold text-slate-500 dark:text-slate-400 uppercase tracking-wider whitespace-nowrap">Date</th>
                       </tr>
                     </thead>
-                    <tbody>
+                    <tbody className="divide-y divide-slate-100 dark:divide-white/5">
                       {filteredDisbLoans.map(l => (
                         <tr key={l._id}>
-                          <td className="la-modal-loan-id">{l.loanId}</td>
-                          <td>{l.memberName || 'N/A'}</td>
-                          <td className="la-modal-amount">{fmt(l.amount)}</td>
-                          <td><span className={`la-method-badge la-method-${(l.paymentMethod || 'cash').toLowerCase()}`}>{l.paymentMethod || 'Cash'}</span></td>
-                          <td>{fmtDate(l.disbursementDate)}</td>
+                          <td className="font-semibold text-blue-600 dark:text-blue-400">{l.loanId}</td>
+                          <td className="p-[14px_16px] text-[13px] text-slate-600 dark:text-slate-300 whitespace-nowrap">{l.memberName || 'N/A'}</td>
+                          <td className="font-semibold text-slate-800 dark:text-white">{fmt(l.amount)}</td>
+                          <td className="p-[14px_16px] text-[13px] text-slate-600 dark:text-slate-300 whitespace-nowrap"><span className={`inline-block px-2.5 py-1 rounded-md text-[11px] font-bold tracking-wide uppercase ${ (l.paymentMethod || 'cash').toLowerCase() === 'e-wallet' || (l.paymentMethod || 'cash').toLowerCase() === 'gcash' ? 'bg-blue-100 text-blue-700 dark:bg-blue-500/20 dark:text-blue-400' : (l.paymentMethod || 'cash').toLowerCase().includes('bank') ? 'bg-emerald-100 text-emerald-700 dark:bg-emerald-500/20 dark:text-emerald-400' : 'bg-amber-100 text-amber-700 dark:bg-amber-500/20 dark:text-amber-400'}`}>{l.paymentMethod || 'Cash'}</span></td>
+                          <td className="p-[14px_16px] text-[13px] text-slate-600 dark:text-slate-300 whitespace-nowrap">{fmtDate(l.disbursementDate)}</td>
                         </tr>
                       ))}
                     </tbody>
                   </table>
                 </div>
               )}
-              <div className="la-modal-summary">
+              <div className="flex items-center justify-between p-5 bg-blue-50 dark:bg-blue-500/10 border-t border-blue-100 dark:border-blue-500/20 text-[13px] font-semibold text-blue-800 dark:text-blue-300 mt-auto shrink-0">
                 <span>Total ({getDisbModalLabel()})</span>
-                <span className="la-modal-summary-value">{fmt(disbModalTotal)}</span>
+                <span className="text-lg font-bold text-blue-700 dark:text-blue-400">{fmt(disbModalTotal)}</span>
               </div>
             </div>
           </div>
@@ -844,55 +877,55 @@ export default function LoanAdminDashboard() {
                 return (
                 <>
                   {/* Monthly Breakdown Table */}
-                  <div className="la-ex-section">
-                    <table className="la-ex-table">
+                  <div className="mb-5">
+                    <table className="w-full border-collapse text-[13px]">
                       <thead>
-                        <tr className="la-ex-thead-row">
-                          <th>Month</th>
-                          <th className="la-ex-text-right">Money In</th>
-                          <th className="la-ex-text-right">Money Out</th>
-                          <th className="la-ex-text-right">Net</th>
-                          <th className="la-ex-text-right">MoM Change</th>
+                        <tr className="border-b-2 border-gray-200 dark:border-gray-700 text-left">
+                          <th className="p-[12px_16px] text-[11px] font-semibold text-slate-500 dark:text-slate-400 uppercase tracking-wider whitespace-nowrap">Month</th>
+                          <th className="text-right">Money In</th>
+                          <th className="text-right">Money Out</th>
+                          <th className="text-right">Net</th>
+                          <th className="text-right">MoM Change</th>
                         </tr>
                       </thead>
-                      <tbody>
+                      <tbody className="divide-y divide-slate-100 dark:divide-white/5">
                         {netData.map((d, i) => {
                           const hasData = (d.received || 0) > 0 || (d.disbursed || 0) > 0;
                           return (
-                            <tr key={d.month} className={`la-ex-tr ${!hasData ? 'la-ex-tr-faded' : ''}`}>
-                              <td className="la-ex-fw-500">{d.month}</td>
-                              <td className="la-ex-text-right la-ex-color-navy la-ex-fw-600">₱{(d.received || 0).toLocaleString()}</td>
-                              <td className="la-ex-text-right la-ex-color-blue la-ex-fw-600">₱{(d.disbursed || 0).toLocaleString()}</td>
-                              <td className={`la-ex-text-right la-ex-fw-700 ${d.net >= 0 ? 'la-ex-color-green' : 'la-ex-color-red'}`}>
+                            <tr key={d.month} className={`border-b border-gray-100 dark:border-white/5 hover:bg-gray-50 dark:hover:bg-white/5 transition-colors ${!hasData ? 'opacity-40' : ''}`}>
+                              <td className="font-medium">{d.month}</td>
+                              <td className="text-right font-semibold text-[#0D1F45] dark:text-blue-300">₱{(d.received || 0).toLocaleString()}</td>
+                              <td className="text-right font-semibold text-blue-500 dark:text-blue-400">₱{(d.disbursed || 0).toLocaleString()}</td>
+                              <td className={`text-right font-bold ${d.net >= 0 ? 'text-emerald-600 dark:text-emerald-400' : 'text-rose-600 dark:text-rose-400'}`}>
                                 {d.net >= 0 ? '+' : '-'}₱{Math.abs(d.net).toLocaleString()}
                               </td>
-                              <td className="la-ex-text-right">
+                              <td className="text-right">
                                 {d.momChange !== null && hasData ? (
-                                  <span className={`la-ex-badge ${parseFloat(d.momChange) >= 0 ? 'la-ex-badge-green' : 'la-ex-badge-red'}`}>
+                                  <span className={`inline-block px-2 py-0.5 rounded-md text-[10px] font-bold ${parseFloat(d.momChange) >= 0 ? 'bg-emerald-50 text-emerald-700 dark:bg-emerald-500/20 dark:text-emerald-400' : 'bg-rose-50 text-rose-700 dark:bg-rose-500/20 dark:text-rose-400'}`}>
                                     {parseFloat(d.momChange) >= 0 ? '↑' : '↓'} {Math.abs(parseFloat(d.momChange))}%
                                   </span>
-                                ) : <span className="la-ex-dash">—</span>}
+                                ) : <span className="text-gray-400">—</span>}
                               </td>
                             </tr>
                           );
                         })}
-                        <tr className="la-ex-tr-total">
-                          <td>Total</td>
-                          <td className="la-ex-text-right la-ex-color-navy">₱{totalIn.toLocaleString()}</td>
-                          <td className="la-ex-text-right la-ex-color-blue">₱{totalOut.toLocaleString()}</td>
-                          <td className={`la-ex-text-right ${totalNet >= 0 ? 'la-ex-color-green' : 'la-ex-color-red'}`}>
+                        <tr className="border-t-2 border-gray-300 dark:border-gray-600 bg-slate-50 dark:bg-white/5 font-semibold">
+                          <td className="p-[14px_16px] text-[13px] text-slate-600 dark:text-slate-300 whitespace-nowrap">Total</td>
+                          <td className="text-right text-[#0D1F45] dark:text-blue-300">₱{totalIn.toLocaleString()}</td>
+                          <td className="text-right text-blue-500 dark:text-blue-400">₱{totalOut.toLocaleString()}</td>
+                          <td className={`text-right font-bold ${totalNet >= 0 ? 'text-emerald-600 dark:text-emerald-400' : 'text-rose-600 dark:text-rose-400'}`}>
                             {totalNet >= 0 ? '+' : '-'}₱{Math.abs(totalNet).toLocaleString()}
                           </td>
-                          <td></td>
+                          <td className="p-[14px_16px] text-[13px] text-slate-600 dark:text-slate-300 whitespace-nowrap"></td>
                         </tr>
                       </tbody>
                     </table>
                   </div>
 
                   {/* Cumulative Cash Flow Line */}
-                  <div className="la-ex-section-sm">
-                    <h4 className="adm-expand-panel-title la-ex-section-title">Cumulative Cash Flow</h4>
-                    <div className="la-ex-chart-280">
+                  <div className="mb-4">
+                    <h4 className="font-inter text-[13px] font-semibold text-gray-700 dark:text-gray-100 m-0 mb-2 uppercase tracking-[0.03em]">Cumulative Cash Flow</h4>
+                    <div className="h-[280px]">
                       <ResponsiveContainer width="100%" height="100%">
                         <AreaChart data={cumulativeData} margin={{ top: 20, right: 30, left: 10, bottom: 10 }}>
                           <defs>
@@ -927,7 +960,7 @@ export default function LoanAdminDashboard() {
                     </div>
                   </div>
 
-                  <div className="adm-expand-interpretation">
+                  <div className="mt-4 p-[14px_16px] bg-slate-50 dark:bg-[#1E2130] rounded-lg border-l-4 border-[#0D1F45] dark:border-blue-400 text-[13px] text-gray-700 dark:text-gray-300 leading-relaxed">
                     <strong>Interpretation:</strong> The table shows exact peso values for money received (repayments) and released (disbursements) each month, along with the net balance and month-over-month change direction. The cumulative cash flow chart below tracks the running net position over the year — if the line stays above ₱0, the lending portfolio is in surplus; below means more has been released than received.
                   </div>
                 </>
@@ -937,19 +970,19 @@ export default function LoanAdminDashboard() {
               {expandedChart === 'disbursements' && (
                 <>
                   {/* Summary Table */}
-                  <div className="la-ex-section">
-                    <table className="la-ex-table">
+                  <div className="mb-5">
+                    <table className="w-full border-collapse text-[13px]">
                       <thead>
-                        <tr className="la-ex-thead-row">
+                        <tr className="border-b-2 border-gray-200 dark:border-gray-700 text-left">
                           <th >Loan Type</th>
-                          <th className="la-ex-text-center"># Loans</th>
-                          <th className="la-ex-text-right">Total Disbursed</th>
-                          <th className="la-ex-text-right">Avg Loan Size</th>
-                          <th className="la-ex-text-right">% Share</th>
-                          <th className="la-ex-text-center">Monthly Trend</th>
+                          <th className="text-center"># Loans</th>
+                          <th className="text-right">Total Disbursed</th>
+                          <th className="text-right">Avg Loan Size</th>
+                          <th className="text-right">% Share</th>
+                          <th className="text-center">Monthly Trend</th>
                         </tr>
                       </thead>
-                      <tbody>
+                      <tbody className="divide-y divide-slate-100 dark:divide-white/5">
                         {disbursementByTypeDetail.map((d, i) => {
                           const CHART_COLORS = ['#0D1F45', '#1E3A8A', '#2563EB', '#3B82F6', '#60A5FA'];
                           const color = CHART_COLORS[i % CHART_COLORS.length];
@@ -957,18 +990,18 @@ export default function LoanAdminDashboard() {
                           // Build sparkline data for this type
                           const sparkData = disbursementMonthlyTrend.map(m => ({ v: m[d.label] || 0 }));
                           return (
-                            <tr key={d.type} className="la-ex-tr">
-                              <td className="la-ex-legend-item">
-                                <span className="la-ex-legend-dot" style={{ background: color }} />
+                            <tr key={d.type} className="border-b border-gray-100 dark:border-white/5 hover:bg-gray-50 dark:hover:bg-white/5 transition-colors">
+                              <td className="flex items-start gap-2.5">
+                                <span className="w-2.5 h-2.5 rounded-full mt-1 shrink-0" style={{ background: color }} />
                                 {d.label}
                               </td>
-                              <td className="la-ex-text-center la-ex-fw-600">{d.count}</td>
-                              <td className="la-ex-text-right la-ex-fw-600 la-ex-color-navy">₱{d.amount.toLocaleString()}</td>
-                              <td className="la-ex-text-right la-ex-color-gray">{d.count > 0 ? `₱${Math.round(d.average).toLocaleString()}` : '—'}</td>
-                              <td className="la-ex-text-right">
+                              <td className="text-center font-semibold">{d.count}</td>
+                              <td className="text-right font-semibold text-[#0D1F45] dark:text-blue-300">₱{d.amount.toLocaleString()}</td>
+                              <td className="text-right text-gray-500 dark:text-gray-400">{d.count > 0 ? `₱${Math.round(d.average).toLocaleString()}` : '—'}</td>
+                              <td className="text-right">
                                 <span style={{ background: `${color}18`, color, padding: '2px 8px', borderRadius: '12px', fontSize: '12px', fontWeight: 600 }}>{pct}%</span>
                               </td>
-                              <td className="la-ex-sparkline-cell">
+                              <td className="p-[8px_10px]">
                                 <ResponsiveContainer width={120} height={32}>
                                   <LineChart data={sparkData} margin={{ top: 4, right: 4, left: 4, bottom: 4 }}>
                                     <Line type="monotone" dataKey="v" stroke={color} strokeWidth={1.5} dot={false} />
@@ -979,15 +1012,15 @@ export default function LoanAdminDashboard() {
                           );
                         })}
                         {disbursementByTypeDetail.length > 0 && (
-                          <tr className="la-ex-tr-total">
+                          <tr className="border-t-2 border-gray-300 dark:border-gray-600 bg-slate-50 dark:bg-white/5 font-semibold">
                             <td >Total</td>
-                            <td className="la-ex-text-center">{disbursementByTypeDetail.reduce((s, d) => s + d.count, 0)}</td>
-                            <td className="la-ex-text-right la-ex-color-navy">₱{disbursementSummary.total.toLocaleString()}</td>
-                            <td className="la-ex-text-right la-ex-color-gray">
+                            <td className="text-center">{disbursementByTypeDetail.reduce((s, d) => s + d.count, 0)}</td>
+                            <td className="text-right text-[#0D1F45] dark:text-blue-300">₱{disbursementSummary.total.toLocaleString()}</td>
+                            <td className="text-right text-gray-500 dark:text-gray-400">
                               {(() => { const total = disbursementByTypeDetail.reduce((s, d) => s + d.count, 0); return total > 0 ? `₱${Math.round(disbursementSummary.total / total).toLocaleString()}` : '—'; })()}
                             </td>
-                            <td className="la-ex-text-right">100%</td>
-                            <td></td>
+                            <td className="text-right">100%</td>
+                            <td className="p-[14px_16px] text-[13px] text-slate-600 dark:text-slate-300 whitespace-nowrap"></td>
                           </tr>
                         )}
                       </tbody>
@@ -995,9 +1028,9 @@ export default function LoanAdminDashboard() {
                   </div>
 
                   {/* Monthly Disbursement Trend by Type */}
-                  <div className="la-ex-section-sm">
-                    <h4 className="adm-expand-panel-title la-ex-section-title">Monthly Disbursement Trend by Loan Type</h4>
-                    <div className="la-ex-chart-280">
+                  <div className="mb-4">
+                    <h4 className="font-inter text-[13px] font-semibold text-gray-700 dark:text-gray-100 m-0 mb-2 uppercase tracking-[0.03em]">Monthly Disbursement Trend by Loan Type</h4>
+                    <div className="h-[280px]">
                       <ResponsiveContainer width="100%" height="100%">
                         <BarChart data={disbursementMonthlyTrend} margin={{ top: 10, right: 10, left: -10, bottom: 10 }}>
                           <CartesianGrid strokeDasharray="3 3" stroke="#F3F4F6" />
@@ -1013,7 +1046,7 @@ export default function LoanAdminDashboard() {
                     </div>
                   </div>
 
-                  <div className="adm-expand-interpretation">
+                  <div className="mt-4 p-[14px_16px] bg-slate-50 dark:bg-[#1E2130] rounded-lg border-l-4 border-[#0D1F45] dark:border-blue-400 text-[13px] text-gray-700 dark:text-gray-300 leading-relaxed">
                     <strong>Interpretation:</strong> The summary table breaks down each loan type by volume (# of loans), total disbursed amount, average loan size, and portfolio share. The sparklines show monthly directional trends per type. The bar chart below visualizes month-over-month disbursement patterns across all loan types to identify seasonal demand and inform fund allocation planning.
                   </div>
                 </>
@@ -1032,29 +1065,29 @@ export default function LoanAdminDashboard() {
                 return (
                 <>
                   {/* Section 1 — Summary Stats + Cumulative Chart */}
-                  <div className="la-ex-scorecard la-ex-scorecard-4">
-                    <div className="la-ex-tile">
-                      <div className="la-ex-tile-label">Total Savings</div>
-                      <div className="la-ex-tile-value">₱{totalSavings.toLocaleString()}</div>
+                  <div className="grid grid-cols-2 md:grid-cols-4 gap-3 mb-5">
+                    <div className="bg-slate-50 dark:bg-[#1E2130] rounded-xl p-[14px_16px] text-center border border-slate-100 dark:border-white/5">
+                      <div className="text-[11px] text-gray-500 font-medium mb-1 dark:text-gray-400 font-inter">Total Savings</div>
+                      <div className="text-xl font-bold text-[#0D1F45] dark:text-gray-100 font-inter">₱{totalSavings.toLocaleString()}</div>
                     </div>
-                    <div className="la-ex-tile">
-                      <div className="la-ex-tile-label">Total Members Saving</div>
-                      <div className="la-ex-tile-value">{savingsSummary.totalSavers || 0}</div>
+                    <div className="bg-slate-50 dark:bg-[#1E2130] rounded-xl p-[14px_16px] text-center border border-slate-100 dark:border-white/5">
+                      <div className="text-[11px] text-gray-500 font-medium mb-1 dark:text-gray-400 font-inter">Total Members Saving</div>
+                      <div className="text-xl font-bold text-[#0D1F45] dark:text-gray-100 font-inter">{savingsSummary.totalSavers || 0}</div>
                     </div>
-                    <div className="la-ex-tile">
-                      <div className="la-ex-tile-label">Avg per Member</div>
-                      <div className="la-ex-tile-value">₱{(savingsSummary.avgPerSaver || 0).toLocaleString()}</div>
+                    <div className="bg-slate-50 dark:bg-[#1E2130] rounded-xl p-[14px_16px] text-center border border-slate-100 dark:border-white/5">
+                      <div className="text-[11px] text-gray-500 font-medium mb-1 dark:text-gray-400 font-inter">Avg per Member</div>
+                      <div className="text-xl font-bold text-[#0D1F45] dark:text-gray-100 font-inter">₱{(savingsSummary.avgPerSaver || 0).toLocaleString()}</div>
                     </div>
-                    <div className="la-ex-tile">
-                      <div className="la-ex-tile-label">Highest Month</div>
-                      <div className="la-ex-tile-value">{savingsSummary.highestMonth || '—'}</div>
-                      <div className="la-ex-tile-sub">₱{(savingsSummary.highestMonthAmount || 0).toLocaleString()}</div>
+                    <div className="bg-slate-50 dark:bg-[#1E2130] rounded-xl p-[14px_16px] text-center border border-slate-100 dark:border-white/5">
+                      <div className="text-[11px] text-gray-500 font-medium mb-1 dark:text-gray-400 font-inter">Highest Month</div>
+                      <div className="text-xl font-bold text-[#0D1F45] dark:text-gray-100 font-inter">{savingsSummary.highestMonth || '—'}</div>
+                      <div className="text-[11px] text-gray-500 dark:text-gray-400 font-inter">₱{(savingsSummary.highestMonthAmount || 0).toLocaleString()}</div>
                     </div>
                   </div>
 
-                  <div className="la-ex-section-lg">
-                    <h4 className="adm-expand-panel-title la-ex-section-title">Cumulative Savings Trend</h4>
-                    <div className="la-ex-chart-220">
+                  <div className="mb-6">
+                    <h4 className="font-inter text-[13px] font-semibold text-gray-700 dark:text-gray-100 m-0 mb-2 uppercase tracking-[0.03em]">Cumulative Savings Trend</h4>
+                    <div className="h-[220px]">
                       <ResponsiveContainer width="100%" height="100%">
                         <AreaChart data={cumulativeData} margin={{ top: 10, right: 30, left: 10, bottom: 10 }}>
                           <defs>
@@ -1076,38 +1109,38 @@ export default function LoanAdminDashboard() {
                   </div>
 
                   {/* Section 2 — Community Savings Table */}
-                  <div className="la-ex-section-lg">
-                    <h4 className="adm-expand-panel-title la-ex-section-title">Savings by Community</h4>
-                    <div className="la-ex-table-scroll">
-                      <table className="la-ex-table">
+                  <div className="mb-6">
+                    <h4 className="font-inter text-[13px] font-semibold text-gray-700 dark:text-gray-100 m-0 mb-2 uppercase tracking-[0.03em]">Savings by Community</h4>
+                    <div className="max-h-[320px] overflow-auto border border-gray-200 dark:border-gray-700 rounded-lg">
+                      <table className="w-full border-collapse text-[13px]">
                         <thead >
-                          <tr className="la-ex-thead-row">
+                          <tr className="border-b-2 border-gray-200 dark:border-gray-700 text-left">
                             <th >#</th>
                             <th >Community</th>
-                            <th className="la-ex-text-right">Total Savings</th>
-                            <th className="la-ex-text-center">Members</th>
-                            <th className="la-ex-text-right">Avg / Member</th>
-                            <th className="la-ex-text-right">% Share</th>
+                            <th className="text-right">Total Savings</th>
+                            <th className="text-center">Members</th>
+                            <th className="text-right">Avg / Member</th>
+                            <th className="text-right">% Share</th>
                           </tr>
                         </thead>
-                        <tbody>
+                        <tbody className="divide-y divide-slate-100 dark:divide-white/5">
                           {communitySavings.map((c, i) => {
                             const pct = totalSavings > 0 ? ((c.totalSavings / totalSavings) * 100).toFixed(1) : '0.0';
                             return (
-                              <tr key={c.community} className="la-ex-tr">
-                                <td className="la-ex-color-muted">{i + 1}</td>
-                                <td className="la-ex-fw-500">{c.community}</td>
-                                <td className="la-ex-text-right la-ex-fw-600 la-ex-color-navy">₱{c.totalSavings.toLocaleString()}</td>
-                                <td className="la-ex-text-center">{c.memberCount}</td>
-                                <td className="la-ex-text-right la-ex-color-gray">₱{c.avgPerMember.toLocaleString()}</td>
-                                <td className="la-ex-text-right">
+                              <tr key={c.community} className="border-b border-gray-100 dark:border-white/5 hover:bg-gray-50 dark:hover:bg-white/5 transition-colors">
+                                <td className="text-gray-400 dark:text-gray-500">{i + 1}</td>
+                                <td className="font-medium">{c.community}</td>
+                                <td className="text-right font-semibold text-[#0D1F45] dark:text-blue-300">₱{c.totalSavings.toLocaleString()}</td>
+                                <td className="text-center">{c.memberCount}</td>
+                                <td className="text-right text-gray-500 dark:text-gray-400">₱{c.avgPerMember.toLocaleString()}</td>
+                                <td className="text-right">
                                   <span style={{ background: '#0D1F4518', color: '#0D1F45', padding: '2px 8px', borderRadius: '12px', fontSize: '12px', fontWeight: 600 }}>{pct}%</span>
                                 </td>
                               </tr>
                             );
                           })}
                           {communitySavings.length === 0 && (
-                            <tr><td colSpan={6} className="la-ex-table-empty">No community savings data available.</td></tr>
+                            <tr><td colSpan={6} className="font-inter text-[13px] text-slate-600 dark:text-slate-300">No community savings data available.</td></tr>
                           )}
                         </tbody>
                       </table>
@@ -1116,8 +1149,8 @@ export default function LoanAdminDashboard() {
 
                   {/* Section 3 — Top Communities Bar Chart */}
                   {topCommunities.length > 0 && (
-                    <div className="la-ex-section-sm">
-                      <h4 className="adm-expand-panel-title la-ex-section-title">Top Communities by Savings</h4>
+                    <div className="mb-4">
+                      <h4 className="font-inter text-[13px] font-semibold text-gray-700 dark:text-gray-100 m-0 mb-2 uppercase tracking-[0.03em]">Top Communities by Savings</h4>
                       <div style={{ height: Math.max(200, topCommunities.length * 36) + 'px' }}>
                         <ResponsiveContainer width="100%" height="100%">
                           <BarChart data={topCommunities} layout="vertical" margin={{ top: 5, right: 80, left: 10, bottom: 5 }}>
@@ -1138,7 +1171,7 @@ export default function LoanAdminDashboard() {
                     </div>
                   )}
 
-                  <div className="adm-expand-interpretation">
+                  <div className="mt-4 p-[14px_16px] bg-slate-50 dark:bg-[#1E2130] rounded-lg border-l-4 border-[#0D1F45] dark:border-blue-400 text-[13px] text-gray-700 dark:text-gray-300 leading-relaxed">
                     <strong>Interpretation:</strong> The summary stats show overall savings health across the platform. The cumulative chart tracks total deposit growth over the year. The community table breaks down savings by branch — showing total amounts, active member counts, and per-member averages. The bar chart highlights the top-performing communities to identify where savings programs are most successful.
                   </div>
                 </>
@@ -1151,18 +1184,18 @@ export default function LoanAdminDashboard() {
                 return (
                 <>
                   {/* Section 1 — Stacked Status Bar */}
-                  <div className="la-ex-section">
-                    <div className="la-ex-stacked-bar">
+                  <div className="mb-5">
+                    <div className="font-inter text-[13px] text-slate-600 dark:text-slate-300">
                       {statusDistribution.filter(d => d.value > 0).map((d, i) => (
                         <div key={i} style={{ width: `${(d.value / total) * 100}%`, background: STATUS_COLORS[d.name] || '#9CA3AF', display: 'flex', alignItems: 'center', justifyContent: 'center', color: '#fff', fontSize: '11px', fontWeight: 600, minWidth: '30px' }}>
                           {d.value}
                         </div>
                       ))}
                     </div>
-                    <div className="la-ex-status-legend">
+                    <div className="font-inter text-[13px] text-slate-600 dark:text-slate-300">
                       {statusDistribution.map((d, i) => (
-                        <span key={i} className="la-ex-status-legend-item">
-                          <span className="la-ex-status-dot-sm" style={{ background: STATUS_COLORS[d.name] || '#9CA3AF' }} />
+                        <span key={i} className="font-inter text-[13px] text-slate-600 dark:text-slate-300">
+                          <span className="font-inter text-[13px] text-slate-600 dark:text-slate-300" style={{ background: STATUS_COLORS[d.name] || '#9CA3AF' }} />
                           {d.name}: {d.value} ({total > 0 ? ((d.value / total) * 100).toFixed(1) : 0}%)
                         </span>
                       ))}
@@ -1170,37 +1203,37 @@ export default function LoanAdminDashboard() {
                   </div>
 
                   {/* Section 2 — Branch Status Table */}
-                  <div className="la-ex-section-lg">
-                    <h4 className="adm-expand-panel-title la-ex-section-title">Status by Community</h4>
-                    <div className="la-ex-table-scroll la-ex-table-scroll-md">
-                      <table className="la-ex-table la-ex-table-sm">
+                  <div className="mb-6">
+                    <h4 className="font-inter text-[13px] font-semibold text-gray-700 dark:text-gray-100 m-0 mb-2 uppercase tracking-[0.03em]">Status by Community</h4>
+                    <div className="max-h-[300px] overflow-auto border border-gray-200 dark:border-gray-700 rounded-lg">
+                      <table className="w-full border-collapse text-[12px]">
                         <thead >
-                          <tr className="la-ex-thead-row">
+                          <tr className="border-b-2 border-gray-200 dark:border-gray-700 text-left">
                             <th >Community</th>
-                            <th className="la-ex-text-center">Total</th>
-                            <th className="la-ex-text-center la-ex-color-navy">Completed</th>
-                            <th className="la-ex-text-center la-ex-color-green">Active</th>
-                            <th className="la-ex-text-center la-ex-color-red">Rejected</th>
-                            <th className="la-ex-text-center la-ex-color-amber">Cancelled</th>
-                            <th className="la-ex-text-right">Rejection Rate</th>
-                            <th className="la-ex-text-center">Status</th>
+                            <th className="text-center">Total</th>
+                            <th className="text-center text-[#0D1F45] dark:text-blue-300">Completed</th>
+                            <th className="text-center text-emerald-600 dark:text-emerald-400">Active</th>
+                            <th className="text-center text-rose-600 dark:text-rose-400">Rejected</th>
+                            <th className="text-center text-amber-600 dark:text-amber-400">Cancelled</th>
+                            <th className="text-right">Rejection Rate</th>
+                            <th className="text-center">Status</th>
                           </tr>
                         </thead>
-                        <tbody>
+                        <tbody className="divide-y divide-slate-100 dark:divide-white/5">
                           {branchStatusData.map((b, i) => {
                             const rColor = b.rejectionRate > 20 ? '#EF4444' : b.rejectionRate > 10 ? '#F59E0B' : '#10B981';
                             return (
-                              <tr key={i} className="la-ex-tr">
-                                <td className="la-ex-fw-500">{b.branch}</td>
-                                <td className="la-ex-text-center">{b.total}</td>
-                                <td className="la-ex-text-center">{b.completed}</td>
-                                <td className="la-ex-text-center">{b.active}</td>
-                                <td className="la-ex-text-center">{b.rejected}</td>
-                                <td className="la-ex-text-center">{b.cancelled}</td>
-                                <td className="la-ex-text-right">
+                              <tr key={i} className="border-b border-gray-100 dark:border-white/5 hover:bg-gray-50 dark:hover:bg-white/5 transition-colors">
+                                <td className="font-medium">{b.branch}</td>
+                                <td className="text-center">{b.total}</td>
+                                <td className="text-center">{b.completed}</td>
+                                <td className="text-center">{b.active}</td>
+                                <td className="text-center">{b.rejected}</td>
+                                <td className="text-center">{b.cancelled}</td>
+                                <td className="text-right">
                                   <span style={{ background: `${rColor}18`, color: rColor, padding: '2px 8px', borderRadius: '12px', fontWeight: 600 }}>{b.rejectionRate}%</span>
                                 </td>
-                                <td className="la-ex-text-center">
+                                <td className="text-center">
                                   {(() => { const sColor = b.rejectionRate > 20 ? '#EF4444' : b.rejectionRate > 10 ? '#F59E0B' : '#10B981'; const label = b.rejectionRate > 20 ? 'Critical' : b.rejectionRate > 10 ? 'At Risk' : 'Healthy'; return <span style={{ background: `${sColor}18`, color: sColor, padding: '2px 8px', borderRadius: '12px', fontWeight: 600, fontSize: '11px' }}>{label}</span>; })()}
                                 </td>
                               </tr>
@@ -1212,9 +1245,9 @@ export default function LoanAdminDashboard() {
                   </div>
 
                   {/* Section 3 — Monthly Status Trend */}
-                  <div className="la-ex-section-sm">
-                    <h4 className="adm-expand-panel-title la-ex-section-title">Monthly Status Trend</h4>
-                    <div className="la-ex-chart-260">
+                  <div className="mb-4">
+                    <h4 className="font-inter text-[13px] font-semibold text-gray-700 dark:text-gray-100 m-0 mb-2 uppercase tracking-[0.03em]">Monthly Status Trend</h4>
+                    <div className="h-[260px]">
                       <ResponsiveContainer width="100%" height="100%">
                         <AreaChart data={monthlyStatusTrend} margin={{ top: 10, right: 30, left: 10, bottom: 10 }}>
                           <CartesianGrid strokeDasharray="3 3" stroke="#F3F4F6" />
@@ -1232,7 +1265,7 @@ export default function LoanAdminDashboard() {
                     </div>
                   </div>
 
-                  <div className="adm-expand-interpretation">
+                  <div className="mt-4 p-[14px_16px] bg-slate-50 dark:bg-[#1E2130] rounded-lg border-l-4 border-[#0D1F45] dark:border-blue-400 text-[13px] text-gray-700 dark:text-gray-300 leading-relaxed">
                     <strong>Interpretation:</strong> The stacked bar shows overall portfolio composition. The community table surfaces branches with high rejection rates — red indicates above 20%, yellow 10–20%, green below 10%. The trend chart reveals how loan statuses evolve month by month, helping identify if rejections are increasing.
                   </div>
                 </>
@@ -1248,7 +1281,7 @@ export default function LoanAdminDashboard() {
                 return (
                 <>
                   {/* Section 1 — Scorecard */}
-                  <div className="la-ex-scorecard la-ex-scorecard-5">
+                  <div className="grid grid-cols-2 md:grid-cols-5 gap-3 mb-5">
                     {[
                       { label: 'Total Payments', value: totalPayments, color: '#0D1F45' },
                       { label: 'On-Time', value: onTime, color: '#10B981' },
@@ -1256,38 +1289,38 @@ export default function LoanAdminDashboard() {
                       { label: 'On-Time Rate', value: onTimeRate + '%', color: rateColor },
                       { label: 'Total Penalties', value: '₱' + totalPenalties.toLocaleString(), color: late > 0 ? '#EF4444' : '#10B981' },
                     ].map((k, i) => (
-                      <div key={i} className="la-ex-tile">
-                        <div className="la-ex-tile-label">{k.label}</div>
+                      <div key={i} className="bg-slate-50 dark:bg-[#1E2130] rounded-xl p-[14px_16px] text-center border border-slate-100 dark:border-white/5">
+                        <div className="text-[11px] text-gray-500 font-medium mb-1 dark:text-gray-400 font-inter">{k.label}</div>
                         <div style={{ fontSize: '18px', fontWeight: 700, color: k.color }}>{k.value}</div>
                       </div>
                     ))}
                   </div>
 
                   {/* Section 2 — Branch Table */}
-                  <div className="la-ex-section-lg">
-                    <h4 className="adm-expand-panel-title la-ex-section-title">Repayment by Community</h4>
-                    <div className="la-ex-table-scroll la-ex-table-scroll-sm">
-                      <table className="la-ex-table la-ex-table-sm">
+                  <div className="mb-6">
+                    <h4 className="font-inter text-[13px] font-semibold text-gray-700 dark:text-gray-100 m-0 mb-2 uppercase tracking-[0.03em]">Repayment by Community</h4>
+                    <div className="max-h-[280px] overflow-auto border border-gray-200 dark:border-gray-700 rounded-lg">
+                      <table className="w-full border-collapse text-[12px]">
                         <thead >
-                          <tr className="la-ex-thead-row">
+                          <tr className="border-b-2 border-gray-200 dark:border-gray-700 text-left">
                             <th >Community</th>
-                            <th className="la-ex-text-center">Total</th>
-                            <th className="la-ex-text-center la-ex-color-green">On-Time</th>
-                            <th className="la-ex-text-center la-ex-color-red">Late</th>
-                            <th className="la-ex-text-right">On-Time Rate</th>
-                            <th className="la-ex-text-right">Penalties</th>
+                            <th className="text-center">Total</th>
+                            <th className="text-center text-emerald-600 dark:text-emerald-400">On-Time</th>
+                            <th className="text-center text-rose-600 dark:text-rose-400">Late</th>
+                            <th className="text-right">On-Time Rate</th>
+                            <th className="text-right">Penalties</th>
                           </tr>
                         </thead>
-                        <tbody>
+                        <tbody className="divide-y divide-slate-100 dark:divide-white/5">
                           {branchRepaymentData.map((b, i) => {
                             const c = b.onTimeRate >= 80 ? '#10B981' : b.onTimeRate >= 60 ? '#F59E0B' : '#EF4444';
                             return (
-                              <tr key={i} className="la-ex-tr">
-                                <td className="la-ex-fw-500">{b.branch}</td>
-                                <td className="la-ex-text-center">{b.total}</td>
-                                <td className="la-ex-text-center">{b.onTime}</td>
-                                <td className="la-ex-text-center">{b.late}</td>
-                                <td className="la-ex-text-right">
+                              <tr key={i} className="border-b border-gray-100 dark:border-white/5 hover:bg-gray-50 dark:hover:bg-white/5 transition-colors">
+                                <td className="font-medium">{b.branch}</td>
+                                <td className="text-center">{b.total}</td>
+                                <td className="text-center">{b.onTime}</td>
+                                <td className="text-center">{b.late}</td>
+                                <td className="text-right">
                                   <span style={{ background: `${c}18`, color: c, padding: '2px 8px', borderRadius: '12px', fontWeight: 600 }}>{b.onTimeRate}%</span>
                                 </td>
                                 <td style={{ padding: '8px 10px', textAlign: 'right', color: b.penalties > 0 ? '#EF4444' : '#6B7280' }}>₱{b.penalties.toLocaleString()}</td>
@@ -1300,9 +1333,9 @@ export default function LoanAdminDashboard() {
                   </div>
 
                   {/* Section 3 — Monthly Trend */}
-                  <div className="la-ex-section-sm">
-                    <h4 className="adm-expand-panel-title la-ex-section-title">Monthly Repayment Trend</h4>
-                    <div className="la-ex-chart-250">
+                  <div className="mb-4">
+                    <h4 className="font-inter text-[13px] font-semibold text-gray-700 dark:text-gray-100 m-0 mb-2 uppercase tracking-[0.03em]">Monthly Repayment Trend</h4>
+                    <div className="h-[250px]">
                       <ResponsiveContainer width="100%" height="100%">
                         <BarChart data={monthlyRepayment} margin={{ top: 10, right: 30, left: 10, bottom: 10 }}>
                           <CartesianGrid strokeDasharray="3 3" stroke="#F3F4F6" vertical={false} />
@@ -1317,7 +1350,7 @@ export default function LoanAdminDashboard() {
                     </div>
                   </div>
 
-                  <div className="adm-expand-interpretation">
+                  <div className="mt-4 p-[14px_16px] bg-slate-50 dark:bg-[#1E2130] rounded-lg border-l-4 border-[#0D1F45] dark:border-blue-400 text-[13px] text-gray-700 dark:text-gray-300 leading-relaxed">
                     <strong>Interpretation:</strong> The scorecard shows overall repayment health — green on-time rate (80%+) indicates strong discipline. The community table identifies branches with repayment problems. Late payments incur a 3% penalty; high penalty amounts signal systemic issues. The monthly trend shows whether repayment discipline is improving or deteriorating.
                   </div>
                 </>
@@ -1334,19 +1367,19 @@ export default function LoanAdminDashboard() {
                 return (
                 <>
                   {/* Section 1 — Monthly Table */}
-                  <div className="la-ex-section">
-                    <table className="la-ex-table la-ex-table-sm">
+                  <div className="mb-5">
+                    <table className="w-full border-collapse text-[12px]">
                       <thead>
-                        <tr className="la-ex-thead-row">
+                        <tr className="border-b-2 border-gray-200 dark:border-gray-700 text-left">
                           <th >Month</th>
-                          <th className="la-ex-text-center">Applications</th>
-                          <th className="la-ex-text-center la-ex-color-green">Approved</th>
-                          <th className="la-ex-text-center la-ex-color-red">Rejected</th>
-                          <th className="la-ex-text-center" style={{ color: '#2563EB' }}>Pending</th>
-                          <th className="la-ex-text-right">Approval Rate</th>
+                          <th className="text-center">Applications</th>
+                          <th className="text-center text-emerald-600 dark:text-emerald-400">Approved</th>
+                          <th className="text-center text-rose-600 dark:text-rose-400">Rejected</th>
+                          <th className="text-center" style={{ color: '#2563EB' }}>Pending</th>
+                          <th className="text-right">Approval Rate</th>
                         </tr>
                       </thead>
-                      <tbody>
+                      <tbody className="divide-y divide-slate-100 dark:divide-white/5">
                         {monthlyApplications.map((d, i) => {
                           const pending = d.applications - d.approved - d.rejected;
                           const rate = d.applications > 0 ? Math.round((d.approved / d.applications) * 100) : 0;
@@ -1355,11 +1388,11 @@ export default function LoanAdminDashboard() {
                           return (
                             <tr key={i} style={{ borderBottom: '1px solid #F3F4F6', fontWeight: isBold ? 700 : 400, opacity: d.applications > 0 ? 1 : 0.4, background: isBold ? '#FEF2F210' : 'transparent' }}>
                               <td >{d.month} {isBold && <span style={{ color: '#EF4444', fontSize: '10px' }}>⚠</span>}</td>
-                              <td className="la-ex-text-center">{d.applications}</td>
-                              <td className="la-ex-text-center">{d.approved}</td>
+                              <td className="text-center">{d.applications}</td>
+                              <td className="text-center">{d.approved}</td>
                               <td style={{ padding: '8px 10px', textAlign: 'center', color: isBold ? '#EF4444' : 'inherit' }}>{d.rejected}</td>
-                              <td className="la-ex-text-center">{pending > 0 ? <span style={{ color: '#F59E0B' }}>⚠ {pending}</span> : '—'}</td>
-                              <td className="la-ex-text-right">
+                              <td className="text-center">{pending > 0 ? <span style={{ color: '#F59E0B' }}>⚠ {pending}</span> : '—'}</td>
+                              <td className="text-right">
                                 <span style={{ background: rate >= 80 ? '#10B98118' : rate >= 50 ? '#F59E0B18' : '#EF444418', color: rate >= 80 ? '#10B981' : rate >= 50 ? '#F59E0B' : '#EF4444', padding: '2px 8px', borderRadius: '12px', fontWeight: 600 }}>{rate}%</span>
                               </td>
                             </tr>
@@ -1370,9 +1403,9 @@ export default function LoanAdminDashboard() {
                   </div>
 
                   {/* Section 2 — Approval/Rejection Stacked Bar */}
-                  <div className="la-ex-section-lg">
-                    <h4 className="adm-expand-panel-title la-ex-section-title">Approval vs Rejection Rate</h4>
-                    <div className="la-ex-chart-240">
+                  <div className="mb-6">
+                    <h4 className="font-inter text-[13px] font-semibold text-gray-700 dark:text-gray-100 m-0 mb-2 uppercase tracking-[0.03em]">Approval vs Rejection Rate</h4>
+                    <div className="h-[240px]">
                       <ResponsiveContainer width="100%" height="100%">
                         <BarChart data={rateData} margin={{ top: 10, right: 10, left: -10, bottom: 10 }}>
                           <CartesianGrid strokeDasharray="3 3" stroke="#F3F4F6" vertical={false} />
@@ -1392,31 +1425,31 @@ export default function LoanAdminDashboard() {
                   </div>
 
                   {/* Section 3 — Branch Table */}
-                  <div className="la-ex-section-sm">
-                    <h4 className="adm-expand-panel-title la-ex-section-title">Applications by Community</h4>
-                    <div className="la-ex-table-scroll la-ex-table-scroll-sm">
-                      <table className="la-ex-table la-ex-table-sm">
+                  <div className="mb-4">
+                    <h4 className="font-inter text-[13px] font-semibold text-gray-700 dark:text-gray-100 m-0 mb-2 uppercase tracking-[0.03em]">Applications by Community</h4>
+                    <div className="max-h-[280px] overflow-auto border border-gray-200 dark:border-gray-700 rounded-lg">
+                      <table className="w-full border-collapse text-[12px]">
                         <thead >
-                          <tr className="la-ex-thead-row">
+                          <tr className="border-b-2 border-gray-200 dark:border-gray-700 text-left">
                             <th >Community</th>
-                            <th className="la-ex-text-center">Total</th>
-                            <th className="la-ex-text-center la-ex-color-green">Approved</th>
-                            <th className="la-ex-text-center la-ex-color-red">Rejected</th>
-                            <th className="la-ex-text-right">Approval Rate</th>
-                            <th className="la-ex-text-center">Top Loan Type</th>
+                            <th className="text-center">Total</th>
+                            <th className="text-center text-emerald-600 dark:text-emerald-400">Approved</th>
+                            <th className="text-center text-rose-600 dark:text-rose-400">Rejected</th>
+                            <th className="text-right">Approval Rate</th>
+                            <th className="text-center">Top Loan Type</th>
                           </tr>
                         </thead>
-                        <tbody>
+                        <tbody className="divide-y divide-slate-100 dark:divide-white/5">
                           {branchAppData.map((b, i) => {
                             const safeRate = Math.min(b.approvalRate, 100);
                             const c = safeRate >= 80 ? '#10B981' : safeRate >= 50 ? '#F59E0B' : '#EF4444';
                             return (
-                              <tr key={i} className="la-ex-tr">
-                                <td className="la-ex-fw-500">{b.branch}</td>
-                                <td className="la-ex-text-center">{b.total}</td>
-                                <td className="la-ex-text-center">{b.approved}</td>
-                                <td className="la-ex-text-center">{b.rejected}</td>
-                                <td className="la-ex-text-right">
+                              <tr key={i} className="border-b border-gray-100 dark:border-white/5 hover:bg-gray-50 dark:hover:bg-white/5 transition-colors">
+                                <td className="font-medium">{b.branch}</td>
+                                <td className="text-center">{b.total}</td>
+                                <td className="text-center">{b.approved}</td>
+                                <td className="text-center">{b.rejected}</td>
+                                <td className="text-right">
                                   <span style={{ background: `${c}18`, color: c, padding: '2px 8px', borderRadius: '12px', fontWeight: 600 }}>{safeRate}%</span>
                                 </td>
                                 <td style={{ padding: '8px 10px', textAlign: 'center', color: '#6B7280' }}>{b.topLoanType}</td>
@@ -1428,7 +1461,7 @@ export default function LoanAdminDashboard() {
                     </div>
                   </div>
 
-                  <div className="adm-expand-interpretation">
+                  <div className="mt-4 p-[14px_16px] bg-slate-50 dark:bg-[#1E2130] rounded-lg border-l-4 border-[#0D1F45] dark:border-blue-400 text-[13px] text-gray-700 dark:text-gray-300 leading-relaxed">
                     <strong>Interpretation:</strong> The monthly table shows exact application counts — bold rows have rejection rates above 20%. The stacked bar visualizes approval vs rejection proportions with actual counts inside each segment. The community table identifies where loan demand is coming from and which branches have low approval rates.
                   </div>
                 </>
@@ -1444,53 +1477,53 @@ export default function LoanAdminDashboard() {
                 return (
                 <>
                   {/* Section 1 — Scorecard */}
-                  <div className="la-ex-scorecard la-ex-scorecard-4">
+                  <div className="grid grid-cols-2 md:grid-cols-4 gap-3 mb-5">
                     {[
                       { label: 'Current Delinquency Rate', value: currentRate + '%', color: rColor },
                       { label: 'Total Late Payments', value: totalLate, color: totalLate > 0 ? '#EF4444' : '#10B981' },
                       { label: 'Total Penalties Collected', value: '₱' + totalPenalties.toLocaleString(), color: totalPenalties > 0 ? '#EF4444' : '#10B981' },
                       { label: 'Communities At Risk', value: branchesAtRisk, color: branchesAtRisk > 0 ? '#EF4444' : '#10B981' },
                     ].map((k, i) => (
-                      <div key={i} className="la-ex-tile">
-                        <div className="la-ex-tile-label">{k.label}</div>
+                      <div key={i} className="bg-slate-50 dark:bg-[#1E2130] rounded-xl p-[14px_16px] text-center border border-slate-100 dark:border-white/5">
+                        <div className="text-[11px] text-gray-500 font-medium mb-1 dark:text-gray-400 font-inter">{k.label}</div>
                         <div style={{ fontSize: '20px', fontWeight: 700, color: k.color }}>{k.value}</div>
                       </div>
                     ))}
                   </div>
 
                   {/* Section 2 — Branch Table */}
-                  <div className="la-ex-section-lg">
-                    <h4 className="adm-expand-panel-title la-ex-section-title">Delinquency by Community</h4>
-                    <div className="la-ex-table-scroll la-ex-table-scroll-md">
-                      <table className="la-ex-table la-ex-table-sm">
+                  <div className="mb-6">
+                    <h4 className="font-inter text-[13px] font-semibold text-gray-700 dark:text-gray-100 m-0 mb-2 uppercase tracking-[0.03em]">Delinquency by Community</h4>
+                    <div className="max-h-[300px] overflow-auto border border-gray-200 dark:border-gray-700 rounded-lg">
+                      <table className="w-full border-collapse text-[12px]">
                         <thead >
-                          <tr className="la-ex-thead-row">
+                          <tr className="border-b-2 border-gray-200 dark:border-gray-700 text-left">
                             <th >Community</th>
-                            <th className="la-ex-text-center">Total Payments</th>
-                            <th className="la-ex-text-center la-ex-color-green">On-Time</th>
-                            <th className="la-ex-text-center la-ex-color-red">Late</th>
-                            <th className="la-ex-text-right">Delinquency Rate</th>
-                            <th className="la-ex-text-center">Status</th>
+                            <th className="text-center">Total Payments</th>
+                            <th className="text-center text-emerald-600 dark:text-emerald-400">On-Time</th>
+                            <th className="text-center text-rose-600 dark:text-rose-400">Late</th>
+                            <th className="text-right">Delinquency Rate</th>
+                            <th className="text-center">Status</th>
                           </tr>
                         </thead>
-                        <tbody>
+                        <tbody className="divide-y divide-slate-100 dark:divide-white/5">
                           {branchDelinquencyData.map((b, i) => {
                             const sColor = b.status === 'Critical' ? '#EF4444' : b.status === 'At Risk' ? '#F59E0B' : '#10B981';
                             return (
-                              <tr key={i} className="la-ex-tr">
-                                <td className="la-ex-fw-500">{b.branch}</td>
-                                <td className="la-ex-text-center">{b.total}</td>
-                                <td className="la-ex-text-center">{b.onTime}</td>
-                                <td className="la-ex-text-center">{b.late}</td>
-                                <td className="la-ex-text-right">{b.delinquencyRate}%</td>
-                                <td className="la-ex-text-center">
+                              <tr key={i} className="border-b border-gray-100 dark:border-white/5 hover:bg-gray-50 dark:hover:bg-white/5 transition-colors">
+                                <td className="font-medium">{b.branch}</td>
+                                <td className="text-center">{b.total}</td>
+                                <td className="text-center">{b.onTime}</td>
+                                <td className="text-center">{b.late}</td>
+                                <td className="text-right">{b.delinquencyRate}%</td>
+                                <td className="text-center">
                                   <span style={{ background: `${sColor}18`, color: sColor, padding: '2px 8px', borderRadius: '12px', fontWeight: 600, fontSize: '11px' }}>{b.status}</span>
                                 </td>
                               </tr>
                             );
                           })}
                           {branchDelinquencyData.length === 0 && (
-                            <tr><td colSpan={6} className="la-ex-table-empty">No payment data available.</td></tr>
+                            <tr><td colSpan={6} className="font-inter text-[13px] text-slate-600 dark:text-slate-300">No payment data available.</td></tr>
                           )}
                         </tbody>
                       </table>
@@ -1498,13 +1531,13 @@ export default function LoanAdminDashboard() {
                   </div>
 
                   {/* Section 3 — Trend with Threshold */}
-                  <div className="la-ex-section-sm">
-                    <h4 className="adm-expand-panel-title la-ex-section-title">Delinquency Rate Trend</h4>
-                    <div className="la-ex-chart-250 la-ex-chart-rel">
+                  <div className="mb-4">
+                    <h4 className="font-inter text-[13px] font-semibold text-gray-700 dark:text-gray-100 m-0 mb-2 uppercase tracking-[0.03em]">Delinquency Rate Trend</h4>
+                    <div className="h-[250px] relative">
                       {allZero && (
-                        <div className="la-ex-no-data-overlay">
-                          <div className="la-ex-no-data-title">✓ No delinquencies recorded</div>
-                          <div className="la-ex-no-data-sub">Healthy portfolio — all payments are on time</div>
+                        <div className="font-inter text-[13px] text-slate-600 dark:text-slate-300">
+                          <div className="font-inter text-[13px] text-slate-600 dark:text-slate-300">✓ No delinquencies recorded</div>
+                          <div className="font-inter text-[13px] text-slate-600 dark:text-slate-300">Healthy portfolio — all payments are on time</div>
                         </div>
                       )}
                       <ResponsiveContainer width="100%" height="100%">
@@ -1526,7 +1559,7 @@ export default function LoanAdminDashboard() {
                     </div>
                   </div>
 
-                  <div className="adm-expand-interpretation">
+                  <div className="mt-4 p-[14px_16px] bg-slate-50 dark:bg-[#1E2130] rounded-lg border-l-4 border-[#0D1F45] dark:border-blue-400 text-[13px] text-gray-700 dark:text-gray-300 leading-relaxed">
                     <strong>Interpretation:</strong> The scorecard shows overall portfolio risk — green indicates healthy, red signals concern. The community table identifies which branches have delinquency issues using status badges: Healthy (below 10%), At Risk (10–15%), Critical (above 15%). The trend chart tracks whether the situation is improving or worsening over time.
                   </div>
                 </>

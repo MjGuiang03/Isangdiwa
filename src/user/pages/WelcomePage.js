@@ -18,10 +18,9 @@ import bentoImg2 from '../../assets/events/pic4.jfif';
 import youthCampImg from '../../assets/events/IMG_8460.JPG';
 import missionImg from '../../assets/events/pic5.jfif';
 import featureTransactions from '../../assets/features/transactions1.png';
-import featureOperations from '../../assets/features/operations.png';
 import featureConnected from '../../assets/features/connected.JPG';
 import featureChatbot from '../../assets/features/chatbot1.JPG';
-import '../styles/WelcomePage.css';
+import featureAttendance from '../../assets/features/attendance.jpg';
 
 export default function WelcomePage() {
   const location = useLocation();
@@ -67,7 +66,10 @@ export default function WelcomePage() {
 
     const observer = new IntersectionObserver((entries) => {
       entries.forEach(entry => {
-        if (entry.isIntersecting) entry.target.classList.add('wpt-visible');
+        if (entry.isIntersecting) {
+          entry.target.classList.add('opacity-100', 'translate-y-0', 'translate-x-0');
+          entry.target.classList.remove('opacity-0', 'translate-y-9', '-translate-x-10', 'translate-x-10');
+        }
       });
     }, { threshold: 0.12, rootMargin: '0px 0px -40px 0px' });
 
@@ -106,110 +108,123 @@ export default function WelcomePage() {
 
   return (
     <>
-      <div className="wpt-wrapper">
+      <div className="font-dm bg-white text-[#0F1E4A] overflow-x-hidden min-h-screen">
 
         {/* LOADER */}
-        <div id="wpt-loader" className={`wpt-loader ${!loading ? 'wpt-done' : ''}`}>
-          <img src={puacLogo} alt="IsangDiwa Logo" className="wpt-loader-logo" />
-          <div className="wpt-loader-brand"><span className="brand-text-isang">Isang</span><span className="brand-text-diwa">Diwa</span></div>
-          <div className="wpt-loader-text">Philippine United Apostolic Church</div>
-          <div className="wpt-loader-bar"><div className="wpt-loader-fill"></div></div>
+        <div id="wpt-loader" className={`fixed inset-0 bg-[#132654] flex flex-col items-center justify-center z-[9999] transition-all duration-700 ${
+          !loading ? 'opacity-0 invisible pointer-events-none' : 'opacity-100 visible'
+        }`}>
+          <img src={puacLogo} alt="IsangDiwa Logo" className="w-36 h-auto object-contain mb-7 animate-fadeIn" />
+          <div className="text-4xl sm:text-5xl font-bold text-white text-center mb-2 tracking-tight">
+            <span className="text-white">Isang</span><span className="text-[#F0D89A]">Diwa</span>
+          </div>
+          <div className="font-dm text-sm sm:text-base text-white/70 tracking-widest text-center px-5 uppercase">Philippine United Apostolic Church</div>
+          <div className="w-44 h-0.5 bg-white/10 mt-5 rounded-full overflow-hidden">
+            <div className="h-full bg-[#C9A84C] rounded-full w-full animate-shimmer"></div>
+          </div>
         </div>
 
         {/* TICKER */}
-        <div className="wpt-ticker-wrap">
-          <div className="wpt-ticker-inner">
-            <span className="wpt-ticker-label">📢 Announcements</span>
-            <div className="wpt-ticker-track" id="wpt-tickerTrack">
-              <span className="wpt-ticker-item">
-                Sunday Service — 9:00 AM &amp; 6:00 PM<span className="wpt-ticker-sep">✦</span>
-                Youth Gathering — Every Friday 7:00 PM<span className="wpt-ticker-sep">✦</span>
-                Monthly Thanksgiving Offering — 3rd Sunday<span className="wpt-ticker-sep">✦</span>
-                Prayer &amp; Fasting Week — July 14–18<span className="wpt-ticker-sep">✦</span>
-                New Branch Opening — Caloocan District<span className="wpt-ticker-sep">✦</span>
-                Online Giving now available via GCash &amp; Maya<span className="wpt-ticker-sep">✦</span>
-                Sunday Service — 9:00 AM &amp; 6:00 PM<span className="wpt-ticker-sep">✦</span>
-                Youth Gathering — Every Friday 7:00 PM<span className="wpt-ticker-sep">✦</span>
-                Monthly Thanksgiving Offering — 3rd Sunday<span className="wpt-ticker-sep">✦</span>
-                Prayer &amp; Fasting Week — July 14–18<span className="wpt-ticker-sep">✦</span>
-                New Branch Opening — Caloocan District<span className="wpt-ticker-sep">✦</span>
-                Online Giving now available via GCash &amp; Maya
-              </span>
+        <div className="bg-[#0D1F45] text-white py-2.5 px-4 overflow-hidden border-b border-white/10 text-xs sm:text-sm font-inter">
+          <div className="flex items-center gap-4 max-w-7xl mx-auto">
+            <span className="bg-[#C9A84C] text-[#0D1F45] font-bold text-[10px] sm:text-xs uppercase tracking-wider px-2.5 py-1 rounded-md shrink-0 flex items-center gap-1">
+              📢 Announcements
+            </span>
+            <div className="overflow-hidden whitespace-nowrap flex-1 relative">
+              <div className="inline-block animate-ticker whitespace-nowrap">
+                <span className="inline-flex items-center gap-4 pr-12 text-white/80">
+                  Sunday Service — 9:00 AM &amp; 6:00 PM <span className="text-[#C9A84C]">✦</span>
+                  Youth Gathering — Every Friday 7:00 PM <span className="text-[#C9A84C]">✦</span>
+                  Monthly Thanksgiving Offering — 3rd Sunday <span className="text-[#C9A84C]">✦</span>
+                  Prayer &amp; Fasting Week — July 14–18 <span className="text-[#C9A84C]">✦</span>
+                  New Branch Opening — Caloocan District <span className="text-[#C9A84C]">✦</span>
+                  Online Giving now available via GCash &amp; Maya
+                </span>
+                <span className="inline-flex items-center gap-4 text-white/80">
+                  Sunday Service — 9:00 AM &amp; 6:00 PM <span className="text-[#C9A84C]">✦</span>
+                  Youth Gathering — Every Friday 7:00 PM <span className="text-[#C9A84C]">✦</span>
+                  Monthly Thanksgiving Offering — 3rd Sunday <span className="text-[#C9A84C]">✦</span>
+                  Prayer &amp; Fasting Week — July 14–18 <span className="text-[#C9A84C]">✦</span>
+                  New Branch Opening — Caloocan District <span className="text-[#C9A84C]">✦</span>
+                  Online Giving now available via GCash &amp; Maya
+                </span>
+              </div>
             </div>
           </div>
         </div>
 
         {/* NAVBAR */}
-        <nav id="wpt-navbar" className={`wpt-nav ${scrolled ? 'wpt-scrolled' : ''}`}>
-          <a href="#home" className="wpt-nav-logo">
-            <img src={puacLogo} alt="IsangDiwa Logo" className="wpt-logo-img" />
-            <div className="wpt-nav-name"><span className="brand-text-isang">Isang</span><span className="brand-text-diwa">Diwa</span></div>
+        <nav id="wpt-navbar" className={`fixed top-0 left-0 right-0 z-[100] px-4 sm:px-8 lg:px-12 h-18 flex items-center justify-between bg-white/90 backdrop-blur-md border-b border-slate-200/80 transition-shadow ${
+          scrolled ? 'shadow-md' : ''
+        }`}>
+          <a href="#home" className="flex items-center gap-3 no-underline">
+            <img src={puacLogo} alt="IsangDiwa Logo" className="w-10 h-10 object-contain shrink-0" />
+            <div className="font-cormorant text-2xl font-bold text-[#1E3A8A] leading-tight">
+              <span className="text-[#1E3A8A]">Isang</span><span className="text-[#C9A84C]">Diwa</span>
+            </div>
           </a>
-          <ul className="wpt-nav-links">
-            <li><a href="#features">Features</a></li>
-            <li><a href="#gallery">Gallery</a></li>
-            <li><a href="#/" onClick={(e) => { e.preventDefault(); setShowDonationModal(true); }}>Give</a></li>
+          <ul className="flex items-center gap-6 sm:gap-8 list-none m-0 p-0">
+            <li><a href="#features" className="text-sm font-medium text-slate-600 hover:text-[#1E3A8A] no-underline transition-colors">Features</a></li>
+            <li><a href="#gallery" className="text-sm font-medium text-slate-600 hover:text-[#1E3A8A] no-underline transition-colors">Gallery</a></li>
+            <li><a href="#/" onClick={(e) => { e.preventDefault(); setShowDonationModal(true); }} className="text-sm font-medium text-slate-600 hover:text-[#1E3A8A] no-underline transition-colors">Give</a></li>
             <li>
-              <a href="#/" className="wpt-nav-cta" onClick={(e) => { e.preventDefault(); handleOpenLogin(); }}>
+              <a 
+                href="#/" 
+                className="bg-[#1E3A8A] hover:bg-[#2B4EAF] text-white text-sm font-semibold px-5 py-2 rounded-xl no-underline shadow-sm transition-all hover:-translate-y-0.5 active:scale-95" 
+                onClick={(e) => { e.preventDefault(); handleOpenLogin(); }}
+              >
                 Log In
               </a>
             </li>
           </ul>
         </nav>
 
-        {/* ══════════════════════════════════════════════
-            WELCOME SECTION — redesigned headline layout
-            ══════════════════════════════════════════════ */}
-        <section className="wpt-welcome-section">
-          <div className="wpt-welcome-bg">
-            <div className="wpt-welcome-cross-watermark"></div>
-            <div className="wpt-welcome-ring wpt-welcome-ring-1"></div>
-            <div className="wpt-welcome-ring wpt-welcome-ring-2"></div>
-            <div className="wpt-welcome-ring wpt-welcome-ring-3"></div>
-            <div className="wpt-welcome-divider-vert"></div>
+        {/* WELCOME SECTION */}
+        <section className="relative min-h-screen pt-28 pb-6 overflow-hidden bg-[#1a2e6e] text-white flex flex-col justify-between rounded-b-2xl">
+          <div className="absolute inset-0 pointer-events-none z-0">
+            <div className="absolute left-[20%] top-1/2 -translate-x-1/2 -translate-y-1/2 w-36 h-44 opacity-5 border-white"></div>
+            <div className="absolute top-[8%] left-[4%] w-80 h-80 rounded-full border border-white/5 animate-pulseRing"></div>
+            <div className="absolute top-[55%] left-[18%] w-52 h-52 rounded-full border border-[#C9A84C]/10"></div>
+            <div className="absolute bottom-[6%] right-[8%] w-72 h-72 rounded-full border border-white/5"></div>
+            <div className="hidden lg:block absolute top-0 bottom-0 left-1/2 w-[1px] bg-white/10"></div>
           </div>
 
-          <div className="wpt-welcome-inner">
+          <div className="relative z-10 grid grid-cols-1 lg:grid-cols-2 gap-8 max-w-7xl mx-auto w-full px-4 sm:px-8 lg:px-12 py-8 flex-1 items-center">
             {/* LEFT COLUMN */}
-            <div className="wpt-welcome-left">
-
-              {/* Eyebrow */}
-              <div className="wpt-welcome-eyebrow">
-                <span className="wpt-eyebrow-line"></span>
-                All Honour to God
+            <div className="flex flex-col justify-center text-left">
+              <div className="flex items-center gap-2 mb-4">
+                <span className="w-6 h-[1px] bg-[#C9A84C]"></span>
+                <span className="text-xs font-semibold uppercase tracking-widest text-[#C9A84C] font-inter">All Honour to God</span>
               </div>
 
-              {/* ── REDESIGNED HEADLINE BLOCK ── */}
-              <div className="wpt-headline-block">
-                {/* "Isang" white + "Diwa" gold — same baseline, split color */}
-                <h1 className="wpt-welcome-headline wpt-headline-split">
-                  <span className="wpt-hl-white">Isang</span><span className="wpt-hl-gold">Diwa</span>
+              <div className="mb-6">
+                <h1 className="font-dm font-bold text-5xl sm:text-6xl lg:text-7xl leading-tight tracking-tight text-white mb-2">
+                  <span className="text-white">Isang</span><span className="text-[#F0D89A]">Diwa</span>
                 </h1>
-                <div className="wpt-subheadline-row">
-                  <span className="wpt-subheadline-rule"></span>
-                  <h3 className="wpt-welcome-subheadline">
+                <div className="flex items-center gap-3">
+                  <span className="w-8 h-[1px] bg-[#C9A84C]/60"></span>
+                  <h3 className="text-base sm:text-lg font-normal text-white/80 tracking-wide font-dm m-0">
                     Philippine United Apostolic Church
                   </h3>
                 </div>
               </div>
-              {/* ── END REDESIGNED HEADLINE BLOCK ── */}
 
-              <p className="wpt-welcome-body">
+              <p className="text-sm sm:text-base text-white/70 leading-relaxed mb-8 max-w-md font-inter">
                 A community of believers committed to transforming lives across the Philippines
                 through faith, fellowship, and digital empowerment.
               </p>
 
-              <div className="wpt-welcome-ctas">
+              <div className="flex flex-wrap gap-4">
                 <a
                   href="#/"
-                  className="wpt-welcome-btn-primary"
+                  className="bg-[#C9A84C] hover:bg-[#F0D89A] text-[#1a2e6e] font-semibold text-sm px-6 py-3 rounded-xl no-underline shadow-md transition-all hover:-translate-y-0.5"
                   onClick={(e) => { e.preventDefault(); handleOpenSignup(); }}
                 >
                   Join Our Community
                 </a>
                 <a
                   href="#/"
-                  className="wpt-welcome-btn-outline"
+                  className="bg-transparent hover:bg-white/10 text-white border border-white/30 hover:border-white/60 font-medium text-sm px-6 py-3 rounded-xl no-underline transition-all hover:-translate-y-0.5"
                   onClick={(e) => { e.preventDefault(); setShowDonationModal(true); }}
                 >
                   Give Offering
@@ -218,26 +233,26 @@ export default function WelcomePage() {
             </div>
 
             {/* RIGHT COLUMN — photo mosaic */}
-            <div className="wpt-welcome-right">
-              <div className="wpt-welcome-photo-grid">
-                <div className="wpt-welcome-photo wpt-welcome-photo-main wpt-reveal" ref={addToRefs}>
-                  <img src={puacCongregation} alt="IsangDiwa Congregation" />
-                  <div className="wpt-photo-overlay">
-                    <span className="wpt-photo-badge">Main Assembly</span>
+            <div className="w-full h-full min-h-[360px] flex flex-col">
+              <div className="grid grid-cols-1 sm:grid-cols-2 gap-2 w-full h-full rounded-2xl overflow-hidden shadow-2xl">
+                <div className="relative group overflow-hidden bg-[#2a3d7e] min-h-[220px] transition-all duration-700 opacity-0 translate-y-9" ref={addToRefs}>
+                  <img src={puacCongregation} alt="IsangDiwa Congregation" className="w-full h-full object-cover group-hover:scale-105 transition-transform duration-500" />
+                  <div className="absolute bottom-3 left-3 z-10">
+                    <span className="bg-black/60 backdrop-blur-xs border border-white/20 text-white/90 text-xs px-3 py-1 rounded-lg font-medium">Main Assembly</span>
                   </div>
                 </div>
 
-                <div className="wpt-welcome-photo-stack">
-                  <div className="wpt-welcome-photo wpt-reveal wpt-delay-10" ref={addToRefs}>
-                    <img src={puacCommunity} alt="IsangDiwa Community" />
-                    <div className="wpt-photo-overlay">
-                      <span className="wpt-photo-badge">Church Family</span>
+                <div className="flex flex-col gap-2 min-h-[220px]">
+                  <div className="relative group overflow-hidden bg-[#243570] flex-1 min-h-[120px] transition-all duration-700 opacity-0 translate-y-9" ref={addToRefs}>
+                    <img src={puacCommunity} alt="IsangDiwa Community" className="w-full h-full object-cover group-hover:scale-105 transition-transform duration-500" />
+                    <div className="absolute bottom-3 left-3 z-10">
+                      <span className="bg-black/60 backdrop-blur-xs border border-white/20 text-white/90 text-xs px-3 py-1 rounded-lg font-medium">Church Family</span>
                     </div>
                   </div>
-                  <div className="wpt-welcome-photo wpt-reveal wpt-delay-20" ref={addToRefs}>
-                    <img src={summerYouthCamp} alt="Summer Youth Camp" />
-                    <div className="wpt-photo-overlay">
-                      <span className="wpt-photo-badge">Youth Ministry</span>
+                  <div className="relative group overflow-hidden bg-[#243570] flex-1 min-h-[120px] transition-all duration-700 opacity-0 translate-y-9" ref={addToRefs}>
+                    <img src={summerYouthCamp} alt="Summer Youth Camp" className="w-full h-full object-cover group-hover:scale-105 transition-transform duration-500" />
+                    <div className="absolute bottom-3 left-3 z-10">
+                      <span className="bg-black/60 backdrop-blur-xs border border-white/20 text-white/90 text-xs px-3 py-1 rounded-lg font-medium">Youth Ministry</span>
                     </div>
                   </div>
                 </div>
@@ -246,69 +261,71 @@ export default function WelcomePage() {
           </div>
 
           {/* Scroll hint bar */}
-          <div className="wpt-welcome-scroll-hint">
-            <div className="wpt-scroll-dot-gold"></div>
-            <span className="wpt-scroll-hint-text">Scroll to Explore</span>
-            <div className="wpt-scroll-dots"></div>
+          <div className="relative z-10 flex items-center justify-between px-6 sm:px-12 py-3.5 border-t border-white/10 max-w-7xl mx-auto w-full">
+            <div className="flex items-center gap-2.5">
+              <span className="w-2 h-2 rounded-full bg-[#C9A84C] animate-pulse"></span>
+              <span className="text-[11px] font-semibold uppercase tracking-widest text-white/50 font-inter">Scroll to Explore</span>
+            </div>
+            <div className="flex items-center gap-1.5">
+              <span className="w-2 h-2 rounded-full bg-white/20"></span>
+              <span className="w-5 h-2 rounded-full bg-[#C9A84C]"></span>
+              <span className="w-2 h-2 rounded-full bg-white/20"></span>
+            </div>
           </div>
         </section>
 
-        {/* HERO */}
-        <section className="wpt-hero" id="home">
-          <div className="wpt-hero-bg">
-            <div className="wpt-hero-bg-arc"></div>
-            <div className="wpt-hero-bg-dot"></div>
-            <div className="wpt-hero-bg-dot2"></div>
-            <div className="wpt-hero-cross-bg"></div>
-          </div>
-          <div className="wpt-hero-inner">
-            <div className="wpt-hero-content">
-              <h1 className="wpt-hero-title">
-                Built on <em>Faith,</em><br />Serving with <em>Purpose</em>
+        {/* HERO SECTION */}
+        <section className="py-20 sm:py-28 px-4 sm:px-8 lg:px-12 bg-slate-50 relative overflow-hidden" id="home">
+          <div className="max-w-7xl mx-auto grid grid-cols-1 lg:grid-cols-2 gap-12 items-center">
+            <div>
+              <h1 className="font-dm text-4xl sm:text-5xl lg:text-6xl font-extrabold text-[#0D1F45] leading-tight mb-6 tracking-tight">
+                Built on <em className="not-italic text-[#1E3A8A]">Faith,</em><br />
+                Serving with <em className="not-italic text-[#C9A84C]">Purpose</em>
               </h1>
-              <p className="wpt-hero-sub">
+              <p className="text-slate-600 font-inter text-base sm:text-lg leading-relaxed mb-8 max-w-xl">
                 A community of believers united in worship, empowered through digital tools to manage
                 savings, give faithfully, and grow together as one body in Christ.
               </p>
-              <div className="wpt-hero-actions">
-                <a href="#features" className="wpt-btn-primary">Explore Features →</a>
+              <div className="flex flex-wrap gap-4 mb-12">
+                <a href="#features" className="bg-[#1E3A8A] hover:bg-[#2B4EAF] text-white font-semibold text-sm px-6 py-3.5 rounded-xl no-underline shadow-md transition-all hover:-translate-y-0.5">
+                  Explore Features →
+                </a>
                 <a
                   href="#/"
-                  className="wpt-btn-secondary"
+                  className="bg-white hover:bg-slate-100 text-[#1E3A8A] border border-slate-300 font-semibold text-sm px-6 py-3.5 rounded-xl no-underline shadow-sm transition-all hover:-translate-y-0.5"
                   onClick={(e) => { e.preventDefault(); setShowDonationModal(true); }}
                 >
                   Give Offering
                 </a>
               </div>
-              <div className="wpt-hero-stats">
+
+              <div className="grid grid-cols-3 gap-6 pt-6 border-t border-slate-200">
                 <div>
-                  <div className="wpt-hero-stat-num">68</div>
-                  <div className="wpt-hero-stat-label">Active Branches</div>
+                  <div className="font-dm text-3xl font-bold text-[#1E3A8A]">68</div>
+                  <div className="font-inter text-xs text-slate-500 font-medium">Active Branches</div>
                 </div>
                 <div>
-                  <div className="wpt-hero-stat-num">3,400+</div>
-                  <div className="wpt-hero-stat-label">Church Members</div>
+                  <div className="font-dm text-3xl font-bold text-[#1E3A8A]">3,400+</div>
+                  <div className="font-inter text-xs text-slate-500 font-medium">Church Members</div>
                 </div>
                 <div>
-                  <div className="wpt-hero-stat-num">24/7</div>
-                  <div className="wpt-hero-stat-label">Chatbot Support</div>
+                  <div className="font-dm text-3xl font-bold text-[#1E3A8A]">24/7</div>
+                  <div className="font-inter text-xs text-slate-500 font-medium">Chatbot Support</div>
                 </div>
               </div>
             </div>
-            <div className="wpt-hero-visual">
-              <div className="wpt-hero-card-stack">
-                <div className="wpt-hero-card wpt-hero-card-main wpt-shine-card">
-                  <div className="wpt-hero-card-main-inner">
-                    <h3>Member Dashboard</h3>
-                    <p>Savings · Attendance · Donation</p>
-                  </div>
+
+            <div className="relative">
+              <div className="bg-gradient-to-br from-[#0D1F45] to-[#1E3A8A] rounded-3xl p-8 text-white shadow-2xl relative overflow-hidden">
+                <div className="absolute top-0 right-0 w-64 h-64 bg-white/5 rounded-full blur-2xl pointer-events-none"></div>
+                <div className="mb-6">
+                  <h3 className="font-inter text-xl font-bold text-white mb-1">Member Dashboard</h3>
+                  <p className="font-inter text-xs text-white/60">Savings · Attendance · Donation</p>
                 </div>
-                <div className="wpt-hero-card wpt-hero-card-float wpt-shine-card">
-                  <div className="wpt-float-tag">This Month</div>
-                  <div>
-                    <div className="wpt-float-value">₱84,200</div>
-                    <div className="wpt-float-label">Total Donations Received</div>
-                  </div>
+                <div className="bg-white/10 backdrop-blur-md rounded-2xl p-6 border border-white/15">
+                  <div className="text-[10px] font-bold uppercase tracking-wider text-[#F0D89A] mb-1 font-inter">This Month</div>
+                  <div className="font-dm text-4xl font-extrabold text-white mb-1">₱84,200</div>
+                  <div className="font-inter text-xs text-white/70">Total Donations Received</div>
                 </div>
               </div>
             </div>
@@ -316,211 +333,215 @@ export default function WelcomePage() {
         </section>
 
         {/* CAROUSEL */}
-        <div className="wpt-carousel-section" id="events">
-          <div className="wpt-carousel-header wpt-reveal" ref={addToRefs}>
-            <div>
-              <div className="wpt-section-eyebrow">Church Events</div>
-              <div className="wpt-section-title wpt-mb-0">Moments That<br />Move Us</div>
-            </div>
-            <div className="wpt-carousel-controls">
-              <button className="wpt-carousel-btn" onClick={handlePrev}>←</button>
-              <button className="wpt-carousel-btn" onClick={handleNext}>→</button>
-            </div>
-          </div>
-          <div className="wpt-carousel-track-wrap">
-            <div
-              className="wpt-carousel-track"
-              ref={trackRef}
-              style={{ transform: slideWidth ? `translateX(-${currentSlide * slideWidth}px)` : 'none' }}
-            >
-              <div className="wpt-carousel-slide">
-                <img src={thanksgiving} alt="Annual Convention" className="wpt-carousel-img-placeholder" style={{ objectFit: 'cover', width: '100%', height: '100%', borderRadius: '12px' }} />
-                <div className="wpt-carousel-overlay">
-                  <div className="wpt-carousel-tag">Annual Convention</div>
-                  <div className="wpt-carousel-slide-title">National Apostolic Convention 2025</div>
-                </div>
+        <section className="py-20 px-4 sm:px-8 lg:px-12 bg-white" id="events">
+          <div className="max-w-7xl mx-auto">
+            <div className="flex flex-col sm:flex-row items-start sm:items-end justify-between mb-10 gap-4 transition-all duration-700 opacity-0 translate-y-9" ref={addToRefs}>
+              <div>
+                <div className="text-xs font-bold uppercase tracking-widest text-[#C9A84C] font-inter mb-2">Church Events</div>
+                <h2 className="font-dm text-3xl sm:text-4xl font-bold text-[#0D1F45] m-0 leading-tight">
+                  Moments That<br />Move Us
+                </h2>
               </div>
-              <div className="wpt-carousel-slide">
-                <img src={youthCampImg} alt="Youth Ministry" className="wpt-carousel-img-placeholder" style={{ objectFit: 'cover', width: '100%', height: '100%', borderRadius: '12px' }} />
-                <div className="wpt-carousel-overlay">
-                  <div className="wpt-carousel-tag">Youth Ministry</div>
-                  <div className="wpt-carousel-slide-title">Youth Leadership Summit</div>
-                </div>
-              </div>
-              <div className="wpt-carousel-slide">
-                <img src={womenFellowship} alt="Outreach" className="wpt-carousel-img-placeholder" style={{ objectFit: 'cover', width: '100%', height: '100%', borderRadius: '12px' }} />
-                <div className="wpt-carousel-overlay">
-                  <div className="wpt-carousel-tag">Outreach</div>
-                  <div className="wpt-carousel-slide-title">Community Feeding &amp; Medical Mission</div>
-                </div>
-              </div>
-              <div className="wpt-carousel-slide">
-                <img src={youthFellowship} alt="Worship Night" className="wpt-carousel-img-placeholder" style={{ objectFit: 'cover', width: '100%', height: '100%', borderRadius: '12px' }} />
-                <div className="wpt-carousel-overlay">
-                  <div className="wpt-carousel-tag">Worship Night</div>
-                  <div className="wpt-carousel-slide-title">All-Night Prayer &amp; Praise — Main Sanctuary</div>
-                </div>
-              </div>
-              <div className="wpt-carousel-slide">
-                <img src={divineService} alt="Baptism Sunday" className="wpt-carousel-img-placeholder" style={{ objectFit: 'cover', width: '100%', height: '100%', borderRadius: '12px' }} />
-                <div className="wpt-carousel-overlay">
-                  <div className="wpt-carousel-tag">Baptism Sunday</div>
-                  <div className="wpt-carousel-slide-title">Water Baptism</div>
-                </div>
+              <div className="flex items-center gap-3">
+                <button className="w-10 h-10 rounded-full border border-slate-300 hover:border-[#1E3A8A] text-slate-700 hover:text-[#1E3A8A] flex items-center justify-center cursor-pointer transition-all active:scale-95" onClick={handlePrev}>←</button>
+                <button className="w-10 h-10 rounded-full border border-slate-300 hover:border-[#1E3A8A] text-slate-700 hover:text-[#1E3A8A] flex items-center justify-center cursor-pointer transition-all active:scale-95" onClick={handleNext}>→</button>
               </div>
             </div>
-          </div>
-          <div className="wpt-carousel-dots">
-            {[...Array(maxIndex + 1)].map((_, i) => (
+
+            <div className="overflow-hidden py-2">
               <div
-                key={i}
-                className={`wpt-dot ${currentSlide === i ? 'wpt-active' : ''}`}
-                onClick={() => goTo(i)}
-              ></div>
-            ))}
+                className="flex gap-5 transition-transform duration-500 ease-out"
+                ref={trackRef}
+                style={{ transform: slideWidth ? `translateX(-${currentSlide * slideWidth}px)` : 'none' }}
+              >
+                <div className="w-[300px] sm:w-[420px] shrink-0 relative group rounded-2xl overflow-hidden shadow-lg h-72 bg-slate-900">
+                  <img src={thanksgiving} alt="Annual Convention" className="w-full h-full object-cover group-hover:scale-105 transition-transform duration-500 opacity-80" />
+                  <div className="absolute inset-0 bg-gradient-to-t from-black/80 via-black/30 to-transparent p-6 flex flex-col justify-end">
+                    <span className="text-[10px] font-bold uppercase tracking-wider text-[#F0D89A] font-inter mb-1">Annual Convention</span>
+                    <h4 className="font-inter text-lg font-bold text-white m-0">National Apostolic Convention 2025</h4>
+                  </div>
+                </div>
+
+                <div className="w-[300px] sm:w-[420px] shrink-0 relative group rounded-2xl overflow-hidden shadow-lg h-72 bg-slate-900">
+                  <img src={youthCampImg} alt="Youth Ministry" className="w-full h-full object-cover group-hover:scale-105 transition-transform duration-500 opacity-80" />
+                  <div className="absolute inset-0 bg-gradient-to-t from-black/80 via-black/30 to-transparent p-6 flex flex-col justify-end">
+                    <span className="text-[10px] font-bold uppercase tracking-wider text-[#F0D89A] font-inter mb-1">Youth Ministry</span>
+                    <h4 className="font-inter text-lg font-bold text-white m-0">Youth Leadership Summit</h4>
+                  </div>
+                </div>
+
+                <div className="w-[300px] sm:w-[420px] shrink-0 relative group rounded-2xl overflow-hidden shadow-lg h-72 bg-slate-900">
+                  <img src={womenFellowship} alt="Outreach" className="w-full h-full object-cover group-hover:scale-105 transition-transform duration-500 opacity-80" />
+                  <div className="absolute inset-0 bg-gradient-to-t from-black/80 via-black/30 to-transparent p-6 flex flex-col justify-end">
+                    <span className="text-[10px] font-bold uppercase tracking-wider text-[#F0D89A] font-inter mb-1">Outreach</span>
+                    <h4 className="font-inter text-lg font-bold text-white m-0">Community Feeding &amp; Medical Mission</h4>
+                  </div>
+                </div>
+
+                <div className="w-[300px] sm:w-[420px] shrink-0 relative group rounded-2xl overflow-hidden shadow-lg h-72 bg-slate-900">
+                  <img src={youthFellowship} alt="Worship Night" className="w-full h-full object-cover group-hover:scale-105 transition-transform duration-500 opacity-80" />
+                  <div className="absolute inset-0 bg-gradient-to-t from-black/80 via-black/30 to-transparent p-6 flex flex-col justify-end">
+                    <span className="text-[10px] font-bold uppercase tracking-wider text-[#F0D89A] font-inter mb-1">Worship Night</span>
+                    <h4 className="font-inter text-lg font-bold text-white m-0">All-Night Prayer &amp; Praise — Main Sanctuary</h4>
+                  </div>
+                </div>
+
+                <div className="w-[300px] sm:w-[420px] shrink-0 relative group rounded-2xl overflow-hidden shadow-lg h-72 bg-slate-900">
+                  <img src={divineService} alt="Baptism Sunday" className="w-full h-full object-cover group-hover:scale-105 transition-transform duration-500 opacity-80" />
+                  <div className="absolute inset-0 bg-gradient-to-t from-black/80 via-black/30 to-transparent p-6 flex flex-col justify-end">
+                    <span className="text-[10px] font-bold uppercase tracking-wider text-[#F0D89A] font-inter mb-1">Baptism Sunday</span>
+                    <h4 className="font-inter text-lg font-bold text-white m-0">Water Baptism</h4>
+                  </div>
+                </div>
+              </div>
+            </div>
+
+            <div className="flex justify-center gap-2 mt-8">
+              {[...Array(maxIndex + 1)].map((_, i) => (
+                <button
+                  key={i}
+                  className={`h-2.5 rounded-full border-none transition-all cursor-pointer ${currentSlide === i ? 'w-8 bg-[#1E3A8A]' : 'w-2.5 bg-slate-300'}`}
+                  onClick={() => goTo(i)}
+                  aria-label={`Go to slide ${i + 1}`}
+                />
+              ))}
+            </div>
           </div>
-        </div>
+        </section>
 
         {/* VERSE BANNER */}
-        <div className="wpt-verse-banner wpt-reveal" ref={addToRefs}>
-          <div className="wpt-verse-cross-bg"></div>
-          <div className="wpt-verse-text">
-            "For where two or three are gathered in my name, there am I among them."
+        <section className="py-16 px-4 sm:px-8 bg-[#0D1F45] text-white text-center relative overflow-hidden transition-all duration-700 opacity-0 translate-y-9" ref={addToRefs}>
+          <div className="max-w-4xl mx-auto relative z-10">
+            <blockquote className="font-cormorant text-2xl sm:text-4xl italic font-semibold text-[#F0D89A] mb-4 leading-relaxed">
+              "For where two or three are gathered in my name, there am I among them."
+            </blockquote>
+            <cite className="font-inter text-xs sm:text-sm font-semibold tracking-widest text-white/70 uppercase not-italic">
+              Matthew 18:20 · ESV
+            </cite>
           </div>
-          <div className="wpt-verse-ref">Matthew 18:20 · ESV</div>
-        </div>
+        </section>
 
         {/* FEATURES */}
-        <section className="wpt-features-section" id="features">
-          <div className="wpt-section-inner">
-            <div className="wpt-features-header">
-              <div className="wpt-reveal-left" ref={addToRefs}>
-                <div className="wpt-section-eyebrow">System Features</div>
-                <div className="wpt-section-title">Everything Your<br />Church Needs</div>
+        <section className="py-24 px-4 sm:px-8 lg:px-12 bg-slate-50" id="features">
+          <div className="max-w-7xl mx-auto">
+            <div className="flex flex-col lg:flex-row items-start lg:items-end justify-between mb-16 gap-6">
+              <div className="transition-all duration-700 opacity-0 -translate-x-10" ref={addToRefs}>
+                <div className="text-xs font-bold uppercase tracking-widest text-[#C9A84C] font-inter mb-2">System Features</div>
+                <h2 className="font-dm text-3xl sm:text-4xl font-bold text-[#0D1F45] m-0">Everything Your<br />Church Needs</h2>
               </div>
-              <p className="wpt-section-sub wpt-reveal-right" ref={addToRefs}>
+              <p className="font-inter text-slate-600 text-sm sm:text-base max-w-md m-0 transition-all duration-700 opacity-0 translate-x-10" ref={addToRefs}>
                 A complete digital platform built for Filipino apostolic churches — from financial
                 tools to member management, all in one place.
               </p>
             </div>
-            <div className="wpt-features-grid">
-              <div className="wpt-feature-card wpt-reveal wpt-delay-05" ref={addToRefs}>
-                <div className="wpt-feature-img"><img src={featureTransactions} alt="Manage Transactions" /></div>
-                <h3>Manage Transactions</h3>
-                <p>Handle savings goals, tithes, offerings, and donations via GCash, Maya, or bank transfer — all in one place.</p>
-                <div className="wpt-feature-tag">Finance</div>
+
+            <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-6">
+              <div className="bg-white rounded-2xl p-6 shadow-sm border border-slate-200/80 hover:shadow-md transition-all duration-700 opacity-0 translate-y-9" ref={addToRefs}>
+                <div className="h-44 rounded-xl overflow-hidden mb-6 bg-slate-100">
+                  <img src={featureTransactions} alt="Manage Transactions" className="w-full h-full object-cover" />
+                </div>
+                <span className="text-[10px] font-bold uppercase tracking-wider text-[#1E3A8A] bg-blue-50 px-2.5 py-1 rounded-md font-inter inline-block mb-3">Finance</span>
+                <h3 className="font-inter text-lg font-bold text-[#0D1F45] mb-2">Manage Transactions</h3>
+                <p className="font-inter text-xs text-slate-500 leading-relaxed m-0">Handle savings goals, tithes, offerings, and donations via GCash, Maya, or bank transfer — all in one place.</p>
               </div>
-              <div className="wpt-feature-card wpt-reveal wpt-delay-10" ref={addToRefs}>
-                <div className="wpt-feature-img"><img src={featureOperations} alt="Track Church Operations" /></div>
-                <h3>Track Church Operations</h3>
-                <p>Maintain digital member profiles, log service attendance, and generate reports per branch automatically.</p>
-                <div className="wpt-feature-tag">Operations</div>
+
+              <div className="bg-white rounded-2xl p-6 shadow-sm border border-slate-200/80 hover:shadow-md transition-all duration-700 opacity-0 translate-y-9" ref={addToRefs}>
+                <div className="h-44 rounded-xl overflow-hidden mb-6 bg-slate-100">
+                  <img src={featureAttendance} alt="Track Church Operations" className="w-full h-full object-cover" />
+                </div>
+                <span className="text-[10px] font-bold uppercase tracking-wider text-[#1E3A8A] bg-blue-50 px-2.5 py-1 rounded-md font-inter inline-block mb-3">Operations</span>
+                <h3 className="font-inter text-lg font-bold text-[#0D1F45] mb-2">Track Church Operations</h3>
+                <p className="font-inter text-xs text-slate-500 leading-relaxed m-0">Maintain digital member profiles, log service attendance, and generate reports per branch automatically.</p>
               </div>
-              <div className="wpt-feature-card wpt-reveal wpt-delay-15" ref={addToRefs}>
-                <div className="wpt-feature-img"><img src={featureConnected} alt="Stay Connected" /></div>
-                <h3>Stay Connected</h3>
-                <p>Broadcast updates, post event schedules, and maintain a live branch directory across all locations.</p>
-                <div className="wpt-feature-tag">Communication</div>
+
+              <div className="bg-white rounded-2xl p-6 shadow-sm border border-slate-200/80 hover:shadow-md transition-all duration-700 opacity-0 translate-y-9" ref={addToRefs}>
+                <div className="h-44 rounded-xl overflow-hidden mb-6 bg-slate-100">
+                  <img src={featureConnected} alt="Stay Connected" className="w-full h-full object-cover" />
+                </div>
+                <span className="text-[10px] font-bold uppercase tracking-wider text-[#1E3A8A] bg-blue-50 px-2.5 py-1 rounded-md font-inter inline-block mb-3">Communication</span>
+                <h3 className="font-inter text-lg font-bold text-[#0D1F45] mb-2">Stay Connected</h3>
+                <p className="font-inter text-xs text-slate-500 leading-relaxed m-0">Broadcast updates, post event schedules, and maintain a live branch directory across all locations.</p>
               </div>
-              <div className="wpt-feature-card wpt-reveal wpt-delay-20" ref={addToRefs}>
-                <div className="wpt-feature-img"><img src={featureChatbot} alt="24/7 Chatbot Assistant" /></div>
-                <h3>24/7 Chatbot Assistant</h3>
-                <p>Answer member queries, guide new visitors, and provide support around the clock — always available.</p>
-                <div className="wpt-feature-tag">AI Support</div>
+
+              <div className="bg-white rounded-2xl p-6 shadow-sm border border-slate-200/80 hover:shadow-md transition-all duration-700 opacity-0 translate-y-9" ref={addToRefs}>
+                <div className="h-44 rounded-xl overflow-hidden mb-6 bg-slate-100">
+                  <img src={featureChatbot} alt="24/7 Chatbot Assistant" className="w-full h-full object-cover" />
+                </div>
+                <span className="text-[10px] font-bold uppercase tracking-wider text-[#1E3A8A] bg-blue-50 px-2.5 py-1 rounded-md font-inter inline-block mb-3">AI Support</span>
+                <h3 className="font-inter text-lg font-bold text-[#0D1F45] mb-2">24/7 Chatbot Assistant</h3>
+                <p className="font-inter text-xs text-slate-500 leading-relaxed m-0">Answer member queries, guide new visitors, and provide support around the clock — always available.</p>
               </div>
             </div>
           </div>
         </section>
 
         {/* BENTO GRID */}
-        <section className="wpt-bento-section" id="gallery">
-          <div className="wpt-section-inner">
-            <div className="wpt-bento-header wpt-reveal" ref={addToRefs}>
+        <section className="py-24 px-4 sm:px-8 lg:px-12 bg-white" id="gallery">
+          <div className="max-w-7xl mx-auto">
+            <div className="flex flex-col sm:flex-row items-start sm:items-end justify-between mb-12 gap-4 transition-all duration-700 opacity-0 translate-y-9" ref={addToRefs}>
               <div>
-                <div className="wpt-section-eyebrow">Giving &amp; Community</div>
-                <div className="wpt-section-title wpt-mb-0">One Body,<br />Many Ways to Give</div>
+                <div className="text-xs font-bold uppercase tracking-widest text-[#C9A84C] font-inter mb-2">Giving &amp; Community</div>
+                <h2 className="font-dm text-3xl sm:text-4xl font-bold text-[#0D1F45] m-0">One Body,<br />Many Ways to Give</h2>
               </div>
               <a
                 href="#/"
-                className="wpt-btn-primary wpt-shrink-0"
+                className="bg-[#1E3A8A] hover:bg-[#2B4EAF] text-white font-semibold text-sm px-6 py-3 rounded-xl no-underline shadow-sm transition-all hover:-translate-y-0.5"
                 onClick={(e) => { e.preventDefault(); setShowDonationModal(true); }}
               >
                 Start Giving →
               </a>
             </div>
-            <div className="wpt-bento-grid" id="donate">
-              <div className="wpt-bento-item wpt-bento-navy wpt-reveal wpt-delay-05" ref={addToRefs}>
-                <div className="wpt-bento-cross"></div>
-                <div className="wpt-bento-donation-card">
-                  <div>
-                    <div className="wpt-bento-label-gold">Church Giving</div>
-                    <h3>Give Faithfully,<br />Give Freely</h3>
-                    <p>Your generosity fuels outreach, missions, and community programs. Every peso honors God.</p>
+
+            <div className="grid grid-cols-1 md:grid-cols-3 gap-6" id="donate">
+              <div className="md:col-span-2 bg-[#0D1F45] rounded-3xl p-8 text-white relative overflow-hidden flex flex-col justify-between transition-all duration-700 opacity-0 translate-y-9 min-h-[300px]" ref={addToRefs}>
+                <div>
+                  <span className="text-[10px] font-bold uppercase tracking-wider text-[#F0D89A] font-inter block mb-2">Church Giving</span>
+                  <h3 className="font-dm text-3xl font-bold text-white mb-3">Give Faithfully,<br />Give Freely</h3>
+                  <p className="font-inter text-sm text-white/70 max-w-md mb-6 leading-relaxed">Your generosity fuels outreach, missions, and community programs. Every peso honors God.</p>
+                </div>
+                <div>
+                  <div className="flex flex-wrap gap-2 mb-6">
+                    <span className="bg-white/10 text-white font-inter text-xs px-3 py-1.5 rounded-lg border border-white/15">GCash</span>
+                    <span className="bg-white/10 text-white font-inter text-xs px-3 py-1.5 rounded-lg border border-white/15">Maya</span>
+                    <span className="bg-white/10 text-white font-inter text-xs px-3 py-1.5 rounded-lg border border-white/15">BPI / BDO</span>
+                    <span className="bg-white/10 text-white font-inter text-xs px-3 py-1.5 rounded-lg border border-white/15">Cash</span>
                   </div>
-                  <div>
-                    <div className="wpt-mb-12">
-                      <div className="wpt-bento-label-faint">Accept via</div>
-                      <div className="wpt-bento-donation-methods">
-                        <span className="wpt-donation-method">GCash</span>
-                        <span className="wpt-donation-method">Maya</span>
-                        <span className="wpt-donation-method">BPI / BDO</span>
-                        <span className="wpt-donation-method">Cash</span>
-                      </div>
-                    </div>
-                    <a
-                      href="#/"
-                      className="wpt-btn-gold wpt-btn-inline-mt"
-                      onClick={(e) => { e.preventDefault(); setShowDonationModal(true); }}
-                    >
-                      Give Now →
-                    </a>
-                  </div>
+                  <a
+                    href="#/"
+                    className="inline-block bg-[#C9A84C] hover:bg-[#F0D89A] text-[#0D1F45] font-semibold text-sm px-6 py-3 rounded-xl no-underline transition-all"
+                    onClick={(e) => { e.preventDefault(); setShowDonationModal(true); }}
+                  >
+                    Give Now →
+                  </a>
                 </div>
               </div>
 
-              <div className="wpt-bento-item wpt-bento-light wpt-reveal wpt-delay-10" ref={addToRefs}>
-                <div className="wpt-bento-ph" style={{ backgroundImage: `url(${bentoImg1})`, backgroundSize: 'cover', backgroundPosition: 'center' }}></div>
-                <div className="wpt-bento-ph-overlay">
-                  <div className="wpt-bento-ph-label">Community</div>
-                  <div className="wpt-bento-ph-title">Sunday Worship Service</div>
+              <div className="bg-slate-900 rounded-3xl overflow-hidden relative group min-h-[280px] transition-all duration-700 opacity-0 translate-y-9" ref={addToRefs}>
+                <img src={bentoImg1} alt="Sunday Worship Service" className="w-full h-full object-cover group-hover:scale-105 transition-transform duration-500 opacity-80" />
+                <div className="absolute inset-0 bg-gradient-to-t from-black/80 via-black/20 to-transparent p-6 flex flex-col justify-end">
+                  <span className="text-[10px] font-bold uppercase tracking-wider text-[#F0D89A] font-inter mb-1">Community</span>
+                  <h4 className="font-inter text-lg font-bold text-white m-0">Sunday Worship Service</h4>
                 </div>
               </div>
 
-              <div className="wpt-bento-item wpt-bento-mid wpt-reveal wpt-delay-15" ref={addToRefs}>
-                <div className="wpt-bento-ph" style={{ backgroundImage: `url(${missionImg})`, backgroundSize: 'cover', backgroundPosition: 'center' }}></div>
-                <div className="wpt-bento-ph-overlay">
-                  <div className="wpt-bento-ph-label">Mission Fund</div>
-                  <div className="wpt-bento-ph-title">Outreach &amp; Missions</div>
+              <div className="bg-slate-900 rounded-3xl overflow-hidden relative group min-h-[280px] transition-all duration-700 opacity-0 translate-y-9" ref={addToRefs}>
+                <img src={missionImg} alt="Outreach &amp; Missions" className="w-full h-full object-cover group-hover:scale-105 transition-transform duration-500 opacity-80" />
+                <div className="absolute inset-0 bg-gradient-to-t from-black/80 via-black/20 to-transparent p-6 flex flex-col justify-end">
+                  <span className="text-[10px] font-bold uppercase tracking-wider text-[#F0D89A] font-inter mb-1">Mission Fund</span>
+                  <h4 className="font-inter text-lg font-bold text-white m-0">Outreach &amp; Missions</h4>
                 </div>
               </div>
 
-              <div className="wpt-bento-item wpt-bento-pale wpt-reveal wpt-delay-20" ref={addToRefs}>
-                <div className="wpt-bento-content-card">
-                  <div className="wpt-bento-stat wpt-text-navy">₱1.2M</div>
-                  <div className="wpt-bento-stat-label wpt-text-muted-color">Raised This Year</div>
-                </div>
+              <div className="bg-amber-50 rounded-3xl p-8 border border-amber-200/60 flex flex-col justify-center transition-all duration-700 opacity-0 translate-y-9 min-h-[200px]" ref={addToRefs}>
+                <div className="font-dm text-4xl font-extrabold text-[#0D1F45] mb-1">₱1.2M</div>
+                <div className="font-inter text-xs font-semibold text-slate-500 uppercase tracking-wider">Raised This Year</div>
               </div>
 
-              <div className="wpt-bento-item wpt-bento-light wpt-reveal wpt-delay-25" ref={addToRefs}>
-                <div className="wpt-bento-ph" style={{ backgroundImage: `url(${bentoImg2})`, backgroundSize: 'cover', backgroundPosition: 'center' }}></div>
-                <div className="wpt-bento-ph-overlay">
-                  <div className="wpt-bento-ph-label">Outreach</div>
-                  <div className="wpt-bento-ph-title">Medical Mission 2025</div>
-                </div>
-              </div>
-
-              <div className="wpt-bento-item wpt-bento-navy wpt-reveal wpt-delay-30 wpt-min-h-180" ref={addToRefs}>
-                <div className="wpt-bento-cross"></div>
-                <div className="wpt-bento-content-card">
-                  <div className="wpt-bento-label-gold-md">Donation Categories</div>
-                  <div className="wpt-flex-wrap-gap">
-                    <span className="wpt-donation-method">General Fund</span>
-                    <span className="wpt-donation-method">Children's Department</span>
-                    <span className="wpt-donation-method">Men's Department</span>
-                    <span className="wpt-donation-method">Women's Department</span>
-                    <span className="wpt-donation-method">Youth Department</span>
-                    <span className="wpt-donation-method">Mission Fund</span>
-                  </div>
+              <div className="bg-slate-900 rounded-3xl overflow-hidden relative group min-h-[280px] transition-all duration-700 opacity-0 translate-y-9" ref={addToRefs}>
+                <img src={bentoImg2} alt="Medical Mission 2025" className="w-full h-full object-cover group-hover:scale-105 transition-transform duration-500 opacity-80" />
+                <div className="absolute inset-0 bg-gradient-to-t from-black/80 via-black/20 to-transparent p-6 flex flex-col justify-end">
+                  <span className="text-[10px] font-bold uppercase tracking-wider text-[#F0D89A] font-inter mb-1">Outreach</span>
+                  <h4 className="font-inter text-lg font-bold text-white m-0">Medical Mission 2025</h4>
                 </div>
               </div>
             </div>
@@ -528,77 +549,76 @@ export default function WelcomePage() {
         </section>
 
         {/* CTA STRIP */}
-        <section className="wpt-cta-strip">
-          <div className="wpt-section-inner">
-            <div className="wpt-cta-inner wpt-reveal" ref={addToRefs}>
-              <div className="wpt-relative-z1">
-                <div className="wpt-cta-text-label">Get Started Today</div>
-                <div className="wpt-cta-title">Join the <span className="brand-text-isang">Isang</span><span className="brand-text-diwa">Diwa</span> Digital Community</div>
-                <p className="wpt-cta-sub">
-                  Register as a member, access your profile, manage your savings goals, and stay
-                  connected with your branch — all from one platform.
-                </p>
-              </div>
-              <div className="wpt-cta-actions wpt-relative-z1">
-                <a
-                  href="#/"
-                  className="wpt-btn-gold"
-                  onClick={(e) => { e.preventDefault(); handleOpenSignup(); }}
-                >
-                  Register Now →
-                </a>
-              </div>
-              <div className="wpt-cta-cross"></div>
-            </div>
+        <section className="py-20 px-4 sm:px-8 lg:px-12 bg-gradient-to-r from-[#0D1F45] to-[#1E3A8A] text-white">
+          <div className="max-w-5xl mx-auto text-center transition-all duration-700 opacity-0 translate-y-9" ref={addToRefs}>
+            <span className="text-xs font-bold uppercase tracking-widest text-[#F0D89A] font-inter block mb-3">Get Started Today</span>
+            <h2 className="font-dm text-3xl sm:text-5xl font-bold mb-6 leading-tight">
+              Join the <span className="text-white">Isang</span><span className="text-[#F0D89A]">Diwa</span> Digital Community
+            </h2>
+            <p className="font-inter text-sm sm:text-base text-white/80 max-w-2xl mx-auto mb-8 leading-relaxed">
+              Register as a member, access your profile, manage your savings goals, and stay
+              connected with your branch — all from one platform.
+            </p>
+            <a
+              href="#/"
+              className="inline-block bg-[#C9A84C] hover:bg-[#F0D89A] text-[#0D1F45] font-semibold text-sm px-8 py-3.5 rounded-xl no-underline shadow-lg transition-all hover:-translate-y-0.5"
+              onClick={(e) => { e.preventDefault(); handleOpenSignup(); }}
+            >
+              Register Now →
+            </a>
           </div>
         </section>
 
         {/* FOOTER */}
-        <footer className="wpt-footer">
-          <div className="wpt-footer-inner">
-            <div className="wpt-footer-top">
-              <div className="wpt-footer-brand">
-                <a href="#" className="wpt-nav-logo wpt-no-underline">
-                  <img src={puacLogo} alt="IsangDiwa Logo" className="wpt-logo-img" />
-                  <div className="wpt-nav-name wpt-text-white wpt-footer-logo-text">
-                    <span className="brand-text-isang">Isang</span><span className="brand-text-diwa">Diwa</span>
+        <footer className="bg-[#091530] text-white pt-16 pb-8 px-4 sm:px-8 lg:px-12">
+          <div className="max-w-7xl mx-auto">
+            <div className="grid grid-cols-1 md:grid-cols-5 gap-10 pb-12 border-b border-white/10">
+              <div className="md:col-span-2">
+                <a href="#" className="flex items-center gap-3 no-underline mb-4">
+                  <img src={puacLogo} alt="IsangDiwa Logo" className="w-10 h-10 object-contain" />
+                  <div className="font-cormorant text-2xl font-bold text-white">
+                    <span className="text-white">Isang</span><span className="text-[#F0D89A]">Diwa</span>
                   </div>
                 </a>
-                <p>
+                <p className="font-inter text-xs text-white/60 leading-relaxed max-w-sm m-0">
                   A church rooted in apostolic doctrine, committed to transforming communities
                   across the Philippines through faith, fellowship, and digital empowerment.
                 </p>
               </div>
-              <div className="wpt-footer-col">
-                <h4>Quick Links</h4>
-                <ul>
-                  <li><a href="#">About Us</a></li>
-                  <li><a href="#">Branches</a></li>
-                  <li><a href="#">Events</a></li>
-                  <li><a href="#">Sermons</a></li>
+
+              <div>
+                <h4 className="font-inter text-xs font-bold uppercase tracking-wider text-white mb-4">Quick Links</h4>
+                <ul className="list-none p-0 m-0 space-y-2.5 text-xs font-inter text-white/60">
+                  <li><a href="#" className="hover:text-white transition-colors no-underline">About Us</a></li>
+                  <li><a href="#" className="hover:text-white transition-colors no-underline">Branches</a></li>
+                  <li><a href="#" className="hover:text-white transition-colors no-underline">Events</a></li>
+                  <li><a href="#" className="hover:text-white transition-colors no-underline">Sermons</a></li>
                 </ul>
               </div>
-              <div className="wpt-footer-col">
-                <h4>Member Tools</h4>
-                <ul>
-                  <li><a href="#">Member Login</a></li>
-                  <li><a href="#">Savings Goals</a></li>
-                  <li><a href="#">Attendance</a></li>
+
+              <div>
+                <h4 className="font-inter text-xs font-bold uppercase tracking-wider text-white mb-4">Member Tools</h4>
+                <ul className="list-none p-0 m-0 space-y-2.5 text-xs font-inter text-white/60">
+                  <li><a href="#" className="hover:text-white transition-colors no-underline">Member Login</a></li>
+                  <li><a href="#" className="hover:text-white transition-colors no-underline">Savings Goals</a></li>
+                  <li><a href="#" className="hover:text-white transition-colors no-underline">Attendance</a></li>
                 </ul>
               </div>
-              <div className="wpt-footer-col">
-                <h4>Giving</h4>
-                <ul>
-                  <li><a href="#">General Fund</a></li>
-                  <li><a href="#">Children's Dept.</a></li>
-                  <li><a href="#">Men's Dept.</a></li>
-                  <li><a href="#">Women's Dept.</a></li>
-                  <li><a href="#">Youth Dept.</a></li>
-                  <li><a href="#">Mission Fund</a></li>
+
+              <div>
+                <h4 className="font-inter text-xs font-bold uppercase tracking-wider text-white mb-4">Giving</h4>
+                <ul className="list-none p-0 m-0 space-y-2.5 text-xs font-inter text-white/60">
+                  <li><a href="#" className="hover:text-white transition-colors no-underline">General Fund</a></li>
+                  <li><a href="#" className="hover:text-white transition-colors no-underline">Children's Dept.</a></li>
+                  <li><a href="#" className="hover:text-white transition-colors no-underline">Men's Dept.</a></li>
+                  <li><a href="#" className="hover:text-white transition-colors no-underline">Women's Dept.</a></li>
+                  <li><a href="#" className="hover:text-white transition-colors no-underline">Youth Dept.</a></li>
+                  <li><a href="#" className="hover:text-white transition-colors no-underline">Mission Fund</a></li>
                 </ul>
               </div>
             </div>
-            <div className="wpt-footer-bottom">
+
+            <div className="pt-8 flex flex-col sm:flex-row items-center justify-between gap-4 font-inter text-xs text-white/40">
               <span>© 2026 IsangDiwa | Philippine United Apostolic Church. All rights reserved.</span>
               <span>Glorifying God · Serving People</span>
             </div>

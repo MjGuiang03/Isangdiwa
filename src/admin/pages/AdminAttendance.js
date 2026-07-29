@@ -3,15 +3,15 @@ import React, { useState, useEffect, useCallback, useMemo, useRef } from 'react'
 import useSWR from 'swr';
 import { toast } from 'sonner';
 import useDebounce from '../../hooks/useDebounce';
-import '../styles/AdminAttendance.css';
-import '../../styles/sharedPagination.css';
 import API from '../../utils/api';
 import { 
   CalendarDays, MapPin, Search, UserCheck, Clock, ShieldAlert,
   Play, Square, Plus, CheckCircle2, AlertCircle, XCircle, Download,
-  ArrowLeft, ChevronLeft, ChevronRight, CreditCard, FileText
+  ArrowLeft, ChevronLeft, ChevronRight, CreditCard, FileText,
+  Loader2
 } from 'lucide-react';
 import { useNavigate } from 'react-router-dom';
+import Pagination from '../../components/Pagination';
 
 function ManualAttendanceModal({ session, onClose, onSave }) {
   const [memberId, setMemberId] = useState('');
@@ -53,32 +53,32 @@ function ManualAttendanceModal({ session, onClose, onSave }) {
   };
 
   return (
-    <div className="admin-att-modal-overlay" onClick={onClose}>
-      <div className="admin-att-modal admin-att-modal-sm" onClick={e => e.stopPropagation()}>
-        <div className="admin-att-modal-header">
-           <div className="admin-att-modal-icon bg-blue-100 text-blue-600">
+    <div className="fixed inset-0 bg-black/50 backdrop-blur-sm z-[1000] flex items-center justify-center p-4" onClick={onClose}>
+      <div className="bg-white dark:bg-[#1E2130] rounded-2xl w-full max-w-[400px] shadow-2xl border border-slate-200 dark:border-white/10 flex flex-col max-h-[90vh] overflow-hidden" onClick={e => e.stopPropagation()}>
+        <div className="flex items-center gap-4 p-5 border-b border-slate-200 dark:border-white/10 shrink-0 relative">
+           <div className="w-10 h-10 rounded-xl flex items-center justify-center shrink-0 bg-blue-100 text-blue-600 dark:bg-blue-500/20 dark:text-blue-400">
              <UserCheck size={20} />
            </div>
-          <div className="admin-att-modal-title-group">
-            <h2 className="admin-att-modal-title">Manual Record</h2>
-            <p className="admin-att-modal-subtitle">Add attendance without RFID card</p>
+          <div className="flex flex-col">
+            <h2 className="m-0 font-inter text-lg font-bold text-slate-800 dark:text-white">Manual Record</h2>
+            <p className="m-0 font-inter text-[13px] text-slate-500 dark:text-slate-400">Add attendance without RFID card</p>
           </div>
-          <button className="admin-att-modal-close" onClick={onClose}><XCircle size={20} color="#6B7280" /></button>
+          <button className="absolute top-5 right-5 w-8 h-8 flex items-center justify-center rounded-lg bg-slate-100 dark:bg-white/5 text-slate-500 hover:bg-slate-200 dark:hover:bg-white/10 transition-colors cursor-pointer border-none" onClick={onClose}><XCircle size={20} color="#6B7280" /></button>
         </div>
-        <form onSubmit={handleSubmit} className="admin-att-modal-body">
-          <div className="admin-att-form-row">
-             <label className="admin-att-form-label">Member ID</label>
-             <input type="text" className="admin-att-form-input" 
+        <form onSubmit={handleSubmit} className="p-6 overflow-y-auto custom-scrollbar flex-1 flex flex-col gap-5">
+          <div className="flex flex-col gap-1.5">
+             <label className="font-inter text-[13px] font-semibold text-slate-700 dark:text-slate-300">Member ID</label>
+             <input type="text" className="h-10 px-3 bg-white dark:bg-[#1E2130] border border-slate-300 dark:border-white/10 rounded-lg text-sm font-inter text-slate-800 dark:text-white outline-none focus:border-blue-500 transition-all w-full" 
                 autoFocus
                 placeholder="e.g. M-12345" 
                 value={memberId} 
                 onChange={e => setMemberId(e.target.value)} />
           </div>
         </form>
-        <div className="admin-att-modal-footer">
-          <button type="button" className="admin-att-btn admin-att-btn-cancel" onClick={onClose} disabled={saving}>Cancel</button>
-          <button type="button" className="admin-att-btn admin-att-btn-primary" onClick={handleSubmit} disabled={saving}>
-            {saving ? <span className="btn-spinner" /> : 'Record Attendance'}
+        <div className="p-5 border-t border-slate-200 dark:border-white/10 bg-slate-50 dark:bg-black/20 flex items-center justify-end gap-3 shrink-0">
+          <button type="button" className="h-10 px-4 rounded-lg font-inter text-sm font-semibold transition-all border border-slate-300 dark:border-white/10 bg-white dark:bg-[#1E2130] text-slate-700 dark:text-slate-300 hover:bg-slate-50 dark:hover:bg-white/5 cursor-pointer" onClick={onClose} disabled={saving}>Cancel</button>
+          <button type="button" className="h-10 px-4 rounded-lg font-inter text-sm font-semibold transition-all border-none bg-blue-600 text-white hover:bg-blue-700 cursor-pointer" onClick={handleSubmit} disabled={saving}>
+            {saving ? <Loader2 className="animate-spin" size={16} /> : 'Record Attendance'}
           </button>
         </div>
       </div>
@@ -111,53 +111,53 @@ function SessionLogsModal({ session, onClose }) {
   }, [session]);
 
   return (
-    <div className="admin-att-modal-overlay" onClick={onClose}>
-      <div className="admin-att-modal" style={{ maxWidth: '800px' }} onClick={e => e.stopPropagation()}>
-        <div className="admin-att-modal-header" style={{ padding: '20px 24px' }}>
-          <div className="admin-att-modal-title-group">
-            <h2 className="admin-att-modal-title">{session.branch} - {session.serviceType}</h2>
-            <p className="admin-att-modal-subtitle">Attendance logs for this active session</p>
+    <div className="fixed inset-0 bg-black/50 backdrop-blur-sm z-[1000] flex items-center justify-center p-4" onClick={onClose}>
+      <div className="bg-white dark:bg-[#1E2130] rounded-2xl w-full max-w-[600px] shadow-2xl border border-slate-200 dark:border-white/10 flex flex-col max-h-[90vh] overflow-hidden" style={{ maxWidth: '800px' }} onClick={e => e.stopPropagation()}>
+        <div className="flex items-center gap-4 p-5 border-b border-slate-200 dark:border-white/10 shrink-0 relative" style={{ padding: '20px 24px' }}>
+          <div className="flex flex-col">
+            <h2 className="m-0 font-inter text-lg font-bold text-slate-800 dark:text-white">{session.branch} - {session.serviceType}</h2>
+            <p className="m-0 font-inter text-[13px] text-slate-500 dark:text-slate-400">Attendance logs for this active session</p>
           </div>
-          <button className="admin-att-modal-close" onClick={onClose}><XCircle size={20} color="#6B7280" /></button>
+          <button className="absolute top-5 right-5 w-8 h-8 flex items-center justify-center rounded-lg bg-slate-100 dark:bg-white/5 text-slate-500 hover:bg-slate-200 dark:hover:bg-white/10 transition-colors cursor-pointer border-none" onClick={onClose}><XCircle size={20} color="#6B7280" /></button>
         </div>
-        <div className="admin-att-modal-body" style={{ maxHeight: '60vh', overflowY: 'auto', padding: 0 }}>
-          <table className="admin-att-table">
+        <div className="p-6 overflow-y-auto custom-scrollbar flex-1 flex flex-col gap-5" style={{ maxHeight: '60vh', overflowY: 'auto', padding: 0 }}>
+          <table className="w-full text-left border-collapse min-w-[800px]">
             <thead>
               <tr>
-                <th>Member</th>
-                <th>Time In</th>
-                <th>Status</th>
-                <th align="right" className="pr-6">Method</th>
+                <th className="px-4 py-3 bg-slate-50 dark:bg-black/20 border-b border-slate-200 dark:border-white/10 font-semibold text-[11px] tracking-wider uppercase text-slate-500 dark:text-slate-400 whitespace-nowrap sticky top-0 z-10">Member</th>
+                <th className="px-4 py-3 bg-slate-50 dark:bg-black/20 border-b border-slate-200 dark:border-white/10 font-semibold text-[11px] tracking-wider uppercase text-slate-500 dark:text-slate-400 whitespace-nowrap sticky top-0 z-10">Time In</th>
+                <th className="px-4 py-3 bg-slate-50 dark:bg-black/20 border-b border-slate-200 dark:border-white/10 font-semibold text-[11px] tracking-wider uppercase text-slate-500 dark:text-slate-400 whitespace-nowrap sticky top-0 z-10">Status</th>
+                <th className="px-4 py-3 pr-6 text-right bg-slate-50 dark:bg-black/20 border-b border-slate-200 dark:border-white/10 font-semibold text-[11px] tracking-wider uppercase text-slate-500 dark:text-slate-400 whitespace-nowrap sticky top-0 z-10">Method</th>
               </tr>
             </thead>
             <tbody>
               {loading ? (
                 <tr>
-                  <td colSpan="4" align="center" className="py-8 text-gray-500">Loading attendance data...</td>
+                  <td colSpan="4" className="px-4 py-8 text-center text-slate-500 dark:text-slate-400 border-b border-slate-100 dark:border-white/5">Loading attendance data...</td>
                 </tr>
               ) : logs.length === 0 ? (
                 <tr>
-                  <td colSpan="4" align="center" className="py-8 text-gray-500">No members have tapped in yet.</td>
+                  <td colSpan="4" className="px-4 py-8 text-center text-slate-500 dark:text-slate-400 border-b border-slate-100 dark:border-white/5">No members have tapped in yet.</td>
                 </tr>
               ) : (
                 logs.map((log) => (
                   <tr key={log._id || log.recordId}>
-                     <td>
+                     <td className="px-4 py-3 border-b border-slate-100 dark:border-white/5 text-sm font-inter text-slate-700 dark:text-slate-300">
                         <p className="font-semibold text-gray-900 m-0">{log.member}</p>
                         <p className="text-xs text-gray-500 m-0">{log.recordId}</p>
                      </td>
-                     <td>
+                     <td className="px-4 py-3 border-b border-slate-100 dark:border-white/5 text-sm font-inter text-slate-700 dark:text-slate-300">
                         <p className="text-gray-800 m-0 font-medium">{log.time}</p>
                      </td>
-                     <td>
-                        <span className={`status-badge ${log.status.toLowerCase()}`}>
+                     <td className="px-4 py-3 border-b border-slate-100 dark:border-white/5 text-sm font-inter text-slate-700 dark:text-slate-300">
+                        <span className={`inline-flex items-center gap-1.5 px-2.5 py-1 rounded-full text-[11px] font-bold tracking-wide uppercase ${log.status.toLowerCase() === 'present' ? 'bg-emerald-100 text-emerald-700 dark:bg-emerald-500/20 dark:text-emerald-400' : log.status.toLowerCase() === 'late' ? 'bg-amber-100 text-amber-700 dark:bg-amber-500/20 dark:text-amber-400' : 'bg-rose-100 text-rose-700 dark:bg-rose-500/20 dark:text-rose-400'}`}>
                           {log.status === 'Present' && <CheckCircle2 size={14} />}
                           {log.status === 'Late' && <Clock size={14} />}
                           {log.status}
                         </span>
                      </td>
-                     <td align="right" className="pr-6">
-                        <span className="rfid-pill font-mono text-xs">{log.rfidCardId || log.method || 'Manual'}</span>
+                     <td className="px-4 py-3 pr-6 border-b border-slate-100 dark:border-white/5 text-sm font-inter text-slate-700 dark:text-slate-300 text-right">
+                        <span className="inline-flex px-2 py-0.5 rounded font-mono text-[11px] bg-slate-100 text-slate-600 dark:bg-white/10 dark:text-slate-400 border border-slate-200 dark:border-white/20">{log.rfidCardId || log.method || 'Manual'}</span>
                      </td>
                   </tr>
                 ))
@@ -165,8 +165,8 @@ function SessionLogsModal({ session, onClose }) {
             </tbody>
           </table>
         </div>
-        <div className="admin-att-modal-footer">
-          <button className="admin-att-btn-secondary" onClick={onClose}>Close</button>
+        <div className="p-5 border-t border-slate-200 dark:border-white/10 bg-slate-50 dark:bg-black/20 flex items-center justify-end gap-3 shrink-0">
+          <button className="h-10 px-4 rounded-lg font-inter text-sm font-semibold transition-all border border-slate-300 dark:border-white/10 bg-white dark:bg-[#1E2130] text-slate-700 dark:text-slate-300 hover:bg-slate-50 dark:hover:bg-white/5 cursor-pointer" onClick={onClose}>Close</button>
         </div>
       </div>
     </div>
@@ -439,18 +439,18 @@ export default function AdminAttendance() {
   };
 
   return (
-    <div className="admin-att-main">
+    <div className="flex flex-col h-full bg-slate-100 dark:bg-[#161922] p-6 max-w-[1400px] mx-auto w-full gap-6">
       
       {showManualModal && selectedSession && <ManualAttendanceModal session={selectedSession} onClose={() => setShowManualModal(false)} onSave={() => { setShowManualModal(false); fetchAttendance(); }} />}
 
       {/* Header */}
-      <div className="admin-att-page-header">
+      <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-4 shrink-0">
         <div>
-           <h1 className="admin-att-title">Attendance Tracking</h1>
-           <p className="admin-att-subtitle">Manage service sessions and monitor active RFID logging.</p>
+           <h1 className="m-0 font-inter text-2xl font-bold text-slate-800 dark:text-white">Attendance Tracking</h1>
+           <p className="m-0 font-inter text-[13px] text-slate-500 dark:text-slate-400 mt-1">Manage service sessions and monitor active RFID logging.</p>
         </div>
-        <div className="admin-att-header-actions">
-           <button className="admin-att-btn-primary" style={{ display: 'flex', alignItems: 'center', gap: '8px' }} onClick={() => navigate('/admin/rfid-preview')}>
+        <div className="flex items-center gap-3">
+           <button className="h-10 px-4 bg-blue-600 text-white font-inter text-sm font-semibold rounded-lg hover:bg-blue-700 transition-colors border-none cursor-pointer flex items-center justify-center gap-2" style={{ display: 'flex', alignItems: 'center', gap: '8px' }} onClick={() => navigate('/admin/rfid-preview')}>
              <CreditCard size={18} />
              Open RFID Scanner
            </button>
@@ -458,71 +458,71 @@ export default function AdminAttendance() {
       </div>
 
       {/* Stats Row */}
-      <div className="admin-att-stats-row">
-        <div className="admin-att-stat-block">
-          <div className="admin-att-stat-top">
-            <span className="admin-att-stat-label">Total Attendance Today</span>
-            <div className="admin-att-stat-icon icon-blue"><UserCheck size={18} color="white" /></div>
+      <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-4">
+        <div className="bg-white dark:bg-[#1E2130] border border-slate-200 dark:border-white/10 rounded-xl p-5 shadow-sm flex flex-col gap-3">
+          <div className="flex items-center justify-between">
+            <span className="font-inter font-semibold text-[13px] tracking-wide text-slate-600 dark:text-slate-400">Total Attendance Today</span>
+            <div className="w-10 h-10 rounded-xl bg-blue-500 flex items-center justify-center shrink-0 shadow-sm"><UserCheck size={18} color="white" /></div>
           </div>
-          <span className="admin-att-stat-value">{stats.totalToday.toLocaleString()}</span>
+          <span className="font-inter font-bold text-3xl text-slate-800 dark:text-white">{stats.totalToday.toLocaleString()}</span>
         </div>
-        <div className="admin-att-stat-block">
-          <div className="admin-att-stat-top">
-            <span className="admin-att-stat-label">Services This Week</span>
-            <div className="admin-att-stat-icon icon-green"><CalendarDays size={18} color="white" /></div>
+        <div className="bg-white dark:bg-[#1E2130] border border-slate-200 dark:border-white/10 rounded-xl p-5 shadow-sm flex flex-col gap-3">
+          <div className="flex items-center justify-between">
+            <span className="font-inter font-semibold text-[13px] tracking-wide text-slate-600 dark:text-slate-400">Services This Week</span>
+            <div className="w-10 h-10 rounded-xl bg-emerald-500 flex items-center justify-center shrink-0 shadow-sm"><CalendarDays size={18} color="white" /></div>
           </div>
-          <span className="admin-att-stat-value">{stats.servicesThisWeek}</span>
+          <span className="font-inter font-bold text-3xl text-slate-800 dark:text-white">{stats.servicesThisWeek}</span>
         </div>
-        <div className="admin-att-stat-block">
-          <div className="admin-att-stat-top">
-            <span className="admin-att-stat-label">Average Attendance</span>
-            <div className="admin-att-stat-icon icon-indigo"><MapPin size={18} color="white" /></div>
+        <div className="bg-white dark:bg-[#1E2130] border border-slate-200 dark:border-white/10 rounded-xl p-5 shadow-sm flex flex-col gap-3">
+          <div className="flex items-center justify-between">
+            <span className="font-inter font-semibold text-[13px] tracking-wide text-slate-600 dark:text-slate-400">Average Attendance</span>
+            <div className="w-10 h-10 rounded-xl bg-indigo-500 flex items-center justify-center shrink-0 shadow-sm"><MapPin size={18} color="white" /></div>
           </div>
-          <span className="admin-att-stat-value">{stats.avgAttendance.toLocaleString()}</span>
-          <span className="admin-att-stat-sub">past 30 days</span>
+          <span className="font-inter font-bold text-3xl text-slate-800 dark:text-white">{stats.avgAttendance.toLocaleString()}</span>
+          <span className="font-inter text-xs text-slate-500 dark:text-slate-400">past 30 days</span>
         </div>
-        <div className="admin-att-stat-block">
-          <div className="admin-att-stat-top">
-            <span className="admin-att-stat-label">Late Arrivals Today</span>
-            <div className="admin-att-stat-icon icon-orange"><ShieldAlert size={18} color="white" /></div>
+        <div className="bg-white dark:bg-[#1E2130] border border-slate-200 dark:border-white/10 rounded-xl p-5 shadow-sm flex flex-col gap-3">
+          <div className="flex items-center justify-between">
+            <span className="font-inter font-semibold text-[13px] tracking-wide text-slate-600 dark:text-slate-400">Late Arrivals Today</span>
+            <div className="w-10 h-10 rounded-xl bg-amber-500 flex items-center justify-center shrink-0 shadow-sm"><ShieldAlert size={18} color="white" /></div>
           </div>
-          <span className="admin-att-stat-value text-orange">{stats.lateToday.toLocaleString()}</span>
+          <span className="font-inter font-bold text-3xl text-rose-500 dark:text-rose-400">{stats.lateToday.toLocaleString()}</span>
         </div>
       </div>
       {/* Active Sessions / Session Logs Table */}
-      <div className="admin-att-table-container">
+      <div className="flex-1 flex flex-col bg-white dark:bg-[#1E2130] border border-slate-200 dark:border-white/10 rounded-xl shadow-sm overflow-hidden min-h-[500px]">
         {viewingSession ? (
           /* ── Drilldown: Member logs for selected session ── */
           <>
-            <div className="admin-att-section-header">
-              <div className="admin-att-section-header-row">
-                <button className="admin-att-back-btn" onClick={handleBackToSessions}>
+            <div className="flex flex-col p-4 border-b border-slate-200 dark:border-white/10 shrink-0">
+              <div className="flex items-center justify-between gap-4 w-full">
+                <button className="flex items-center gap-2 px-3 py-1.5 text-sm font-semibold text-slate-600 dark:text-slate-400 bg-slate-100 dark:bg-white/5 hover:bg-slate-200 dark:hover:bg-white/10 rounded-lg transition-colors border-none cursor-pointer" onClick={handleBackToSessions}>
                   <ArrowLeft size={16} />
                   Back
                 </button>
                 <div style={{ flex: 1 }}>
                   <h2>{viewingSession.branch} — {viewingSession.serviceType}</h2>
-                  <p className="admin-att-section-sub">{new Date(viewingSession.date).toLocaleDateString()} · Started at {viewingSession.time}</p>
+                  <p className="m-0 font-inter text-[13px] text-slate-500 dark:text-slate-400 mt-1">{new Date(viewingSession.date).toLocaleDateString()} · Started at {viewingSession.time}</p>
                 </div>
                 <button
-                  className="admin-att-btn-primary"
+                  className="h-10 px-4 bg-blue-600 text-white font-inter text-sm font-semibold rounded-lg hover:bg-blue-700 transition-colors border-none cursor-pointer flex items-center justify-center gap-2"
                   style={{ display: 'flex', alignItems: 'center', gap: '6px', fontSize: '13px', padding: '8px 16px' }}
                   onClick={exportSessionPDF}
                   disabled={pdfExporting || sessionLogs.length === 0}
                 >
-                  {pdfExporting ? <span className="btn-spinner" /> : <FileText size={16} />}
+                  {pdfExporting ? <Loader2 className="animate-spin" size={16} /> : <FileText size={16} />}
                   Export PDF
                 </button>
               </div>
             </div>
-            <div className="admin-att-table-wrapper">
-              <table className="admin-att-table">
+            <div className="flex-1 overflow-x-auto overflow-y-auto custom-scrollbar">
+              <table className="w-full text-left border-collapse min-w-[800px]">
                 <thead>
                   <tr>
-                    <th>Member</th>
-                    <th>Time In</th>
-                    <th>Status</th>
-                    <th>Method</th>
+                    <th className="px-4 py-3 bg-slate-50 dark:bg-black/20 border-b border-slate-200 dark:border-white/10 font-semibold text-[11px] tracking-wider uppercase text-slate-500 dark:text-slate-400 whitespace-nowrap sticky top-0 z-10">Member</th>
+                    <th className="px-4 py-3 bg-slate-50 dark:bg-black/20 border-b border-slate-200 dark:border-white/10 font-semibold text-[11px] tracking-wider uppercase text-slate-500 dark:text-slate-400 whitespace-nowrap sticky top-0 z-10">Time In</th>
+                    <th className="px-4 py-3 bg-slate-50 dark:bg-black/20 border-b border-slate-200 dark:border-white/10 font-semibold text-[11px] tracking-wider uppercase text-slate-500 dark:text-slate-400 whitespace-nowrap sticky top-0 z-10">Status</th>
+                    <th className="px-4 py-3 bg-slate-50 dark:bg-black/20 border-b border-slate-200 dark:border-white/10 font-semibold text-[11px] tracking-wider uppercase text-slate-500 dark:text-slate-400 whitespace-nowrap sticky top-0 z-10">Method</th>
                   </tr>
                 </thead>
                 <tbody>
@@ -537,20 +537,20 @@ export default function AdminAttendance() {
                   ) : (
                     sessionLogs.map((log) => (
                       <tr key={log._id || log.recordId}>
-                        <td>
-                          <span className="admin-att-member-name">{log.member}</span>
-                          <span className="admin-att-member-id">{log.recordId}</span>
+                        <td className="px-4 py-3 border-b border-slate-100 dark:border-white/5 text-sm font-inter text-slate-700 dark:text-slate-300">
+                          <span className="block font-semibold text-slate-800 dark:text-white">{log.member}</span>
+                          <span className="block text-xs text-slate-500 dark:text-slate-400 mt-0.5">{log.recordId}</span>
                         </td>
-                        <td>{log.time}</td>
-                        <td>
-                          <span className={`status-badge ${log.status.toLowerCase()}`}>
+                        <td className="px-4 py-3 border-b border-slate-100 dark:border-white/5 text-sm font-inter text-slate-700 dark:text-slate-300">{log.time}</td>
+                        <td className="px-4 py-3 border-b border-slate-100 dark:border-white/5 text-sm font-inter text-slate-700 dark:text-slate-300">
+                          <span className={`inline-flex items-center gap-1.5 px-2.5 py-1 rounded-full text-[11px] font-bold tracking-wide uppercase ${log.status.toLowerCase() === 'present' ? 'bg-emerald-100 text-emerald-700 dark:bg-emerald-500/20 dark:text-emerald-400' : log.status.toLowerCase() === 'late' ? 'bg-amber-100 text-amber-700 dark:bg-amber-500/20 dark:text-amber-400' : 'bg-rose-100 text-rose-700 dark:bg-rose-500/20 dark:text-rose-400'}`}>
                             {log.status === 'Present' && <CheckCircle2 size={14} />}
                             {log.status === 'Late' && <Clock size={14} />}
                             {log.status}
                           </span>
                         </td>
-                        <td>
-                          <span className="rfid-pill">{log.rfidCardId || log.method || 'Manual'}</span>
+                        <td className="px-4 py-3 border-b border-slate-100 dark:border-white/5 text-sm font-inter text-slate-700 dark:text-slate-300">
+                          <span className="inline-flex px-2 py-0.5 rounded font-mono text-[11px] bg-slate-100 text-slate-600 dark:bg-white/10 dark:text-slate-400 border border-slate-200 dark:border-white/20">{log.rfidCardId || log.method || 'Manual'}</span>
                         </td>
                       </tr>
                     ))
@@ -560,39 +560,31 @@ export default function AdminAttendance() {
             </div>
             {/* Logs pagination */}
             {logsTotalCount > PER_PAGE && (
-              <div className="pg-bar">
-                <span className="pg-info">
-                  Showing {((logsPage - 1) * PER_PAGE) + 1}–{Math.min(logsPage * PER_PAGE, logsTotalCount)} of {logsTotalCount}
-                </span>
-                <div className="pg-controls">
-                  <button className="pg-btn" disabled={logsPage <= 1} onClick={() => handleLogsPageChange(logsPage - 1)}>
-                    ← Prev
-                  </button>
-                  {Array.from({ length: totalLogsPages }, (_, i) => i + 1).map(p => (
-                    <button key={p} className={`pg-btn pg-num${logsPage === p ? ' active' : ''}`} onClick={() => handleLogsPageChange(p)}>
-                      {p}
-                    </button>
-                  ))}
-                  <button className="pg-btn" disabled={logsPage >= totalLogsPages} onClick={() => handleLogsPageChange(logsPage + 1)}>
-                    Next →
-                  </button>
-                </div>
+              <div className="border-t border-slate-200 dark:border-white/10 shrink-0 bg-white dark:bg-[#1E2130]">
+                <Pagination
+                  currentPage={logsPage}
+                  totalPages={totalLogsPages}
+                  onPageChange={handleLogsPageChange}
+                  totalItems={logsTotalCount}
+                  itemsPerPage={PER_PAGE}
+                  itemName="logs"
+                />
               </div>
             )}
           </>
         ) : (
           /* ── Default: Sessions list with Tabs ── */
           <>
-            <div className="admin-att-section-header">
-              <div className="admin-att-tabs">
+            <div className="flex flex-col p-4 border-b border-slate-200 dark:border-white/10 shrink-0">
+              <div className="flex items-center gap-2">
                 <button 
-                  className={`admin-att-tab ${activeTab === 'active' ? 'active' : ''}`}
+                  className={`px-4 py-2 text-sm font-semibold rounded-lg transition-colors border-none cursor-pointer ${activeTab === 'active' ? 'bg-blue-50 text-blue-600 dark:bg-blue-500/20 dark:text-blue-400' : 'bg-transparent text-slate-600 dark:text-slate-400 hover:bg-slate-100 dark:hover:bg-white/5'}`}
                   onClick={() => setActiveTab('active')}
                 >
                   Active Sessions
                 </button>
                 <button 
-                  className={`admin-att-tab ${activeTab === 'history' ? 'active' : ''}`}
+                  className={`px-4 py-2 text-sm font-semibold rounded-lg transition-colors border-none cursor-pointer ${activeTab === 'history' ? 'bg-blue-50 text-blue-600 dark:bg-blue-500/20 dark:text-blue-400' : 'bg-transparent text-slate-600 dark:text-slate-400 hover:bg-slate-100 dark:hover:bg-white/5'}`}
                   onClick={() => {
                     setActiveTab('history');
                     setHistoryPage(1);
@@ -603,33 +595,33 @@ export default function AdminAttendance() {
               </div>
             </div>
 
-            <div className="admin-att-table-wrapper">
-              <table className="admin-att-table">
+            <div className="flex-1 overflow-x-auto overflow-y-auto custom-scrollbar">
+              <table className="w-full text-left border-collapse min-w-[800px]">
                 <thead>
                   <tr>
-                    <th>Branch</th>
-                    <th>Service Type</th>
-                    <th>Date</th>
-                    <th>Start Time</th>
-                    <th>Status / Details</th>
+                    <th className="px-4 py-3 bg-slate-50 dark:bg-black/20 border-b border-slate-200 dark:border-white/10 font-semibold text-[11px] tracking-wider uppercase text-slate-500 dark:text-slate-400 whitespace-nowrap sticky top-0 z-10">Branch</th>
+                    <th className="px-4 py-3 bg-slate-50 dark:bg-black/20 border-b border-slate-200 dark:border-white/10 font-semibold text-[11px] tracking-wider uppercase text-slate-500 dark:text-slate-400 whitespace-nowrap sticky top-0 z-10">Service Type</th>
+                    <th className="px-4 py-3 bg-slate-50 dark:bg-black/20 border-b border-slate-200 dark:border-white/10 font-semibold text-[11px] tracking-wider uppercase text-slate-500 dark:text-slate-400 whitespace-nowrap sticky top-0 z-10">Date</th>
+                    <th className="px-4 py-3 bg-slate-50 dark:bg-black/20 border-b border-slate-200 dark:border-white/10 font-semibold text-[11px] tracking-wider uppercase text-slate-500 dark:text-slate-400 whitespace-nowrap sticky top-0 z-10">Start Time</th>
+                    <th className="px-4 py-3 bg-slate-50 dark:bg-black/20 border-b border-slate-200 dark:border-white/10 font-semibold text-[11px] tracking-wider uppercase text-slate-500 dark:text-slate-400 whitespace-nowrap sticky top-0 z-10">Status / Details</th>
                   </tr>
                 </thead>
                 <tbody>
                   {activeTab === 'active' ? (
                     activeSessions.length === 0 ? (
                       <tr>
-                        <td colSpan="5" style={{ textAlign: 'center', padding: '32px 16px', color: '#6B7280' }}>No active RFID sessions right now.</td>
+                        <td colSpan="5" className="px-4 py-8 text-center text-slate-500 dark:text-slate-400 border-b border-slate-100 dark:border-white/5">No active RFID sessions right now.</td>
                       </tr>
                     ) : (
                       paginatedSessions.map((session) => (
-                        <tr key={session.sessionId} className="admin-att-row-clickable" onClick={() => handleSessionClick(session)}>
-                           <td>{session.branch}</td>
-                           <td>{session.serviceType}</td>
-                           <td>{new Date(session.date).toLocaleDateString()}</td>
-                           <td>{session.time}</td>
-                           <td>
-                              <span className="status-badge present">
-                                <span className="pulse-indicator"></span>
+                        <tr key={session.sessionId} className="cursor-pointer hover:bg-slate-50 dark:hover:bg-white/5 transition-colors" onClick={() => handleSessionClick(session)}>
+                           <td className="px-4 py-3 border-b border-slate-100 dark:border-white/5 text-sm font-inter text-slate-700 dark:text-slate-300">{session.branch}</td>
+                           <td className="px-4 py-3 border-b border-slate-100 dark:border-white/5 text-sm font-inter text-slate-700 dark:text-slate-300">{session.serviceType}</td>
+                           <td className="px-4 py-3 border-b border-slate-100 dark:border-white/5 text-sm font-inter text-slate-700 dark:text-slate-300">{new Date(session.date).toLocaleDateString()}</td>
+                           <td className="px-4 py-3 border-b border-slate-100 dark:border-white/5 text-sm font-inter text-slate-700 dark:text-slate-300">{session.time}</td>
+                           <td className="px-4 py-3 border-b border-slate-100 dark:border-white/5 text-sm font-inter text-slate-700 dark:text-slate-300">
+                              <span className="inline-flex items-center gap-1.5 px-2.5 py-1 rounded-full text-[11px] font-bold tracking-wide uppercase bg-emerald-100 text-emerald-700 dark:bg-emerald-500/20 dark:text-emerald-400">
+                                <span className="w-2 h-2 rounded-full bg-emerald-500 animate-pulse"></span>
                                 Active
                               </span>
                            </td>
@@ -639,21 +631,21 @@ export default function AdminAttendance() {
                   ) : (
                     historyLoading ? (
                       <tr>
-                        <td colSpan="5" style={{ textAlign: 'center', padding: '32px 16px', color: '#6B7280' }}>Loading history...</td>
+                        <td colSpan="5" className="px-4 py-8 text-center text-slate-500 dark:text-slate-400 border-b border-slate-100 dark:border-white/5">Loading history...</td>
                       </tr>
                     ) : historySessions.length === 0 ? (
                       <tr>
-                        <td colSpan="5" style={{ textAlign: 'center', padding: '32px 16px', color: '#6B7280' }}>No historical sessions found.</td>
+                        <td colSpan="5" className="px-4 py-8 text-center text-slate-500 dark:text-slate-400 border-b border-slate-100 dark:border-white/5">No historical sessions found.</td>
                       </tr>
                     ) : (
                       historySessions.map((session) => (
-                        <tr key={session.sessionId} className="admin-att-row-clickable" onClick={() => handleSessionClick(session)}>
-                           <td>{session.branch}</td>
-                           <td>{session.serviceType}</td>
-                           <td>{new Date(session.date).toLocaleDateString()}</td>
-                           <td>{session.time}</td>
-                           <td>
-                              <span className="status-badge absent" style={{ backgroundColor: '#F3F4F6', color: '#4B5563' }}>
+                        <tr key={session.sessionId} className="cursor-pointer hover:bg-slate-50 dark:hover:bg-white/5 transition-colors" onClick={() => handleSessionClick(session)}>
+                           <td className="px-4 py-3 border-b border-slate-100 dark:border-white/5 text-sm font-inter text-slate-700 dark:text-slate-300">{session.branch}</td>
+                           <td className="px-4 py-3 border-b border-slate-100 dark:border-white/5 text-sm font-inter text-slate-700 dark:text-slate-300">{session.serviceType}</td>
+                           <td className="px-4 py-3 border-b border-slate-100 dark:border-white/5 text-sm font-inter text-slate-700 dark:text-slate-300">{new Date(session.date).toLocaleDateString()}</td>
+                           <td className="px-4 py-3 border-b border-slate-100 dark:border-white/5 text-sm font-inter text-slate-700 dark:text-slate-300">{session.time}</td>
+                           <td className="px-4 py-3 border-b border-slate-100 dark:border-white/5 text-sm font-inter text-slate-700 dark:text-slate-300">
+                              <span className="inline-flex items-center gap-1.5 px-2.5 py-1 rounded-full text-[11px] font-bold tracking-wide uppercase bg-rose-100 text-rose-700 dark:bg-rose-500/20 dark:text-rose-400" style={{ backgroundColor: '#F3F4F6', color: '#4B5563' }}>
                                 Ended
                               </span>
                               <span style={{ fontSize: '12px', color: '#6B7280', marginLeft: '8px' }}>
@@ -670,44 +662,28 @@ export default function AdminAttendance() {
             
             {/* Pagination depending on activeTab */}
             {activeTab === 'active' && activeSessions.length > PER_PAGE && (
-              <div className="pg-bar">
-                <span className="pg-info">
-                  Showing {((sessionsPage - 1) * PER_PAGE) + 1}–{Math.min(sessionsPage * PER_PAGE, activeSessions.length)} of {activeSessions.length}
-                </span>
-                <div className="pg-controls">
-                  <button className="pg-btn" disabled={sessionsPage <= 1} onClick={() => setSessionsPage(sessionsPage - 1)}>
-                    ← Prev
-                  </button>
-                  {Array.from({ length: totalSessionsPages }, (_, i) => i + 1).map(p => (
-                    <button key={p} className={`pg-btn pg-num${sessionsPage === p ? ' active' : ''}`} onClick={() => setSessionsPage(p)}>
-                      {p}
-                    </button>
-                  ))}
-                  <button className="pg-btn" disabled={sessionsPage >= totalSessionsPages} onClick={() => setSessionsPage(sessionsPage + 1)}>
-                    Next →
-                  </button>
-                </div>
+              <div className="border-t border-slate-200 dark:border-white/10 shrink-0 bg-white dark:bg-[#1E2130]">
+                <Pagination
+                  currentPage={sessionsPage}
+                  totalPages={totalSessionsPages}
+                  onPageChange={setSessionsPage}
+                  totalItems={activeSessions.length}
+                  itemsPerPage={PER_PAGE}
+                  itemName="sessions"
+                />
               </div>
             )}
 
             {activeTab === 'history' && historyTotalCount > PER_PAGE && (
-              <div className="pg-bar">
-                <span className="pg-info">
-                  Showing {((historyPage - 1) * PER_PAGE) + 1}–{Math.min(historyPage * PER_PAGE, historyTotalCount)} of {historyTotalCount}
-                </span>
-                <div className="pg-controls">
-                  <button className="pg-btn" disabled={historyPage <= 1} onClick={() => setHistoryPage(historyPage - 1)}>
-                    ← Prev
-                  </button>
-                  {Array.from({ length: historyTotalPages }, (_, i) => i + 1).map(p => (
-                    <button key={p} className={`pg-btn pg-num${historyPage === p ? ' active' : ''}`} onClick={() => setHistoryPage(p)}>
-                      {p}
-                    </button>
-                  ))}
-                  <button className="pg-btn" disabled={historyPage >= historyTotalPages} onClick={() => setHistoryPage(historyPage + 1)}>
-                    Next →
-                  </button>
-                </div>
+              <div className="border-t border-slate-200 dark:border-white/10 shrink-0 bg-white dark:bg-[#1E2130]">
+                <Pagination
+                  currentPage={historyPage}
+                  totalPages={historyTotalPages}
+                  onPageChange={setHistoryPage}
+                  totalItems={historyTotalCount}
+                  itemsPerPage={PER_PAGE}
+                  itemName="sessions"
+                />
               </div>
             )}
           </>

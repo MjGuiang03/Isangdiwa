@@ -4,12 +4,13 @@ import { useAuth } from '../../context/AuthContext';
 import { CheckCircle, AlertCircle, X } from 'lucide-react';
 import { toast } from 'sonner';
 import puacLogo from '../../assets/puaclogo.png';
-import '../styles/Verify.css';
+import useSwipeDownToClose from '../hooks/useSwipeDownToClose';
 
 // Change the function signature to accept optional override props:
 export default function VerifyEmailModal({ isOpen, onClose, email, onVerify, onResend }) {
   const navigate = useNavigate();
   const { verifyOTP, resendOTP } = useAuth();
+  const swipeProps = useSwipeDownToClose(onClose);
 
   const [otp, setOtp] = useState(['', '', '', '', '', '']);
   const [loading, setLoading] = useState(false);
@@ -149,102 +150,99 @@ export default function VerifyEmailModal({ isOpen, onClose, email, onVerify, onR
 
   if (success) {
     return (
-      <div className="user-verify-container">
-        <div className="user-verify-wrapper">
-          <div className="user-verify-card">
-            <CheckCircle className="user-verify-icon success-icon" size={64} />
-            <h2 className="user-verify-title">Verification Successful!</h2>
-            <p className="user-verify-text">Your email has been verified.</p>
-            <p className="user-verify-subtext">Redirecting to login...</p>
-          </div>
+      <div className="fixed inset-0 z-[9999] bg-black/60 backdrop-blur-sm flex items-center justify-center p-4">
+        <div className="relative w-full max-w-md bg-white dark:bg-[#1E2130] rounded-2xl p-8 shadow-2xl border border-slate-200 dark:border-white/10 text-center">
+          <CheckCircle className="w-16 h-16 text-emerald-500 mx-auto mb-4 animate-bounce" />
+          <h2 className="text-xl font-bold text-slate-900 dark:text-white">Verification Successful!</h2>
+          <p className="text-sm text-slate-600 dark:text-slate-300 mt-2">Your email has been verified.</p>
+          <p className="text-xs text-slate-400 mt-1">Redirecting to login...</p>
         </div>
       </div>
     );
   }
 
   return (
-    <div className="user-verify-container">
-      <div className="user-verify-wrapper">
-        <div className="user-verify-card">
-          {onClose && (
-            <button onClick={onClose} className="user-verify-close-btn" type="button" aria-label="Close">
-              <X size={20} />
-            </button>
+    <div className="fixed inset-0 z-[9999] bg-black/60 backdrop-blur-sm flex items-end sm:items-center justify-center p-0 sm:p-4" onClick={onClose}>
+      <div 
+        ref={swipeProps.containerRef}
+        onTouchStart={swipeProps.handleTouchStart}
+        onTouchMove={swipeProps.handleTouchMove}
+        onTouchEnd={swipeProps.handleTouchEnd}
+        style={swipeProps.dragStyle}
+        className="relative w-full max-w-md bg-white dark:bg-[#1E2130] rounded-t-3xl rounded-b-none sm:rounded-2xl p-6 sm:p-8 shadow-2xl border-t sm:border border-slate-200 dark:border-white/10 text-center animate-mobile-slide-up" 
+        onClick={(e) => e.stopPropagation()}
+      >
+        {/* Mobile Pull Handle Indicator */}
+        <div className="w-12 h-1 bg-slate-300 dark:bg-slate-700 rounded-full mx-auto mb-2 sm:hidden" />
+        {onClose && (
+          <button onClick={onClose} className="absolute top-4 right-4 text-slate-400 hover:text-slate-600 dark:hover:text-white p-2 rounded-full transition-colors" type="button" aria-label="Close">
+            <X className="w-5 h-5" />
+          </button>
+        )}
+        
+        <div className="mb-6">
+          <img src={puacLogo} alt="IsangDiwa Logo" className="h-12 w-auto mx-auto mb-3 object-contain" />
+          <h1 className="text-xl font-bold text-slate-900 dark:text-white">Enter Verification Code</h1>
+          <p className="text-xs text-slate-500 dark:text-slate-400 mt-1">
+            We sent a 6-digit code to your email
+          </p>
+          <p className="text-xs font-bold text-blue-600 dark:text-blue-400 mt-1">{email}</p>
+        </div>
+
+        <form onSubmit={handleVerify} className="space-y-4">
+          <div className="flex items-center justify-center gap-2">
+            {otp.map((digit, index) => (
+              <input
+                key={index}
+                ref={inputRefs[index]}
+                type="text"
+                inputMode="numeric"
+                maxLength={1}
+                value={digit}
+                onChange={(e) => handleChange(index, e.target.value)}
+                onKeyDown={(e) => handleKeyDown(index, e)}
+                className={`w-10 h-12 text-center text-lg font-bold bg-slate-50 dark:bg-slate-800/60 border ${error ? 'border-red-500' : digit ? 'border-blue-600 bg-blue-50/50 dark:bg-blue-950/30' : 'border-slate-200 dark:border-white/10'} rounded-xl text-slate-900 dark:text-white outline-none focus:ring-2 focus:ring-blue-600 transition-all`}
+                disabled={loading || success}
+                autoComplete="off"
+              />
+            ))}
+          </div>
+
+          {error && (
+            <div className="flex items-center justify-center gap-1.5 text-xs text-red-500 font-medium">
+              <AlertCircle size={14} />
+              <span>{error}</span>
+            </div>
           )}
-          
-          <div className="user-verify-header">
-            <div className="user-verify-icon-wrapper">
-              <img src={puacLogo} alt="IsangDiwa Logo" className="user-verify-mail-icon" size={48} />
-            </div>
-            <h1 className="user-verify-title">Enter Verification Code</h1>
-            <p className="user-verify-text">
-              We sent a 6-digit code to your email (and phone if requested).
-            </p>
-            <p className="user-verify-email">{email}</p>
-          </div>
 
-          <form onSubmit={handleVerify} className="user-verify-form">
-            <div className="user-verify-otp-inputs">
-              {otp.map((digit, index) => (
-                <input
-                  key={index}
-                  ref={inputRefs[index]}
-                  type="text"
-                  inputMode="numeric"
-                  maxLength={1}
-                  value={digit}
-                  onChange={(e) => handleChange(index, e.target.value)}
-                  onKeyDown={(e) => handleKeyDown(index, e)}
-                  className={`user-verify-otp-input ${error ? 'error' : ''} ${digit ? 'filled' : ''}`}
-                  disabled={loading || success}
-                  autoComplete="off"
-                />
-              ))}
-            </div>
-
-            {error && (
-              <div className="error-message">
-                <AlertCircle size={16} />
-                <span>{error}</span>
-              </div>
+          <button 
+            type="submit" 
+            className="w-full py-3 bg-blue-600 hover:bg-blue-700 active:bg-blue-800 disabled:opacity-50 text-white font-semibold rounded-xl shadow-md transition-all flex items-center justify-center text-xs"
+            disabled={loading || otp.join('').length !== 6}
+          >
+            {loading ? (
+              <span className="w-4 h-4 border-2 border-white border-t-transparent rounded-full animate-spin inline-block" />
+            ) : (
+              'Verify Email'
             )}
+          </button>
+        </form>
 
-            <button 
-              type="submit" 
-              className="user-verify-button primary"
-              disabled={loading || otp.join('').length !== 6}
-            >
-              {loading ? (
-                <span className="btn-spinner" />
-              ) : (
-                'Verify Email'
-              )}
-            </button>
-          </form>
+        <div className="mt-6 pt-4 border-t border-slate-100 dark:border-white/5 space-y-3">
+          <p className="text-xs text-slate-500 dark:text-slate-400">Didn't receive the code?</p>
+          
+          <button 
+            type="button"
+            onClick={handleResend}
+            className="text-xs font-bold text-blue-600 dark:text-blue-400 hover:underline"
+            disabled={resendLoading || loading}
+          >
+            {resendLoading ? 'Resending code...' : 'Resend Code'}
+          </button>
 
-          <div className="user-verify-footer">
-            <p className="user-verify-footer-text">Didn't receive the code?</p>
-            
-            <div className="resend-methods-pill" style={{ display: 'none' }}>
-              {/* SMS Option Removed */}
-            </div>
-
-            <button 
-              type="button"
-              onClick={handleResend}
-              className="resend-trigger-link"
-              disabled={resendLoading || loading}
-            >
-              {resendLoading ? <span className="btn-spinner btn-spinner--dark btn-spinner--sm" /> : 'Resend Code'}
-            </button>
-
-
-            <p className="user-verify-footer-conditions">
-              By continuing, you agree to our{" "}
-              <span className="user-verify-footer-termsandprivacy">Terms of Service</span> and{" "}
-              <span className="user-verify-footer-termsandprivacy">Privacy Policy</span>
-            </p>
-          </div>
+          <p className="text-[11px] text-slate-400">
+            By continuing, you agree to our Terms of Service and Privacy Policy
+          </p>
         </div>
       </div>
     </div>

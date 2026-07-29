@@ -1,6 +1,6 @@
 import { useState, useMemo, useEffect, useRef, useCallback } from 'react';
 import { toast } from 'sonner';
-import '../styles/LoanApplicationModal.css';
+
 import API from '../../utils/api';
 import { Banknote, CheckCircle, X, Pencil, ChevronDown, ChevronUp, Camera, RotateCcw, AlertTriangle, Upload } from 'lucide-react';
 
@@ -441,615 +441,677 @@ export default function LoanApplicationModal({
   };
 
   return (
-    <div className="user-loan-application-overlay" onClick={onClose}>
-      <div className="user-loan-application-content" onClick={(e) => e.stopPropagation()}>
+    <div className="fixed inset-0 z-[1000] bg-black/60 backdrop-blur-xs flex items-end sm:items-center justify-center p-0 sm:p-4 overflow-hidden sm:overflow-y-auto transition-all duration-300" onClick={onClose}>
+      <div className="relative w-full max-w-none sm:max-w-3xl bg-white dark:bg-[#1E2130] rounded-t-3xl sm:rounded-3xl overflow-hidden shadow-2xl border-t sm:border border-slate-200 dark:border-white/10 my-0 sm:my-auto text-left font-inter h-auto max-h-[92dvh] sm:max-h-[90vh] flex flex-col mobile-slide-up-modal" onClick={(e) => e.stopPropagation()}>
 
-        {/* Header */}
-        <div className="user-loan-application-header">
-          <h2 className="user-loan-application-title">Apply for Loan</h2>
-          <button className="user-loan-application-close-btn" onClick={(e) => { e.stopPropagation(); onClose(); }} type="button">
-            <X size={20} />
+        {/* Simple Clean Header */}
+        <div className="p-5 sm:p-6 bg-white dark:bg-[#1E2130] flex items-center justify-between border-b border-slate-200 dark:border-white/10 shrink-0">
+          <div>
+            <h2 className="text-xl sm:text-2xl font-bold font-dm text-slate-900 dark:text-white">Apply for Loan</h2>
+            <p className="text-xs text-slate-500 dark:text-slate-400 mt-0.5">Calculate repayments, upload identity documents, and submit your application.</p>
+          </div>
+          <button 
+            className="w-9 h-9 rounded-full flex items-center justify-center text-slate-400 hover:text-slate-700 dark:hover:text-white bg-slate-100 dark:bg-slate-800 hover:bg-slate-200 dark:hover:bg-slate-700 transition-all cursor-pointer shrink-0" 
+            onClick={(e) => { e.stopPropagation(); onClose(); }} 
+            type="button"
+          >
+            <X size={18} />
           </button>
         </div>
 
-        {/* Form */}
-        <form className="user-loan-application-form" onSubmit={handleSubmit}>
+        {/* Form Body */}
+        <form className="p-4 sm:p-5 space-y-4 overflow-y-auto flex-1" onSubmit={handleSubmit}>
           {/* Focus trap */}
-          <input type="text" style={{ position: 'absolute', opacity: 0, pointerEvents: 'none', width: 0, height: 0 }} aria-hidden="true" readOnly />
+          <input type="text" hidden className="hidden" aria-hidden="true" readOnly />
 
-          {/* ── Savings context ── */}
-          <div className="ula-savings-ctx">
-            <div className="ula-savings-ctx-row">
-              <span className="ula-savings-ctx-label">Your total savings</span>
-              <span className={`ula-savings-ctx-value ${totalSavings < 1000 ? 'ula-savings-ctx-value--low' : ''}`}>{fmt(totalSavings)}</span>
+          {/* ── Savings Context Card ── */}
+          <div className="p-4 rounded-2xl bg-slate-50 dark:bg-slate-800/40 border border-slate-200/80 dark:border-white/10 flex flex-col sm:flex-row items-center justify-between gap-3 text-xs">
+            <div className="flex items-center gap-3">
+              <div className="w-9 h-9 rounded-xl bg-blue-100 dark:bg-blue-950/60 text-blue-600 dark:text-blue-400 flex items-center justify-center font-bold">
+                ₱
+              </div>
+              <div>
+                <span className="text-slate-400 block text-[11px]">Your Total Savings</span>
+                <span className={`text-base font-extrabold font-dm ${totalSavings < 1000 ? 'text-amber-600 dark:text-amber-400' : 'text-slate-900 dark:text-white'}`}>
+                  {fmt(totalSavings)}
+                </span>
+              </div>
             </div>
+
             {existingLoanBalance > 0 && (
-              <div className="ula-savings-ctx-row">
-                <span className="ula-savings-ctx-label">Existing loan balance</span>
-                <span className="ula-savings-ctx-value ula-savings-ctx-value--low">−{fmt(existingLoanBalance)}</span>
+              <div className="text-right">
+                <span className="text-slate-400 block text-[11px]">Existing Loan Balance</span>
+                <span className="text-sm font-bold text-red-600 dark:text-red-400">
+                  −{fmt(existingLoanBalance)}
+                </span>
               </div>
             )}
           </div>
 
-          {/* ── Loan Type selector ── */}
-          <div className="user-loan-application-form-group">
-            <label className="user-loan-application-label">Select Loan Type</label>
-            <div className="ula-type-cards">
-              {LOAN_TYPES.map((lt) => {
-                const isSelected = loanType === lt.key;
-                const ltMax = Math.max(0, totalSavings * lt.multiplier - existingLoanBalance);
-                return (
-                  <div 
-                    key={lt.key} 
-                    className={`ula-type-card-wrapper ${expandedInfoId === lt.key ? 'expanded' : ''}`}
-                  >
-                    <div
-                      className={`ula-type-card ula-type-card--${lt.color} ${isSelected ? 'ula-type-card--active' : ''}`}
-                      onClick={() => { 
-                        setLoanType(lt.key); 
-                        setTermMonths(''); 
-                        setAmount(ltMax > 0 ? Number(ltMax).toLocaleString('en-US') : ''); 
-                      }}
+          {/* ── STEP 1: Loan Type & Terms ── */}
+          <div className="bg-slate-50/70 dark:bg-slate-800/40 border border-slate-200/80 dark:border-white/10 rounded-2xl p-4 sm:p-5 space-y-4">
+            <div className="flex items-center gap-2 pb-2 border-b border-slate-200/60 dark:border-white/10">
+              <div className="w-6 h-6 rounded-full bg-[#1E3A8A] text-white font-bold text-xs flex items-center justify-center shrink-0">1</div>
+              <h3 className="text-xs font-bold text-slate-900 dark:text-white uppercase tracking-wider font-inter">Loan Details &amp; Amount</h3>
+            </div>
+
+            {/* ── Loan Type selector ── */}
+            <div className="user-loan-application-form-group">
+              <label className="user-loan-application-label">Select Loan Type</label>
+              <div className="ula-type-cards">
+                {LOAN_TYPES.map((lt) => {
+                  const isSelected = loanType === lt.key;
+                  const ltMax = Math.max(0, totalSavings * lt.multiplier - existingLoanBalance);
+                  return (
+                    <div 
+                      key={lt.key} 
+                      className={`ula-type-card-wrapper ${expandedInfoId === lt.key ? 'expanded' : ''}`}
                     >
-                      <div className="ula-type-header">
-                        <div className={`ula-type-icon ula-type-icon--${lt.color}`}>{lt.icon}</div>
-                        <div className="ula-type-header-text">
-                          <div className="ula-type-name">{lt.name}</div>
-                          <div className="ula-type-mult">{lt.multiplier}× savings</div>
-                        </div>
-                      </div>
-                      
-                      <button 
-                        type="button" 
-                        className="ula-type-expand-btn" 
-                        onClick={(e) => {
-                          e.stopPropagation();
-                          setExpandedInfoId(expandedInfoId === lt.key ? null : lt.key);
+                      <div
+                        className={`ula-type-card ula-type-card--${lt.color} ${isSelected ? 'ula-type-card--active' : ''}`}
+                        onClick={() => { 
+                          setLoanType(lt.key); 
+                          setTermMonths(''); 
+                          setAmount(ltMax > 0 ? Number(ltMax).toLocaleString('en-US') : ''); 
                         }}
                       >
-                        {expandedInfoId === lt.key ? <ChevronUp size={14} /> : <ChevronDown size={14} />} {expandedInfoId === lt.key ? 'Less Info' : 'More Info'}
-                      </button>
-
-                      <div className={`ula-type-expanded-info-wrapper ${expandedInfoId === lt.key ? 'expanded' : ''}`}>
-                        <div className="ula-type-expanded-info">
-                          <div className="ula-type-desc">{lt.desc}</div>
-                          <div className="ula-type-meta">
-                            <span>{lt.rateLabel}</span>
-                            <span>{lt.minTerm}–{lt.maxTerm} mo</span>
+                        <div className="ula-type-header">
+                          <div className={`ula-type-icon ula-type-icon--${lt.color}`}>{lt.icon}</div>
+                          <div className="ula-type-header-text">
+                            <div className="ula-type-name">{lt.name}</div>
+                            <div className="ula-type-mult">{lt.multiplier}× savings</div>
                           </div>
-                          <div className="ula-type-max">Max: {fmt(ltMax)}</div>
+                        </div>
+                        
+                        <button 
+                          type="button" 
+                          className="ula-type-expand-btn" 
+                          onClick={(e) => {
+                            e.stopPropagation();
+                            setExpandedInfoId(expandedInfoId === lt.key ? null : lt.key);
+                          }}
+                        >
+                          {expandedInfoId === lt.key ? <ChevronUp size={14} /> : <ChevronDown size={14} />} {expandedInfoId === lt.key ? 'Less Info' : 'More Info'}
+                        </button>
+
+                        <div className={`ula-type-expanded-info-wrapper ${expandedInfoId === lt.key ? 'expanded' : ''}`}>
+                          <div className="ula-type-expanded-info">
+                            <div className="ula-type-desc">{lt.desc}</div>
+                            <div className="ula-type-meta">
+                              <span>{lt.rateLabel}</span>
+                              <span>{lt.minTerm}–{lt.maxTerm} mo</span>
+                            </div>
+                            <div className="ula-type-max">Max: {fmt(ltMax)}</div>
+                          </div>
                         </div>
                       </div>
                     </div>
+                  );
+                })}
+              </div>
+            </div>
+
+            {/* ── Amount + Term row ── */}
+            {selectedType && (
+              <div className="user-loan-application-row">
+                <div className="user-loan-application-group-half">
+                  <div className="ula-label-row">
+                    <label className="user-loan-application-label">Loan Amount (₱)</label>
+                    <span className="ula-max-pill">Max: {fmt(maxLoanable)}</span>
                   </div>
-                );
-              })}
-            </div>
-          </div>
+                  <div className="user-loan-application-input-wrapper ula-filled-input">
+                    <span className="user-loan-application-input-icon">₱</span>
+                    <input
+                      type="text"
+                      className="user-loan-application-input"
+                      style={{ paddingLeft: '40px' }}
+                      placeholder="Enter amount"
+                      value={amount}
+                      onChange={(e) => {
+                        let raw = e.target.value.replace(/[^0-9.]/g, '');
+                        const parts = raw.split('.');
+                        if (parts[0]) {
+                            parts[0] = parseInt(parts[0], 10).toLocaleString('en-US');
+                        }
+                        setAmount(parts.join('.'));
+                      }}
+                      required
+                    />
+                  </div>
+                  {amount && Number(amount.replace(/,/g, '')) > maxLoanable && (
+                    <span className="ula-field-error">Exceeds your max loanable amount</span>
+                  )}
+                  {amount && Number(amount.replace(/,/g, '')) > 0 && Number(amount.replace(/,/g, '')) < 500 && (
+                    <span className="ula-field-error">Minimum loan is ₱500</span>
+                  )}
+                </div>
 
-          {/* ── Amount + Term row ── */}
-          {selectedType && (
-            <div className="user-loan-application-row">
-              <div className="user-loan-application-group-half">
-                <div className="ula-label-row">
-                  <label className="user-loan-application-label">Loan Amount (₱)</label>
-                  <span className="ula-max-pill">Max: {fmt(maxLoanable)}</span>
-                </div>
-                <div className="user-loan-application-input-wrapper ula-filled-input">
-                  <span className="user-loan-application-input-icon">₱</span>
-                  <input
-                    type="text"
-                    className="user-loan-application-input"
-                    placeholder="Enter amount"
-                    value={amount}
-                    onChange={(e) => {
-                      let raw = e.target.value.replace(/[^0-9.]/g, '');
-                      const parts = raw.split('.');
-                      if (parts[0]) {
-                          parts[0] = parseInt(parts[0], 10).toLocaleString('en-US');
-                      }
-                      setAmount(parts.join('.'));
-                    }}
-                    required
-                  />
-                </div>
-                {amount && Number(amount.replace(/,/g, '')) > maxLoanable && (
-                  <span className="ula-field-error">Exceeds your max loanable amount</span>
-                )}
-                {amount && Number(amount.replace(/,/g, '')) > 0 && Number(amount.replace(/,/g, '')) < 500 && (
-                  <span className="ula-field-error">Minimum loan is ₱500</span>
-                )}
-              </div>
-
-              <div className="user-loan-application-group-half">
-                <div className="ula-label-row">
-                  <label className="user-loan-application-label">Repayment Term</label>
-                </div>
-                <div className="user-loan-application-input-wrapper ula-filled-input">
-                  <Banknote className="user-loan-application-input-icon-svg" size={20} color="#99A1AF" />
-                  <select
-                    className="user-loan-application-select"
-                    style={{ paddingLeft: '40px' }}
-                    value={termMonths}
-                    onChange={(e) => setTermMonths(e.target.value)}
-                    required
-                  >
-                    <option value="">Select term</option>
-                    {termOptions.map((m) => (
-                      <option key={m} value={m}>
-                        {m} month{m > 1 ? 's' : ''}
-                      </option>
-                    ))}
-                  </select>
+                <div className="user-loan-application-group-half">
+                  <div className="ula-label-row">
+                    <label className="user-loan-application-label">Repayment Term</label>
+                  </div>
+                  <div className="user-loan-application-input-wrapper ula-filled-input">
+                    <Banknote className="user-loan-application-input-icon-svg" size={20} color="#99A1AF" />
+                    <select
+                      className="user-loan-application-select"
+                      style={{ paddingLeft: '40px' }}
+                      value={termMonths}
+                      onChange={(e) => setTermMonths(e.target.value)}
+                      required
+                    >
+                      <option value="">Select term</option>
+                      {termOptions.map((m) => (
+                        <option key={m} value={m}>
+                          {m} month{m > 1 ? 's' : ''}
+                        </option>
+                      ))}
+                    </select>
+                  </div>
                 </div>
               </div>
-            </div>
-          )}
+            )}
 
-          {/* ── Live calculation breakdown ── */}
-          {calc && (
-            <div className="ula-calc-card">
-              <div className="ula-calc-header">
-                <Banknote size={16} />
-                Loan Calculation Breakdown
+            {/* ── Live calculation breakdown ── */}
+            {calc && (
+              <div className="ula-calc-card">
+                <div className="ula-calc-header">
+                  <Banknote size={16} />
+                  Loan Calculation Breakdown
+                </div>
+                <div className="ula-calc-rows">
+                  <div className="ula-calc-row">
+                    <span>Principal amount</span>
+                    <span>{fmt(calc.principal)}</span>
+                  </div>
+                  <div className="ula-calc-row">
+                    <span>Interest rate</span>
+                    <span>{calc.rate * 100}% per month</span>
+                  </div>
+                  <div className="ula-calc-row">
+                    <span>Term</span>
+                    <span>{calc.months} month{calc.months > 1 ? 's' : ''}</span>
+                  </div>
+                  <div className="ula-calc-row">
+                    <span>Total interest <span className="ula-calc-formula"></span></span>
+                    <span>{fmt(calc.totalInterest)}</span>
+                  </div>
+                  <div className="ula-calc-divider" />
+                  <div className="ula-calc-row ula-calc-row--bold">
+                    <span>Total repayment</span>
+                    <span>{fmt(calc.totalRepayment)}</span>
+                  </div>
+                  <div className="ula-calc-row ula-calc-row--bold ula-calc-row--primary">
+                    <span>Monthly payment</span>
+                    <span>{fmt(calc.monthly)}</span>
+                  </div>
+                </div>
               </div>
-              <div className="ula-calc-rows">
-                <div className="ula-calc-row">
-                  <span>Principal amount</span>
-                  <span>{fmt(calc.principal)}</span>
-                </div>
-                <div className="ula-calc-row">
-                  <span>Interest rate</span>
-                  <span>{calc.rate * 100}% per month</span>
-                </div>
-                <div className="ula-calc-row">
-                  <span>Term</span>
-                  <span>{calc.months} month{calc.months > 1 ? 's' : ''}</span>
-                </div>
-                <div className="ula-calc-row">
-                  <span>Total interest <span className="ula-calc-formula"></span></span>
-                  <span>{fmt(calc.totalInterest)}</span>
-                </div>
-                <div className="ula-calc-divider" />
-                <div className="ula-calc-row ula-calc-row--bold">
-                  <span>Total repayment</span>
-                  <span>{fmt(calc.totalRepayment)}</span>
-                </div>
-                <div className="ula-calc-row ula-calc-row--bold ula-calc-row--primary">
-                  <span>Monthly payment</span>
-                  <span>{fmt(calc.monthly)}</span>
-                </div>
-              </div>
-            </div>
-          )}
+            )}
 
-          {/* ── Eligibility checklist ── */}
-          {selectedType && (
-            <div className="ula-eligibility">
-              <div className="ula-eligibility-title">Eligibility Check</div>
-              <div className="ula-eligibility-list">
-                <div className="ula-eligibility-item">
-                  {savingsOk ? <CheckIcon /> : <XIcon />}
-                  <span>Minimum savings of ₱1,000</span>
-                </div>
-                <div className="ula-eligibility-item">
-                  {noOverdue ? <CheckIcon /> : <XIcon />}
-                  <span>No overdue or unpaid loans</span>
-                </div>
-                {calc && (
+            {/* ── Eligibility checklist ── */}
+            {selectedType && (
+              <div className="ula-eligibility">
+                <div className="ula-eligibility-title">Eligibility Check</div>
+                <div className="ula-eligibility-list">
                   <div className="ula-eligibility-item">
-                    {amountOk ? <CheckIcon /> : <XIcon />}
-                    <span>Amount within computed limit ({fmt(maxLoanable)})</span>
+                    {savingsOk ? <CheckIcon /> : <XIcon />}
+                    <span>Minimum savings of ₱1,000</span>
                   </div>
-                )}
-              </div>
-            </div>
-          )}
-
-          {/* ── Capture Documents ── */}
-          <div className="user-loan-application-upload-section">
-            <h3 className="user-loan-application-guarantor-title">Capture Documents</h3>
-            <p className="ula-capture-desc">Use your device camera to capture live photos for identity verification. Gallery uploads are not allowed.</p>
-            <div className="user-loan-application-row">
-
-              {/* Selfie with ID & Date */}
-              <div className="user-loan-application-group-half">
-                <label className="user-loan-application-label">Selfie with ID &amp; Current Date <span style={{ color: '#dc2626' }}>*</span></label>
-                <div
-                  className={`user-loan-upload-box ${selfieImage ? 'user-loan-upload-box-done' : ''}`}
-                  onClick={() => !selfieImage && openCamera('selfie')}
-                >
-                  {selfieImage ? (
-                    <>
-                      <img src={selfieImage} alt="Selfie preview" className="ula-capture-preview" />
-                      <div className="ula-capture-done-row">
-                        <CheckCircle size={16} color="#16a34a" />
-                        <span className="user-loan-upload-text user-loan-upload-text-done">Photo captured</span>
-                      </div>
-                      <button type="button" className="ula-retake-btn" onClick={(e) => { e.stopPropagation(); setSelfieImage(null); openCamera('selfie'); }}>
-                        <RotateCcw size={14} /> Retake
-                      </button>
-                    </>
-                  ) : (
-                    <>
-                      <Camera className="user-loan-upload-icon" size={28} color="#1E3A8A" />
-                      <p className="user-loan-upload-text">Click to capture</p>
-                      <p className="user-loan-upload-subtext">Live camera only</p>
-                    </>
+                  <div className="ula-eligibility-item">
+                    {noOverdue ? <CheckIcon /> : <XIcon />}
+                    <span>No overdue or unpaid loans</span>
+                  </div>
+                  {calc && (
+                    <div className="ula-eligibility-item">
+                      {amountOk ? <CheckIcon /> : <XIcon />}
+                      <span>Amount within computed limit ({fmt(maxLoanable)})</span>
+                    </div>
                   )}
                 </div>
-              </div>
-
-              {/* Valid Government ID */}
-              <div className="user-loan-application-group-half">
-                <label className="user-loan-application-label">Valid Government ID <span style={{ color: '#dc2626' }}>*</span></label>
-                <div
-                  className={`user-loan-upload-box ${idImage ? 'user-loan-upload-box-done' : ''}`}
-                  onClick={() => !idImage && openCamera('id')}
-                >
-                  {idImage ? (
-                    <>
-                      <img src={idImage} alt="ID preview" className="ula-capture-preview" />
-                      <div className="ula-capture-done-row">
-                        <CheckCircle size={16} color="#16a34a" />
-                        <span className="user-loan-upload-text user-loan-upload-text-done">Photo captured</span>
-                      </div>
-                      <button type="button" className="ula-retake-btn" onClick={(e) => { e.stopPropagation(); setIdImage(null); openCamera('id'); }}>
-                        <RotateCcw size={14} /> Retake
-                      </button>
-                    </>
-                  ) : (
-                    <>
-                      <Camera className="user-loan-upload-icon" size={28} color="#1E3A8A" />
-                      <p className="user-loan-upload-text">Click to capture</p>
-                      <p className="user-loan-upload-subtext">Live camera only</p>
-                    </>
-                  )}
-                </div>
-              </div>
-
-            </div>
-          </div>
-
-          {/* ── Document Uploads ── */}
-          <div className="user-loan-application-upload-section" style={{ marginTop: '24px' }}>
-            <h3 className="user-loan-application-guarantor-title">Upload Additional Documents</h3>
-            <p className="ula-capture-desc">Please upload your COE and ITR in image or PDF format.</p>
-            <div className="user-loan-application-row">
-              <div className="user-loan-application-group-half">
-                <label className="user-loan-application-label">Certificate of Employment (COE) <span style={{ color: '#dc2626' }}>*</span></label>
-                <label className={`user-loan-upload-box ${coeFileName ? 'user-loan-upload-box-done' : ''}`} style={{ cursor: 'pointer', display: 'flex', flexDirection: 'column', alignItems: 'center', justifyContent: 'center' }}>
-                  <input type="file" accept="image/*,application/pdf" onChange={(e) => handleFileUpload(e, setCoeData, setCoeFileName)} style={{ display: 'none' }} />
-                  {coeFileName ? (
-                    <>
-                      <div className="ula-capture-done-row" style={{ marginTop: 0 }}>
-                        <CheckCircle size={20} color="#16a34a" />
-                        <span className="user-loan-upload-text user-loan-upload-text-done" style={{ fontSize: '14px' }}>File selected</span>
-                      </div>
-                      <span style={{ fontSize: '12px', color: '#6b7280', marginTop: '4px', maxWidth: '100%', overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }}>{coeFileName}</span>
-                    </>
-                  ) : (
-                    <>
-                      <Upload className="user-loan-upload-icon" size={28} color="#1E3A8A" />
-                      <p className="user-loan-upload-text">Click to upload</p>
-                      <p className="user-loan-upload-subtext">Image or PDF</p>
-                    </>
-                  )}
-                </label>
-              </div>
-              <div className="user-loan-application-group-half">
-                <label className="user-loan-application-label">Income Tax Return (ITR) <span style={{ color: '#dc2626' }}>*</span></label>
-                <label className={`user-loan-upload-box ${itrFileName ? 'user-loan-upload-box-done' : ''}`} style={{ cursor: 'pointer', display: 'flex', flexDirection: 'column', alignItems: 'center', justifyContent: 'center' }}>
-                  <input type="file" accept="image/*,application/pdf" onChange={(e) => handleFileUpload(e, setItrData, setItrFileName)} style={{ display: 'none' }} />
-                  {itrFileName ? (
-                    <>
-                      <div className="ula-capture-done-row" style={{ marginTop: 0 }}>
-                        <CheckCircle size={20} color="#16a34a" />
-                        <span className="user-loan-upload-text user-loan-upload-text-done" style={{ fontSize: '14px' }}>File selected</span>
-                      </div>
-                      <span style={{ fontSize: '12px', color: '#6b7280', marginTop: '4px', maxWidth: '100%', overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }}>{itrFileName}</span>
-                    </>
-                  ) : (
-                    <>
-                      <Upload className="user-loan-upload-icon" size={28} color="#1E3A8A" />
-                      <p className="user-loan-upload-text">Click to upload</p>
-                      <p className="user-loan-upload-subtext">Image or PDF</p>
-                    </>
-                  )}
-                </label>
-              </div>
-            </div>
-
-            <div className="user-loan-application-row" style={{ marginTop: '16px' }}>
-              <div className="user-loan-application-group-half">
-                <label className="user-loan-application-label">Payslip <span style={{ color: '#dc2626' }}>*</span></label>
-                <label className={`user-loan-upload-box ${payslipFileName ? 'user-loan-upload-box-done' : ''}`} style={{ cursor: 'pointer', display: 'flex', flexDirection: 'column', alignItems: 'center', justifyContent: 'center' }}>
-                  <input type="file" accept="image/*,application/pdf" onChange={(e) => handleFileUpload(e, setPayslipData, setPayslipFileName)} style={{ display: 'none' }} />
-                  {payslipFileName ? (
-                    <>
-                      <div className="ula-capture-done-row" style={{ marginTop: 0 }}>
-                        <CheckCircle size={20} color="#16a34a" />
-                        <span className="user-loan-upload-text user-loan-upload-text-done" style={{ fontSize: '14px' }}>File selected</span>
-                      </div>
-                      <span style={{ fontSize: '12px', color: '#6b7280', marginTop: '4px', maxWidth: '100%', overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }}>{payslipFileName}</span>
-                    </>
-                  ) : (
-                    <>
-                      <Upload className="user-loan-upload-icon" size={28} color="#1E3A8A" />
-                      <p className="user-loan-upload-text">Click to upload</p>
-                      <p className="user-loan-upload-subtext">Image or PDF</p>
-                    </>
-                  )}
-                </label>
-              </div>
-            </div>
-
-            <div style={{ marginTop: '20px' }}>
-              <label className="user-loan-application-label">Do you have an existing/active loan with another entity? <span style={{ color: '#dc2626' }}>*</span></label>
-              <div className="ula-disbursement-options" style={{ marginTop: '10px' }}>
-                <button
-                  type="button"
-                  className={`ula-disbursement-btn ${hasActiveLoan === true ? 'ula-disbursement-btn--active' : ''}`}
-                  onClick={() => setHasActiveLoan(true)}
-                  style={{ minWidth: '100px', padding: '10px 16px', flex: 'none' }}
-                >
-                  <div className={`ula-disbursement-radio ${hasActiveLoan === true ? 'active' : ''}`} />
-                  Yes
-                </button>
-                <button
-                  type="button"
-                  className={`ula-disbursement-btn ${hasActiveLoan === false ? 'ula-disbursement-btn--active' : ''}`}
-                  onClick={() => { setHasActiveLoan(false); setActiveLoanScreenshotData(null); setActiveLoanScreenshotFileName(''); }}
-                  style={{ minWidth: '100px', padding: '10px 16px', flex: 'none' }}
-                >
-                  <div className={`ula-disbursement-radio ${hasActiveLoan === false ? 'active' : ''}`} />
-                  No
-                </button>
-              </div>
-            </div>
-
-            {hasActiveLoan && (
-              <div style={{ marginTop: '20px' }}>
-                <label className="user-loan-application-label">Upload Active Loan Screenshot <span style={{ color: '#dc2626' }}>*</span></label>
-                <label className={`user-loan-upload-box ${activeLoanScreenshotFileName ? 'user-loan-upload-box-done' : ''}`} style={{ cursor: 'pointer', display: 'flex', flexDirection: 'column', alignItems: 'center', justifyContent: 'center' }}>
-                  <input type="file" accept="image/*,application/pdf" onChange={(e) => handleFileUpload(e, setActiveLoanScreenshotData, setActiveLoanScreenshotFileName)} style={{ display: 'none' }} />
-                  {activeLoanScreenshotFileName ? (
-                    <>
-                      <div className="ula-capture-done-row" style={{ marginTop: 0 }}>
-                        <CheckCircle size={20} color="#16a34a" />
-                        <span className="user-loan-upload-text user-loan-upload-text-done" style={{ fontSize: '14px' }}>File selected</span>
-                      </div>
-                      <span style={{ fontSize: '12px', color: '#6b7280', marginTop: '4px', maxWidth: '100%', overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }}>{activeLoanScreenshotFileName}</span>
-                    </>
-                  ) : (
-                    <>
-                      <Upload className="user-loan-upload-icon" size={28} color="#1E3A8A" />
-                      <p className="user-loan-upload-text">Click to upload screenshot</p>
-                      <p className="user-loan-upload-subtext">Image or PDF</p>
-                    </>
-                  )}
-                </label>
               </div>
             )}
           </div>
 
-          {/* ── Disbursement Method ── */}
-          <div className="ula-disbursement-section">
-            <h3 className="user-loan-application-guarantor-title">Disbursement Method</h3>
-            <p className="ula-disbursement-desc">How would you like to receive your loan once approved?</p>
-            <div className="ula-disbursement-options">
-              {[
-                { id: 'cash', label: 'Cash (Pick up at office)' },
-                { id: 'e-wallet', label: 'E-Wallet' },
-                { id: 'bank', label: 'Bank Transfer' }
-              ].map(opt => (
-                <button
-                  key={opt.id}
-                  type="button"
-                  className={`ula-disbursement-btn ${disbursementMethod === opt.id ? 'ula-disbursement-btn--active' : ''}`}
-                  onClick={() => { setDisbursementMethod(opt.id); setSelectedAccountIdx(-1); setDisbursementAccount(''); }}
-                >
-                  <div className={`ula-disbursement-radio ${disbursementMethod === opt.id ? 'active' : ''}`} />
-                  {opt.label}
-                </button>
-              ))}
+          {/* ── STEP 2: Verification & Required Documents ── */}
+          <div className="bg-slate-50/70 dark:bg-slate-800/40 border border-slate-200/80 dark:border-white/10 rounded-2xl p-4 sm:p-5 space-y-5">
+            <div className="flex items-center justify-between pb-2 border-b border-slate-200/60 dark:border-white/10">
+              <div className="flex items-center gap-2">
+                <div className="w-6 h-6 rounded-full bg-[#1E3A8A] text-white font-bold text-xs flex items-center justify-center shrink-0">2</div>
+                <h3 className="text-xs font-bold text-slate-900 dark:text-white uppercase tracking-wider font-inter">Identity Verification &amp; Supporting Documents</h3>
+              </div>
+              <span className="text-[10px] font-semibold text-slate-400 dark:text-slate-500">Step 2 of 3</span>
             </div>
-            
-            {(disbursementMethod === 'e-wallet' || disbursementMethod === 'bank') && (
-              <div className="ula-disbursement-account">
-                {filteredAccounts.length > 0 && (
-                  <>
-                    <label className="user-loan-application-label">Select a saved account</label>
-                    <div className="ula-saved-accounts">
-                      {filteredAccounts.map((acc, idx) => (
-                        <div key={idx} className={`ula-saved-account-btn ${selectedAccountIdx === idx ? 'ula-saved-account-btn--active' : ''}`}>
-                          {editingAccountIdx === idx ? (
-                            <>
-                              <div className={`ula-disbursement-radio ${selectedAccountIdx === idx ? 'active' : ''}`} />
-                              <input
-                                type="text"
-                                className="ula-saved-account-edit-input"
-                                value={disbursementAccount}
-                                onChange={(e) => setDisbursementAccount(e.target.value)}
-                                onBlur={() => setEditingAccountIdx(null)}
-                                onKeyDown={(e) => { if (e.key === 'Enter') setEditingAccountIdx(null); }}
-                                autoFocus
-                              />
-                            </>
-                          ) : (
-                            <>
-                              <div
-                                className="ula-saved-account-select-area"
-                                onClick={() => {
-                                  setSelectedAccountIdx(idx);
-                                  setDisbursementAccount(acc.label);
-                                  setEditingAccountIdx(null);
-                                }}
-                              >
-                                <div className={`ula-disbursement-radio ${selectedAccountIdx === idx ? 'active' : ''}`} />
-                                <div className="ula-saved-account-info">
-                                  <span className="ula-saved-account-label">{acc.label}</span>
-                                  <span className="ula-saved-account-source">{acc.source}</span>
-                                </div>
-                              </div>
-                              <button
-                                type="button"
-                                className="ula-saved-account-edit-btn"
-                                onClick={(e) => {
-                                  e.stopPropagation();
-                                  setSelectedAccountIdx(idx);
-                                  setDisbursementAccount(acc.label);
-                                  setEditingAccountIdx(idx);
-                                }}
-                                title="Edit account info"
-                              >
-                                <Pencil size={14} />
-                              </button>
-                            </>
-                          )}
-                        </div>
-                      ))}
+
+            {/* ── Group A: Live Camera Verification ── */}
+            <div className="space-y-3">
+              <div>
+                <h4 className="text-xs font-bold text-slate-800 dark:text-slate-200 font-inter flex items-center gap-1.5">
+                  <Camera size={14} className="text-blue-600 dark:text-blue-400" /> Live Camera Verification
+                </h4>
+                <p className="text-[11px] text-slate-500 dark:text-slate-400">Must capture live photo using device camera for identity verification.</p>
+              </div>
+
+              <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
+                {/* Selfie Card */}
+                <div className={`p-3.5 rounded-xl border transition-all ${selfieImage ? 'bg-emerald-50/40 dark:bg-emerald-950/20 border-emerald-500/50' : 'bg-white dark:bg-slate-900/60 border-slate-200 dark:border-white/10 hover:border-blue-500/50'} shadow-sm flex flex-col justify-between gap-3`}>
+                  <div className="flex items-center justify-between">
+                    <span className="text-xs font-bold text-slate-800 dark:text-slate-200">Selfie with ID &amp; Date <span className="text-rose-500">*</span></span>
+                    {selfieImage ? (
+                      <span className="px-2 py-0.5 rounded-full bg-emerald-100 dark:bg-emerald-950/60 text-emerald-700 dark:text-emerald-400 text-[10px] font-bold flex items-center gap-1">
+                        <CheckCircle size={10} /> Captured
+                      </span>
+                    ) : (
+                      <span className="px-2 py-0.5 rounded-full bg-slate-100 dark:bg-slate-800 text-slate-500 text-[10px] font-medium">Required</span>
+                    )}
+                  </div>
+
+                  {selfieImage ? (
+                    <div className="relative group rounded-lg overflow-hidden border border-slate-200 dark:border-white/10">
+                      <img src={selfieImage} alt="Selfie preview" className="w-full h-24 object-cover" />
                       <button
                         type="button"
-                        className={`ula-saved-account-btn ${selectedAccountIdx === -1 ? 'ula-saved-account-btn--active' : ''}`}
-                        onClick={() => { setSelectedAccountIdx(-1); setDisbursementAccount(''); setEditingAccountIdx(null); }}
+                        className="absolute inset-0 bg-black/60 opacity-0 group-hover:opacity-100 transition-opacity flex items-center justify-center gap-1.5 text-white text-xs font-semibold"
+                        onClick={() => { setSelfieImage(null); openCamera('selfie'); }}
                       >
-                        <div className={`ula-disbursement-radio ${selectedAccountIdx === -1 ? 'active' : ''}`} />
-                        <span className="ula-saved-account-label">Enter new account</span>
+                        <RotateCcw size={14} /> Retake Photo
                       </button>
                     </div>
-                  </>
-                )}
-                {(filteredAccounts.length === 0 || selectedAccountIdx === -1) && (
-                  <div style={{ marginTop: filteredAccounts.length > 0 ? '12px' : 0, display: 'flex', flexDirection: 'column', gap: '10px' }}>
-                    {disbursementMethod === 'e-wallet' ? (
-                      <>
-                        <div>
-                          <label className="user-loan-application-label">E-Wallet Provider</label>
-                          <div style={{ display: 'flex', gap: '12px', marginTop: '6px', marginBottom: '8px' }}>
-                            <label style={{ 
-                              display: 'flex', alignItems: 'center', gap: '8px', fontSize: '14px', color: 'var(--foreground)', cursor: 'pointer',
-                              padding: '12px 16px', borderRadius: '10px', flex: 1,
-                              border: newEwalletProvider === 'GCash' ? '1px solid #1E3A8A' : '1px solid var(--border)',
-                              background: newEwalletProvider === 'GCash' ? 'rgba(30, 58, 138, 0.03)' : 'var(--card)',
-                              transition: 'all 0.2s'
-                            }}>
-                              <input type="radio" name="ewalletProvider" value="GCash" checked={newEwalletProvider === 'GCash'} onChange={(e) => setNewEwalletProvider(e.target.value)} style={{ display: 'none' }} />
-                              <div className={`ula-disbursement-radio ${newEwalletProvider === 'GCash' ? 'active' : ''}`} />
-                              GCash
-                            </label>
-                            <label style={{ 
-                              display: 'flex', alignItems: 'center', gap: '8px', fontSize: '14px', color: 'var(--foreground)', cursor: 'pointer',
-                              padding: '12px 16px', borderRadius: '10px', flex: 1,
-                              border: newEwalletProvider === 'Maya' ? '1px solid #1E3A8A' : '1px solid var(--border)',
-                              background: newEwalletProvider === 'Maya' ? 'rgba(30, 58, 138, 0.03)' : 'var(--card)',
-                              transition: 'all 0.2s'
-                            }}>
-                              <input type="radio" name="ewalletProvider" value="Maya" checked={newEwalletProvider === 'Maya'} onChange={(e) => setNewEwalletProvider(e.target.value)} style={{ display: 'none' }} />
-                              <div className={`ula-disbursement-radio ${newEwalletProvider === 'Maya' ? 'active' : ''}`} />
-                              Maya
-                            </label>
-                          </div>
-                        </div>
-                        <div>
-                          <label className="user-loan-application-label">Account Name</label>
-                          <input type="text" className="user-loan-application-input" style={{ paddingLeft: '16px' }} placeholder="e.g. Juan Dela Cruz" value={newEwalletAccountName} onChange={(e) => setNewEwalletAccountName(e.target.value)} maxLength={50} required />
-                        </div>
-                        <div>
-                          <label className="user-loan-application-label">Account Number</label>
-                          <input 
-                            type="text" 
-                            className="user-loan-application-input" 
-                            style={{ paddingLeft: '16px' }} 
-                            placeholder="e.g. 09123456789" 
-                            value={newEwalletNumber} 
-                            onChange={(e) => setNewEwalletNumber(e.target.value.replace(/[^0-9]/g, ''))} 
-                            maxLength={11}
-                            required 
-                          />
-                        </div>
-                      </>
-                    ) : disbursementMethod === 'bank' ? (
-                      <>
-                        <div>
-                          <label className="user-loan-application-label">Bank Name</label>
-                          <input type="text" className="user-loan-application-input" style={{ paddingLeft: '16px' }} placeholder="e.g. BDO, BPI" value={newBankName} onChange={(e) => setNewBankName(e.target.value)} maxLength={50} required />
-                        </div>
-                        <div>
-                          <label className="user-loan-application-label">Account Name</label>
-                          <input type="text" className="user-loan-application-input" style={{ paddingLeft: '16px' }} placeholder="e.g. Juan Dela Cruz" value={newBankAccountName} onChange={(e) => setNewBankAccountName(e.target.value)} maxLength={50} required />
-                        </div>
-                        <div>
-                          <label className="user-loan-application-label">Account Number</label>
-                          <input 
-                            type="text" 
-                            className="user-loan-application-input" 
-                            style={{ paddingLeft: '16px' }} 
-                            placeholder="e.g. 1234 5678 90" 
-                            value={newBankAccountNumber} 
-                            onChange={(e) => {
-                              const raw = e.target.value.replace(/\D/g, '');
-                              setNewBankAccountNumber(raw.replace(/(.{4})/g, '$1 ').trim());
-                            }} 
-                            maxLength={20} 
-                            required 
-                          />
-                        </div>
-                      </>
-                    ) : null}
+                  ) : (
+                    <button
+                      type="button"
+                      className="w-full py-2.5 px-3 rounded-lg border border-dashed border-blue-300 dark:border-blue-800/60 bg-blue-50/50 dark:bg-blue-950/30 hover:bg-blue-100/60 dark:hover:bg-blue-900/40 text-blue-700 dark:text-blue-300 text-xs font-semibold flex items-center justify-center gap-2 transition-all cursor-pointer"
+                      onClick={() => openCamera('selfie')}
+                    >
+                      <Camera size={16} /> Take Live Selfie
+                    </button>
+                  )}
+                </div>
+
+                {/* ID Card */}
+                <div className={`p-3.5 rounded-xl border transition-all ${idImage ? 'bg-emerald-50/40 dark:bg-emerald-950/20 border-emerald-500/50' : 'bg-white dark:bg-slate-900/60 border-slate-200 dark:border-white/10 hover:border-blue-500/50'} shadow-sm flex flex-col justify-between gap-3`}>
+                  <div className="flex items-center justify-between">
+                    <span className="text-xs font-bold text-slate-800 dark:text-slate-200">Valid Government ID <span className="text-rose-500">*</span></span>
+                    {idImage ? (
+                      <span className="px-2 py-0.5 rounded-full bg-emerald-100 dark:bg-emerald-950/60 text-emerald-700 dark:text-emerald-400 text-[10px] font-bold flex items-center gap-1">
+                        <CheckCircle size={10} /> Captured
+                      </span>
+                    ) : (
+                      <span className="px-2 py-0.5 rounded-full bg-slate-100 dark:bg-slate-800 text-slate-500 text-[10px] font-medium">Required</span>
+                    )}
                   </div>
-                )}
-              </div>
-            )}
-          </div>
 
-          {/* ── Terms & Conditions ── */}
-          <div className="ula-terms-section">
-            <h3 className="user-loan-application-guarantor-title">Loan Terms &amp; Conditions</h3>
-            <div className="ula-terms-box">
-              <div className="ula-terms-group">
-                <strong>10. Repayment Terms</strong>
-                <ul>
-                  <li>Payments are monthly based on the selected term.</li>
-                  <li>Due dates are fixed upon approval.</li>
-                  <li>Accepted payment methods: Cash, Bank transfer, E-Wallet.</li>
-                </ul>
-              </div>
-
-              <div className="ula-terms-group">
-                <strong>11. Early Payment Policy</strong>
-                <ul>
-                  <li>Members may repay early at any time.</li>
-                  <li>Interest is charged only up to the payment date.</li>
-                  <li>No penalties for early settlement.</li>
-                </ul>
-              </div>
-
-              <div className="ula-terms-group">
-                 <strong>12. Late Payment and Penalties</strong>
-                <ul>
-                  <li>Grace period: 3 days.</li>
-                  <li>Penalty: 3% per month on overdue amount.</li>
-                </ul>
-              </div>
-
-              <div className="ula-terms-group">
-                <strong>20. Policy Violations</strong>
-                <ul>
-                   <li>Violations include: Providing false information, Non-payment, System abuse.</li>
-                   <li>Sanctions: Loan denial, Suspension, Account termination.</li>
-                </ul>
+                  {idImage ? (
+                    <div className="relative group rounded-lg overflow-hidden border border-slate-200 dark:border-white/10">
+                      <img src={idImage} alt="ID preview" className="w-full h-24 object-cover" />
+                      <button
+                        type="button"
+                        className="absolute inset-0 bg-black/60 opacity-0 group-hover:opacity-100 transition-opacity flex items-center justify-center gap-1.5 text-white text-xs font-semibold"
+                        onClick={() => { setIdImage(null); openCamera('id'); }}
+                      >
+                        <RotateCcw size={14} /> Retake Photo
+                      </button>
+                    </div>
+                  ) : (
+                    <button
+                      type="button"
+                      className="w-full py-2.5 px-3 rounded-lg border border-dashed border-blue-300 dark:border-blue-800/60 bg-blue-50/50 dark:bg-blue-950/30 hover:bg-blue-100/60 dark:hover:bg-blue-900/40 text-blue-700 dark:text-blue-300 text-xs font-semibold flex items-center justify-center gap-2 transition-all cursor-pointer"
+                      onClick={() => openCamera('id')}
+                    >
+                      <Camera size={16} /> Take Photo of ID
+                    </button>
+                  )}
+                </div>
               </div>
             </div>
-            
-            <label className="ula-terms-checkbox">
-              <input
-                type="checkbox"
-                checked={agreedToTerms}
-                onChange={(e) => setAgreedToTerms(e.target.checked)}
-              />
-              <span>I have read and agree to the Loan Terms &amp; Conditions and policies above.</span>
-            </label>
+
+            {/* ── Group B: Required Proof Documents ── */}
+            <div className="space-y-3 pt-2 border-t border-slate-200/60 dark:border-white/5">
+              <div>
+                <h4 className="text-xs font-bold text-slate-800 dark:text-slate-200 font-inter flex items-center gap-1.5">
+                  <Upload size={14} className="text-blue-600 dark:text-blue-400" /> Required Proof Documents
+                </h4>
+                <p className="text-[11px] text-slate-500 dark:text-slate-400">Accepted formats: JPG, PNG, or PDF file.</p>
+              </div>
+
+              <div className="grid grid-cols-1 sm:grid-cols-3 gap-3">
+                {/* COE Upload */}
+                <div className={`p-3 rounded-xl border transition-all ${coeFileName ? 'bg-emerald-50/30 dark:bg-emerald-950/20 border-emerald-500/40' : 'bg-white dark:bg-slate-900/60 border-slate-200 dark:border-white/10'} shadow-sm flex flex-col justify-between gap-2`}>
+                  <span className="text-xs font-bold text-slate-800 dark:text-slate-200">COE <span className="text-rose-500">*</span></span>
+                  <label className="cursor-pointer">
+                    <input type="file" accept="image/*,application/pdf" onChange={(e) => handleFileUpload(e, setCoeData, setCoeFileName)} className="hidden" />
+                    <div className="py-2 px-2.5 rounded-lg border border-slate-200 dark:border-slate-700 bg-slate-50 dark:bg-slate-800/80 hover:bg-slate-100 text-center transition-colors">
+                      {coeFileName ? (
+                        <div className="flex items-center justify-center gap-1 text-[11px] font-bold text-emerald-600 dark:text-emerald-400 truncate">
+                          <CheckCircle size={12} className="shrink-0" />
+                          <span className="truncate">{coeFileName}</span>
+                        </div>
+                      ) : (
+                        <div className="flex items-center justify-center gap-1.5 text-xs text-slate-600 dark:text-slate-300 font-medium">
+                          <Upload size={13} className="text-blue-600" /> Choose File
+                        </div>
+                      )}
+                    </div>
+                  </label>
+                </div>
+
+                {/* ITR Upload */}
+                <div className={`p-3 rounded-xl border transition-all ${itrFileName ? 'bg-emerald-50/30 dark:bg-emerald-950/20 border-emerald-500/40' : 'bg-white dark:bg-slate-900/60 border-slate-200 dark:border-white/10'} shadow-sm flex flex-col justify-between gap-2`}>
+                  <span className="text-xs font-bold text-slate-800 dark:text-slate-200">ITR <span className="text-rose-500">*</span></span>
+                  <label className="cursor-pointer">
+                    <input type="file" accept="image/*,application/pdf" onChange={(e) => handleFileUpload(e, setItrData, setItrFileName)} className="hidden" />
+                    <div className="py-2 px-2.5 rounded-lg border border-slate-200 dark:border-slate-700 bg-slate-50 dark:bg-slate-800/80 hover:bg-slate-100 text-center transition-colors">
+                      {itrFileName ? (
+                        <div className="flex items-center justify-center gap-1 text-[11px] font-bold text-emerald-600 dark:text-emerald-400 truncate">
+                          <CheckCircle size={12} className="shrink-0" />
+                          <span className="truncate">{itrFileName}</span>
+                        </div>
+                      ) : (
+                        <div className="flex items-center justify-center gap-1.5 text-xs text-slate-600 dark:text-slate-300 font-medium">
+                          <Upload size={13} className="text-blue-600" /> Choose File
+                        </div>
+                      )}
+                    </div>
+                  </label>
+                </div>
+
+                {/* Payslip Upload */}
+                <div className={`p-3 rounded-xl border transition-all ${payslipFileName ? 'bg-emerald-50/30 dark:bg-emerald-950/20 border-emerald-500/40' : 'bg-white dark:bg-slate-900/60 border-slate-200 dark:border-white/10'} shadow-sm flex flex-col justify-between gap-2`}>
+                  <span className="text-xs font-bold text-slate-800 dark:text-slate-200">Latest Payslip <span className="text-rose-500">*</span></span>
+                  <label className="cursor-pointer">
+                    <input type="file" accept="image/*,application/pdf" onChange={(e) => handleFileUpload(e, setPayslipData, setPayslipFileName)} className="hidden" />
+                    <div className="py-2 px-2.5 rounded-lg border border-slate-200 dark:border-slate-700 bg-slate-50 dark:bg-slate-800/80 hover:bg-slate-100 text-center transition-colors">
+                      {payslipFileName ? (
+                        <div className="flex items-center justify-center gap-1 text-[11px] font-bold text-emerald-600 dark:text-emerald-400 truncate">
+                          <CheckCircle size={12} className="shrink-0" />
+                          <span className="truncate">{payslipFileName}</span>
+                        </div>
+                      ) : (
+                        <div className="flex items-center justify-center gap-1.5 text-xs text-slate-600 dark:text-slate-300 font-medium">
+                          <Upload size={13} className="text-blue-600" /> Choose File
+                        </div>
+                      )}
+                    </div>
+                  </label>
+                </div>
+              </div>
+            </div>
+
+            {/* ── Active Loan Question ── */}
+            <div className="pt-3 border-t border-slate-200/60 dark:border-white/5 space-y-2">
+              <label className="text-xs font-bold text-slate-800 dark:text-slate-200">
+                Do you have an active loan with another financial entity? <span className="text-rose-500">*</span>
+              </label>
+
+              <div className="flex items-center gap-3">
+                <button
+                  type="button"
+                  className={`px-4 py-2 rounded-xl text-xs font-semibold border transition-all cursor-pointer flex items-center gap-2 ${hasActiveLoan === true ? 'bg-blue-600 text-white border-blue-600 shadow-sm' : 'bg-white dark:bg-slate-900 border-slate-200 dark:border-white/10 text-slate-700 dark:text-slate-300'}`}
+                  onClick={() => setHasActiveLoan(true)}
+                >
+                  <div className={`w-3.5 h-3.5 rounded-full border border-current flex items-center justify-center`}>
+                    {hasActiveLoan === true && <div className="w-2 h-2 rounded-full bg-white" />}
+                  </div>
+                  Yes, I do
+                </button>
+
+                <button
+                  type="button"
+                  className={`px-4 py-2 rounded-xl text-xs font-semibold border transition-all cursor-pointer flex items-center gap-2 ${hasActiveLoan === false ? 'bg-blue-600 text-white border-blue-600 shadow-sm' : 'bg-white dark:bg-slate-900 border-slate-200 dark:border-white/10 text-slate-700 dark:text-slate-300'}`}
+                  onClick={() => { setHasActiveLoan(false); setActiveLoanScreenshotData(null); setActiveLoanScreenshotFileName(''); }}
+                >
+                  <div className={`w-3.5 h-3.5 rounded-full border border-current flex items-center justify-center`}>
+                    {hasActiveLoan === false && <div className="w-2 h-2 rounded-full bg-white" />}
+                  </div>
+                  No, I don't
+                </button>
+              </div>
+
+              {hasActiveLoan && (
+                <div className="mt-3 p-3 rounded-xl bg-amber-50/60 dark:bg-amber-950/20 border border-amber-200 dark:border-amber-900/40 space-y-2">
+                  <span className="text-xs font-bold text-amber-900 dark:text-amber-300">Upload Screenshot of Active Loan <span className="text-rose-500">*</span></span>
+                  <label className="block cursor-pointer">
+                    <input type="file" accept="image/*,application/pdf" onChange={(e) => handleFileUpload(e, setActiveLoanScreenshotData, setActiveLoanScreenshotFileName)} className="hidden" />
+                    <div className="py-2.5 px-3 rounded-lg border border-amber-300 dark:border-amber-800 bg-white dark:bg-slate-900 text-center transition-colors">
+                      {activeLoanScreenshotFileName ? (
+                        <div className="flex items-center justify-center gap-1.5 text-xs font-bold text-emerald-600 dark:text-emerald-400">
+                          <CheckCircle size={14} /> {activeLoanScreenshotFileName}
+                        </div>
+                      ) : (
+                        <div className="flex items-center justify-center gap-1.5 text-xs text-amber-800 dark:text-amber-300 font-semibold">
+                          <Upload size={14} /> Select Screenshot (Image/PDF)
+                        </div>
+                      )}
+                    </div>
+                  </label>
+                </div>
+              )}
+            </div>
+          </div>
+
+          {/* ── STEP 3: Disbursement & Terms ── */}
+          <div className="bg-slate-50/70 dark:bg-slate-800/40 border border-slate-200/80 dark:border-white/10 rounded-2xl p-4 sm:p-5 space-y-4">
+            <div className="flex items-center gap-2 pb-2 border-b border-slate-200/60 dark:border-white/10">
+              <div className="w-6 h-6 rounded-full bg-[#1E3A8A] text-white font-bold text-xs flex items-center justify-center shrink-0">3</div>
+              <h3 className="text-xs font-bold text-slate-900 dark:text-white uppercase tracking-wider font-inter">Disbursement Method &amp; Terms Agreement</h3>
+            </div>
+
+            {/* ── Disbursement Method ── */}
+            <div className="ula-disbursement-section">
+              <p className="ula-disbursement-desc">How would you like to receive your loan once approved?</p>
+              <div className="ula-disbursement-options mt-2">
+                {[
+                  { id: 'cash', label: 'Cash (Pick up at office)' },
+                  { id: 'e-wallet', label: 'E-Wallet' },
+                  { id: 'bank', label: 'Bank Transfer' }
+                ].map(opt => (
+                  <button
+                    key={opt.id}
+                    type="button"
+                    className={`ula-disbursement-btn ${disbursementMethod === opt.id ? 'ula-disbursement-btn--active' : ''}`}
+                    onClick={() => { setDisbursementMethod(opt.id); setSelectedAccountIdx(-1); setDisbursementAccount(''); }}
+                  >
+                    <div className={`ula-disbursement-radio ${disbursementMethod === opt.id ? 'active' : ''}`} />
+                    {opt.label}
+                  </button>
+                ))}
+              </div>
+              
+              {(disbursementMethod === 'e-wallet' || disbursementMethod === 'bank') && (
+                <div className="ula-disbursement-account">
+                  {filteredAccounts.length > 0 && (
+                    <>
+                      <label className="user-loan-application-label">Select a saved account</label>
+                      <div className="ula-saved-accounts">
+                        {filteredAccounts.map((acc, idx) => (
+                          <div key={idx} className={`ula-saved-account-btn ${selectedAccountIdx === idx ? 'ula-saved-account-btn--active' : ''}`}>
+                            {editingAccountIdx === idx ? (
+                              <>
+                                <div className={`ula-disbursement-radio ${selectedAccountIdx === idx ? 'active' : ''}`} />
+                                <input
+                                  type="text"
+                                  className="ula-saved-account-edit-input"
+                                  value={disbursementAccount}
+                                  onChange={(e) => setDisbursementAccount(e.target.value)}
+                                  onBlur={() => setEditingAccountIdx(null)}
+                                  onKeyDown={(e) => { if (e.key === 'Enter') setEditingAccountIdx(null); }}
+                                  autoFocus
+                                />
+                              </>
+                            ) : (
+                              <>
+                                <div
+                                  className="ula-saved-account-select-area"
+                                  onClick={() => {
+                                    setSelectedAccountIdx(idx);
+                                    setDisbursementAccount(acc.label);
+                                    setEditingAccountIdx(null);
+                                  }}
+                                >
+                                  <div className={`ula-disbursement-radio ${selectedAccountIdx === idx ? 'active' : ''}`} />
+                                  <div className="ula-saved-account-info">
+                                    <span className="ula-saved-account-label">{acc.label}</span>
+                                    <span className="ula-saved-account-source">{acc.source}</span>
+                                  </div>
+                                </div>
+                                <button
+                                  type="button"
+                                  className="ula-saved-account-edit-btn"
+                                  onClick={(e) => {
+                                    e.stopPropagation();
+                                    setSelectedAccountIdx(idx);
+                                    setDisbursementAccount(acc.label);
+                                    setEditingAccountIdx(idx);
+                                  }}
+                                  title="Edit account info"
+                                >
+                                  <Pencil size={14} />
+                                </button>
+                              </>
+                            )}
+                          </div>
+                        ))}
+                        <button
+                          type="button"
+                          className={`ula-saved-account-btn ${selectedAccountIdx === -1 ? 'ula-saved-account-btn--active' : ''}`}
+                          onClick={() => { setSelectedAccountIdx(-1); setDisbursementAccount(''); setEditingAccountIdx(null); }}
+                        >
+                          <div className={`ula-disbursement-radio ${selectedAccountIdx === -1 ? 'active' : ''}`} />
+                          <span className="ula-saved-account-label">Enter new account</span>
+                        </button>
+                      </div>
+                    </>
+                  )}
+                  {(filteredAccounts.length === 0 || selectedAccountIdx === -1) && (
+                    <div style={{ marginTop: filteredAccounts.length > 0 ? '12px' : 0, display: 'flex', flexDirection: 'column', gap: '10px' }}>
+                      {disbursementMethod === 'e-wallet' ? (
+                        <>
+                          <div>
+                            <label className="user-loan-application-label">E-Wallet Provider</label>
+                            <div style={{ display: 'flex', gap: '12px', marginTop: '6px', marginBottom: '8px' }}>
+                              <label style={{ 
+                                display: 'flex', alignItems: 'center', gap: '8px', fontSize: '14px', color: 'var(--foreground)', cursor: 'pointer',
+                                padding: '12px 16px', borderRadius: '10px', flex: 1,
+                                border: newEwalletProvider === 'GCash' ? '1px solid #1E3A8A' : '1px solid var(--border)',
+                                background: newEwalletProvider === 'GCash' ? 'rgba(30, 58, 138, 0.03)' : 'var(--card)',
+                                transition: 'all 0.2s'
+                              }}>
+                                <input type="radio" name="ewalletProvider" value="GCash" checked={newEwalletProvider === 'GCash'} onChange={(e) => setNewEwalletProvider(e.target.value)} style={{ display: 'none' }} />
+                                <div className={`ula-disbursement-radio ${newEwalletProvider === 'GCash' ? 'active' : ''}`} />
+                                GCash
+                              </label>
+                              <label style={{ 
+                                display: 'flex', alignItems: 'center', gap: '8px', fontSize: '14px', color: 'var(--foreground)', cursor: 'pointer',
+                                padding: '12px 16px', borderRadius: '10px', flex: 1,
+                                border: newEwalletProvider === 'Maya' ? '1px solid #1E3A8A' : '1px solid var(--border)',
+                                background: newEwalletProvider === 'Maya' ? 'rgba(30, 58, 138, 0.03)' : 'var(--card)',
+                                transition: 'all 0.2s'
+                              }}>
+                                <input type="radio" name="ewalletProvider" value="Maya" checked={newEwalletProvider === 'Maya'} onChange={(e) => setNewEwalletProvider(e.target.value)} style={{ display: 'none' }} />
+                                <div className={`ula-disbursement-radio ${newEwalletProvider === 'Maya' ? 'active' : ''}`} />
+                                Maya
+                              </label>
+                            </div>
+                          </div>
+                          <div>
+                            <label className="user-loan-application-label">Account Name</label>
+                            <input type="text" className="user-loan-application-input" style={{ paddingLeft: '16px' }} placeholder="e.g. Juan Dela Cruz" value={newEwalletAccountName} onChange={(e) => setNewEwalletAccountName(e.target.value)} maxLength={50} required />
+                          </div>
+                          <div>
+                            <label className="user-loan-application-label">Account Number</label>
+                            <input 
+                              type="text" 
+                              className="user-loan-application-input" 
+                              style={{ paddingLeft: '16px' }} 
+                              placeholder="e.g. 09123456789" 
+                              value={newEwalletNumber} 
+                              onChange={(e) => setNewEwalletNumber(e.target.value.replace(/[^0-9]/g, ''))} 
+                              maxLength={11}
+                              required 
+                            />
+                          </div>
+                        </>
+                      ) : disbursementMethod === 'bank' ? (
+                        <>
+                          <div>
+                            <label className="user-loan-application-label">Bank Name</label>
+                            <input type="text" className="user-loan-application-input" style={{ paddingLeft: '16px' }} placeholder="e.g. BDO, BPI" value={newBankName} onChange={(e) => setNewBankName(e.target.value)} maxLength={50} required />
+                          </div>
+                          <div>
+                            <label className="user-loan-application-label">Account Name</label>
+                            <input type="text" className="user-loan-application-input" style={{ paddingLeft: '16px' }} placeholder="e.g. Juan Dela Cruz" value={newBankAccountName} onChange={(e) => setNewBankAccountName(e.target.value)} maxLength={50} required />
+                          </div>
+                          <div>
+                            <label className="user-loan-application-label">Account Number</label>
+                            <input 
+                              type="text" 
+                              className="user-loan-application-input" 
+                              style={{ paddingLeft: '16px' }} 
+                              placeholder="e.g. 1234 5678 90" 
+                              value={newBankAccountNumber} 
+                              onChange={(e) => {
+                                const raw = e.target.value.replace(/\D/g, '');
+                                setNewBankAccountNumber(raw.replace(/(.{4})/g, '$1 ').trim());
+                              }} 
+                              maxLength={20} 
+                              required 
+                            />
+                          </div>
+                        </>
+                      ) : null}
+                    </div>
+                  )}
+                </div>
+              )}
+            </div>
+
+            {/* ── Terms & Conditions ── */}
+            <div className="ula-terms-section pt-2">
+              <h4 className="text-xs font-bold text-slate-800 dark:text-slate-200 mb-2 font-inter">Loan Terms &amp; Conditions</h4>
+              <div className="ula-terms-box">
+                <div className="ula-terms-group">
+                  <strong>10. Repayment Terms</strong>
+                  <ul>
+                    <li>Payments are monthly based on the selected term.</li>
+                    <li>Due dates are fixed upon approval.</li>
+                    <li>Accepted payment methods: Cash, Bank transfer, E-Wallet.</li>
+                  </ul>
+                </div>
+
+                <div className="ula-terms-group">
+                  <strong>11. Early Payment Policy</strong>
+                  <ul>
+                    <li>Members may repay early at any time.</li>
+                    <li>Interest is charged only up to the payment date.</li>
+                    <li>No penalties for early settlement.</li>
+                  </ul>
+                </div>
+
+                <div className="ula-terms-group">
+                   <strong>12. Late Payment and Penalties</strong>
+                  <ul>
+                    <li>Grace period: 3 days.</li>
+                    <li>Penalty: 3% per month on overdue amount.</li>
+                  </ul>
+                </div>
+
+                <div className="ula-terms-group">
+                  <strong>20. Policy Violations</strong>
+                  <ul>
+                     <li>Violations include: Providing false information, Non-payment, System abuse.</li>
+                     <li>Sanctions: Loan denial, Suspension, Account termination.</li>
+                  </ul>
+                </div>
+              </div>
+              
+              <label className="ula-terms-checkbox mt-3">
+                <input
+                  type="checkbox"
+                  checked={agreedToTerms}
+                  onChange={(e) => setAgreedToTerms(e.target.checked)}
+                />
+                <span>I have read and agree to the Loan Terms &amp; Conditions and policies above.</span>
+              </label>
+            </div>
           </div>
 
           {/* Note */}
@@ -1060,16 +1122,21 @@ export default function LoanApplicationModal({
           </div>
 
           {/* Actions */}
-          <div className="user-loan-application-actions">
+          <div className="flex flex-col sm:flex-row items-center justify-end gap-3 pt-4 border-t border-slate-200 dark:border-white/10">
+            <button 
+              type="button" 
+              className="w-full sm:w-auto px-5 py-2.5 rounded-xl border border-slate-200 dark:border-white/10 hover:bg-slate-100 dark:hover:bg-slate-800 text-slate-700 dark:text-slate-300 font-semibold text-xs transition-all cursor-pointer" 
+              onClick={onClose} 
+              disabled={loading}
+            >
+              Cancel
+            </button>
             <button
               type="submit"
-              className="user-loan-application-submit-btn"
+              className="w-full sm:w-auto px-6 py-2.5 rounded-xl bg-gradient-to-r from-blue-600 to-indigo-600 hover:from-blue-700 hover:to-indigo-700 text-white font-bold text-xs shadow-md disabled:opacity-50 disabled:cursor-not-allowed transition-all cursor-pointer"
               disabled={loading || !allEligible || !calc || !selfieImage || !idImage || !disbursementMethod || !agreedToTerms}
             >
               {loading ? <span className="btn-spinner" /> : 'Submit Application'}
-            </button>
-            <button type="button" className="user-loan-application-cancel-btn" onClick={onClose} disabled={loading}>
-              Cancel
             </button>
           </div>
 

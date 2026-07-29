@@ -3,7 +3,6 @@ import { useNavigate } from 'react-router';
 import { useAuth } from '../../context/AuthContext';
 import { Bell, Banknote, Heart, CalendarDays, Circle, X, Menu } from 'lucide-react';
 import API from '../../utils/api';
-import '../styles/UserHeader.css';
 
 export default function UserHeader({ toggleSidebar, collapsed }) {
   const navigate = useNavigate();
@@ -16,7 +15,6 @@ export default function UserHeader({ toggleSidebar, collapsed }) {
 
   const dropdownRef = useRef(null);
 
-
   /* --- Notification Fetching --- */
   const fetchNotifications = useCallback(async () => {
     if (!token) return;
@@ -25,7 +23,6 @@ export default function UserHeader({ toggleSidebar, collapsed }) {
     try {
       const res = await fetch(`${API}/api/notifications/feed`, { headers });
       
-      // Safety guard for non-JSON responses (like 404 pages)
       const contentType = res.headers.get("content-type");
       if (!res.ok || !contentType || !contentType.includes("application/json")) {
         return;
@@ -125,7 +122,7 @@ export default function UserHeader({ toggleSidebar, collapsed }) {
         const timeB = new Date(b.timestamp || 0).getTime();
         return (isNaN(timeB) ? 0 : timeB) - (isNaN(timeA) ? 0 : timeA);
       });
-      setNotifItems(items.slice(0, 5)); // Show exactly 5 items as requested
+      setNotifItems(items.slice(0, 5));
       setUnreadNotifCount(items.filter(it => !currentReadIds.has(it.id)).length);
     } catch (err) {
       console.error('Failed to fetch header notifications:', err);
@@ -134,11 +131,10 @@ export default function UserHeader({ toggleSidebar, collapsed }) {
 
   useEffect(() => {
     fetchNotifications();
-    const interval = setInterval(fetchNotifications, 120000); // Poll every 2 minutes
+    const interval = setInterval(fetchNotifications, 120000);
     return () => clearInterval(interval);
   }, [fetchNotifications]);
 
-  /* --- Notification Helpers --- */
   const markAsRead = async (id) => {
     if (readIds.has(id)) return;
     try {
@@ -193,94 +189,98 @@ export default function UserHeader({ toggleSidebar, collapsed }) {
   };
 
   return (
-    <header className="user-header-container">
-      <div className="user-header-left-group">
-        <button className="user-header-menu-btn" onClick={toggleSidebar}>
-          {collapsed ? <Menu size={24} color="#1e3a8a" /> : <X size={24} color="#1e3a8a" />}
+    <header className="flex items-center justify-between mb-6 pb-4 border-b border-border">
+      <div className="flex items-center gap-3">
+        <button 
+          className="md:hidden w-10 h-10 rounded-xl bg-card dark:bg-[#1E2130] text-primary border border-border flex items-center justify-center shadow-sm cursor-pointer active:scale-95 transition-all p-0" 
+          onClick={toggleSidebar}
+        >
+          {collapsed ? <Menu size={22} className="text-primary dark:text-blue-400" /> : <X size={22} className="text-primary dark:text-blue-400" />}
         </button>
 
-        <div className="user-header-left">
-          <h1 className="user-header-title">
+        <div>
+          <h1 className="font-inter text-xl sm:text-2xl font-bold text-foreground m-0 tracking-tight">
             Welcome back{profile?.fullName ? `, ${profile.fullName.split(' ')[0]}` : ''}!
           </h1>
         </div>
       </div>
 
-        <div className="user-header-right">
-          <button 
-            className="user-header-notify-btn" 
-            onClick={() => setShowNotifDropdown(!showNotifDropdown)}
-            aria-label="Toggle notifications"
-          >
-            <Bell size={20} color="#ffffff" />
-            {unreadNotifCount > 0 && (
-              <span className="user-header-badge">
-                {unreadNotifCount > 9 ? '9+' : unreadNotifCount}
-              </span>
-            )}
-          </button>
-
-          {showNotifDropdown && (
-            // ... (rest of notif dropdown)
-            <div className="user-header-dropdown" ref={dropdownRef}>
-              <div className="user-header-dropdown-header">
-                <h3 className="user-header-dropdown-title">Notifications</h3>
-                <button 
-                  className="user-header-dropdown-mark-read" 
-                  onClick={markAllAsRead}
-                >
-                  Mark all as read
-                </button>
-              </div>
-              
-              <div className="user-header-dropdown-list">
-                {notifItems.length === 0 ? (
-                  <div style={{ padding: '40px 20px', textAlign: 'center', color: '#94a3b8' }}>
-                    <Bell size={32} style={{ marginBottom: '12px', opacity: 0.3 }} />
-                    <p style={{ margin: 0, fontSize: '14px' }}>No notifications yet</p>
-                  </div>
-                ) : (
-                  notifItems.map((item) => (
-                    <div 
-                      key={item.id} 
-                      onClick={() => { markAsRead(item.id); navigate('/notifications'); setShowNotifDropdown(false); }}
-                      className={`user-header-notif-item ${readIds.has(item.id) ? '' : 'unread'}`}
-                    >
-                      <div className="user-header-notif-icon-box">
-                        {item.type === 'loan' ? <Banknote size={14} color="#155DFC" /> : 
-                         item.type === 'donation' ? <Heart size={14} color="#155DFC" /> :
-                         item.type === 'attendance' ? <CalendarDays size={14} color="#155DFC" /> :
-                         item.type === 'savings' ? <Banknote size={14} color="#155DFC" /> :
-                         item.type === 'savings_withdrawal' ? <Banknote size={14} color="#16A34A" /> :
-                         <Circle size={8} color="#155DFC" />}
-                      </div>
-                      <div className="user-header-notif-content">
-                        <div className="user-header-notif-title-row">
-                           <p className="user-header-notif-title">{item.title}</p>
-                           {!readIds.has(item.id) && <span className="user-header-notif-dot" />}
-                        </div>
-                        <p className="user-header-notif-msg">{item.message}</p>
-                        <span className="user-header-notif-time">{formatTimeAgo(item.timestamp)}</span>
-                      </div>
-                    </div>
-                  ))
-                )}
-              </div>
-
-              <div className="user-header-dropdown-footer">
-                <button 
-                  className="user-header-see-all-btn" 
-                  onClick={() => { navigate('/notifications'); setShowNotifDropdown(false); }}
-                >
-                  See all notifications
-                </button>
-              </div>
-            </div>
+      <div className="relative">
+        <button 
+          className="user-header-notify-btn relative w-10 h-10 rounded-xl bg-[#0D1F45] dark:bg-[#1E2130] hover:bg-[#162d61] dark:hover:bg-[#252A3E] border border-white/10 flex items-center justify-center cursor-pointer transition-all p-0 shadow-sm" 
+          onClick={() => setShowNotifDropdown(!showNotifDropdown)}
+          aria-label="Toggle notifications"
+        >
+          <Bell size={19} className="text-white" />
+          {unreadNotifCount > 0 && (
+            <span className="absolute -top-1 -right-1 bg-rose-600 text-white font-inter text-[10px] font-bold px-1.5 py-0.5 rounded-full min-w-[18px] h-[18px] flex items-center justify-center border-2 border-background animate-badgePop">
+              {unreadNotifCount > 9 ? '9+' : unreadNotifCount}
+            </span>
           )}
+        </button>
 
+        {showNotifDropdown && (
+          <div 
+            className="absolute right-0 mt-2 w-80 sm:w-96 bg-card dark:bg-[#1E2130] border border-border rounded-2xl shadow-2xl z-[1200] overflow-hidden animate-fadeIn" 
+            ref={dropdownRef}
+          >
+            <div className="flex items-center justify-between p-4 border-b border-border bg-slate-50/50 dark:bg-slate-900/30">
+              <h3 className="font-inter text-sm font-bold text-foreground m-0">Notifications</h3>
+              <button 
+                className="font-inter text-xs text-blue-600 dark:text-blue-400 hover:underline bg-transparent border-none cursor-pointer p-0 font-medium" 
+                onClick={markAllAsRead}
+              >
+                Mark all as read
+              </button>
+            </div>
+            
+            <div className="max-h-80 overflow-y-auto divide-y divide-border">
+              {notifItems.length === 0 ? (
+                <div className="p-8 text-center text-slate-400 dark:text-slate-500">
+                  <Bell size={32} className="mx-auto mb-3 opacity-30" />
+                  <p className="font-inter text-sm m-0">No notifications yet</p>
+                </div>
+              ) : (
+                notifItems.map((item) => (
+                  <div 
+                    key={item.id} 
+                    onClick={() => { markAsRead(item.id); navigate('/notifications'); setShowNotifDropdown(false); }}
+                    className={`p-3.5 flex items-start gap-3 cursor-pointer hover:bg-slate-50 dark:hover:bg-slate-800/50 transition-colors ${
+                      readIds.has(item.id) ? 'opacity-70' : 'bg-blue-50/40 dark:bg-blue-950/20'
+                    }`}
+                  >
+                    <div className="w-8 h-8 rounded-lg bg-indigo-50 dark:bg-indigo-950/50 flex items-center justify-center shrink-0 mt-0.5">
+                      {item.type === 'loan' ? <Banknote size={15} className="text-blue-600 dark:text-blue-400" /> : 
+                       item.type === 'donation' ? <Heart size={15} className="text-rose-500" /> :
+                       item.type === 'attendance' ? <CalendarDays size={15} className="text-blue-600 dark:text-blue-400" /> :
+                       item.type === 'savings' ? <Banknote size={15} className="text-emerald-600 dark:text-emerald-400" /> :
+                       item.type === 'savings_withdrawal' ? <Banknote size={15} className="text-emerald-600 dark:text-emerald-400" /> :
+                       <Circle size={8} className="text-blue-600 dark:text-blue-400" />}
+                    </div>
+                    <div className="flex-1 min-w-0">
+                      <div className="flex items-center justify-between gap-2 mb-0.5">
+                        <p className="font-inter text-xs font-semibold text-foreground m-0 truncate">{item.title}</p>
+                        {!readIds.has(item.id) && <span className="w-2 h-2 rounded-full bg-blue-600 shrink-0" />}
+                      </div>
+                      <p className="font-inter text-xs text-slate-500 dark:text-slate-400 m-0 mb-1 line-clamp-2 leading-relaxed">{item.message}</p>
+                      <span className="font-inter text-[10px] text-slate-400 dark:text-slate-500">{formatTimeAgo(item.timestamp)}</span>
+                    </div>
+                  </div>
+                ))
+              )}
+            </div>
 
-
-        </div>
+            <div className="p-3 border-t border-border bg-slate-50/50 dark:bg-slate-900/30 text-center">
+              <button 
+                className="font-inter text-xs font-semibold text-primary dark:text-blue-400 hover:underline bg-transparent border-none cursor-pointer p-0" 
+                onClick={() => { navigate('/notifications'); setShowNotifDropdown(false); }}
+              >
+                See all notifications
+              </button>
+            </div>
+          </div>
+        )}
+      </div>
     </header>
   );
 }

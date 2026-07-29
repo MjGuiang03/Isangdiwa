@@ -1,9 +1,7 @@
 import { useState, useEffect } from 'react';
 import { useAuth } from '../../context/AuthContext';
-import '../styles/SavingsModal.css';
 import API from '../../utils/api';
 import { CheckCircle, X, ArrowDownRight, ArrowUpLeft, Repeat, History, CreditCard, Smartphone, Building2, Info, UploadCloud, FileCheck2 } from 'lucide-react';
-
 
 const fmt = (n) =>
     n != null ? `₱${Number(n).toLocaleString('en-PH', { minimumFractionDigits: 2 })}` : '₱0.00';
@@ -16,7 +14,6 @@ const GOAL_COLORS = [
     { key: 'purple', hex: '#7f77dd', label: 'Purple' },
     { key: 'pink', hex: '#d4537e', label: 'Pink' },
 ];
-
 
 const GOAL_NAME_OPTIONS = [
     { value: 'Vacation Fund', label: '  Vacation Fund' },
@@ -33,7 +30,7 @@ const GOAL_NAME_OPTIONS = [
 const QUICK_AMOUNTS = [500, 1000, 2000, 5000];
 
 const CloseIcon = () => (
-    <X size={14} />
+    <X size={16} />
 );
 
 /* ─────────────────────────────────────────────────────────────
@@ -280,18 +277,18 @@ function DepositModal({ goals, onClose }) {
                                       </div>
                                     </div>
 
-                                    <label className="user-file-upload-zone" style={{ marginTop: '16px' }}>
-                                      <input type="file" accept="image/*" onChange={handleFileChange} className="user-file-upload-input" />
-                                      <div className="user-file-upload-content">
-                                        <UploadCloud className="user-file-upload-icon" size={28} />
-                                        <p className="user-file-upload-text"><span>Click to upload</span> or drag and drop</p>
-                                        <p style={{ fontSize: '12px', color: '#9ca3af', margin: 0 }}>PNG, JPG, JPEG up to 5MB</p>
+                                    <label className="mt-4 flex flex-col items-center justify-center p-4 border-2 border-dashed border-slate-300 dark:border-white/10 rounded-xl bg-slate-50 dark:bg-slate-800/40 hover:bg-slate-100 dark:hover:bg-slate-800/70 cursor-pointer transition-all text-center">
+                                      <input type="file" accept="image/*" onChange={handleFileChange} className="hidden" />
+                                      <div className="flex flex-col items-center gap-1">
+                                        <UploadCloud className="text-slate-400 dark:text-slate-300" size={28} />
+                                        <p className="text-xs font-semibold text-slate-700 dark:text-slate-300"><span className="text-blue-600 dark:text-blue-400 hover:underline">Click to upload</span> or drag and drop</p>
+                                        <p className="text-[11px] text-slate-400 m-0">PNG, JPG, JPEG up to 5MB</p>
                                       </div>
                                     </label>
                                     {proofFile && (
-                                      <div className="user-file-attached">
+                                      <div className="mt-2 flex items-center gap-2 p-2 bg-emerald-50 dark:bg-emerald-950/40 border border-emerald-200 dark:border-emerald-800/50 rounded-lg text-xs font-semibold text-emerald-600 dark:text-emerald-400">
                                         <FileCheck2 size={16} />
-                                        <span style={{ overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }}>
+                                        <span className="truncate">
                                           {proofFile.name}
                                         </span>
                                       </div>
@@ -465,23 +462,6 @@ function NewGoalModal({ onClose }) {
                                     setTarget(parts.join('.'));
                                 }}
                             />
-                        </div>
-                    </div>
-
-
-
-                    <div className="svm-field">
-                        <label className="svm-label">Color</label>
-                        <div className="svm-color-row">
-                            {GOAL_COLORS.map(c => (
-                                <button
-                                    key={c.key}
-                                    className={`svm-color-dot ${color === c.key ? 'svm-color-dot--selected' : ''}`}
-                                    style={{ background: c.hex }}
-                                    title={c.label}
-                                    onClick={() => setColor(c.key)}
-                                />
-                            ))}
                         </div>
                     </div>
                 </div>
@@ -738,17 +718,17 @@ function QuickDepositModal({ goal, goals, onClose }) {
                                               </div>
                                             </div>
 
-                                            <label className="user-file-upload-zone" style={{ padding: '12px', marginTop: '16px' }}>
-                                              <input type="file" accept="image/*" onChange={handleFileChange} className="user-file-upload-input" />
-                                              <div className="user-file-upload-content">
-                                                <UploadCloud className="user-file-upload-icon" size={24} />
-                                                <p className="user-file-upload-text" style={{ fontSize: '12px' }}><span>Upload Receipt</span></p>
+                                            <label className="mt-4 p-3 flex flex-col items-center justify-center border-2 border-dashed border-slate-300 dark:border-white/10 rounded-xl bg-slate-50 dark:bg-slate-800/40 hover:bg-slate-100 dark:hover:bg-slate-800/70 cursor-pointer transition-all text-center">
+                                              <input type="file" accept="image/*" onChange={handleFileChange} className="hidden" />
+                                              <div className="flex flex-col items-center gap-1">
+                                                <UploadCloud className="text-slate-400 dark:text-slate-300" size={24} />
+                                                <p className="text-xs font-semibold text-slate-700 dark:text-slate-300"><span className="text-blue-600 dark:text-blue-400 hover:underline">Upload Receipt</span></p>
                                               </div>
                                             </label>
                                             {proofFile && (
-                                              <div className="user-file-attached" style={{ padding: '6px 10px', fontSize: '11px', marginTop: '8px' }}>
+                                              <div className="mt-2 p-2 flex items-center gap-2 bg-emerald-50 dark:bg-emerald-950/40 border border-emerald-200 dark:border-emerald-800/50 rounded-lg text-xs font-semibold text-emerald-600 dark:text-emerald-400">
                                                 <FileCheck2 size={14} />
-                                                <span style={{ overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }}>
+                                                <span className="truncate">
                                                   {proofFile.name}
                                                 </span>
                                               </div>
@@ -983,21 +963,6 @@ function EditGoalModal({ goal, onClose }) {
                                 value={monthly}
                                 onChange={e => setMonthly(e.target.value.replace(/[^0-9.]/g, ''))}
                             />
-                        </div>
-                    </div>
-
-                    <div className="svm-field">
-                        <label className="svm-label">Color</label>
-                        <div className="svm-color-row">
-                            {GOAL_COLORS.map(c => (
-                                <button
-                                    key={c.key}
-                                    className={`svm-color-dot ${color === c.key ? 'svm-color-dot--selected' : ''}`}
-                                    style={{ background: c.hex }}
-                                    title={c.label}
-                                    onClick={() => setColor(c.key)}
-                                />
-                            ))}
                         </div>
                     </div>
 
@@ -1241,42 +1206,42 @@ function GoalInfoModal({ goal, onClose, onEdit, onTransfer, onQuickDeposit }) {
                 <div className="svm-modal-head">
                     <div className="svm-modal-title-row">
                         <div className="svm-modal-title">{goal.name}</div>
-                        <div className="svm-modal-goal-tag">Goal Details & History</div>
+                        <div className="px-2.5 py-0.5 rounded-full bg-blue-50 dark:bg-blue-950/60 text-blue-600 dark:text-blue-400 text-xs font-semibold border border-blue-200 dark:border-blue-800/50">
+                            Goal Details & History
+                        </div>
                     </div>
                     <button className="svm-close-btn" onClick={onClose}><CloseIcon /></button>
                 </div>
 
-                <div className="svm-modal-body">
-                    <div className="svm-info-grid">
-                        <div className="svm-info-item">
-                            <span className="svm-info-label">Current Balance</span>
-                            <span className="svm-info-value">{fmt(goal.savedAmount)}</span>
+                <div className="svm-modal-body space-y-4">
+                    {/* Goal Stats Grid */}
+                    <div className="grid grid-cols-3 gap-3 p-4 rounded-2xl bg-slate-50 dark:bg-slate-800/40 border border-slate-200 dark:border-white/10 font-inter">
+                        <div className="flex flex-col">
+                            <span className="text-[11px] font-semibold text-slate-400 dark:text-slate-500 uppercase tracking-wider">Current Balance</span>
+                            <span className="text-base font-bold text-emerald-600 dark:text-emerald-400 font-dm">{fmt(goal.savedAmount)}</span>
                         </div>
-                        <div className="svm-info-item">
-                            <span className="svm-info-label">Target Amount</span>
-                            <span className="svm-info-value">{fmt(goal.targetAmount)}</span>
+                        <div className="flex flex-col">
+                            <span className="text-[11px] font-semibold text-slate-400 dark:text-slate-500 uppercase tracking-wider">Target Amount</span>
+                            <span className="text-base font-bold text-slate-900 dark:text-white font-dm">{fmt(goal.targetAmount)}</span>
                         </div>
-                        <div className="svm-info-item">
-                            <span className="svm-info-label">Monthly Goal</span>
-                            <span className="svm-info-value">{goal.monthlyContribution > 0 ? fmt(goal.monthlyContribution) : '—'}</span>
-                        </div>
-                        <div className="svm-info-item">
-                            <span className="svm-info-label">Target Date</span>
-                            <span className="svm-info-value">{goal.targetDate ? fmtDateShort(goal.targetDate) : 'No target'}</span>
+                        <div className="flex flex-col">
+                            <span className="text-[11px] font-semibold text-slate-400 dark:text-slate-500 uppercase tracking-wider">Monthly Goal</span>
+                            <span className="text-base font-bold text-slate-900 dark:text-white font-dm">{goal.monthlyContribution > 0 ? fmt(goal.monthlyContribution) : '—'}</span>
                         </div>
                     </div>
 
-                    <div className="svm-history-section">
-                        <div className="svm-history-head">
-                            <History size={16} />
-                            Transaction History
+                    {/* Transaction History Section */}
+                    <div className="space-y-2 font-inter">
+                        <div className="flex items-center gap-1.5 text-xs font-bold text-slate-900 dark:text-white uppercase tracking-wider">
+                            <History size={14} className="text-blue-500" />
+                            <span>Transaction History</span>
                         </div>
 
-                        <div className="svm-history-list">
+                        <div className="space-y-2 max-h-[220px] overflow-y-auto pr-1">
                             {loading ? (
-                                <div className="svm-history-empty">Loading history...</div>
+                                <div className="py-8 text-center text-xs text-slate-400 font-medium">Loading history...</div>
                             ) : transactions.length === 0 ? (
-                                <div className="svm-history-empty">No transactions yet for this goal.</div>
+                                <div className="py-8 text-center text-xs text-slate-400 font-medium bg-slate-50/50 dark:bg-white/5 rounded-xl border border-dashed border-slate-200 dark:border-white/10">No transactions yet for this goal.</div>
                             ) : (
                                 transactions.map(txn => {
                                     const isPos = txn.type === 'deposit';
@@ -1296,20 +1261,22 @@ function GoalInfoModal({ goal, onClose, onEdit, onTransfer, onQuickDeposit }) {
                                     }
 
                                     return (
-                                        <div key={txn._id} className="svm-history-row">
-                                            <div className="svm-hist-icon-wrap" style={{ backgroundColor: '#e6f1fb' }}>
-                                                <Icon size={16} color="#0D1F45" />
-                                            </div>
-                                            <div className="svm-hist-main">
-                                                <div className="svm-hist-type" style={{ fontSize: '13px', fontWeight: 600, color: 'var(--foreground)' }}>
-                                                    {txLabel}
+                                        <div key={txn._id} className="flex items-center justify-between p-3 rounded-xl bg-slate-50/80 dark:bg-white/5 border border-slate-200/60 dark:border-white/10 hover:border-blue-500/40 transition-all">
+                                            <div className="flex items-center gap-3">
+                                                <div className={`w-8 h-8 rounded-lg flex items-center justify-center shrink-0 ${
+                                                    isPos ? 'bg-emerald-50 dark:bg-emerald-950/40 text-emerald-600' : isNeg ? 'bg-rose-50 dark:bg-rose-950/40 text-rose-600' : 'bg-blue-50 dark:bg-blue-950/40 text-blue-600'
+                                                }`}>
+                                                    <Icon size={15} />
                                                 </div>
-                                                <div className="svm-hist-date">{fmtDateShort(txn.date)}</div>
-                                            </div>
-                                            <div className="svm-hist-right">
-                                                <div className={`svm-hist-amt ${isPos ? 'svm-hist-amt--pos' : 'svm-hist-amt--neg'}`}>
-                                                    {isPos ? '+' : '-'}{fmt(txn.amount)}
+                                                <div>
+                                                    <div className="text-xs font-semibold text-slate-900 dark:text-white">
+                                                        {txLabel}
+                                                    </div>
+                                                    <div className="text-[11px] text-slate-400 dark:text-slate-500">{fmtDateShort(txn.date)}</div>
                                                 </div>
+                                            </div>
+                                            <div className={`text-xs font-bold font-dm ${isPos ? 'text-emerald-600 dark:text-emerald-400' : 'text-slate-900 dark:text-white'}`}>
+                                                {isPos ? '+' : '-'}{fmt(txn.amount)}
                                             </div>
                                         </div>
                                     );
@@ -1320,14 +1287,16 @@ function GoalInfoModal({ goal, onClose, onEdit, onTransfer, onQuickDeposit }) {
                 </div>
 
                 <div className="svm-modal-footer">
-                    <button className="svm-btn-cancel" style={{ flex: 1 }} onClick={onClose}>Close</button>
-                    <button className="svm-btn-submit" style={{ flex: 1.2, background: '#639922' }} onClick={() => onQuickDeposit(goal)}>
-                        Deposit
+                    <button className="px-3.5 py-2 rounded-xl border border-slate-200 dark:border-white/10 text-xs font-semibold text-slate-600 dark:text-slate-300 hover:bg-slate-100 dark:hover:bg-slate-800 transition-all cursor-pointer" onClick={onClose}>
+                        Close
                     </button>
-                    <button className="svm-btn-submit" style={{ flex: 1.2 }} onClick={() => onTransfer(goal)}>
+                    <button className="flex-1 py-2 rounded-xl bg-emerald-600 hover:bg-emerald-700 text-white text-xs font-bold transition-all shadow-xs active:scale-95 cursor-pointer" onClick={() => onQuickDeposit(goal)}>
+                        + Deposit
+                    </button>
+                    <button className="flex-1 py-2 rounded-xl bg-blue-600 hover:bg-blue-700 text-white text-xs font-bold transition-all shadow-xs active:scale-95 cursor-pointer" onClick={() => onTransfer(goal)}>
                         Transfer
                     </button>
-                    <button className="svm-btn-submit" style={{ flex: 1.2, background: 'var(--secondary)', color: 'var(--foreground)', border: '0.8px solid var(--border)' }} onClick={() => onEdit(goal)}>
+                    <button className="px-4 py-2 rounded-xl bg-slate-100 dark:bg-white/10 hover:bg-slate-200 dark:hover:bg-white/20 text-slate-700 dark:text-slate-200 text-xs font-semibold transition-all cursor-pointer" onClick={() => onEdit(goal)}>
                         Edit
                     </button>
                 </div>
@@ -1361,6 +1330,7 @@ function TransactionInfoModal({ transaction, onClose }) {
     return (
         <div className="svm-overlay" onClick={onClose}>
             <div className="svm-modal svm-modal--sm" onClick={e => e.stopPropagation()}>
+                {/* Header */}
                 <div className="svm-modal-head">
                     <div>
                         <div className="svm-modal-title">Transaction Receipt</div>
@@ -1369,64 +1339,83 @@ function TransactionInfoModal({ transaction, onClose }) {
                     <button className="svm-close-btn" onClick={onClose}><CloseIcon /></button>
                 </div>
 
-                <div className="svm-modal-body svm-tx-compact">
-                    <div className="svm-tx-main-card">
-                        <div className="svm-tx-header-compact">
-                            <div className={`svm-tx-icon-circle ${iconClass}`}>
-                                <Icon size={20} />
-                            </div>
-                            <div className="svm-tx-amount-v2">
+                <div className="svm-modal-body space-y-4 font-inter">
+                    {/* Amount & Status Banner */}
+                    <div className="flex flex-col items-center justify-center p-5 rounded-2xl bg-slate-50 dark:bg-slate-800/40 border border-slate-200 dark:border-white/10 text-center space-y-2">
+                        <div className={`w-12 h-12 rounded-2xl flex items-center justify-center shadow-xs ${
+                            isIn ? 'bg-emerald-100 dark:bg-emerald-950/60 text-emerald-600' : isOut ? 'bg-rose-100 dark:bg-rose-950/60 text-rose-600' : 'bg-blue-100 dark:bg-blue-950/60 text-blue-600'
+                        }`}>
+                            <Icon size={24} />
+                        </div>
+                        <div>
+                            <div className={`text-2xl font-extrabold font-dm ${isIn ? 'text-emerald-600 dark:text-emerald-400' : 'text-slate-900 dark:text-white'}`}>
                                 {isIn ? '+' : '-'}{fmt(transaction.amount)}
                             </div>
-                            <span className={`svm-tx-status-pill svm-tx-status--${transaction.status || 'pending'}`}>
+                            <span className={`inline-block mt-1.5 px-3 py-0.5 rounded-full text-xs font-bold uppercase tracking-wider ${
+                                transaction.status === 'confirmed' ? 'bg-emerald-100 dark:bg-emerald-950/60 text-emerald-700 dark:text-emerald-300' : 'bg-amber-100 dark:bg-amber-950/60 text-amber-700 dark:text-amber-300'
+                            }`}>
                                 {statusText}
                             </span>
                         </div>
+                    </div>
 
-                        <div className="svm-tx-data-grid">
-                            <div className="svm-tx-data-item">
-                                <label>Date & Time</label>
-                                <span>{new Date(transaction.date).toLocaleString('en-PH', { month: 'short', day: 'numeric', hour: '2-digit', minute: '2-digit' })}</span>
-                            </div>
-                            <div className="svm-tx-data-item">
-                                <label>Type</label>
-                                <span>{transaction.type} {isTransfer ? '(Transfer)' : ''}</span>
-                            </div>
-                            <div className="svm-tx-data-item">
-                                <label>Allocated Goal</label>
-                                <span>{transaction.goalName || 'General Savings'}</span>
-                            </div>
-                            <div className="svm-tx-data-item">
-                                <label>Description</label>
-                                <span>{transaction.description || (isIn ? 'Deposit' : 'Withdrawal')}</span>
-                            </div>
+                    {/* Receipt Details Grid */}
+                    <div className="p-4 rounded-2xl bg-slate-50 dark:bg-slate-800/40 border border-slate-200 dark:border-white/10 space-y-3">
+                        <div className="flex items-center justify-between text-xs">
+                            <span className="text-slate-400 dark:text-slate-500 font-medium">Date & Time</span>
+                            <span className="text-slate-900 dark:text-white font-semibold">
+                                {new Date(transaction.date).toLocaleString('en-PH', { month: 'short', day: 'numeric', year: 'numeric', hour: '2-digit', minute: '2-digit' })}
+                            </span>
+                        </div>
+                        <div className="flex items-center justify-between text-xs pt-2.5 border-t border-slate-200/70 dark:border-white/5">
+                            <span className="text-slate-400 dark:text-slate-500 font-medium">Type</span>
+                            <span className="text-slate-900 dark:text-white font-semibold capitalize">
+                                {transaction.type} {isTransfer ? '(Transfer)' : ''}
+                            </span>
+                        </div>
+                        <div className="flex items-center justify-between text-xs pt-2.5 border-t border-slate-200/70 dark:border-white/5">
+                            <span className="text-slate-400 dark:text-slate-500 font-medium">Allocated Goal</span>
+                            <span className="text-slate-900 dark:text-white font-semibold">
+                                {transaction.goalName || 'General Savings'}
+                            </span>
+                        </div>
+                        <div className="flex items-center justify-between text-xs pt-2.5 border-t border-slate-200/70 dark:border-white/5">
+                            <span className="text-slate-400 dark:text-slate-500 font-medium">Description</span>
+                            <span className="text-slate-900 dark:text-white font-semibold">
+                                {transaction.description || (isIn ? 'Deposit' : 'Withdrawal')}
+                            </span>
                         </div>
                     </div>
 
+                    {/* Payment Info Card */}
                     {(transaction.paymentMethod && transaction.paymentMethod !== 'cash') && (
-                        <div className="svm-tx-payment-card">
-                            <div className="svm-tx-payment-row">
-                                <div className="svm-tx-data-item">
-                                    <label>Method</label>
-                                    <span style={{ display: 'flex', alignItems: 'center', gap: '6px' }}>
-                                        {isGcash ? <Smartphone size={14} /> : isBank ? <Building2 size={14} /> : <CreditCard size={14} />} 
-                                        {transaction.paymentMethod}
-                                    </span>
-                                </div>
-                                {transaction.referenceNumber && (
-                                    <div className="svm-tx-data-item">
-                                        <label>Reference No.</label>
-                                        <span className="svm-tx-ref-v2">{transaction.referenceNumber}</span>
-                                    </div>
-                                )}
+                        <div className="p-4 rounded-2xl bg-slate-50 dark:bg-slate-800/40 border border-slate-200 dark:border-white/10 space-y-3">
+                            <div className="flex items-center justify-between text-xs">
+                                <span className="text-slate-400 dark:text-slate-500 font-medium">Payment Method</span>
+                                <span className="text-slate-900 dark:text-white font-semibold flex items-center gap-1.5 capitalize">
+                                    {isGcash ? <Smartphone size={14} className="text-blue-500" /> : isBank ? <Building2 size={14} className="text-emerald-500" /> : <CreditCard size={14} className="text-purple-500" />} 
+                                    {transaction.paymentMethod}
+                                </span>
                             </div>
 
+                            {transaction.referenceNumber && (
+                                <div className="flex items-center justify-between text-xs pt-2.5 border-t border-slate-200/70 dark:border-white/5">
+                                    <span className="text-slate-400 dark:text-slate-500 font-medium">Reference No.</span>
+                                    <span className="font-mono text-xs font-bold text-blue-600 dark:text-blue-400 bg-blue-50 dark:bg-blue-950/60 px-2 py-0.5 rounded-md border border-blue-200/60 dark:border-blue-800/40">
+                                        {transaction.referenceNumber}
+                                    </span>
+                                </div>
+                            )}
+
                             {transaction.proofOfPayment && (
-                                <div className="svm-tx-proof-preview">
-                                    <label>Proof of Payment</label>
-                                    <div className="svm-tx-img-box" onClick={() => setFullImage(true)}>
-                                        <img src={transaction.proofOfPayment} alt="Receipt" />
-                                        <div className="svm-tx-img-overlay">
+                                <div className="pt-2.5 border-t border-slate-200/70 dark:border-white/5 space-y-1.5">
+                                    <span className="text-slate-400 dark:text-slate-500 font-medium text-xs block">Proof of Payment</span>
+                                    <div 
+                                        onClick={() => setFullImage(true)}
+                                        className="relative rounded-xl overflow-hidden border border-slate-200 dark:border-white/10 group cursor-pointer h-28 bg-slate-100 dark:bg-black/20 flex items-center justify-center"
+                                    >
+                                        <img src={transaction.proofOfPayment} alt="Receipt" className="w-full h-full object-cover group-hover:scale-105 transition-all duration-300" />
+                                        <div className="absolute inset-0 bg-black/40 opacity-0 group-hover:opacity-100 transition-all flex items-center justify-center text-white text-xs font-semibold gap-1.5">
                                             <Info size={14} /> Tap to expand
                                         </div>
                                     </div>
@@ -1437,7 +1426,9 @@ function TransactionInfoModal({ transaction, onClose }) {
                 </div>
 
                 <div className="svm-modal-footer">
-                    <button className="svm-btn-cancel" style={{ flex: 1 }} onClick={onClose}>Done</button>
+                    <button className="w-full py-2.5 rounded-xl bg-blue-600 hover:bg-blue-700 text-white font-bold text-xs transition-all shadow-md active:scale-95 cursor-pointer" onClick={onClose}>
+                        Done
+                    </button>
                 </div>
             </div>
 
@@ -1580,12 +1571,12 @@ function WithdrawModal({ goals, onClose }) {
                                 <div className="svm-withdraw-balance-card">
                                     <div className="svm-withdraw-balance-row">
                                         <span className="svm-withdraw-balance-label">Available balance</span>
-                                        <span className="svm-withdraw-balance-value">{fmt(balance)}</span>
+                                        <span className="svm-withdraw-balance-value text-emerald-600 dark:text-emerald-400">{fmt(balance)}</span>
                                     </div>
                                     {goal.targetAmount > 0 && (
                                         <div className="svm-withdraw-balance-row">
                                             <span className="svm-withdraw-balance-label">Goal target</span>
-                                            <span className="svm-withdraw-balance-value" style={{ color: 'var(--text-muted)' }}>{fmt(goal.targetAmount)}</span>
+                                            <span className="svm-withdraw-balance-value text-slate-500 dark:text-slate-400 font-semibold">{fmt(goal.targetAmount)}</span>
                                         </div>
                                     )}
                                 </div>

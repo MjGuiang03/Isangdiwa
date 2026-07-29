@@ -3,9 +3,7 @@ import AdminSidebar from '../pages/AdminSidebar';
 import LoanAdminSidebar from '../../loanAdmin/pages/loanAdminSidebar';
 import SecretaryAdminSidebar from '../../secretaryAdmin/components/secretaryAdminSidebar';
 import NotificationPrompt from '../../components/NotificationPrompt';
-import '../styles/AdminSidebar.css';
-import '../styles/AdminLayout.css';
-import '../styles/adminDark.css';
+
 
 export default function AdminLayout() {
   const role = localStorage.getItem('adminRole');
@@ -17,10 +15,10 @@ export default function AdminLayout() {
   };
 
   return (
-    <div className="admin-shell">
+    <div className="flex h-screen overflow-hidden bg-slate-100 dark:bg-[#161922]">
       {renderSidebar()}
-      <main className="admin-main">
-        <div className="admin-main-inner">
+      <main className="flex-1 overflow-hidden relative flex flex-col">
+        <div className="flex-1 overflow-y-auto w-full h-full">
           <Outlet />
         </div>
       </main>

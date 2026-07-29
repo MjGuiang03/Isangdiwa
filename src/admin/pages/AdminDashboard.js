@@ -11,7 +11,6 @@ import {
   XAxis, YAxis, CartesianGrid, Tooltip, Legend, ResponsiveContainer,
   ReferenceLine, ReferenceDot, LabelList, Label, ReferenceArea
 } from 'recharts';
-import '../styles/AdminDashboard.css';
 import API from '../../utils/api';
 import { 
   Banknote, Heart, Printer, Users, MapPin, Expand, X, Sparkles, RefreshCw, 
@@ -447,35 +446,35 @@ export default function AdminDashboard() {
   const totalAttendanceCount = rawAttendance.filter(a => ['present', 'late'].includes((a.status || '').toLowerCase())).length;
 
   return (
-    <div className="admin-dashboard-main">
+    <div className="flex flex-col gap-6 p-6 max-w-[1400px] mx-auto w-full">
       {!expandedChart && (<>
       {/* ── Dashboard Header ── */}
-      <div className="adm-dashboard-header">
-        <div className="adm-dashboard-header-left">
-          <h1 className="adm-dashboard-greeting">
+      <div className="flex items-center justify-between flex-wrap gap-4">
+        <div className="flex flex-col gap-1">
+          <h1 className="m-0 font-inter text-2xl font-bold text-slate-800 dark:text-white">
             {(() => {
               const h = new Date().getHours();
               return h < 12 ? 'Good Morning' : h < 18 ? 'Good Afternoon' : 'Good Evening';
-            })()}, <span className="adm-dashboard-greeting-name">Admin</span>
+            })()}, <span className="text-blue-600 dark:text-blue-400">Admin</span>
           </h1>
-          <p className="adm-dashboard-subtitle">
+          <p className="m-0 font-inter text-[13px] text-slate-500 dark:text-slate-400">
             Here's your church overview for <strong>{new Date().toLocaleDateString('en-US', { weekday: 'long', month: 'long', day: 'numeric', year: 'numeric' })}</strong>
           </p>
         </div>
-        <div className="adm-dashboard-header-actions">
-          <div className="adm-filter-group" style={{ margin: 0 }}>
+        <div className="flex items-center gap-3">
+          <div className="flex items-center gap-2">
             <select 
               value={attYear} 
               onChange={e => {
                 setAttYear(parseInt(e.target.value)); 
                 setGrowthYear(parseInt(e.target.value));
               }} 
-              className="adm-filter-select adm-header-select"
+              className="h-10 px-4 pr-10 appearance-none bg-white dark:bg-[#1E2130] border border-slate-200 dark:border-white/10 rounded-xl text-sm font-inter font-semibold text-slate-700 dark:text-slate-300 outline-none cursor-pointer focus:border-blue-500 transition-colors bg-[url('data:image/svg+xml;charset=US-ASCII,%3Csvg%20xmlns%3D%22http%3A%2F%2Fwww.w3.org%2F2000%2Fsvg%22%20width%3D%2216%22%20height%3D%2216%22%20viewBox%3D%220%200%2024%2024%22%20fill%3D%22none%22%20stroke%3D%22%236B7280%22%20stroke-width%3D%222%22%20stroke-linecap%3D%22round%22%20stroke-linejoin%3D%22round%22%3E%3Cpolyline%20points%3D%226%209%2012%2015%2018%209%22%3E%3C%2Fpolyline%3E%3C%2Fsvg%3E')] bg-[length:16px] bg-[position:right_12px_center] bg-no-repeat"
             >
               {[2024, 2025, 2026, 2027].map(y => <option key={y} value={y}>{y}</option>)}
             </select>
           </div>
-          <button className="adm-header-export-btn" onClick={() => window.print()}>
+          <button className="flex items-center gap-2 h-10 px-4 bg-slate-800 dark:bg-white text-white dark:text-slate-900 text-sm font-semibold font-inter rounded-xl hover:bg-slate-700 dark:hover:bg-slate-200 transition-colors border-none cursor-pointer" onClick={() => window.print()}>
             <Printer size={15} />
             Export
           </button>
@@ -483,68 +482,116 @@ export default function AdminDashboard() {
       </div>
 
       {/* ── Row 1: 4 Stat Cards ── */}
-      <div className="adm-stats-grid">
-        <div className="adm-stat-card blue adm-clickable-card" onClick={() => navigate('/admin/members')}>
-          <div className="adm-stat-top">
-            <span className="adm-stat-label">Total Members</span>
-            <div className="adm-stat-icon adm-icon-blue">
-              <Users size={18} color="white" />
+      <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-5">
+        {/* Total Members Card */}
+        <div className="group relative bg-white dark:bg-[#1E2130] border border-slate-200 dark:border-white/10 rounded-2xl p-6 shadow-[0_2px_12px_-4px_rgba(0,0,0,0.05)] overflow-hidden transition-all duration-300 hover:shadow-[0_12px_32px_rgba(0,0,0,0.08)] dark:hover:shadow-[0_12px_32px_rgba(0,0,0,0.3)] hover:-translate-y-1 cursor-pointer" onClick={() => navigate('/admin/members')}>
+          <div className="absolute top-0 right-0 w-32 h-32 bg-blue-500/10 rounded-full blur-3xl -mr-10 -mt-10 transition-transform duration-500 group-hover:scale-150"></div>
+          
+          <div className="flex items-start justify-between relative z-10 mb-4">
+            <div className="flex flex-col">
+              <span className="font-inter font-semibold text-[13px] tracking-wider uppercase text-slate-500 dark:text-slate-400 mb-1">Total Members</span>
+              <div className="font-inter font-extrabold text-[32px] text-slate-900 dark:text-white tracking-tight leading-none">{membersLoading ? '—' : memberStats.total.toLocaleString()}</div>
+            </div>
+            <div className="w-12 h-12 rounded-[14px] bg-gradient-to-br from-blue-50 to-blue-100/50 dark:from-blue-500/20 dark:to-blue-500/10 text-blue-600 dark:text-blue-400 flex items-center justify-center shrink-0 border border-blue-200/60 dark:border-blue-500/30 transition-transform duration-300 group-hover:scale-110 shadow-sm">
+              <Users size={24} strokeWidth={2.2} />
             </div>
           </div>
-          <div className="adm-stat-value">{membersLoading ? '—' : memberStats.total.toLocaleString()}</div>
-          <div className="adm-stat-sub"><span className="adm-stat-sub-highlight">+{membersLoading ? '—' : memberStats.newThisMonth} new</span> this month</div>
+          
+          <div className="flex items-center gap-2 relative z-10 mt-1">
+            <div className="flex items-center gap-1 bg-emerald-50 dark:bg-emerald-500/10 text-emerald-600 dark:text-emerald-400 px-2 py-0.5 rounded-md text-xs font-bold border border-emerald-100 dark:border-emerald-500/20">
+              <TrendingUp size={14} strokeWidth={2.5} />
+              <span>+{membersLoading ? '—' : memberStats.newThisMonth}</span>
+            </div>
+            <span className="font-inter text-xs font-medium text-slate-500 dark:text-slate-400">new this month</span>
+          </div>
         </div>
 
-        <div className="adm-stat-card green adm-clickable-card" onClick={() => navigate('/admin/branches')}>
-          <div className="adm-stat-top">
-            <span className="adm-stat-label">Total Communities</span>
-            <div className="adm-stat-icon adm-icon-green">
-              <MapPin size={18} color="white" />
+        {/* Total Communities Card */}
+        <div className="group relative bg-white dark:bg-[#1E2130] border border-slate-200 dark:border-white/10 rounded-2xl p-6 shadow-[0_2px_12px_-4px_rgba(0,0,0,0.05)] overflow-hidden transition-all duration-300 hover:shadow-[0_12px_32px_rgba(0,0,0,0.08)] dark:hover:shadow-[0_12px_32px_rgba(0,0,0,0.3)] hover:-translate-y-1 cursor-pointer" onClick={() => navigate('/admin/branches')}>
+          <div className="absolute top-0 right-0 w-32 h-32 bg-emerald-500/10 rounded-full blur-3xl -mr-10 -mt-10 transition-transform duration-500 group-hover:scale-150"></div>
+          
+          <div className="flex items-start justify-between relative z-10 mb-4">
+            <div className="flex flex-col">
+              <span className="font-inter font-semibold text-[13px] tracking-wider uppercase text-slate-500 dark:text-slate-400 mb-1">Total Communities</span>
+              <div className="font-inter font-extrabold text-[32px] text-slate-900 dark:text-white tracking-tight leading-none">{membersLoading ? '—' : (membersByBranch.length > 0 ? membersByBranch.length : 68)}</div>
+            </div>
+            <div className="w-12 h-12 rounded-[14px] bg-gradient-to-br from-emerald-50 to-emerald-100/50 dark:from-emerald-500/20 dark:to-emerald-500/10 text-emerald-600 dark:text-emerald-400 flex items-center justify-center shrink-0 border border-emerald-200/60 dark:border-emerald-500/30 transition-transform duration-300 group-hover:scale-110 shadow-sm">
+              <MapPin size={24} strokeWidth={2.2} />
             </div>
           </div>
-          <div className="adm-stat-value">{membersLoading ? '—' : (membersByBranch.length > 0 ? membersByBranch.length : 68)}</div>
-          <div className="adm-stat-sub"><span className="adm-stat-sub-highlight">Active</span> communities</div>
+          
+          <div className="flex items-center gap-2 relative z-10 mt-1">
+            <div className="flex items-center gap-1 bg-slate-100 dark:bg-white/10 text-slate-700 dark:text-slate-300 px-2 py-0.5 rounded-md text-xs font-bold border border-slate-200 dark:border-white/10">
+              <CheckCircle size={14} strokeWidth={2.5} />
+              <span>Active</span>
+            </div>
+            <span className="font-inter text-xs font-medium text-slate-500 dark:text-slate-400">communities tracked</span>
+          </div>
         </div>
 
-        <div className="adm-stat-card orange adm-clickable-card" onClick={() => navigate('/admin/donations')}>
-          <div className="adm-stat-top">
-            <span className="adm-stat-label">Total Donations</span>
-            <div className="adm-stat-icon adm-icon-orange">
-              <Heart size={18} color="white" />
+        {/* Total Donations Card */}
+        <div className="group relative bg-white dark:bg-[#1E2130] border border-slate-200 dark:border-white/10 rounded-2xl p-6 shadow-[0_2px_12px_-4px_rgba(0,0,0,0.05)] overflow-hidden transition-all duration-300 hover:shadow-[0_12px_32px_rgba(0,0,0,0.08)] dark:hover:shadow-[0_12px_32px_rgba(0,0,0,0.3)] hover:-translate-y-1 cursor-pointer" onClick={() => navigate('/admin/donations')}>
+          <div className="absolute top-0 right-0 w-32 h-32 bg-amber-500/10 rounded-full blur-3xl -mr-10 -mt-10 transition-transform duration-500 group-hover:scale-150"></div>
+          
+          <div className="flex items-start justify-between relative z-10 mb-4">
+            <div className="flex flex-col">
+              <span className="font-inter font-semibold text-[13px] tracking-wider uppercase text-slate-500 dark:text-slate-400 mb-1">Total Donations</span>
+              <div className="font-inter font-extrabold text-[32px] text-slate-900 dark:text-white tracking-tight leading-none truncate max-w-[150px] sm:max-w-none">{donationsLoading ? '—' : `₱${(donationStats.total || 0).toLocaleString()}`}</div>
+            </div>
+            <div className="w-12 h-12 rounded-[14px] bg-gradient-to-br from-amber-50 to-amber-100/50 dark:from-amber-500/20 dark:to-amber-500/10 text-amber-600 dark:text-amber-400 flex items-center justify-center shrink-0 border border-amber-200/60 dark:border-amber-500/30 transition-transform duration-300 group-hover:scale-110 shadow-sm">
+              <Heart size={24} strokeWidth={2.2} />
             </div>
           </div>
-          <div className="adm-stat-value">{donationsLoading ? '—' : `₱${(donationStats.total || 0).toLocaleString()}`}</div>
-          <div className="adm-stat-sub"><span className="adm-stat-sub-highlight">+₱{donationsLoading ? '—' : (donationStats.thisMonth || 0).toLocaleString()}</span> this month</div>
+          
+          <div className="flex items-center gap-2 relative z-10 mt-1">
+            <div className="flex items-center gap-1 bg-emerald-50 dark:bg-emerald-500/10 text-emerald-600 dark:text-emerald-400 px-2 py-0.5 rounded-md text-xs font-bold border border-emerald-100 dark:border-emerald-500/20">
+              <TrendingUp size={14} strokeWidth={2.5} />
+              <span>+₱{donationsLoading ? '—' : (donationStats.thisMonth || 0).toLocaleString()}</span>
+            </div>
+            <span className="font-inter text-xs font-medium text-slate-500 dark:text-slate-400">this month</span>
+          </div>
         </div>
 
-        <div className="adm-stat-card adm-clickable-card" onClick={() => navigate('/admin/attendance')}>
-          <div className="adm-stat-top">
-            <span className="adm-stat-label">Total Attendance</span>
-            <div className="adm-stat-icon adm-icon-blue">
-              <Activity size={18} color="white" />
+        {/* Total Attendance Card */}
+        <div className="group relative bg-white dark:bg-[#1E2130] border border-slate-200 dark:border-white/10 rounded-2xl p-6 shadow-[0_2px_12px_-4px_rgba(0,0,0,0.05)] overflow-hidden transition-all duration-300 hover:shadow-[0_12px_32px_rgba(0,0,0,0.08)] dark:hover:shadow-[0_12px_32px_rgba(0,0,0,0.3)] hover:-translate-y-1 cursor-pointer" onClick={() => navigate('/admin/attendance')}>
+          <div className="absolute top-0 right-0 w-32 h-32 bg-violet-500/10 rounded-full blur-3xl -mr-10 -mt-10 transition-transform duration-500 group-hover:scale-150"></div>
+          
+          <div className="flex items-start justify-between relative z-10 mb-4">
+            <div className="flex flex-col">
+              <span className="font-inter font-semibold text-[13px] tracking-wider uppercase text-slate-500 dark:text-slate-400 mb-1">Total Attendance</span>
+              <div className="font-inter font-extrabold text-[32px] text-slate-900 dark:text-white tracking-tight leading-none">{attendanceLoading ? '—' : totalAttendanceCount.toLocaleString()}</div>
+            </div>
+            <div className="w-12 h-12 rounded-[14px] bg-gradient-to-br from-violet-50 to-violet-100/50 dark:from-violet-500/20 dark:to-violet-500/10 text-violet-600 dark:text-violet-400 flex items-center justify-center shrink-0 border border-violet-200/60 dark:border-violet-500/30 transition-transform duration-300 group-hover:scale-110 shadow-sm">
+              <Activity size={24} strokeWidth={2.2} />
             </div>
           </div>
-          <div className="adm-stat-value">{attendanceLoading ? '—' : totalAttendanceCount.toLocaleString()}</div>
-          <div className="adm-stat-sub"><span className="adm-stat-sub-highlight">YTD</span> {new Date().getFullYear()}</div>
+          
+          <div className="flex items-center gap-2 relative z-10 mt-1">
+            <div className="flex items-center gap-1 bg-violet-50 dark:bg-violet-500/10 text-violet-600 dark:text-violet-400 px-2 py-0.5 rounded-md text-xs font-bold border border-violet-100 dark:border-violet-500/20">
+              <Calendar size={14} strokeWidth={2.5} />
+              <span>YTD</span>
+            </div>
+            <span className="font-inter text-xs font-medium text-slate-500 dark:text-slate-400">for {new Date().getFullYear()}</span>
+          </div>
         </div>
       </div>
 
       {/* ── AI Insights Card ── */}
-      <div className={`adm-ai-insights-card ${aiInsightsExpanded ? '' : 'collapsed'}`}>
-        <div className="adm-ai-header" onClick={() => setAiInsightsExpanded(!aiInsightsExpanded)}>
-          <div className="adm-ai-title-group">
-            <Sparkles size={18} className="adm-ai-sparkle" />
-            <h3 className="adm-ai-title">AI Insights</h3>
-            <span className="adm-ai-badge">Powered by Gemini</span>
+      <div className={`bg-white dark:bg-[#1E2130] border border-blue-100 dark:border-blue-500/20 rounded-2xl shadow-sm transition-all duration-300 overflow-hidden ${aiInsightsExpanded ? 'p-6' : 'p-4'}`}>
+        <div className="flex items-center justify-between cursor-pointer group" onClick={() => setAiInsightsExpanded(!aiInsightsExpanded)}>
+          <div className="flex items-center gap-2">
+            <Sparkles size={18} className="text-blue-500" />
+            <h3 className="m-0 font-inter text-base font-bold text-slate-800 dark:text-white">AI Insights</h3>
+            <span className="text-[10px] font-semibold tracking-wider uppercase bg-gradient-to-r from-blue-600 to-violet-600 text-white px-2 py-0.5 rounded-full">Powered by Gemini</span>
           </div>
-          <div className="adm-ai-actions">
+          <div className="flex items-center gap-3">
             {aiInsightsTime && (
-              <span className="adm-ai-time">
+              <span className="font-inter text-xs text-slate-400 dark:text-slate-500">
                 {new Date(aiInsightsTime).toLocaleTimeString('en-US', { hour: 'numeric', minute: '2-digit', hour12: true })}
               </span>
             )}
             <button
-              className="adm-ai-refresh-btn"
+              className="p-1.5 rounded-md hover:bg-slate-100 dark:hover:bg-white/5 text-slate-500 transition-colors border-none bg-transparent cursor-pointer disabled:opacity-50"
               onClick={(e) => {
                 e.stopPropagation();
                 fetchAiInsights(true);
@@ -557,35 +604,35 @@ export default function AdminDashboard() {
           </div>
         </div>
         {aiInsightsExpanded && (
-          <div className="adm-ai-body">
+          <div className="mt-6 pt-6 border-t border-slate-100 dark:border-white/10">
             {aiInsightsLoading ? (
-              <div className="adm-ai-skeleton">
+              <div className="grid grid-cols-1 md:grid-cols-2 gap-4 animate-pulse">
                 {[1, 2, 3, 4].map(i => (
-                  <div key={i} className="adm-ai-skeleton-item">
-                    <div className="adm-ai-skeleton-icon" />
-                    <div className="adm-ai-skeleton-lines">
-                      <div className="adm-ai-skeleton-line short" />
-                      <div className="adm-ai-skeleton-line long" />
+                  <div key={i} className="flex gap-4 p-4">
+                    <div className="w-8 h-8 rounded-full bg-slate-200 dark:bg-white/10" />
+                    <div className="flex-1 flex flex-col gap-2 pt-1">
+                      <div className="h-3 bg-slate-200 dark:bg-white/10 rounded w-1/3" />
+                      <div className="h-3 bg-slate-200 dark:bg-white/10 rounded w-full" />
                     </div>
                   </div>
                 ))}
               </div>
             ) : aiInsights.length > 0 ? (
-              <div className="adm-ai-insights-list">
+              <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
                 {aiInsights.map((insight, idx) => (
-                  <div key={idx} className="adm-ai-insight-item">
-                    <span className="adm-ai-insight-icon">
+                  <div key={idx} className="flex gap-4 p-4 rounded-xl bg-slate-50 dark:bg-black/20 border border-slate-100 dark:border-white/5 hover:border-blue-200 dark:hover:border-blue-500/30 transition-colors">
+                    <span className="w-8 h-8 rounded-full bg-blue-100 text-blue-600 dark:bg-blue-500/20 dark:text-blue-400 flex items-center justify-center shrink-0 mt-0.5">
                       <InsightIcon name={insight.icon} />
                     </span>
-                    <div className="adm-ai-insight-content">
-                      <p className="adm-ai-insight-title">{insight.title}</p>
-                      <p className="adm-ai-insight-detail">{insight.detail}</p>
+                    <div className="flex-1 min-w-0">
+                      <p className="m-0 mb-1 font-inter text-sm font-semibold text-slate-800 dark:text-white">{insight.title}</p>
+                      <p className="m-0 font-inter text-xs text-slate-600 dark:text-slate-400 leading-relaxed">{insight.detail}</p>
                     </div>
                   </div>
                 ))}
               </div>
             ) : (
-              <p className="adm-ai-empty">AI Service is waiting to connect. Click refresh to generate insights.</p>
+              <p className="m-0 text-center font-inter text-sm text-slate-500 dark:text-slate-400 py-4">AI Service is waiting to connect. Click refresh to generate insights.</p>
             )}
           </div>
         )}
@@ -594,43 +641,45 @@ export default function AdminDashboard() {
 
 
       {/* ── Row 2: Analytics Row ── */}
-      <div className="adm-analytics-row">
+      <div className="grid grid-cols-1 lg:grid-cols-2 gap-4">
         {/* Donation Categories Custom List */}
-        <div className="adm-card adm-card-bar">
-          <div className="adm-card-header" style={{ marginBottom: '20px' }}>
+        <div className="bg-white dark:bg-[#1E2130] border border-slate-100 dark:border-white/5 rounded-2xl p-6 shadow-[0_2px_12px_-4px_rgba(0,0,0,0.04)] flex flex-col gap-5 relative group">
+          <div className="absolute top-0 right-0 w-32 h-32 bg-blue-500/5 rounded-full blur-3xl -mr-10 -mt-10 pointer-events-none transition-transform duration-500 group-hover:scale-125"></div>
+          <div className="flex items-start justify-between" style={{ marginBottom: '20px' }}>
             <div style={{ display: 'flex', flexDirection: 'column', alignItems: 'flex-start', gap: '8px' }}>
-              <h3 className="adm-card-title">Donation Categories</h3>
-              <span className="adm-stat-chip" style={{ fontFamily: 'DM Mono, monospace', fontWeight: 600, margin: 0, padding: '4px 12px', backgroundColor: '#EFF6FF', color: '#1E40AF', borderRadius: '16px', fontSize: '13px' }}>
+              <h3 className="m-0 font-inter text-base font-bold text-slate-800 dark:text-white">Donation Categories</h3>
+              <span className="font-mono font-semibold m-0 px-3 py-1 bg-blue-50 text-blue-700 dark:bg-blue-500/20 dark:text-blue-400 rounded-full text-[13px]">
                 ₱{(pieTotal || 0).toLocaleString()}
               </span>
             </div>
-            <button className="adm-chart-expand-btn" onClick={() => setExpandedChart('donations')} title="Expand Chart"><Expand size={16} color="#4B5563" strokeWidth={2.5} /></button>
+            <button className="p-1.5 rounded-lg hover:bg-slate-100 dark:hover:bg-white/5 text-slate-400 transition-colors border-none bg-transparent cursor-pointer" onClick={() => setExpandedChart('donations')} title="Expand Chart"><Expand size={16} color="#4B5563" strokeWidth={2.5} /></button>
           </div>
-          <div className="adm-donation-list">
+          <div className="flex flex-col gap-3 flex-1 overflow-y-auto pr-2 custom-scrollbar max-h-[250px]">
             {sortedDonationData.map((item, idx) => (
-              <div key={idx} className="adm-donation-row">
-                <span className="adm-donation-name">{item.shortName}</span>
-                <div className="adm-donation-bar-bg">
-                  <div className="adm-donation-bar-fill" style={{ width: `${item.percentage}%`, backgroundColor: item.fillColor }}></div>
+              <div key={idx} className="flex items-center gap-3 text-sm font-inter">
+                <span className="w-32 truncate text-slate-600 dark:text-slate-400">{item.shortName}</span>
+                <div className="flex-1 h-2 bg-slate-100 dark:bg-white/5 rounded-full overflow-hidden">
+                  <div className="h-full rounded-full transition-all duration-500" style={{ width: `${item.percentage}%`, backgroundColor: item.fillColor }}></div>
                 </div>
-                <span className="adm-donation-value">{item.displayLabel}</span>
+                <span className="w-24 text-right font-medium text-slate-700 dark:text-slate-300 tabular-nums">{item.displayLabel}</span>
               </div>
             ))}
           </div>
         </div>
 
         {/* Members by Branch Bar */}
-        <div className="adm-card adm-card-bar" >
-          <div className="adm-card-header">
+        <div className="bg-white dark:bg-[#1E2130] border border-slate-100 dark:border-white/5 rounded-2xl p-6 shadow-[0_2px_12px_-4px_rgba(0,0,0,0.04)] flex flex-col gap-5 relative group">
+          <div className="absolute top-0 right-0 w-32 h-32 bg-emerald-500/5 rounded-full blur-3xl -mr-10 -mt-10 pointer-events-none transition-transform duration-500 group-hover:scale-125"></div>
+          <div className="flex items-start justify-between">
             <div>
-              <h3 className="adm-card-title">Members by Community</h3>
-              <span className="adm-card-sub"><strong className="adm-sub-bold" style={{ fontFamily: 'DM Mono, monospace', fontWeight: 500 }}>{memberStats.total}</strong> total across <strong className="adm-sub-bold" style={{ fontFamily: 'DM Mono, monospace', fontWeight: 500 }}>{membersByBranch.length}</strong> communities</span>
+              <h3 className="m-0 font-inter text-base font-bold text-slate-800 dark:text-white">Members by Community</h3>
+              <span className="m-0 mt-1 font-inter text-[13px] text-slate-500 dark:text-slate-400"><strong className="font-mono font-medium text-slate-700 dark:text-slate-300">{memberStats.total}</strong> total across <strong className="font-mono font-medium text-slate-700 dark:text-slate-300">{membersByBranch.length}</strong> communities</span>
             </div>
             <div style={{ display: 'flex', alignItems: 'center', gap: '8px' }}>
               <select 
                 value={topCommunitiesLimit} 
                 onChange={(e) => setTopCommunitiesLimit(Number(e.target.value))}
-                className="adm-filter-select"
+                className="h-9 px-3 pr-8 appearance-none bg-white dark:bg-[#1E2130] border border-slate-200 dark:border-white/10 rounded-lg text-[13px] font-inter font-medium text-slate-700 dark:text-slate-300 outline-none cursor-pointer focus:border-blue-500 transition-colors bg-[url('data:image/svg+xml;charset=US-ASCII,%3Csvg%20xmlns%3D%22http%3A%2F%2Fwww.w3.org%2F2000%2Fsvg%22%20width%3D%2216%22%20height%3D%2216%22%20viewBox%3D%220%200%2024%2024%22%20fill%3D%22none%22%20stroke%3D%22%236B7280%22%20stroke-width%3D%222%22%20stroke-linecap%3D%22round%22%20stroke-linejoin%3D%22round%22%3E%3Cpolyline%20points%3D%226%209%2012%2015%2018%209%22%3E%3C%2Fpolyline%3E%3C%2Fsvg%3E')] bg-[length:16px] bg-[position:right_8px_center] bg-no-repeat"
                 style={{ padding: '4px 24px 4px 8px', fontSize: '11px', height: '26px' }}
               >
                 <option value={10}>Top 10</option>
@@ -638,10 +687,10 @@ export default function AdminDashboard() {
                 <option value={40}>Top 40</option>
                 <option value={70}>Top 70</option>
               </select>
-              <button className="adm-chart-expand-btn" onClick={() => setExpandedChart('branches')} title="Expand Chart"><Expand size={16} color="#4B5563" strokeWidth={2.5} /></button>
+              <button className="p-1.5 rounded-lg hover:bg-slate-100 dark:hover:bg-white/5 text-slate-400 transition-colors border-none bg-transparent cursor-pointer" onClick={() => setExpandedChart('branches')} title="Expand Chart"><Expand size={16} color="#4B5563" strokeWidth={2.5} /></button>
             </div>
           </div>
-          <div className="adm-bar-chart-container" style={{ height: '250px' }}>
+          <div className="w-full h-[250px]">
             <ResponsiveContainer width="100%" height="100%">
               <BarChart 
                 data={membersByBranch.length > 0 ? membersByBranch.slice(0, topCommunitiesLimit) : [{ branch: 'No data', count: 0 }]} 
@@ -661,7 +710,7 @@ export default function AdminDashboard() {
                   </>
                 )}
                 <Tooltip cursor={{ fill: '#F9FAFB' }} formatter={(value) => [value, 'Members']} />
-                <Bar dataKey="count" fill="#0D1F45" radius={isHorizontalMembers ? [0, 4, 4, 0] : [4, 4, 0, 0]} barSize={isHorizontalMembers ? 20 : 32} name="Members">
+                <Bar dataKey="count" fill="#2563EB" radius={isHorizontalMembers ? [0, 4, 4, 0] : [4, 4, 0, 0]} barSize={isHorizontalMembers ? 20 : 32} name="Members">
                   <LabelList dataKey="count" position={isHorizontalMembers ? "right" : "top"} fill="#6B7280" fontSize={11} fontFamily="DM Mono, monospace" fontWeight={500} />
                 </Bar>
               </BarChart>
@@ -671,18 +720,19 @@ export default function AdminDashboard() {
       </div>
 
       {/* ── Row 3 & 4: Charts ── */}
-      <div className="adm-charts-row">
-        <div className="adm-card adm-chart-full">
-          <div className="adm-card-header">
+      <div className="grid grid-cols-1 lg:grid-cols-2 gap-4">
+        <div className="bg-white dark:bg-[#1E2130] border border-slate-100 dark:border-white/5 rounded-2xl p-6 shadow-[0_2px_12px_-4px_rgba(0,0,0,0.04)] flex flex-col gap-5 relative group">
+          <div className="absolute top-0 right-0 w-32 h-32 bg-indigo-500/5 rounded-full blur-3xl -mr-10 -mt-10 pointer-events-none transition-transform duration-500 group-hover:scale-125"></div>
+          <div className="flex items-start justify-between">
             <div>
-              <h3 className="adm-card-title">Member Growth Trends</h3>
-              <span className="adm-card-sub" style={{ color: momGrowth >= 0 ? '#10B981' : '#EF4444', fontWeight: 600, fontFamily: 'DM Sans, sans-serif' }}>
+              <h3 className="m-0 font-inter text-base font-bold text-slate-800 dark:text-white">Member Growth Trends</h3>
+              <span className={`m-0 mt-1 font-inter text-[13px] font-semibold ${momGrowth >= 0 ? 'text-emerald-500' : 'text-rose-500'}`}>
                 {momGrowth >= 0 ? '↑' : '↓'} {Math.abs(momGrowth)}% vs last month · {memberStats.total.toLocaleString()} members
               </span>
             </div>
-            <button className="adm-chart-expand-btn" onClick={() => setExpandedChart('growth')} title="Expand Chart"><Expand size={16} color="#4B5563" strokeWidth={2.5} /></button>
+            <button className="p-1.5 rounded-lg hover:bg-slate-100 dark:hover:bg-white/5 text-slate-400 transition-colors border-none bg-transparent cursor-pointer" onClick={() => setExpandedChart('growth')} title="Expand Chart"><Expand size={16} color="#4B5563" strokeWidth={2.5} /></button>
           </div>
-          <div className="adm-bar-chart-container" style={{ height: '250px' }}>
+          <div className="w-full h-[250px]">
             <ResponsiveContainer width="100%" height="100%">
               <ComposedChart data={enhancedGrowthData} margin={{ top: 20, right: 8, left: -25, bottom: 5 }}>
                 <defs>
@@ -714,15 +764,16 @@ export default function AdminDashboard() {
           </div>
         </div>
 
-        <div className="adm-card adm-chart-full">
-          <div className="adm-card-header">
+        <div className="bg-white dark:bg-[#1E2130] border border-slate-100 dark:border-white/5 rounded-2xl p-6 shadow-[0_2px_12px_-4px_rgba(0,0,0,0.04)] flex flex-col gap-5 relative group">
+          <div className="absolute top-0 right-0 w-32 h-32 bg-violet-500/5 rounded-full blur-3xl -mr-10 -mt-10 pointer-events-none transition-transform duration-500 group-hover:scale-125"></div>
+          <div className="flex items-start justify-between">
             <div>
-              <h3 className="adm-card-title">Attendance Trends</h3>
-              <span className="adm-card-sub"><span style={{ fontFamily: 'DM Mono, monospace', fontWeight: 500 }}>{totalAttendanceCount}</span> total attendees recorded — {new Date().getFullYear()}</span>
+              <h3 className="m-0 font-inter text-base font-bold text-slate-800 dark:text-white">Attendance Trends</h3>
+              <span ><span className="m-0 mt-1 font-inter text-[13px] text-slate-500 dark:text-slate-400 font-mono font-medium text-slate-700 dark:text-slate-300">{totalAttendanceCount}</span> total attendees recorded — {new Date().getFullYear()}</span>
             </div>
-            <button className="adm-chart-expand-btn" onClick={() => setExpandedChart('attendance')} title="Expand Chart"><Expand size={16} color="#4B5563" strokeWidth={2.5} /></button>
+            <button className="p-1.5 rounded-lg hover:bg-slate-100 dark:hover:bg-white/5 text-slate-400 transition-colors border-none bg-transparent cursor-pointer" onClick={() => setExpandedChart('attendance')} title="Expand Chart"><Expand size={16} color="#4B5563" strokeWidth={2.5} /></button>
           </div>
-          <div className="adm-bar-chart-container" style={{ height: '250px' }}>
+          <div className="w-full h-[250px]">
             <ResponsiveContainer width="100%" height="100%">
               <BarChart data={attendVsDonData} margin={{ top: 20, right: 8, left: -25, bottom: 5 }}>
                 <CartesianGrid strokeDasharray="3 3" stroke="#F3F4F6" />
@@ -743,50 +794,50 @@ export default function AdminDashboard() {
 
       {/* ── Expanded Chart View (inline, sidebar stays visible) ── */}
       {expandedChart && (
-        <div className="adm-expand-overlay">
-          <div className="adm-expand-modal">
-            <div className="adm-expand-header" style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
-              <h2 className="adm-expand-title">
+        <div className="fixed inset-0 bg-slate-100/90 dark:bg-[#161922]/95 backdrop-blur-sm z-[100] flex flex-col">
+          <div className="flex-1 max-w-[1200px] w-full mx-auto my-4 bg-white dark:bg-[#1E2130] rounded-2xl shadow-2xl border border-slate-200 dark:border-white/10 flex flex-col overflow-hidden">
+            <div className="flex items-center justify-between p-5 border-b border-slate-200 dark:border-white/10 shrink-0">
+              <h2 className="m-0 font-inter text-lg font-bold text-slate-800 dark:text-white">
                 {expandedChart === 'donations' && 'Donation Categories — Detailed View'}
                 {expandedChart === 'branches' && 'Members by Community — Detailed View'}
                 {expandedChart === 'growth' && 'Member Growth Trends — Detailed View'}
                 {expandedChart === 'attendance' && 'Attendance Trends — Detailed View'}
               </h2>
               {expandedChart === 'growth' && (
-                <div className="adm-filter-group" style={{ marginLeft: 'auto', marginRight: '16px' }}>
-                  <select value={growthView} onChange={e => setGrowthView(e.target.value)} className="adm-filter-select">
+                <div className="flex items-center gap-2 ml-auto mr-4">
+                  <select value={growthView} onChange={e => setGrowthView(e.target.value)} className="h-9 px-3 pr-8 appearance-none bg-white dark:bg-[#1E2130] border border-slate-200 dark:border-white/10 rounded-lg text-[13px] font-inter font-medium text-slate-700 dark:text-slate-300 outline-none cursor-pointer focus:border-blue-500 transition-colors bg-[url('data:image/svg+xml;charset=US-ASCII,%3Csvg%20xmlns%3D%22http%3A%2F%2Fwww.w3.org%2F2000%2Fsvg%22%20width%3D%2216%22%20height%3D%2216%22%20viewBox%3D%220%200%2024%2024%22%20fill%3D%22none%22%20stroke%3D%22%236B7280%22%20stroke-width%3D%222%22%20stroke-linecap%3D%22round%22%20stroke-linejoin%3D%22round%22%3E%3Cpolyline%20points%3D%226%209%2012%2015%2018%209%22%3E%3C%2Fpolyline%3E%3C%2Fsvg%3E')] bg-[length:16px] bg-[position:right_8px_center] bg-no-repeat">
                     <option value="both">Total & New</option>
                     <option value="total">Total Only</option>
                     <option value="new">New Only</option>
                   </select>
-                  <select value={growthMonth} onChange={e => setGrowthMonth(e.target.value)} className="adm-filter-select">
+                  <select value={growthMonth} onChange={e => setGrowthMonth(e.target.value)} className="h-9 px-3 pr-8 appearance-none bg-white dark:bg-[#1E2130] border border-slate-200 dark:border-white/10 rounded-lg text-[13px] font-inter font-medium text-slate-700 dark:text-slate-300 outline-none cursor-pointer focus:border-blue-500 transition-colors bg-[url('data:image/svg+xml;charset=US-ASCII,%3Csvg%20xmlns%3D%22http%3A%2F%2Fwww.w3.org%2F2000%2Fsvg%22%20width%3D%2216%22%20height%3D%2216%22%20viewBox%3D%220%200%2024%2024%22%20fill%3D%22none%22%20stroke%3D%22%236B7280%22%20stroke-width%3D%222%22%20stroke-linecap%3D%22round%22%20stroke-linejoin%3D%22round%22%3E%3Cpolyline%20points%3D%226%209%2012%2015%2018%209%22%3E%3C%2Fpolyline%3E%3C%2Fsvg%3E')] bg-[length:16px] bg-[position:right_8px_center] bg-no-repeat">
                     <option value="all">All Months</option>
                     {['Jan','Feb','Mar','Apr','May','Jun','Jul','Aug','Sep','Oct','Nov','Dec'].map((m,i) => <option key={i} value={i}>{m}</option>)}
                   </select>
-                  <select value={growthYear} onChange={e => setGrowthYear(parseInt(e.target.value))} className="adm-filter-select">
+                  <select value={growthYear} onChange={e => setGrowthYear(parseInt(e.target.value))} className="h-9 px-3 pr-8 appearance-none bg-white dark:bg-[#1E2130] border border-slate-200 dark:border-white/10 rounded-lg text-[13px] font-inter font-medium text-slate-700 dark:text-slate-300 outline-none cursor-pointer focus:border-blue-500 transition-colors bg-[url('data:image/svg+xml;charset=US-ASCII,%3Csvg%20xmlns%3D%22http%3A%2F%2Fwww.w3.org%2F2000%2Fsvg%22%20width%3D%2216%22%20height%3D%2216%22%20viewBox%3D%220%200%2024%2024%22%20fill%3D%22none%22%20stroke%3D%22%236B7280%22%20stroke-width%3D%222%22%20stroke-linecap%3D%22round%22%20stroke-linejoin%3D%22round%22%3E%3Cpolyline%20points%3D%226%209%2012%2015%2018%209%22%3E%3C%2Fpolyline%3E%3C%2Fsvg%3E')] bg-[length:16px] bg-[position:right_8px_center] bg-no-repeat">
                     {[2023, 2024, 2025, 2026, 2027].map(y => <option key={y} value={y}>{y}</option>)}
                   </select>
                 </div>
               )}
               {expandedChart === 'attendance' && (
-                <div className="adm-filter-group" style={{ marginLeft: 'auto', marginRight: '16px' }}>
-                  <select value={attBranch} onChange={e => setAttBranch(e.target.value)} className="adm-filter-select adm-filter-select-sm">
+                <div className="flex items-center gap-2 ml-auto mr-4">
+                  <select value={attBranch} onChange={e => setAttBranch(e.target.value)} className="h-9 px-3 pr-8 appearance-none bg-white dark:bg-[#1E2130] border border-slate-200 dark:border-white/10 rounded-lg text-[13px] font-inter font-medium text-slate-700 dark:text-slate-300 outline-none cursor-pointer focus:border-blue-500 transition-colors bg-[url('data:image/svg+xml;charset=US-ASCII,%3Csvg%20xmlns%3D%22http%3A%2F%2Fwww.w3.org%2F2000%2Fsvg%22%20width%3D%2216%22%20height%3D%2216%22%20viewBox%3D%220%200%2024%2024%22%20fill%3D%22none%22%20stroke%3D%22%236B7280%22%20stroke-width%3D%222%22%20stroke-linecap%3D%22round%22%20stroke-linejoin%3D%22round%22%3E%3Cpolyline%20points%3D%226%209%2012%2015%2018%209%22%3E%3C%2Fpolyline%3E%3C%2Fsvg%3E')] bg-[length:16px] bg-[position:right_8px_center] bg-no-repeat w-40">
                     <option value="all">All Communities</option>
                     {membersByBranch.map((b,i) => <option key={i} value={b.branch}>{b.branch}</option>)}
                   </select>
-                  <select value={attMonth} onChange={e => setAttMonth(e.target.value)} className="adm-filter-select">
+                  <select value={attMonth} onChange={e => setAttMonth(e.target.value)} className="h-9 px-3 pr-8 appearance-none bg-white dark:bg-[#1E2130] border border-slate-200 dark:border-white/10 rounded-lg text-[13px] font-inter font-medium text-slate-700 dark:text-slate-300 outline-none cursor-pointer focus:border-blue-500 transition-colors bg-[url('data:image/svg+xml;charset=US-ASCII,%3Csvg%20xmlns%3D%22http%3A%2F%2Fwww.w3.org%2F2000%2Fsvg%22%20width%3D%2216%22%20height%3D%2216%22%20viewBox%3D%220%200%2024%2024%22%20fill%3D%22none%22%20stroke%3D%22%236B7280%22%20stroke-width%3D%222%22%20stroke-linecap%3D%22round%22%20stroke-linejoin%3D%22round%22%3E%3Cpolyline%20points%3D%226%209%2012%2015%2018%209%22%3E%3C%2Fpolyline%3E%3C%2Fsvg%3E')] bg-[length:16px] bg-[position:right_8px_center] bg-no-repeat">
                     <option value="all">All Months</option>
                     {['Jan','Feb','Mar','Apr','May','Jun','Jul','Aug','Sep','Oct','Nov','Dec'].map((m,i) => <option key={i} value={i}>{m}</option>)}
                   </select>
-                  <select value={attYear} onChange={e => setAttYear(parseInt(e.target.value))} className="adm-filter-select">
+                  <select value={attYear} onChange={e => setAttYear(parseInt(e.target.value))} className="h-9 px-3 pr-8 appearance-none bg-white dark:bg-[#1E2130] border border-slate-200 dark:border-white/10 rounded-lg text-[13px] font-inter font-medium text-slate-700 dark:text-slate-300 outline-none cursor-pointer focus:border-blue-500 transition-colors bg-[url('data:image/svg+xml;charset=US-ASCII,%3Csvg%20xmlns%3D%22http%3A%2F%2Fwww.w3.org%2F2000%2Fsvg%22%20width%3D%2216%22%20height%3D%2216%22%20viewBox%3D%220%200%2024%2024%22%20fill%3D%22none%22%20stroke%3D%22%236B7280%22%20stroke-width%3D%222%22%20stroke-linecap%3D%22round%22%20stroke-linejoin%3D%22round%22%3E%3Cpolyline%20points%3D%226%209%2012%2015%2018%209%22%3E%3C%2Fpolyline%3E%3C%2Fsvg%3E')] bg-[length:16px] bg-[position:right_8px_center] bg-no-repeat">
                     {[2023, 2024, 2025, 2026, 2027].map(y => <option key={y} value={y}>{y}</option>)}
                   </select>
                 </div>
               )}
-              <button className="adm-expand-close" onClick={() => setExpandedChart(null)}><X size={20} /></button>
+              <button className="w-8 h-8 rounded-lg flex items-center justify-center bg-slate-100 dark:bg-white/5 text-slate-500 hover:bg-slate-200 dark:hover:bg-white/10 transition-colors border-none cursor-pointer" onClick={() => setExpandedChart(null)}><X size={20} /></button>
             </div>
 
-            <div className="adm-expand-body">
+            <div className="flex-1 overflow-y-auto p-6 flex flex-col gap-6 custom-scrollbar">
               {expandedChart === 'donations' && (() => {
                 const dStats = donationsData?.stats || {};
                 const donorsByCat = dStats.donorsByCategory || {};
@@ -796,32 +847,32 @@ export default function AdminDashboard() {
                 const fmt = v => `₱${(v || 0).toLocaleString()}`;
                 return (
                 <>
-                  <div className="adm-dv-scorecard">
+                  <div className="grid grid-cols-2 lg:grid-cols-4 gap-4">
                     {[
                       { label: 'Total Donations Collected', value: fmt(dStats.total || pieTotal), color: '#3B82F6' },
                       { label: 'Total Donors', value: dStats.totalDonors || 0, color: '#10B981' },
                       { label: 'Average Donation', value: fmt(dStats.avgDonation || 0), color: '#8B5CF6' },
                       { label: 'Highest Category', value: highestCat ? highestCat.name : '—', sub: highestCat ? fmt(highestCat.value) : '', color: '#F59E0B' },
                     ].map((s, i) => (
-                      <div key={i} className="adm-dv-tile" style={{ borderLeft: `4px solid ${s.color}` }}>
-                        <div className="adm-dv-tile-value">{s.value}</div>
-                        {s.sub && <div className="adm-dv-tile-sub">{s.sub}</div>}
-                        <div className="adm-dv-tile-label">{s.label}</div>
+                      <div key={i} className="bg-slate-50 dark:bg-black/20 rounded-xl p-4 flex flex-col gap-1 border border-slate-100 dark:border-white/5" style={{ borderLeft: `4px solid ${s.color}` }}>
+                        <div className="font-inter font-bold text-2xl text-slate-800 dark:text-white">{s.value}</div>
+                        {s.sub && <div className="font-inter text-xs font-semibold text-slate-500 dark:text-slate-400">{s.sub}</div>}
+                        <div className="font-inter text-[13px] font-medium text-slate-600 dark:text-slate-400 mt-1">{s.label}</div>
                       </div>
                     ))}
                   </div>
 
-                  <div className="adm-dv-section">
-                    <h4 className="adm-dv-section-title">Category Breakdown</h4>
-                    <div className="adm-dv-table-wrap">
-                      <table className="adm-dv-table">
+                  <div className="flex flex-col gap-3">
+                    <h4 className="m-0 font-inter text-sm font-bold uppercase tracking-wider text-slate-500 dark:text-slate-400">Category Breakdown</h4>
+                    <div className="border border-slate-200 dark:border-white/10 rounded-xl overflow-hidden">
+                      <table className="w-full text-left border-collapse text-[13px] font-inter">
                         <thead>
                           <tr>
-                            <th className="text-left">Category Name</th>
-                            <th className="text-right">Total Amount</th>
-                            <th className="text-center">Unique Donors</th>
-                            <th className="text-right">Avg Donation</th>
-                            <th className="text-right">% Share</th>
+                            <th className="text-left px-4 py-3 bg-slate-50 dark:bg-black/20 border-b border-slate-200 dark:border-white/10 font-semibold text-[11px] tracking-wider uppercase text-slate-500 dark:text-slate-400 whitespace-nowrap sticky top-0 z-10">Category Name</th>
+                            <th className="text-right px-4 py-3 bg-slate-50 dark:bg-black/20 border-b border-slate-200 dark:border-white/10 font-semibold text-[11px] tracking-wider uppercase text-slate-500 dark:text-slate-400 whitespace-nowrap sticky top-0 z-10">Total Amount</th>
+                            <th className="text-center px-4 py-3 bg-slate-50 dark:bg-black/20 border-b border-slate-200 dark:border-white/10 font-semibold text-[11px] tracking-wider uppercase text-slate-500 dark:text-slate-400 whitespace-nowrap sticky top-0 z-10">Unique Donors</th>
+                            <th className="text-right px-4 py-3 bg-slate-50 dark:bg-black/20 border-b border-slate-200 dark:border-white/10 font-semibold text-[11px] tracking-wider uppercase text-slate-500 dark:text-slate-400 whitespace-nowrap sticky top-0 z-10">Avg Donation</th>
+                            <th className="text-right px-4 py-3 bg-slate-50 dark:bg-black/20 border-b border-slate-200 dark:border-white/10 font-semibold text-[11px] tracking-wider uppercase text-slate-500 dark:text-slate-400 whitespace-nowrap sticky top-0 z-10">% Share</th>
                           </tr>
                         </thead>
                         <tbody>
@@ -830,16 +881,16 @@ export default function AdminDashboard() {
                             const avg = donors > 0 ? Math.round(cat.value / donors) : 0;
                             return (
                               <tr key={idx}>
-                                <td className="fw-500">
-                                  <div className="adm-dv-cat-cell">
-                                    <div className="adm-dv-color-dot" style={{ background: cat.color }} />
+                                <td className="px-4 py-3 border-b border-slate-100 dark:border-white/5 font-medium text-slate-700 dark:text-slate-300 whitespace-nowrap">
+                                  <div className="flex items-center gap-2">
+                                    <div className="w-3 h-3 rounded-full shrink-0" style={{ background: cat.color }} />
                                     {cat.name}
                                   </div>
                                 </td>
-                                <td className="text-right fw-600">{fmt(cat.value)}</td>
-                                <td className="text-center">{donors || '—'}</td>
-                                <td className="text-right">{avg > 0 ? fmt(avg) : '—'}</td>
-                                <td className="text-right">{cat.percentage}%</td>
+                                <td className="px-4 py-3 border-b border-slate-100 dark:border-white/5 text-right font-semibold text-slate-800 dark:text-white whitespace-nowrap tabular-nums">{fmt(cat.value)}</td>
+                                <td className="px-4 py-3 border-b border-slate-100 dark:border-white/5 text-center text-slate-600 dark:text-slate-400 whitespace-nowrap tabular-nums">{donors || '—'}</td>
+                                <td className="px-4 py-3 border-b border-slate-100 dark:border-white/5 text-right text-slate-600 dark:text-slate-400 whitespace-nowrap tabular-nums">{avg > 0 ? fmt(avg) : '—'}</td>
+                                <td className="px-4 py-3 border-b border-slate-100 dark:border-white/5 text-right text-slate-600 dark:text-slate-400 whitespace-nowrap tabular-nums">{cat.percentage}%</td>
                               </tr>
                             );
                           })}
@@ -848,18 +899,18 @@ export default function AdminDashboard() {
                     </div>
                   </div>
 
-                  <div className="adm-dv-section-last">
-                    <h4 className="adm-dv-section-title">Donations by Community</h4>
-                    <div className="adm-dv-table-scroll">
-                      <table className="adm-dv-table">
+                  <div className="flex flex-col gap-3 pb-4">
+                    <h4 className="m-0 font-inter text-sm font-bold uppercase tracking-wider text-slate-500 dark:text-slate-400">Donations by Community</h4>
+                    <div className="border border-slate-200 dark:border-white/10 rounded-xl overflow-x-auto custom-scrollbar max-h-[300px]">
+                      <table className="w-full text-left border-collapse text-[13px] font-inter">
                         <thead>
                           <tr>
-                            <th className="text-left">Community</th>
-                            <th className="text-right">Total Donated</th>
-                            <th className="text-center">Unique Donors</th>
-                            <th className="text-center">Top Category</th>
-                            <th className="text-right">Avg / Donor</th>
-                            <th className="text-right">% Share</th>
+                            <th className="text-left px-4 py-3 bg-slate-50 dark:bg-black/20 border-b border-slate-200 dark:border-white/10 font-semibold text-[11px] tracking-wider uppercase text-slate-500 dark:text-slate-400 whitespace-nowrap sticky top-0 z-10">Community</th>
+                            <th className="text-right px-4 py-3 bg-slate-50 dark:bg-black/20 border-b border-slate-200 dark:border-white/10 font-semibold text-[11px] tracking-wider uppercase text-slate-500 dark:text-slate-400 whitespace-nowrap sticky top-0 z-10">Total Donated</th>
+                            <th className="text-center px-4 py-3 bg-slate-50 dark:bg-black/20 border-b border-slate-200 dark:border-white/10 font-semibold text-[11px] tracking-wider uppercase text-slate-500 dark:text-slate-400 whitespace-nowrap sticky top-0 z-10">Unique Donors</th>
+                            <th className="text-center px-4 py-3 bg-slate-50 dark:bg-black/20 border-b border-slate-200 dark:border-white/10 font-semibold text-[11px] tracking-wider uppercase text-slate-500 dark:text-slate-400 whitespace-nowrap sticky top-0 z-10">Top Category</th>
+                            <th className="text-right px-4 py-3 bg-slate-50 dark:bg-black/20 border-b border-slate-200 dark:border-white/10 font-semibold text-[11px] tracking-wider uppercase text-slate-500 dark:text-slate-400 whitespace-nowrap sticky top-0 z-10">Avg / Donor</th>
+                            <th className="text-right px-4 py-3 bg-slate-50 dark:bg-black/20 border-b border-slate-200 dark:border-white/10 font-semibold text-[11px] tracking-wider uppercase text-slate-500 dark:text-slate-400 whitespace-nowrap sticky top-0 z-10">% Share</th>
                           </tr>
                         </thead>
                         <tbody>
@@ -870,12 +921,12 @@ export default function AdminDashboard() {
                             const share = pieTotal > 0 ? ((b.total / pieTotal) * 100).toFixed(1) : '0';
                             return (
                               <tr key={idx}>
-                                <td className="fw-500">{b.branch}</td>
-                                <td className="text-right fw-600">{fmt(b.total)}</td>
-                                <td className="text-center">{donors || '—'}</td>
-                                <td className="text-center"><span className="adm-dv-badge adm-dv-badge-blue">{topCat}</span></td>
-                                <td className="text-right">{avgPerDonor > 0 ? fmt(avgPerDonor) : '—'}</td>
-                                <td className="text-right">{share}%</td>
+                                <td className="px-4 py-3 border-b border-slate-100 dark:border-white/5 font-medium text-slate-700 dark:text-slate-300 whitespace-nowrap">{b.branch}</td>
+                                <td className="px-4 py-3 border-b border-slate-100 dark:border-white/5 text-right font-semibold text-slate-800 dark:text-white whitespace-nowrap tabular-nums">{fmt(b.total)}</td>
+                                <td className="px-4 py-3 border-b border-slate-100 dark:border-white/5 text-center text-slate-600 dark:text-slate-400 whitespace-nowrap tabular-nums">{donors || '—'}</td>
+                                <td ><span className="px-4 py-3 border-b border-slate-100 dark:border-white/5 text-center text-slate-600 dark:text-slate-400 whitespace-nowrap tabular-nums inline-block px-2 py-0.5 rounded text-[11px] font-bold tracking-wide uppercase bg-blue-100 text-blue-700 dark:bg-blue-500/20 dark:text-blue-400">{topCat}</span></td>
+                                <td className="px-4 py-3 border-b border-slate-100 dark:border-white/5 text-right text-slate-600 dark:text-slate-400 whitespace-nowrap tabular-nums">{avgPerDonor > 0 ? fmt(avgPerDonor) : '—'}</td>
+                                <td className="px-4 py-3 border-b border-slate-100 dark:border-white/5 text-right text-slate-600 dark:text-slate-400 whitespace-nowrap tabular-nums">{share}%</td>
                               </tr>
                             );
                           })}
@@ -884,7 +935,7 @@ export default function AdminDashboard() {
                     </div>
                   </div>
 
-                  <div className="adm-expand-interpretation">
+                  <div className="mt-4 p-4 rounded-xl bg-blue-50 dark:bg-blue-500/10 text-blue-800 dark:text-blue-300 font-inter text-sm leading-relaxed border border-blue-100 dark:border-blue-500/20">
                     <strong>Interpretation:</strong> The scorecard shows overall donation health. The category table ranks each ministry fund by total amount and unique donor count — categories with high amounts but few donors indicate large individual gifts, while those with many donors but low totals reflect broad participation. The community table identifies the most generous communities and their preferred fund categories.
                   </div>
                 </>
@@ -918,23 +969,23 @@ export default function AdminDashboard() {
                 const highRatioCommunities = commArr.filter(c => c.total > 0 && (c.officers / c.total) * 100 > 30).length;
                 return (
                 <>
-                  <div className="adm-dv-scorecard">
+                  <div className="grid grid-cols-2 lg:grid-cols-4 gap-4">
                     {[
                       { label: 'Total Members', value: totalMem, color: '#3B82F6' },
                       { label: 'Total Officers', value: officers, color: '#10B981' },
                       { label: 'Officer Ratio', value: ratio, color: '#8B5CF6' },
                       { label: 'High Officer Ratio Communities', value: highRatioCommunities, color: highRatioCommunities > 0 ? '#F59E0B' : '#10B981' },
                     ].map((s, i) => (
-                      <div key={i} className="adm-dv-tile" style={{ borderLeft: `4px solid ${s.color}` }}>
-                        <div className="adm-dv-tile-value">{s.value}</div>
-                        <div className="adm-dv-tile-label">{s.label}</div>
+                      <div key={i} className="bg-slate-50 dark:bg-black/20 rounded-xl p-4 flex flex-col gap-1 border border-slate-100 dark:border-white/5" style={{ borderLeft: `4px solid ${s.color}` }}>
+                        <div className="font-inter font-bold text-2xl text-slate-800 dark:text-white">{s.value}</div>
+                        <div className="font-inter text-[13px] font-medium text-slate-600 dark:text-slate-400 mt-1">{s.label}</div>
                       </div>
                     ))}
                   </div>
 
-                  <div className="adm-dv-section">
+                  <div className="flex flex-col gap-3">
                     <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '16px' }}>
-                      <h4 className="adm-dv-section-title" style={{ margin: 0 }}>Community Member Breakdown</h4>
+                      <h4 className="m-0 font-inter text-sm font-bold uppercase tracking-wider text-slate-500 dark:text-slate-400" style={{ margin: 0 }}>Community Member Breakdown</h4>
                       <input 
                         type="text" 
                         placeholder="Search community..." 
@@ -943,16 +994,16 @@ export default function AdminDashboard() {
                         style={{ padding: '8px 12px', borderRadius: '6px', border: '1px solid #D1D5DB', fontSize: '13px', width: '250px' }}
                       />
                     </div>
-                    <div className="adm-dv-table-scroll adm-dv-table-scroll-lg">
-                      <table className="adm-dv-table">
+                    <div className="border border-slate-200 dark:border-white/10 rounded-xl overflow-x-auto custom-scrollbar max-h-[500px]">
+                      <table className="w-full text-left border-collapse text-[13px] font-inter">
                         <thead>
                           <tr>
-                            <th className="text-left">Community</th>
-                            <th className="text-center">Total Members</th>
-                            <th className="text-center">Officers</th>
-                            <th className="text-center">Regular</th>
-                            <th className="text-center">Officer Ratio</th>
-                            <th className="text-center">Status</th>
+                            <th className="text-left px-4 py-3 bg-slate-50 dark:bg-black/20 border-b border-slate-200 dark:border-white/10 font-semibold text-[11px] tracking-wider uppercase text-slate-500 dark:text-slate-400 whitespace-nowrap sticky top-0 z-10">Community</th>
+                            <th className="text-center px-4 py-3 bg-slate-50 dark:bg-black/20 border-b border-slate-200 dark:border-white/10 font-semibold text-[11px] tracking-wider uppercase text-slate-500 dark:text-slate-400 whitespace-nowrap sticky top-0 z-10">Total Members</th>
+                            <th className="text-center px-4 py-3 bg-slate-50 dark:bg-black/20 border-b border-slate-200 dark:border-white/10 font-semibold text-[11px] tracking-wider uppercase text-slate-500 dark:text-slate-400 whitespace-nowrap sticky top-0 z-10">Officers</th>
+                            <th className="text-center px-4 py-3 bg-slate-50 dark:bg-black/20 border-b border-slate-200 dark:border-white/10 font-semibold text-[11px] tracking-wider uppercase text-slate-500 dark:text-slate-400 whitespace-nowrap sticky top-0 z-10">Regular</th>
+                            <th className="text-center px-4 py-3 bg-slate-50 dark:bg-black/20 border-b border-slate-200 dark:border-white/10 font-semibold text-[11px] tracking-wider uppercase text-slate-500 dark:text-slate-400 whitespace-nowrap sticky top-0 z-10">Officer Ratio</th>
+                            <th className="text-center px-4 py-3 bg-slate-50 dark:bg-black/20 border-b border-slate-200 dark:border-white/10 font-semibold text-[11px] tracking-wider uppercase text-slate-500 dark:text-slate-400 whitespace-nowrap sticky top-0 z-10">Status</th>
                           </tr>
                         </thead>
                         <tbody>
@@ -962,12 +1013,12 @@ export default function AdminDashboard() {
                             const statusLabel = ratioPct > 40 ? 'Critical' : ratioPct > 30 ? 'Review' : 'Healthy';
                             return (
                               <tr key={idx}>
-                                <td className="fw-500">{c.name}</td>
+                                <td className="px-4 py-3 border-b border-slate-100 dark:border-white/5 font-medium text-slate-700 dark:text-slate-300 whitespace-nowrap">{c.name}</td>
                                 <td className="text-center fw-600">{c.total}</td>
-                                <td className="text-center">{c.officers}</td>
-                                <td className="text-center">{c.total - c.officers}</td>
-                                <td className="text-center">{ratioPct}%</td>
-                                <td className="text-center"><span className={`adm-dv-badge ${statusCls}`}>{statusLabel}</span></td>
+                                <td className="px-4 py-3 border-b border-slate-100 dark:border-white/5 text-center text-slate-600 dark:text-slate-400 whitespace-nowrap tabular-nums">{c.officers}</td>
+                                <td className="px-4 py-3 border-b border-slate-100 dark:border-white/5 text-center text-slate-600 dark:text-slate-400 whitespace-nowrap tabular-nums">{c.total - c.officers}</td>
+                                <td className="px-4 py-3 border-b border-slate-100 dark:border-white/5 text-center text-slate-600 dark:text-slate-400 whitespace-nowrap tabular-nums">{ratioPct}%</td>
+                                <td className="px-4 py-3 border-b border-slate-100 dark:border-white/5 text-center text-slate-600 dark:text-slate-400 whitespace-nowrap tabular-nums"><span className={`inline-block px-2 py-0.5 rounded text-[11px] font-bold tracking-wide uppercase ${statusCls === 'adm-dv-badge-red' ? 'bg-rose-100 text-rose-700 dark:bg-rose-500/20 dark:text-rose-400' : statusCls === 'adm-dv-badge-yellow' ? 'bg-amber-100 text-amber-700 dark:bg-amber-500/20 dark:text-amber-400' : 'bg-emerald-100 text-emerald-700 dark:bg-emerald-500/20 dark:text-emerald-400'}`}>{statusLabel}</span></td>
                               </tr>
                             );
                           })}
@@ -976,9 +1027,9 @@ export default function AdminDashboard() {
                     </div>
                   </div>
 
-                  <div className="adm-dv-donut-center">
-                    <div className="adm-dv-donut-inner">
-                      <h4 className="adm-dv-section-title">Members vs Officers</h4>
+                  <div className="flex justify-center py-4">
+                    <div className="w-full max-w-[400px] flex flex-col gap-4 relative">
+                      <h4 className="m-0 font-inter text-sm font-bold uppercase tracking-wider text-slate-500 dark:text-slate-400">Members vs Officers</h4>
                       <ResponsiveContainer width="100%" height={280}>
                         <PieChart>
                           <Pie data={[{ name: 'Regular Members', value: regularMem, fill: '#0D1F45' }, { name: 'Officers', value: officers, fill: '#155DFC' }]} cx="50%" cy="45%" innerRadius={55} outerRadius={95} paddingAngle={2} dataKey="value" label={renderSliceLabel} labelLine={false}>
@@ -994,18 +1045,18 @@ export default function AdminDashboard() {
                             />
                           </Pie>
                           <Tooltip formatter={(value) => [value, 'Members']} />
-                          <Legend verticalAlign="bottom" height={36} iconType="circle" iconSize={8} formatter={(value, entry) => <span className="adm-dv-legend-label">{value}: {entry.payload.value} ({totalMem > 0 ? Math.round((entry.payload.value / totalMem) * 100) : 0}%)</span>} />
+                          <Legend verticalAlign="bottom" height={36} iconType="circle" iconSize={8} formatter={(value, entry) => <span className="text-slate-600 dark:text-slate-400 font-inter text-[13px]">{value}: {entry.payload.value} ({totalMem > 0 ? Math.round((entry.payload.value / totalMem) * 100) : 0}%)</span>} />
                         </PieChart>
                       </ResponsiveContainer>
                       {highRatioCommunities > 0 && (
-                        <div className="adm-dv-warning">
+                        <div className="absolute -bottom-8 left-0 right-0 flex items-center justify-center gap-2 text-rose-600 dark:text-rose-400 font-inter text-sm font-semibold bg-rose-50 dark:bg-rose-500/10 py-2 rounded-lg">
                           <AlertCircle size={14} /> {highRatioCommunities} communities have officer ratio above 30%
                         </div>
                       )}
                     </div>
                   </div>
 
-                  <div className="adm-expand-interpretation">
+                  <div className="mt-4 p-4 rounded-xl bg-blue-50 dark:bg-blue-500/10 text-blue-800 dark:text-blue-300 font-inter text-sm leading-relaxed border border-blue-100 dark:border-blue-500/20">
                     <strong>Interpretation:</strong> The scorecard provides a high-level view of organizational capacity. The community table is sorted by officer ratio descending — communities marked "Critical" (red, &gt;40%) or "Review" (yellow, 30–40%) may need membership growth or officer role rebalancing. The donut chart visualizes the overall officer-to-member split.
                   </div>
                 </>
@@ -1013,10 +1064,10 @@ export default function AdminDashboard() {
               })()}
 
               {expandedChart === 'growth' && (
-                <div className="adm-expand-growth-wrapper">
-                  <div className="adm-expand-panel adm-expand-growth-line-panel">
-                    <h4 className="adm-expand-panel-title">Growth Trend (Line)</h4>
-                    <div className="adm-expand-panel-chart adm-expand-growth-line-chart">
+                <div className="flex flex-col gap-4">
+                  <div className="bg-slate-50 dark:bg-black/20 border border-slate-200 dark:border-white/10 rounded-xl p-5 flex flex-col gap-4">
+                    <h4 className="m-0 font-inter text-sm font-bold uppercase tracking-wider text-slate-500 dark:text-slate-400">Growth Trend (Line)</h4>
+                    <div className="w-full">
                       <ResponsiveContainer width="100%" height={260}>
                         <LineChart data={growthData} margin={{ top: 10, right: 10, left: -20, bottom: 0 }}>
                           <CartesianGrid strokeDasharray="3 3" stroke="#F3F4F6" />
@@ -1030,10 +1081,10 @@ export default function AdminDashboard() {
                       </ResponsiveContainer>
                     </div>
                   </div>
-                  <div className="adm-expand-grid adm-expand-growth-bottom-grid">
-                    <div className="adm-expand-panel adm-expand-growth-bar-panel">
-                      <h4 className="adm-expand-panel-title">Growth by Community (Top {growthByBranch.length || 0})</h4>
-                      <div className="adm-expand-panel-chart adm-expand-growth-bar-chart">
+                  <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+                    <div className="bg-slate-50 dark:bg-black/20 border border-slate-200 dark:border-white/10 rounded-xl p-5 flex flex-col gap-4">
+                      <h4 className="m-0 font-inter text-sm font-bold uppercase tracking-wider text-slate-500 dark:text-slate-400">Growth by Community (Top {growthByBranch.length || 0})</h4>
+                      <div className="w-full">
                         <ResponsiveContainer width="100%" height={220}>
                           <BarChart data={growthByBranch} margin={{ top: 10, right: 10, left: -20, bottom: 10 }}>
                             <CartesianGrid strokeDasharray="3 3" stroke="#F3F4F6" vertical={false} />
@@ -1047,9 +1098,9 @@ export default function AdminDashboard() {
                         </ResponsiveContainer>
                       </div>
                     </div>
-                    <div className="adm-expand-panel adm-expand-growth-pie-panel">
-                      <h4 className="adm-expand-panel-title">Active vs Inactive</h4>
-                      <div className="adm-expand-panel-chart adm-expand-growth-pie-chart">
+                    <div className="bg-slate-50 dark:bg-black/20 border border-slate-200 dark:border-white/10 rounded-xl p-5 flex flex-col gap-4">
+                      <h4 className="m-0 font-inter text-sm font-bold uppercase tracking-wider text-slate-500 dark:text-slate-400">Active vs Inactive</h4>
+                      <div className="w-full relative">
                         {(() => {
                           const activePct = memberStats.total > 0 ? (memberStats.active / memberStats.total) * 100 : 0;
                           const inactivePct = memberStats.total > 0 ? (memberStats.inactive / memberStats.total) * 100 : 0;
@@ -1072,12 +1123,12 @@ export default function AdminDashboard() {
                                     iconSize={8}
                                     formatter={(value, entry) => {
                                       const pct = value === 'Active' ? activePct : inactivePct;
-                                      return <span className="adm-dv-legend-label">{value}: {entry.payload.value} ({pct.toFixed(1)}%)</span>;
+                                      return <span className="text-slate-600 dark:text-slate-400 font-inter text-[13px]">{value}: {entry.payload.value} ({pct.toFixed(1)}%)</span>;
                                     }}
                                   />
                                 </PieChart>
                               </ResponsiveContainer>
-                              <div className="adm-dv-donut-total">
+                              <div className="absolute inset-0 flex items-center justify-center pointer-events-none text-slate-400 dark:text-slate-500 font-inter text-sm mt-16">
                                 {memberStats.total} Total Members
                               </div>
                             </>
@@ -1086,7 +1137,7 @@ export default function AdminDashboard() {
                       </div>
                     </div>
                   </div>
-                  <div className="adm-expand-interpretation">
+                  <div className="mt-4 p-4 rounded-xl bg-blue-50 dark:bg-blue-500/10 text-blue-800 dark:text-blue-300 font-inter text-sm leading-relaxed border border-blue-100 dark:border-blue-500/20">
                     <strong>Interpretation:</strong> The top panel shows cumulative membership growth over time. The bottom-left panel highlights the top communities driving new registrations, while the bottom-right panel contextualizes overall growth against the current ratio of active to inactive members.
                   </div>
                 </div>
@@ -1122,30 +1173,30 @@ export default function AdminDashboard() {
                 const topCommunity = commAttArr.length > 0 ? commAttArr[0].name : '—';
                 return (
                 <>
-                  <div className="adm-dv-scorecard">
+                  <div className="grid grid-cols-2 lg:grid-cols-4 gap-4">
                     {[
                       { label: 'Total Attendance YTD', value: ytdAtt.toLocaleString(), color: '#3B82F6' },
                       { label: 'Avg Monthly Attendance', value: avgMonthly.toLocaleString(), color: '#10B981' },
                       { label: 'Highest Month', value: highestMonth ? highestMonth.month : '—', sub: highestMonth ? `${highestMonth.count.toLocaleString()} attendees` : '', color: '#8B5CF6' },
                       { label: 'Most Attended Community', value: topCommunity, color: '#F59E0B' },
                     ].map((s, i) => (
-                      <div key={i} className="adm-dv-tile" style={{ borderLeft: `4px solid ${s.color}` }}>
-                        <div className="adm-dv-tile-value">{s.value}</div>
-                        {s.sub && <div className="adm-dv-tile-sub">{s.sub}</div>}
-                        <div className="adm-dv-tile-label">{s.label}</div>
+                      <div key={i} className="bg-slate-50 dark:bg-black/20 rounded-xl p-4 flex flex-col gap-1 border border-slate-100 dark:border-white/5" style={{ borderLeft: `4px solid ${s.color}` }}>
+                        <div className="font-inter font-bold text-2xl text-slate-800 dark:text-white">{s.value}</div>
+                        {s.sub && <div className="font-inter text-xs font-semibold text-slate-500 dark:text-slate-400">{s.sub}</div>}
+                        <div className="font-inter text-[13px] font-medium text-slate-600 dark:text-slate-400 mt-1">{s.label}</div>
                       </div>
                     ))}
                   </div>
 
-                  <div className="adm-dv-section">
-                    <h4 className="adm-dv-section-title">Monthly Attendance</h4>
-                    <div className="adm-dv-table-wrap">
-                      <table className="adm-dv-table">
+                  <div className="flex flex-col gap-3">
+                    <h4 className="m-0 font-inter text-sm font-bold uppercase tracking-wider text-slate-500 dark:text-slate-400">Monthly Attendance</h4>
+                    <div className="border border-slate-200 dark:border-white/10 rounded-xl overflow-hidden">
+                      <table className="w-full text-left border-collapse text-[13px] font-inter">
                         <thead>
                           <tr>
-                            <th className="text-left">Month</th>
-                            <th className="text-right">Total Attendance</th>
-                            <th className="text-right">MoM Change</th>
+                            <th className="text-left px-4 py-3 bg-slate-50 dark:bg-black/20 border-b border-slate-200 dark:border-white/10 font-semibold text-[11px] tracking-wider uppercase text-slate-500 dark:text-slate-400 whitespace-nowrap sticky top-0 z-10">Month</th>
+                            <th className="text-right px-4 py-3 bg-slate-50 dark:bg-black/20 border-b border-slate-200 dark:border-white/10 font-semibold text-[11px] tracking-wider uppercase text-slate-500 dark:text-slate-400 whitespace-nowrap sticky top-0 z-10">Total Attendance</th>
+                            <th className="text-right px-4 py-3 bg-slate-50 dark:bg-black/20 border-b border-slate-200 dark:border-white/10 font-semibold text-[11px] tracking-wider uppercase text-slate-500 dark:text-slate-400 whitespace-nowrap sticky top-0 z-10">MoM Change</th>
                           </tr>
                         </thead>
                         <tbody>
@@ -1155,10 +1206,10 @@ export default function AdminDashboard() {
                             const momPct = i === 0 || isFuture || (prev === 0 && m.count === 0) ? null : prev === 0 ? null : Math.round(((m.count - prev) / prev) * 100);
                             const isBold = m.count > avgMonthly && m.count > 0;
                             return (
-                              <tr key={i} className={`${isFuture ? 'future-row' : ''} ${isBold ? 'bold-row' : ''}`}>
-                                <td>{m.month}</td>
-                                <td className="text-right">{m.count > 0 ? m.count.toLocaleString() : '—'}</td>
-                                <td className="text-right">
+                              <tr key={i} className={`${isFuture ? 'opacity-50 grayscale' : ''} ${isBold ? 'bg-blue-50/50 dark:bg-blue-500/5' : ''}`}>
+                                <td className="px-4 py-3 border-b border-slate-100 dark:border-white/5 text-slate-700 dark:text-slate-300 whitespace-nowrap">{m.month}</td>
+                                <td className="px-4 py-3 border-b border-slate-100 dark:border-white/5 text-right text-slate-600 dark:text-slate-400 whitespace-nowrap tabular-nums">{m.count > 0 ? m.count.toLocaleString() : '—'}</td>
+                                <td className="px-4 py-3 border-b border-slate-100 dark:border-white/5 text-right text-slate-600 dark:text-slate-400 whitespace-nowrap tabular-nums">
                                   {momPct === null ? '—' : momPct === 0 ? <span style={{ color: '#6B7280' }}>— 0%</span> : <span className={momPct > 0 ? 'adm-dv-mom-up' : 'adm-dv-mom-down'}>{momPct > 0 ? '↑' : '↓'} {Math.abs(momPct)}%</span>}
                                 </td>
                               </tr>
@@ -1169,16 +1220,16 @@ export default function AdminDashboard() {
                     </div>
                   </div>
 
-                  <div className="adm-dv-section-last">
-                    <h4 className="adm-dv-section-title">Attendance by Community</h4>
-                    <div className="adm-dv-table-scroll">
-                      <table className="adm-dv-table">
+                  <div className="flex flex-col gap-3 pb-4">
+                    <h4 className="m-0 font-inter text-sm font-bold uppercase tracking-wider text-slate-500 dark:text-slate-400">Attendance by Community</h4>
+                    <div className="border border-slate-200 dark:border-white/10 rounded-xl overflow-x-auto custom-scrollbar max-h-[300px]">
+                      <table className="w-full text-left border-collapse text-[13px] font-inter">
                         <thead>
                           <tr>
-                            <th className="text-left">Community</th>
-                            <th className="text-right">Total Attendance</th>
-                            <th className="text-right">Avg / Month</th>
-                            <th className="text-center">Most Active Month</th>
+                            <th className="text-left px-4 py-3 bg-slate-50 dark:bg-black/20 border-b border-slate-200 dark:border-white/10 font-semibold text-[11px] tracking-wider uppercase text-slate-500 dark:text-slate-400 whitespace-nowrap sticky top-0 z-10">Community</th>
+                            <th className="text-right px-4 py-3 bg-slate-50 dark:bg-black/20 border-b border-slate-200 dark:border-white/10 font-semibold text-[11px] tracking-wider uppercase text-slate-500 dark:text-slate-400 whitespace-nowrap sticky top-0 z-10">Total Attendance</th>
+                            <th className="text-right px-4 py-3 bg-slate-50 dark:bg-black/20 border-b border-slate-200 dark:border-white/10 font-semibold text-[11px] tracking-wider uppercase text-slate-500 dark:text-slate-400 whitespace-nowrap sticky top-0 z-10">Avg / Month</th>
+                            <th className="text-center px-4 py-3 bg-slate-50 dark:bg-black/20 border-b border-slate-200 dark:border-white/10 font-semibold text-[11px] tracking-wider uppercase text-slate-500 dark:text-slate-400 whitespace-nowrap sticky top-0 z-10">Most Active Month</th>
                           </tr>
                         </thead>
                         <tbody>
@@ -1189,10 +1240,10 @@ export default function AdminDashboard() {
                             const bestMonth = bestMonthIdx ? MONTHS[parseInt(bestMonthIdx[0])] : '—';
                             return (
                               <tr key={idx}>
-                                <td className="fw-500">{c.name}</td>
-                                <td className="text-right fw-600">{c.total.toLocaleString()}</td>
-                                <td className="text-right">{avgPerMonth}</td>
-                                <td className="text-center"><span className="adm-dv-badge adm-dv-badge-blue">{bestMonth}</span></td>
+                                <td className="px-4 py-3 border-b border-slate-100 dark:border-white/5 font-medium text-slate-700 dark:text-slate-300 whitespace-nowrap">{c.name}</td>
+                                <td className="px-4 py-3 border-b border-slate-100 dark:border-white/5 text-right font-semibold text-slate-800 dark:text-white whitespace-nowrap tabular-nums">{c.total.toLocaleString()}</td>
+                                <td className="px-4 py-3 border-b border-slate-100 dark:border-white/5 text-right text-slate-600 dark:text-slate-400 whitespace-nowrap tabular-nums">{avgPerMonth}</td>
+                                <td ><span className="px-4 py-3 border-b border-slate-100 dark:border-white/5 text-center text-slate-600 dark:text-slate-400 whitespace-nowrap tabular-nums inline-block px-2 py-0.5 rounded text-[11px] font-bold tracking-wide uppercase bg-blue-100 text-blue-700 dark:bg-blue-500/20 dark:text-blue-400">{bestMonth}</span></td>
                               </tr>
                             );
                           })}
@@ -1201,7 +1252,7 @@ export default function AdminDashboard() {
                     </div>
                   </div>
 
-                  <div className="adm-expand-interpretation">
+                  <div className="mt-4 p-4 rounded-xl bg-blue-50 dark:bg-blue-500/10 text-blue-800 dark:text-blue-300 font-inter text-sm leading-relaxed border border-blue-100 dark:border-blue-500/20">
                     <strong>Interpretation:</strong> The scorecard shows year-to-date attendance health. The monthly table highlights months exceeding the average in bold — consecutive MoM declines (red arrows) may signal engagement drops requiring outreach. The community table ranks communities by total attendance and identifies their peak months.
                   </div>
                 </>

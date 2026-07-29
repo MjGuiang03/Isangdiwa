@@ -6,10 +6,10 @@ import LoanAdminSidebar from './loanAdminSidebar';
 import DSSPanel from '../components/DSSPanel';
 
 import useDebounce from '../../hooks/useDebounce';
-import '../styles/loanAdminLoanManagement.css';
+
 
 import API from '../../utils/api';
-import { CheckCircle, Circle, Search, X, XCircle, ShieldCheck, AlertTriangle } from 'lucide-react';
+import { CheckCircle, Circle, Search, X, XCircle, ShieldCheck, AlertTriangle, Loader2 } from 'lucide-react'; 
 import { performOCRScan } from '../../utils/ocrProcessor';
 
 
@@ -443,44 +443,44 @@ export default function LoanAdminLoanManagement() {
     }, [selectedType]);
 
     return (
-        <div className="loan-admin-mgmt-page">
+        <div className="flex h-screen overflow-hidden bg-slate-100 dark:bg-[#161922]">
             <LoanAdminSidebar />
 
-            <div className="loan-admin-mgmt-content">
+            <div className="p-[20px_24px] flex-1 flex flex-col gap-2.5 bg-transparent overflow-y-auto">
                 {/* Header */}
-                <div className="loan-admin-mgmt-header">
-                    <h1 className="loan-admin-mgmt-title">Loan Management</h1>
+                <div className="flex items-center justify-between pb-2 mb-[2px] max-md:flex-col max-md:items-start max-md:gap-3">
+                    <h1 className="font-inter text-lg font-bold text-slate-800 dark:text-white m-0 tracking-[-0.01em]">Loan Management</h1>
                 </div>
 
                 {/* Status Cards */}
-                <div className="loan-admin-mgmt-stats" style={{ gridTemplateColumns: 'repeat(5, 1fr)' }}>
-                    <div className="loan-admin-mgmt-stat-card" onClick={() => setStatusFilter(statusFilter === 'pending' ? 'all' : 'pending')} style={{ cursor: 'pointer', border: statusFilter === 'pending' ? '2px solid #3B82F6' : '1px solid #E5E7EB', transform: statusFilter === 'pending' ? 'translateY(-2px)' : 'none', transition: 'all 0.2s' }}>
+                <div className="grid grid-cols-2 md:grid-cols-3 lg:grid-cols-5 gap-4 mb-6">
+                    <div className="bg-white dark:bg-[#1E2130] border border-slate-200 dark:border-white/10 rounded-xl p-5 shadow-sm flex flex-col gap-2 transition-transform hover:-translate-y-1 cursor-pointer" onClick={() => setStatusFilter(statusFilter === 'pending' ? 'all' : 'pending')} >
                         <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', margin: '0 0 4px 0', minHeight: '24px' }}>
-                            <p className="loan-admin-mgmt-stat-label" style={{ margin: 0 }}>Pending Review</p>
+                            <p className="font-inter font-semibold text-[11px] tracking-wider uppercase text-slate-500 dark:text-slate-400 m-0" style={{ margin: 0 }}>Pending Review</p>
                         </div>
-                        <p className="loan-admin-mgmt-stat-value pending">{counts.pending}</p>
+                        <p className="font-inter font-bold text-3xl text-amber-500 m-0">{counts.pending}</p>
                     </div>
-                    <div className="loan-admin-mgmt-stat-card" onClick={() => setStatusFilter(statusFilter === 'approved' ? 'all' : 'approved')} style={{ cursor: 'pointer', border: statusFilter === 'approved' ? '2px solid #10B981' : '1px solid #E5E7EB', transform: statusFilter === 'approved' ? 'translateY(-2px)' : 'none', transition: 'all 0.2s' }}>
+                    <div className="bg-white dark:bg-[#1E2130] border border-slate-200 dark:border-white/10 rounded-xl p-5 shadow-sm flex flex-col gap-2 transition-transform hover:-translate-y-1 cursor-pointer" onClick={() => setStatusFilter(statusFilter === 'approved' ? 'all' : 'approved')} >
                         <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', margin: '0 0 4px 0', minHeight: '24px' }}>
-                            <p className="loan-admin-mgmt-stat-label" style={{ margin: 0 }}>Approved</p>
+                            <p className="font-inter font-semibold text-[11px] tracking-wider uppercase text-slate-500 dark:text-slate-400 m-0" style={{ margin: 0 }}>Approved</p>
                         </div>
-                        <p className="loan-admin-mgmt-stat-value approved">{counts.active}</p>
+                        <p className="font-inter font-bold text-3xl text-emerald-500 m-0">{counts.active}</p>
                     </div>
-                    <div className="loan-admin-mgmt-stat-card" onClick={() => setStatusFilter(statusFilter === 'completed' ? 'all' : 'completed')} style={{ cursor: 'pointer', border: statusFilter === 'completed' ? '2px solid #8B5CF6' : '1px solid #E5E7EB', transform: statusFilter === 'completed' ? 'translateY(-2px)' : 'none', transition: 'all 0.2s' }}>
+                    <div className="bg-white dark:bg-[#1E2130] border border-slate-200 dark:border-white/10 rounded-xl p-5 shadow-sm flex flex-col gap-2 transition-transform hover:-translate-y-1 cursor-pointer" onClick={() => setStatusFilter(statusFilter === 'completed' ? 'all' : 'completed')} >
                         <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', margin: '0 0 4px 0', minHeight: '24px' }}>
-                            <p className="loan-admin-mgmt-stat-label" style={{ margin: 0 }}>Completed</p>
+                            <p className="font-inter font-semibold text-[11px] tracking-wider uppercase text-slate-500 dark:text-slate-400 m-0" style={{ margin: 0 }}>Completed</p>
                         </div>
-                        <p className="loan-admin-mgmt-stat-value completed">{counts.completed}</p>
+                        <p className="font-inter font-bold text-3xl text-purple-500 m-0">{counts.completed}</p>
                     </div>
-                    <div className="loan-admin-mgmt-stat-card" onClick={() => setStatusFilter(statusFilter === 'rejected' ? 'all' : 'rejected')} style={{ cursor: 'pointer', border: statusFilter === 'rejected' ? '2px solid #EF4444' : '1px solid #E5E7EB', transform: statusFilter === 'rejected' ? 'translateY(-2px)' : 'none', transition: 'all 0.2s' }}>
+                    <div className="bg-white dark:bg-[#1E2130] border border-slate-200 dark:border-white/10 rounded-xl p-5 shadow-sm flex flex-col gap-2 transition-transform hover:-translate-y-1 cursor-pointer" onClick={() => setStatusFilter(statusFilter === 'rejected' ? 'all' : 'rejected')} >
                         <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', margin: '0 0 4px 0', minHeight: '24px' }}>
-                            <p className="loan-admin-mgmt-stat-label" style={{ margin: 0 }}>Rejected</p>
+                            <p className="font-inter font-semibold text-[11px] tracking-wider uppercase text-slate-500 dark:text-slate-400 m-0" style={{ margin: 0 }}>Rejected</p>
                         </div>
-                        <p className="loan-admin-mgmt-stat-value rejected">{counts.rejected}</p>
+                        <p className="font-inter font-bold text-3xl text-rose-500 m-0">{counts.rejected}</p>
                     </div>
-                    <div className="loan-admin-mgmt-stat-card">
+                    <div className="bg-white dark:bg-[#1E2130] border border-slate-200 dark:border-white/10 rounded-xl p-5 shadow-sm flex flex-col gap-2">
                         <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', margin: '0 0 4px 0', minHeight: '24px' }}>
-                            <p className="loan-admin-mgmt-stat-label" style={{ margin: 0 }}>Total Income from Interest</p>
+                            <p className="font-inter font-semibold text-[11px] tracking-wider uppercase text-slate-500 dark:text-slate-400 m-0" style={{ margin: 0 }}>Total Income from Interest</p>
                             <select value={interestFilter} onChange={e => setInterestFilter(e.target.value)} style={{ fontSize: '11px', padding: '2px 4px', borderRadius: '6px', border: '1px solid #D1D5DB', marginLeft: '8px' }}>
                                 <option value="all">All</option>
                                 <option value="2x">2x Savings</option>
@@ -488,45 +488,40 @@ export default function LoanAdminLoanManagement() {
                                 <option value="1x">1x Savings</option>
                             </select>
                         </div>
-                        <p className="loan-admin-mgmt-stat-value total-interest" style={{ color: '#ffffff' }} title={fmt(totalInterestFiltered)}>{fmt(totalInterestFiltered)}</p>
+                        <p className="font-inter font-bold text-2xl text-slate-800 dark:text-white m-0 truncate" style={{ color: '#ffffff' }} title={fmt(totalInterestFiltered)}>{fmt(totalInterestFiltered)}</p>
                     </div>
                 </div>
 
                 {/* Tabs */}
-                <div className="loan-admin-mgmt-tabs">
+                <div className="flex items-center gap-2 mb-6 border-b border-slate-200 dark:border-white/10 pb-2">
                     <button
                         onClick={() => { setActiveView('all'); setStatusFilter('all'); }}
-                        className={`loan-admin-mgmt-tab-btn ${activeView === 'all' ? 'active' : ''}`}
+                        className={`px-4 py-2 text-[13px] font-semibold font-inter transition-colors border-b-2 -mb-[2px] ${activeView === 'all' ? 'border-blue-500 text-blue-600 dark:text-blue-400' : 'border-transparent text-slate-500 hover:text-slate-800 dark:text-slate-400 dark:hover:text-white'}`}
                     >
                         All Loans
                     </button>
                     <button
                         onClick={() => { setActiveView('completed'); setStatusFilter('completed'); }}
-                        className={`loan-admin-mgmt-tab-btn ${activeView === 'completed' ? 'active' : ''}`}
+                        className={`px-4 py-2 flex items-center gap-2 text-[13px] font-semibold font-inter transition-colors border-b-2 -mb-[2px] ${activeView === 'completed' ? 'border-blue-500 text-blue-600 dark:text-blue-400' : 'border-transparent text-slate-500 hover:text-slate-800 dark:text-slate-400 dark:hover:text-white'}`}
                     >
                         Completed History
                         {counts.completed > 0 && (
-                            <span className="loan-admin-mgmt-tab-badge">{counts.completed}</span>
+                            <span className="bg-slate-100 dark:bg-white/10 text-slate-600 dark:text-slate-300 px-2 py-0.5 rounded-full text-[10px]">{counts.completed}</span>
                         )}
                     </button>
                 </div>
 
                 {/* Search + Filter */}
-                <div className="loan-admin-mgmt-search-row">
-                    <div className="loan-admin-mgmt-search">
-                        <Search size={20} color="#9CA3AF" />
-                        <input
-                            type="text"
-                            placeholder="Search by member name or loan ID..."
-                            value={searchQuery}
-                            onChange={(e) => setSearchQuery(e.target.value)}
-                        />
+                <div className="flex items-center justify-between gap-4 mb-6 max-md:flex-col">
+                    <div className="relative flex-1 max-w-[400px] w-full">
+                        
+                        <Search size={18}  /><input type="text" placeholder="Search by member name or loan ID..." value={searchQuery} onChange={(e) => setSearchQuery(e.target.value)} className="absolute left-4 top-1/2 -translate-y-1/2 text-slate-400 w-full h-10 pl-11 pr-4 py-2 bg-white dark:bg-[#1E2130] border border-slate-200 dark:border-white/10 rounded-lg text-sm font-inter text-slate-900 dark:text-white placeholder:text-slate-400 focus:outline-none focus:border-blue-500 transition-colors" />
                     </div>
                     {activeView === 'all' && (
                         <select
                             value={statusFilter}
                             onChange={(e) => setStatusFilter(e.target.value)}
-                            className="loan-admin-mgmt-filter-select"
+                            className="h-10 px-4 bg-white dark:bg-[#1E2130] border border-slate-200 dark:border-white/10 rounded-lg text-sm font-inter text-slate-700 dark:text-slate-300 outline-none focus:border-blue-500 transition-colors cursor-pointer appearance-none pr-10 min-w-[160px]"
                         >
                             <option value="all">All Statuses</option>
                             <option value="pending">Pending</option>
@@ -538,46 +533,45 @@ export default function LoanAdminLoanManagement() {
 
                 {/* Table */}
                 {activeView === 'all' ? (
-                    <div className="loan-admin-mgmt-table-container">
-                        <table className="loan-admin-mgmt-table">
-                            <thead>
-                                <tr>
-                                    <th>Loan ID</th>
-                                    <th>Member</th>
-                                    <th>Amount</th>
-                                    <th>Purpose</th>
-                                    <th>Applied Date</th>
-                                    <th>Status</th>
+                    <div className="bg-white dark:bg-[#1E2130] border border-slate-200 dark:border-white/10 rounded-xl overflow-x-auto shadow-sm">
+                        <table className="w-full text-left border-collapse min-w-[900px]">
+                            <thead><tr>
+                                    <th className="bg-slate-50 dark:bg-black/20 border-b border-slate-200 dark:border-white/10 px-4 py-3 font-inter font-semibold text-[11px] tracking-wider uppercase text-slate-500 dark:text-slate-400">Loan ID</th>
+                                    <th className="bg-slate-50 dark:bg-black/20 border-b border-slate-200 dark:border-white/10 px-4 py-3 font-inter font-semibold text-[11px] tracking-wider uppercase text-slate-500 dark:text-slate-400">Member</th>
+                                    <th className="bg-slate-50 dark:bg-black/20 border-b border-slate-200 dark:border-white/10 px-4 py-3 font-inter font-semibold text-[11px] tracking-wider uppercase text-slate-500 dark:text-slate-400">Amount</th>
+                                    <th className="bg-slate-50 dark:bg-black/20 border-b border-slate-200 dark:border-white/10 px-4 py-3 font-inter font-semibold text-[11px] tracking-wider uppercase text-slate-500 dark:text-slate-400">Purpose</th>
+                                    <th className="bg-slate-50 dark:bg-black/20 border-b border-slate-200 dark:border-white/10 px-4 py-3 font-inter font-semibold text-[11px] tracking-wider uppercase text-slate-500 dark:text-slate-400">Applied Date</th>
+                                    <th className="bg-slate-50 dark:bg-black/20 border-b border-slate-200 dark:border-white/10 px-4 py-3 font-inter font-semibold text-[11px] tracking-wider uppercase text-slate-500 dark:text-slate-400">Status</th>
                                 </tr>
                             </thead>
                             <tbody>
                                 {loading ? (
                                     <tr>
-                                        <td colSpan={6} className="loan-admin-mgmt-table-empty">
+                                        <td colSpan={6} className="text-center p-10 text-slate-500 font-inter text-sm">
                                             Loading loans…
                                         </td>
                                     </tr>
                                 ) : filteredLoans.length === 0 ? (
                                     <tr>
-                                        <td colSpan={6} className="loan-admin-mgmt-table-empty">
+                                        <td colSpan={6} className="text-center p-10 text-slate-500 font-inter text-sm">
                                             No loans found
                                         </td>
                                     </tr>
                                 ) : (
                                     filteredLoans.map(loan => (
-                                        <tr key={loan._id} onClick={() => handleViewDetails(loan)} className="loan-admin-mgmt-table-row-hover">
-                                            <td className="loan-admin-mgmt-table-id">{loan.loanId}</td>
-                                            <td>
-                                                <div className="loan-admin-mgmt-table-member">
-                                                    <p className="loan-admin-mgmt-table-member-name">{loan.memberName}</p>
-                                                    <p className="loan-admin-mgmt-table-member-email">{loan.email}</p>
+                                        <tr key={loan._id} onClick={() => handleViewDetails(loan)} className="border-b border-slate-100 dark:border-white/5 hover:bg-slate-50 dark:hover:bg-white/5 transition-colors cursor-pointer group">
+                                            <td className="px-4 py-3 whitespace-nowrap font-inter text-sm font-semibold text-blue-600 dark:text-blue-400">{loan.loanId}</td>
+                                            <td className="px-4 py-3 whitespace-nowrap">
+                                                <div className="flex flex-col">
+                                                    <p className="font-inter text-sm font-semibold text-slate-800 dark:text-white m-0">{loan.memberName}</p>
+                                                    <p className="font-inter text-[11px] text-slate-500 dark:text-slate-400 m-0 mt-0.5">{loan.email}</p>
                                                 </div>
                                             </td>
-                                            <td className="loan-admin-mgmt-table-amount">{fmt(loan.amount)}</td>
-                                            <td>{loan.purpose}</td>
-                                            <td>{fmtDate(loan.appliedDate)}</td>
-                                            <td>
-                                                <span className={`loan-admin-mgmt-status-badge ${resolveStatusClass(loan.status)}`}>
+                                            <td className="font-inter text-sm font-bold text-slate-800 dark:text-white">{fmt(loan.amount)}</td>
+                                            <td className="px-4 py-3 whitespace-nowrap">{loan.purpose}</td>
+                                            <td className="px-4 py-3 whitespace-nowrap">{fmtDate(loan.appliedDate)}</td>
+                                            <td className="px-4 py-3 whitespace-nowrap">
+                                                <span className={`inline-block px-2.5 py-1 rounded-md text-[11px] font-bold tracking-wide uppercase ${ resolveStatusClass(loan.status) === 'pending' ? 'bg-amber-100 text-amber-700 dark:bg-amber-500/20 dark:text-amber-400' : resolveStatusClass(loan.status) === 'approved' ? 'bg-emerald-100 text-emerald-700 dark:bg-emerald-500/20 dark:text-emerald-400' : resolveStatusClass(loan.status) === 'completed' ? 'bg-purple-100 text-purple-700 dark:bg-purple-500/20 dark:text-purple-400' : resolveStatusClass(loan.status) === 'rejected' ? 'bg-rose-100 text-rose-700 dark:bg-rose-500/20 dark:text-rose-400' : 'bg-blue-100 text-blue-700 dark:bg-blue-500/20 dark:text-blue-400'}`}>
                                                     {resolveStatusLabel(loan.status)}
                                                 </span>
                                             </td>
@@ -588,28 +582,27 @@ export default function LoanAdminLoanManagement() {
                         </table>
                     </div>
                 ) : (
-                    <div className="loan-admin-mgmt-table-container">
-                        <table className="loan-admin-mgmt-table">
-                            <thead>
-                                <tr>
-                                    <th>Loan ID</th>
-                                    <th>Member</th>
-                                    <th>Amount</th>
-                                    <th>Term</th>
-                                    <th>Total Repaid</th>
-                                    <th>Completed</th>
+                    <div className="bg-white dark:bg-[#1E2130] border border-slate-200 dark:border-white/10 rounded-xl overflow-x-auto shadow-sm">
+                        <table className="w-full text-left border-collapse min-w-[900px]">
+                            <thead><tr>
+                                    <th className="bg-slate-50 dark:bg-black/20 border-b border-slate-200 dark:border-white/10 px-4 py-3 font-inter font-semibold text-[11px] tracking-wider uppercase text-slate-500 dark:text-slate-400">Loan ID</th>
+                                    <th className="bg-slate-50 dark:bg-black/20 border-b border-slate-200 dark:border-white/10 px-4 py-3 font-inter font-semibold text-[11px] tracking-wider uppercase text-slate-500 dark:text-slate-400">Member</th>
+                                    <th className="bg-slate-50 dark:bg-black/20 border-b border-slate-200 dark:border-white/10 px-4 py-3 font-inter font-semibold text-[11px] tracking-wider uppercase text-slate-500 dark:text-slate-400">Amount</th>
+                                    <th className="bg-slate-50 dark:bg-black/20 border-b border-slate-200 dark:border-white/10 px-4 py-3 font-inter font-semibold text-[11px] tracking-wider uppercase text-slate-500 dark:text-slate-400">Term</th>
+                                    <th className="bg-slate-50 dark:bg-black/20 border-b border-slate-200 dark:border-white/10 px-4 py-3 font-inter font-semibold text-[11px] tracking-wider uppercase text-slate-500 dark:text-slate-400">Total Repaid</th>
+                                    <th className="bg-slate-50 dark:bg-black/20 border-b border-slate-200 dark:border-white/10 px-4 py-3 font-inter font-semibold text-[11px] tracking-wider uppercase text-slate-500 dark:text-slate-400">Completed</th>
                                 </tr>
                             </thead>
                             <tbody>
                                 {loading ? (
                                     <tr>
-                                        <td colSpan={6} className="loan-admin-mgmt-table-empty">
+                                        <td colSpan={6} className="text-center p-10 text-slate-500 font-inter text-sm">
                                             Loading…
                                         </td>
                                     </tr>
                                 ) : filteredLoans.length === 0 ? (
                                     <tr>
-                                        <td colSpan={6} className="loan-admin-mgmt-table-empty">
+                                        <td colSpan={6} className="text-center p-10 text-slate-500 font-inter text-sm">
                                             No completed loans found
                                         </td>
                                     </tr>
@@ -619,7 +612,7 @@ export default function LoanAdminLoanManagement() {
                                         return (
                                             <Fragment key={loan._id}>
                                                 <tr
-                                                    className={`loan-admin-mgmt-table-row-hover ${isExpanded ? 'loan-admin-mgmt-row-expanded' : ''}`}
+                                                    className={`border-b border-slate-100 dark:border-white/5 hover:bg-slate-50 dark:hover:bg-white/5 transition-colors cursor-pointer group ${isExpanded ? 'bg-slate-50 dark:bg-white/5 border-l-4 border-l-blue-500' : ''}`}
                                                     onClick={async () => {
                                                         if (isExpanded) {
                                                             setExpandedLoanId(null);
@@ -637,45 +630,44 @@ export default function LoanAdminLoanManagement() {
                                                         finally { setExpandedLoading(false); }
                                                     }}
                                                 >
-                                                    <td className="loan-admin-mgmt-table-id">{loan.loanId}</td>
-                                                    <td>
-                                                        <div className="loan-admin-mgmt-table-member">
-                                                            <p className="loan-admin-mgmt-table-member-name">{loan.memberName}</p>
-                                                            <p className="loan-admin-mgmt-table-member-email">{loan.email}</p>
+                                                    <td className="px-4 py-3 whitespace-nowrap font-inter text-sm font-semibold text-blue-600 dark:text-blue-400">{loan.loanId}</td>
+                                                    <td className="px-4 py-3 whitespace-nowrap">
+                                                        <div className="flex flex-col">
+                                                            <p className="font-inter text-sm font-semibold text-slate-800 dark:text-white m-0">{loan.memberName}</p>
+                                                            <p className="font-inter text-[11px] text-slate-500 dark:text-slate-400 m-0 mt-0.5">{loan.email}</p>
                                                         </div>
                                                     </td>
-                                                    <td className="loan-admin-mgmt-table-amount">{fmt(loan.amount)}</td>
-                                                    <td>{loan.termMonths} months</td>
-                                                    <td className="loan-admin-mgmt-table-amount loan-admin-mgmt-amount-green">{fmt(loan.totalRepayment)}</td>
-                                                    <td>{fmtDate(loan.completedDate || loan.updatedAt)}</td>
+                                                    <td className="font-inter text-sm font-bold text-slate-800 dark:text-white">{fmt(loan.amount)}</td>
+                                                    <td className="px-4 py-3 whitespace-nowrap">{loan.termMonths} months</td>
+                                                    <td className="font-inter text-sm font-bold text-emerald-600 dark:text-emerald-400">{fmt(loan.totalRepayment)}</td>
+                                                    <td className="px-4 py-3 whitespace-nowrap">{fmtDate(loan.completedDate || loan.updatedAt)}</td>
                                                 </tr>
                                                 {isExpanded && (
-                                                    <tr className="loan-admin-mgmt-expanded-row">
+                                                    <tr className="bg-slate-50 dark:bg-black/20 border-b border-slate-200 dark:border-white/10">
                                                         <td colSpan={6}>
-                                                            <div className="loan-admin-mgmt-payment-history">
-                                                                <p className="loan-admin-mgmt-ph-title">Payment History — {loan.loanId}</p>
+                                                            <div className="p-6">
+                                                                <p className="font-inter text-[13px] font-bold text-slate-800 dark:text-white mb-3 m-0 uppercase tracking-wide">Payment History — {loan.loanId}</p>
                                                                 {expandedLoading ? (
-                                                                    <p className="loan-admin-mgmt-ph-loading">Loading payments...</p>
+                                                                    <p className="text-[13px] text-slate-500 font-inter italic">Loading payments...</p>
                                                                 ) : expandedPayments.length === 0 ? (
-                                                                    <p className="loan-admin-mgmt-ph-loading">No payment records found</p>
+                                                                    <p className="text-[13px] text-slate-500 font-inter italic">No payment records found</p>
                                                                 ) : (
-                                                                    <table className="loan-admin-mgmt-ph-table">
-                                                                        <thead>
-                                                                            <tr>
-                                                                                <th>Date</th>
-                                                                                <th>Amount</th>
-                                                                                <th>Method</th>
-                                                                                <th>Type</th>
+                                                                    <table className="w-full text-left border-collapse bg-white dark:bg-[#1E2130] border border-slate-200 dark:border-white/10 rounded-lg overflow-hidden">
+                                                                        <thead><tr>
+                                                                                <th className="bg-slate-50 dark:bg-black/20 border-b border-slate-200 dark:border-white/10 px-4 py-3 font-inter font-semibold text-[11px] tracking-wider uppercase text-slate-500 dark:text-slate-400">Date</th>
+                                                                                <th className="bg-slate-50 dark:bg-black/20 border-b border-slate-200 dark:border-white/10 px-4 py-3 font-inter font-semibold text-[11px] tracking-wider uppercase text-slate-500 dark:text-slate-400">Amount</th>
+                                                                                <th className="bg-slate-50 dark:bg-black/20 border-b border-slate-200 dark:border-white/10 px-4 py-3 font-inter font-semibold text-[11px] tracking-wider uppercase text-slate-500 dark:text-slate-400">Method</th>
+                                                                                <th className="bg-slate-50 dark:bg-black/20 border-b border-slate-200 dark:border-white/10 px-4 py-3 font-inter font-semibold text-[11px] tracking-wider uppercase text-slate-500 dark:text-slate-400">Type</th>
                                                                             </tr>
                                                                         </thead>
                                                                         <tbody>
                                                                             {expandedPayments.map((p, i) => (
                                                                                 <tr key={p._id || i}>
-                                                                                    <td>{fmtDate(p.confirmedAt || p.submittedAt)}</td>
-                                                                                    <td className="loan-admin-mgmt-amount-green">{fmt(p.amount)}</td>
-                                                                                    <td className="loan-admin-mgmt-ph-method">{p.paymentMethod || 'cash'}</td>
-                                                                                    <td>
-                                                                                        <span className={`loan-admin-mgmt-ph-type-badge ${p.paymentType === 'full' ? 'ph-full' : p.paymentType === 'advance' ? 'ph-advance' : 'ph-regular'}`}>
+                                                                                    <td className="px-4 py-3 whitespace-nowrap">{fmtDate(p.confirmedAt || p.submittedAt)}</td>
+                                                                                    <td className="px-4 py-3 whitespace-nowrap font-inter text-sm font-bold text-emerald-600 dark:text-emerald-400">{fmt(p.amount)}</td>
+                                                                                    <td className="px-4 py-3 whitespace-nowrap font-inter text-[13px] text-slate-600 dark:text-slate-300 capitalize">{p.paymentMethod || 'cash'}</td>
+                                                                                    <td className="px-4 py-3 whitespace-nowrap">
+                                                                                        <span className={`inline-block px-2 py-0.5 rounded text-[10px] font-bold uppercase tracking-wider ${p.paymentType === 'full' ? 'bg-purple-100 text-purple-700 dark:bg-purple-500/20 dark:text-purple-400' : p.paymentType === 'advance' ? 'bg-blue-100 text-blue-700 dark:bg-blue-500/20 dark:text-blue-400' : 'bg-slate-100 text-slate-600 dark:bg-slate-800 dark:text-slate-300'}`}>
                                                                                             {p.paymentType || 'regular'}{p.monthsCovered > 1 ? ` (${p.monthsCovered}mo)` : ''}
                                                                                         </span>
                                                                                     </td>
@@ -698,36 +690,36 @@ export default function LoanAdminLoanManagement() {
                 )}
 
                 {/* Pagination */}
-                <div className="loan-admin-mgmt-pagination">
-                    <p className="loan-admin-mgmt-pagination-info">Showing {filteredLoans.length} results</p>
+                <div className="flex items-center justify-between mt-4 p-[12px_16px] bg-white dark:bg-[#1E2130] rounded-xl border border-slate-200 dark:border-white/10 shadow-sm">
+                    <p className="font-inter text-[13px] text-slate-500 dark:text-slate-400 m-0">Showing {filteredLoans.length} results</p>
                 </div>
             </div>
 
             {/* ══ Approve Confirm Modal ══ */}
             {showApproveModal && selectedLoan && (
-                <div className="loan-admin-mgmt-modal-overlay" onClick={() => setShowApproveModal(false)}>
-                    <div className="loan-admin-mgmt-modal" onClick={(e) => e.stopPropagation()}>
-                        <div className="loan-admin-mgmt-modal-icon approve">
+                <div className="fixed inset-0 bg-black/50 backdrop-blur-sm flex items-center justify-center z-[1000] p-4" onClick={() => setShowApproveModal(false)}>
+                    <div className="bg-white dark:bg-[#1E2130] rounded-2xl w-full max-w-[420px] p-8 shadow-2xl flex flex-col border border-slate-200 dark:border-white/10" onClick={(e) => e.stopPropagation()}>
+                        <div className="w-16 h-16 rounded-full bg-emerald-50 dark:bg-emerald-500/10 flex items-center justify-center mx-auto">
                             <CheckCircle size={32} color="#00A63E" />
                         </div>
-                        <h2 className="loan-admin-mgmt-modal-title">Approve Loan?</h2>
-                        <p className="loan-admin-mgmt-modal-text">
+                        <h2 className="font-inter text-xl font-bold text-slate-800 dark:text-white mt-4 mb-2 text-center">Approve Loan?</h2>
+                        <p className="font-inter text-sm text-slate-500 dark:text-slate-400 text-center mb-6">
                             Are you sure you want to approve loan <strong>{selectedLoan.loanId}</strong> for {selectedLoan.memberName}?
                         </p>
-                        <div className="loan-admin-mgmt-modal-details-enhanced">
-                            <div className="la-modal-detail-row">
-                                <span className="la-modal-detail-label">Amount</span>
-                                <span className="la-modal-detail-value amount">{fmt(selectedLoan.amount)}</span>
+                        <div className="bg-slate-50 dark:bg-black/20 rounded-xl p-4 flex flex-col gap-3 mb-6 border border-slate-100 dark:border-white/5">
+                            <div className="flex items-center justify-between">
+                                <span className="font-inter text-[13px] text-slate-500 dark:text-slate-400">Amount</span>
+                                <span className="font-inter text-[13px] font-bold text-blue-600 dark:text-blue-400">{fmt(selectedLoan.amount)}</span>
                             </div>
-                            <div className="la-modal-detail-row">
-                                <span className="la-modal-detail-label">Purpose</span>
-                                <span className="la-modal-detail-value">{selectedLoan.purpose}</span>
+                            <div className="flex items-center justify-between">
+                                <span className="font-inter text-[13px] text-slate-500 dark:text-slate-400">Purpose</span>
+                                <span className="font-inter text-[13px] font-semibold text-slate-800 dark:text-white">{selectedLoan.purpose}</span>
                             </div>
                         </div>
-                        <div className="loan-admin-mgmt-modal-actions">
-                            <button className="loan-admin-mgmt-modal-btn cancel" onClick={() => setShowApproveModal(false)}>Cancel</button>
-                            <button className="loan-admin-mgmt-modal-btn approve" onClick={confirmApprove} disabled={!!actionLoading}>
-                                {actionLoading ? <span className="btn-spinner" /> : 'Approve Loan'}
+                        <div className="flex items-center gap-3 w-full">
+                            <button className="flex-1 px-4 py-2.5 bg-slate-100 dark:bg-white/5 text-slate-700 dark:text-slate-300 font-inter text-[13px] font-semibold rounded-lg hover:bg-slate-200 dark:hover:bg-white/10 transition-colors border-none cursor-pointer" onClick={() => setShowApproveModal(false)}>Cancel</button>
+                            <button className="flex-1 px-4 py-2.5 bg-emerald-500 text-white font-inter text-[13px] font-semibold rounded-lg hover:bg-emerald-600 transition-colors border-none cursor-pointer disabled:opacity-50 disabled:cursor-not-allowed" onClick={confirmApprove} disabled={!!actionLoading}>
+                                {actionLoading ? <Loader2 className="animate-spin" size={16} /> : 'Approve Loan'}
                             </button>
                         </div>
                     </div>
@@ -736,51 +728,51 @@ export default function LoanAdminLoanManagement() {
 
             {/* ══ Reject Confirm Modal ══ */}
             {showRejectModal && selectedLoan && (
-                <div className="loan-admin-mgmt-modal-overlay" onClick={() => setShowRejectModal(false)}>
-                    <div className="loan-admin-mgmt-modal" onClick={(e) => e.stopPropagation()}>
-                        <div className="loan-admin-mgmt-modal-icon reject">
+                <div className="fixed inset-0 bg-black/50 backdrop-blur-sm flex items-center justify-center z-[1000] p-4" onClick={() => setShowRejectModal(false)}>
+                    <div className="bg-white dark:bg-[#1E2130] rounded-2xl w-full max-w-[420px] p-8 shadow-2xl flex flex-col border border-slate-200 dark:border-white/10" onClick={(e) => e.stopPropagation()}>
+                        <div className="w-16 h-16 rounded-full bg-rose-50 dark:bg-rose-500/10 flex items-center justify-center mx-auto">
                             <XCircle size={32} color="#FF6467" />
                         </div>
-                        <h2 className="loan-admin-mgmt-modal-title">Reject Loan?</h2>
-                        <p className="loan-admin-mgmt-modal-text">
+                        <h2 className="font-inter text-xl font-bold text-slate-800 dark:text-white mt-4 mb-2 text-center">Reject Loan?</h2>
+                        <p className="font-inter text-sm text-slate-500 dark:text-slate-400 text-center mb-6">
                             Are you sure you want to reject loan <strong>{selectedLoan.loanId}</strong> for {selectedLoan.memberName}?
                         </p>
-                        <div className="loan-admin-mgmt-modal-details-enhanced">
-                            <div className="la-modal-detail-row">
-                                <span className="la-modal-detail-label">Amount</span>
-                                <span className="la-modal-detail-value amount">{fmt(selectedLoan.amount)}</span>
+                        <div className="bg-slate-50 dark:bg-black/20 rounded-xl p-4 flex flex-col gap-3 mb-6 border border-slate-100 dark:border-white/5">
+                            <div className="flex items-center justify-between">
+                                <span className="font-inter text-[13px] text-slate-500 dark:text-slate-400">Amount</span>
+                                <span className="font-inter text-[13px] font-bold text-blue-600 dark:text-blue-400">{fmt(selectedLoan.amount)}</span>
                             </div>
-                            <div className="la-modal-detail-row">
-                                <span className="la-modal-detail-label">Purpose</span>
-                                <span className="la-modal-detail-value">{selectedLoan.purpose}</span>
+                            <div className="flex items-center justify-between">
+                                <span className="font-inter text-[13px] text-slate-500 dark:text-slate-400">Purpose</span>
+                                <span className="font-inter text-[13px] font-semibold text-slate-800 dark:text-white">{selectedLoan.purpose}</span>
                             </div>
                         </div>
-                        <div className="loan-admin-mgmt-modal-form">
-                            <label className="loan-admin-mgmt-modal-label">
+                        <div className="flex flex-col gap-2 mb-6 w-full">
+                            <label className="font-inter text-[12px] font-semibold text-slate-700 dark:text-slate-300">
                                 Rejection Reason <span className="required">*</span>
                             </label>
                             <textarea
-                                className="loan-admin-mgmt-modal-textarea"
+                                className="w-full p-3 bg-white dark:bg-[#1E2130] border border-slate-200 dark:border-white/10 rounded-lg text-sm font-inter text-slate-800 dark:text-white outline-none focus:border-rose-500 dark:focus:border-rose-400 resize-none"
                                 placeholder="e.g., Incomplete requirements, Insufficient documents..."
                                 value={rejectReason}
                                 onChange={(e) => setRejectReason(e.target.value)}
                                 rows={4}
                             />
-                            <p className="loan-admin-mgmt-modal-hint">This reason will be visible to the member and other admins.</p>
+                            <p className="font-inter text-[11px] text-slate-500 dark:text-slate-400">This reason will be visible to the member and other admins.</p>
                         </div>
-                        <div className="loan-admin-mgmt-modal-actions">
+                        <div className="flex items-center gap-3 w-full">
                             <button
-                                className="loan-admin-mgmt-modal-btn cancel"
+                                className="flex-1 px-4 py-2.5 bg-slate-100 dark:bg-white/5 text-slate-700 dark:text-slate-300 font-inter text-[13px] font-semibold rounded-lg hover:bg-slate-200 dark:hover:bg-white/10 transition-colors border-none cursor-pointer"
                                 onClick={() => { setShowRejectModal(false); setRejectReason(''); }}
                             >
                                 Cancel
                             </button>
                             <button
-                                className="loan-admin-mgmt-modal-btn reject"
+                                className="flex-1 px-4 py-2.5 bg-rose-500 text-white font-inter text-[13px] font-semibold rounded-lg hover:bg-rose-600 transition-colors border-none cursor-pointer disabled:opacity-50 disabled:cursor-not-allowed"
                                 onClick={confirmReject}
                                 disabled={!rejectReason.trim() || !!actionLoading}
                             >
-                                {actionLoading ? <span className="btn-spinner" /> : 'Reject Loan'}
+                                {actionLoading ? <Loader2 className="animate-spin" size={16} /> : 'Reject Loan'}
                             </button>
                         </div>
                     </div>
@@ -789,95 +781,94 @@ export default function LoanAdminLoanManagement() {
 
             {/* ══════════ DETAILS MODAL — HTML reference layout ══════════ */}
             {showDetailsModal && selectedLoan && (
-                <div className="loan-admin-mgmt-modal-overlay" onClick={() => setShowDetailsModal(false)}>
-                    <div className="loan-admin-mgmt-modal details-modal" onClick={(e) => e.stopPropagation()}>
+                <div className="fixed inset-0 bg-black/50 backdrop-blur-sm flex items-center justify-center z-[1000] p-4" onClick={() => setShowDetailsModal(false)}>
+                    <div className="bg-white dark:bg-[#1E2130] rounded-2xl w-full max-w-[800px] shadow-2xl flex flex-col border border-slate-200 dark:border-white/10 max-h-[90vh] overflow-hidden" onClick={(e) => e.stopPropagation()}>
 
                         {/* ── Header ── */}
-                        <div className="dm-header">
-                            <div className="dm-header-left">
-                                <p className="dm-title">Loan Details</p>
-                                <p className="dm-req-id">Request ID: {selectedLoan.loanId}</p>
+                        <div className="flex items-start justify-between p-[20px_24px] border-b border-slate-200 dark:border-white/10 shrink-0">
+                            <div className="flex flex-col">
+                                <p className="font-inter text-xl font-bold text-slate-800 dark:text-white m-0">Loan Details</p>
+                                <p className="font-inter text-[13px] text-slate-500 dark:text-slate-400 m-0 mt-1">Request ID: {selectedLoan.loanId}</p>
                             </div>
-                            <button className="dm-x-btn" onClick={() => setShowDetailsModal(false)}>
+                            <button className="w-8 h-8 rounded-lg bg-slate-100 dark:bg-white/5 text-slate-500 dark:text-slate-400 flex items-center justify-center cursor-pointer hover:bg-slate-200 dark:hover:bg-white/10 transition-colors border-none" onClick={() => setShowDetailsModal(false)}>
                                 <X size={20} />
                             </button>
                         </div>
 
                         {/* ── Body ── */}
-                        <div className="dm-body">
+                        <div className="flex-1 overflow-y-auto p-[24px] flex flex-col gap-6 custom-scrollbar">
 
                             {/* Status Row */}
-                            <div className={`dm-status-row ${detailStatusClass}`}>
-                                <div className="dm-status-left">
-                                    <div className={`dm-sdot ${detailStatusClass}`} />
-                                    <span className={`dm-slabel ${detailStatusClass}`}>Status</span>
-                                    <span className={`loan-admin-mgmt-status-badge ${detailStatusClass === 'awaiting' ? 'pending' : detailStatusClass
-                                        }`}>
+                            <div className={`flex items-center justify-between p-[12px_16px] rounded-xl border ${detailStatusClass === 'pending' ? 'bg-amber-50 border-amber-200 dark:bg-amber-500/10 dark:border-amber-500/20' : detailStatusClass === 'approved' ? 'bg-emerald-50 border-emerald-200 dark:bg-emerald-500/10 dark:border-emerald-500/20' : detailStatusClass === 'completed' ? 'bg-purple-50 border-purple-200 dark:bg-purple-500/10 dark:border-purple-500/20' : detailStatusClass === 'rejected' ? 'bg-rose-50 border-rose-200 dark:bg-rose-500/10 dark:border-rose-500/20' : 'bg-blue-50 border-blue-200 dark:bg-blue-500/10 dark:border-blue-500/20'}`}>
+                                <div className="flex items-center gap-3">
+                                    <div className={`w-2.5 h-2.5 rounded-full ${detailStatusClass === 'pending' ? 'bg-amber-500' : detailStatusClass === 'approved' ? 'bg-emerald-500' : detailStatusClass === 'completed' ? 'bg-purple-500' : detailStatusClass === 'rejected' ? 'bg-rose-500' : 'bg-blue-500'}`} />
+                                    <span className={`font-inter text-[13px] font-semibold ${detailStatusClass === 'pending' ? 'text-amber-700 dark:text-amber-400' : detailStatusClass === 'approved' ? 'text-emerald-700 dark:text-emerald-400' : detailStatusClass === 'completed' ? 'text-purple-700 dark:text-purple-400' : detailStatusClass === 'rejected' ? 'text-rose-700 dark:text-rose-400' : 'text-blue-700 dark:text-blue-400'}`}>Status</span>
+                                    <span className={`inline-block px-2.5 py-1 rounded-md text-[11px] font-bold tracking-wide uppercase ${ detailStatusClass === 'pending' || detailStatusClass === 'awaiting' ? 'bg-amber-100 text-amber-700 dark:bg-amber-500/20 dark:text-amber-400' : detailStatusClass === 'approved' ? 'bg-emerald-100 text-emerald-700 dark:bg-emerald-500/20 dark:text-emerald-400' : detailStatusClass === 'completed' ? 'bg-purple-100 text-purple-700 dark:bg-purple-500/20 dark:text-purple-400' : detailStatusClass === 'rejected' ? 'bg-rose-100 text-rose-700 dark:bg-rose-500/20 dark:text-rose-400' : 'bg-blue-100 text-blue-700 dark:bg-blue-500/20 dark:text-blue-400'}`}>
                                         {detailStatusLabel}
                                     </span>
                                 </div>
-                                <span className={`dm-status-right ${detailStatusClass}`}>
+                                <span className={`font-inter text-[12px] text-right ${detailStatusClass === 'pending' ? 'text-amber-600 dark:text-amber-500' : detailStatusClass === 'approved' ? 'text-emerald-600 dark:text-emerald-500' : detailStatusClass === 'completed' ? 'text-purple-600 dark:text-purple-500' : detailStatusClass === 'rejected' ? 'text-rose-600 dark:text-rose-500' : 'text-blue-600 dark:text-blue-500'}`}>
                                     {detailStatusDesc}
                                 </span>
                             </div>
 
-                            <div className="dm-layout-grid">
+                            <div className="grid grid-cols-1 md:grid-cols-12 gap-6">
                                 {/* ── LEFT COLUMN ── */}
-                                <div className="dm-column-left">
+                                <div className="md:col-span-7 flex flex-col gap-6">
                                     {/* Member Information */}
                                     <div>
-                                        <div className="dm-sec-label">Member information</div>
-                                        <div className="dm-info-grid">
-                                            <div className="dm-ic">
-                                                <div className="dm-ik">Member name</div>
-                                                <div className="dm-iv">{selectedLoan.memberName}</div>
+                                        <div className="font-inter text-[11px] font-semibold uppercase tracking-wider text-slate-500 dark:text-slate-400 m-0 mb-3">Member information</div>
+                                        <div className="grid grid-cols-2 gap-4 bg-slate-50 dark:bg-[#252836] p-4 rounded-xl border border-slate-200 dark:border-white/5">
+                                            <div className="flex flex-col gap-0.5">
+                                                <div className="font-inter text-[11px] text-slate-500 dark:text-slate-400">Member name</div>
+                                                <div className="font-inter text-[13px] font-semibold text-slate-800 dark:text-white">{selectedLoan.memberName}</div>
                                             </div>
-                                            <div className="dm-ic">
-                                                <div className="dm-ik">Email address</div>
-                                                <div className="dm-iv email">{selectedLoan.email}</div>
+                                            <div className="flex flex-col gap-0.5">
+                                                <div className="font-inter text-[11px] text-slate-500 dark:text-slate-400">Email address</div>
+                                                <div className="font-inter text-[13px] font-semibold text-slate-800 dark:text-white break-all">{selectedLoan.email}</div>
                                             </div>
-                                            <div className="dm-ic">
-                                                <div className="dm-ik">Applied date</div>
-                                                <div className="dm-iv">{fmtDate(selectedLoan.appliedDate)}</div>
+                                            <div className="flex flex-col gap-0.5">
+                                                <div className="font-inter text-[11px] text-slate-500 dark:text-slate-400">Applied date</div>
+                                                <div className="font-inter text-[13px] font-semibold text-slate-800 dark:text-white">{fmtDate(selectedLoan.appliedDate)}</div>
                                             </div>
-                                            <div className="dm-ic">
-                                                <div className="dm-ik">Member savings</div>
-                                                <div className="dm-iv green">{fmt(memberSavings)}</div>
+                                            <div className="flex flex-col gap-0.5">
+                                                <div className="font-inter text-[11px] text-slate-500 dark:text-slate-400">Member savings</div>
+                                                <div className="font-inter text-[13px] font-bold text-emerald-600 dark:text-emerald-400">{fmt(memberSavings)}</div>
                                             </div>
                                         </div>
                                     </div>
 
                                     {/* Requested Loan Type */}
                                     <div>
-                                        <div className="dm-sec-label">Requested loan type</div>
-                                        <div className={`dm-loan-pill ${pillClass}`}>
+                                        <div className="font-inter text-[11px] font-semibold uppercase tracking-wider text-slate-500 dark:text-slate-400 m-0 mb-3">Requested loan type</div>
+                                        <div className={`flex items-center justify-between p-4 rounded-xl border ${pillClass === 'emergency' ? 'bg-amber-50 border-amber-200 dark:bg-amber-500/10 dark:border-amber-500/20' : pillClass === 'short-term' ? 'bg-teal-50 border-teal-200 dark:bg-teal-500/10 dark:border-teal-500/20' : 'bg-blue-50 border-blue-200 dark:bg-blue-500/10 dark:border-blue-500/20'}`}>
                                             <div style={{ flex: 1 }}>
-                                                <div className={`dm-lt-name ${pillClass}`}>
+                                                <div className={`font-inter text-sm font-bold m-0 ${pillClass === 'emergency' ? 'text-amber-800 dark:text-amber-400' : pillClass === 'short-term' ? 'text-teal-800 dark:text-teal-400' : 'text-blue-800 dark:text-blue-400'}`}>
                                                     {selectedType?.name || 'Personal Loan'}
                                                 </div>
-                                                <div className="dm-lt-tags">
-                                                    <span className={`dm-lt-tag ${pillClass}`}>{selectedType?.multiplier || 2}×</span>
-                                                    <span className={`dm-lt-tag ${pillClass}`}>{selectedType?.rateLabel || '2% / mo'}</span>
-                                                    <span className={`dm-lt-tag ${pillClass}`}>{selectedType?.minTerm || 3}–{selectedType?.maxTerm || 12}m</span>
+                                                <div className="flex items-center gap-2 mt-1.5 flex-wrap">
+                                                    <span className={`px-2 py-0.5 rounded text-[10px] font-bold bg-white/60 dark:bg-black/20 ${pillClass === 'emergency' ? 'text-amber-700 dark:text-amber-400' : pillClass === 'short-term' ? 'text-teal-700 dark:text-teal-400' : 'text-blue-700 dark:text-blue-400'}`}>{selectedType?.multiplier || 2}×</span>
+                                                    <span className={`px-2 py-0.5 rounded text-[10px] font-bold bg-white/60 dark:bg-black/20 ${pillClass === 'emergency' ? 'text-amber-700 dark:text-amber-400' : pillClass === 'short-term' ? 'text-teal-700 dark:text-teal-400' : 'text-blue-700 dark:text-blue-400'}`}>{selectedType?.rateLabel || '2% / mo'}</span>
+                                                    <span className={`px-2 py-0.5 rounded text-[10px] font-bold bg-white/60 dark:bg-black/20 ${pillClass === 'emergency' ? 'text-amber-700 dark:text-amber-400' : pillClass === 'short-term' ? 'text-teal-700 dark:text-teal-400' : 'text-blue-700 dark:text-blue-400'}`}>{selectedType?.minTerm || 3}–{selectedType?.maxTerm || 12}m</span>
                                                 </div>
                                             </div>
-                                            <div className="dm-lt-amt">
-                                                <div className="dm-lt-amt-label">Requested</div>
-                                                <div className={`dm-lt-amt-val ${pillClass}`}>{fmt(selectedLoan.amount)}</div>
+                                            <div className="flex flex-col items-end text-right ml-4 shrink-0">
+                                                <div className="font-inter text-[11px] font-medium text-slate-500 dark:text-slate-400 uppercase tracking-wider">Requested</div>
+                                                <div className={`font-inter text-lg font-bold m-0 ${pillClass === 'emergency' ? 'text-amber-700 dark:text-amber-400' : pillClass === 'short-term' ? 'text-teal-700 dark:text-teal-400' : 'text-blue-700 dark:text-blue-400'}`}>{fmt(selectedLoan.amount)}</div>
                                             </div>
                                         </div>
                                     </div>
 
                                     {/* Admin — set repayment terms (MOVED HERE) */}
-                                    <div className="dm-edit-box">
-                                        <div className="dm-edit-box-title">
+                                    <div className="bg-slate-50 dark:bg-[#252836] border border-slate-200 dark:border-white/5 rounded-xl p-4 flex flex-col gap-3">
+                                        <div className="font-inter text-[12px] font-semibold text-slate-700 dark:text-slate-300">
                                             Admin — Set Repayment Terms
                                         </div>
-                                        <div className="dm-edit-row">
-                                            <div className="dm-edit-field">
-                                                <label className="dm-edit-label">Approved amount (₱)</label>
+                                        <div className="flex items-start gap-3">
+                                            <div className="flex flex-col gap-1.5 flex-1">
+                                                <label className="font-inter text-[11px] text-slate-500 dark:text-slate-400">Approved amount (₱)</label>
                                                 <input
-                                                    className="dm-edit-input"
+                                                    className="w-full p-2.5 bg-white dark:bg-[#1E2130] border border-slate-200 dark:border-white/10 rounded-lg text-[13px] font-inter text-slate-800 dark:text-white outline-none focus:border-blue-500 transition-colors"
                                                     type="number"
                                                     value={approvedAmount}
                                                     onChange={(e) => setApprovedAmount(e.target.value)}
@@ -885,10 +876,10 @@ export default function LoanAdminLoanManagement() {
                                                     max={maxLoanable || undefined}
                                                 />
                                             </div>
-                                            <div className="dm-edit-field">
-                                                <label className="dm-edit-label">Repayment term</label>
+                                            <div className="flex flex-col gap-1.5 flex-1">
+                                                <label className="font-inter text-[11px] text-slate-500 dark:text-slate-400">Repayment term</label>
                                                 <select
-                                                    className="dm-edit-select"
+                                                    className="w-full p-2.5 bg-white dark:bg-[#1E2130] border border-slate-200 dark:border-white/10 rounded-lg text-[13px] font-inter text-slate-800 dark:text-white outline-none focus:border-blue-500 transition-colors"
                                                     value={repaymentTerm}
                                                     onChange={(e) => setRepaymentTerm(e.target.value)}
                                                 >
@@ -900,23 +891,23 @@ export default function LoanAdminLoanManagement() {
                                             </div>
                                         </div>
                                         {maxLoanable > 0 && (
-                                            <div className="dm-edit-hint">
+                                            <div className="font-inter text-[11px] text-slate-500 dark:text-slate-400 mt-1">
                                                 Max loanable: {fmt(maxLoanable)} ({selectedType?.multiplier}× savings)
                                             </div>
                                         )}
                                         {calc && (
-                                            <div className="dm-computed">
-                                                <div className="dm-computed-pill">
-                                                    <div className="dm-cp-label">Monthly</div>
-                                                    <div className="dm-cp-val">{fmt(calc.monthly)}</div>
+                                            <div className="flex items-center gap-3 mt-2">
+                                                <div className="flex-1 bg-white dark:bg-[#1E2130] border border-slate-200 dark:border-white/10 rounded-lg p-2.5 flex flex-col gap-0.5">
+                                                    <div className="font-inter text-[10px] text-slate-500 dark:text-slate-400 uppercase tracking-wider">Monthly</div>
+                                                    <div className="font-inter text-[13px] font-semibold text-slate-800 dark:text-white">{fmt(calc.monthly)}</div>
                                                 </div>
-                                                <div className="dm-computed-pill">
-                                                    <div className="dm-cp-label">Interest</div>
-                                                    <div className="dm-cp-val amber">{fmt(calc.totalInterest)}</div>
+                                                <div className="flex-1 bg-white dark:bg-[#1E2130] border border-slate-200 dark:border-white/10 rounded-lg p-2.5 flex flex-col gap-0.5">
+                                                    <div className="font-inter text-[10px] text-slate-500 dark:text-slate-400 uppercase tracking-wider">Interest</div>
+                                                    <div className="font-inter text-[13px] font-bold text-amber-600 dark:text-amber-400">{fmt(calc.totalInterest)}</div>
                                                 </div>
-                                                <div className="dm-computed-pill">
-                                                    <div className="dm-cp-label">Total</div>
-                                                    <div className="dm-cp-val green">{fmt(calc.totalRepayment)}</div>
+                                                <div className="flex-1 bg-white dark:bg-[#1E2130] border border-slate-200 dark:border-white/10 rounded-lg p-2.5 flex flex-col gap-0.5">
+                                                    <div className="font-inter text-[10px] text-slate-500 dark:text-slate-400 uppercase tracking-wider">Total</div>
+                                                    <div className="font-inter text-[13px] font-bold text-emerald-600 dark:text-emerald-400">{fmt(calc.totalRepayment)}</div>
                                                 </div>
                                             </div>
                                         )}
@@ -924,8 +915,8 @@ export default function LoanAdminLoanManagement() {
 
                                     {/* Disbursement Method (MOVED HERE) */}
                                     <div>
-                                        <div className="dm-sec-label">Disbursement method</div>
-                                        <div className="dm-disbursement-row">
+                                        <div className="font-inter text-[11px] font-semibold uppercase tracking-wider text-slate-500 dark:text-slate-400 m-0 mb-3">Disbursement method</div>
+                                        <div className="flex items-center gap-3">
                                             {[
                                                 { id: 'cash', label: 'Cash' },
                                                 { id: 'e-wallet', label: 'E-Wallet' },
@@ -933,9 +924,9 @@ export default function LoanAdminLoanManagement() {
                                             ].map(opt => {
                                                 const active = selectedLoan.disbursementMethod === opt.id;
                                                 return (
-                                                    <div key={opt.id} className={`dm-dopt ${active ? 'sel' : ''}`}>
-                                                        <div className={`dm-rdot ${active ? 'on' : ''}`} />
-                                                        <span className="dm-dlabel">{opt.label}</span>
+                                                    <div key={opt.id} className={`flex-1 flex items-center justify-center gap-2 p-2.5 rounded-lg border text-[13px] font-semibold font-inter transition-colors ${active ? 'bg-blue-50 border-blue-500 text-blue-700 dark:bg-blue-500/10 dark:text-blue-400' : 'bg-slate-50 border-slate-200 text-slate-500 dark:bg-[#252836] dark:border-white/5 dark:text-slate-400'}`}>
+                                                        <div className={`w-3 h-3 rounded-full border-2 ${active ? 'border-blue-500 bg-blue-500' : 'border-slate-300 dark:border-slate-500 bg-transparent'}`} />
+                                                        <span className="m-0">{opt.label}</span>
                                                     </div>
                                                 );
                                             })}
@@ -949,68 +940,68 @@ export default function LoanAdminLoanManagement() {
 
                                     {/* Uploaded Documents (MOVED HERE) */}
                                     <div>
-                                        <div className="dm-sec-label">Uploaded documents</div>
-                                        <div className="dm-docs-grid">
+                                        <div className="font-inter text-[11px] font-semibold uppercase tracking-wider text-slate-500 dark:text-slate-400 m-0 mb-3">Uploaded documents</div>
+                                        <div className="grid grid-cols-2 gap-4 mt-2">
                                             {/* Selfie with ID */}
-                                            <div className="dm-doc-card" onClick={() => handleDocClick(selectedLoan.selfieData, setViewingImage)}>
-                                                <div className="dm-doc-placeholder">
+                                            <div className="bg-white dark:bg-[#252836] border border-slate-200 dark:border-white/5 rounded-xl overflow-hidden flex flex-col cursor-pointer transition-transform hover:-translate-y-1 hover:shadow-md" onClick={() => handleDocClick(selectedLoan.selfieData, setViewingImage)}>
+                                                <div className="h-28 bg-slate-100 dark:bg-black/20 flex items-center justify-center overflow-hidden border-b border-slate-200 dark:border-white/5">
                                                     {renderDocPreview(selectedLoan.selfieData)}
                                                 </div>
-                                                <div className="dm-doc-footer">
-                                                    <span className="dm-doc-name">Selfie w/ ID</span>
-                                                    <span className={`dm-doc-badge ${selectedLoan.selfieData ? 'ok' : 'missing'}`}>
+                                                <div className="p-2.5 flex items-center justify-between">
+                                                    <span className="font-inter text-[11px] font-semibold text-slate-700 dark:text-slate-300">Selfie w/ ID</span>
+                                                    <span className={`text-[10px] font-bold px-1.5 py-0.5 rounded ${selectedLoan.selfieData ? 'bg-emerald-100 text-emerald-700 dark:bg-emerald-500/20 dark:text-emerald-400' : 'bg-rose-100 text-rose-700 dark:bg-rose-500/20 dark:text-rose-400'}`}>
                                                         {selectedLoan.selfieData ? 'OK' : 'X'}
                                                     </span>
                                                 </div>
                                             </div>
 
                                             {/* Government ID */}
-                                            <div className="dm-doc-card" onClick={() => handleDocClick(selectedLoan.idData, setViewingImage)}>
-                                                <div className="dm-doc-placeholder">
+                                            <div className="bg-white dark:bg-[#252836] border border-slate-200 dark:border-white/5 rounded-xl overflow-hidden flex flex-col cursor-pointer transition-transform hover:-translate-y-1 hover:shadow-md" onClick={() => handleDocClick(selectedLoan.idData, setViewingImage)}>
+                                                <div className="h-28 bg-slate-100 dark:bg-black/20 flex items-center justify-center overflow-hidden border-b border-slate-200 dark:border-white/5">
                                                     {renderDocPreview(selectedLoan.idData)}
                                                 </div>
-                                                <div className="dm-doc-footer">
-                                                    <span className="dm-doc-name">Valid ID</span>
-                                                    <span className={`dm-doc-badge ${selectedLoan.idData ? 'ok' : 'missing'}`}>
+                                                <div className="p-2.5 flex items-center justify-between">
+                                                    <span className="font-inter text-[11px] font-semibold text-slate-700 dark:text-slate-300">Valid ID</span>
+                                                    <span className={`text-[10px] font-bold px-1.5 py-0.5 rounded ${selectedLoan.idData ? 'bg-emerald-100 text-emerald-700 dark:bg-emerald-500/20 dark:text-emerald-400' : 'bg-rose-100 text-rose-700 dark:bg-rose-500/20 dark:text-rose-400'}`}>
                                                         {selectedLoan.idData ? 'OK' : 'X'}
                                                     </span>
                                                 </div>
                                             </div>
 
                                             {/* COE */}
-                                            <div className="dm-doc-card" onClick={() => handleDocClick(selectedLoan.coeData, setViewingImage)}>
-                                                <div className="dm-doc-placeholder">
+                                            <div className="bg-white dark:bg-[#252836] border border-slate-200 dark:border-white/5 rounded-xl overflow-hidden flex flex-col cursor-pointer transition-transform hover:-translate-y-1 hover:shadow-md" onClick={() => handleDocClick(selectedLoan.coeData, setViewingImage)}>
+                                                <div className="h-28 bg-slate-100 dark:bg-black/20 flex items-center justify-center overflow-hidden border-b border-slate-200 dark:border-white/5">
                                                     {renderDocPreview(selectedLoan.coeData)}
                                                 </div>
-                                                <div className="dm-doc-footer">
-                                                    <span className="dm-doc-name">COE</span>
-                                                    <span className={`dm-doc-badge ${selectedLoan.coeData ? 'ok' : 'missing'}`}>
+                                                <div className="p-2.5 flex items-center justify-between">
+                                                    <span className="font-inter text-[11px] font-semibold text-slate-700 dark:text-slate-300">COE</span>
+                                                    <span className={`text-[10px] font-bold px-1.5 py-0.5 rounded ${selectedLoan.coeData ? 'bg-emerald-100 text-emerald-700 dark:bg-emerald-500/20 dark:text-emerald-400' : 'bg-rose-100 text-rose-700 dark:bg-rose-500/20 dark:text-rose-400'}`}>
                                                         {selectedLoan.coeData ? 'OK' : 'X'}
                                                     </span>
                                                 </div>
                                             </div>
 
                                             {/* ITR */}
-                                            <div className="dm-doc-card" onClick={() => handleDocClick(selectedLoan.itrData, setViewingImage)}>
-                                                <div className="dm-doc-placeholder">
+                                            <div className="bg-white dark:bg-[#252836] border border-slate-200 dark:border-white/5 rounded-xl overflow-hidden flex flex-col cursor-pointer transition-transform hover:-translate-y-1 hover:shadow-md" onClick={() => handleDocClick(selectedLoan.itrData, setViewingImage)}>
+                                                <div className="h-28 bg-slate-100 dark:bg-black/20 flex items-center justify-center overflow-hidden border-b border-slate-200 dark:border-white/5">
                                                     {renderDocPreview(selectedLoan.itrData)}
                                                 </div>
-                                                <div className="dm-doc-footer">
-                                                    <span className="dm-doc-name">ITR</span>
-                                                    <span className={`dm-doc-badge ${selectedLoan.itrData ? 'ok' : 'missing'}`}>
+                                                <div className="p-2.5 flex items-center justify-between">
+                                                    <span className="font-inter text-[11px] font-semibold text-slate-700 dark:text-slate-300">ITR</span>
+                                                    <span className={`text-[10px] font-bold px-1.5 py-0.5 rounded ${selectedLoan.itrData ? 'bg-emerald-100 text-emerald-700 dark:bg-emerald-500/20 dark:text-emerald-400' : 'bg-rose-100 text-rose-700 dark:bg-rose-500/20 dark:text-rose-400'}`}>
                                                         {selectedLoan.itrData ? 'OK' : 'X'}
                                                     </span>
                                                 </div>
                                             </div>
 
                                             {/* Payslip */}
-                                            <div className="dm-doc-card" onClick={() => handleDocClick(selectedLoan.payslipData, setViewingImage)}>
-                                                <div className="dm-doc-placeholder">
+                                            <div className="bg-white dark:bg-[#252836] border border-slate-200 dark:border-white/5 rounded-xl overflow-hidden flex flex-col cursor-pointer transition-transform hover:-translate-y-1 hover:shadow-md" onClick={() => handleDocClick(selectedLoan.payslipData, setViewingImage)}>
+                                                <div className="h-28 bg-slate-100 dark:bg-black/20 flex items-center justify-center overflow-hidden border-b border-slate-200 dark:border-white/5">
                                                     {renderDocPreview(selectedLoan.payslipData)}
                                                 </div>
-                                                <div className="dm-doc-footer">
-                                                    <span className="dm-doc-name">Payslip</span>
-                                                    <span className={`dm-doc-badge ${selectedLoan.payslipData ? 'ok' : 'missing'}`}>
+                                                <div className="p-2.5 flex items-center justify-between">
+                                                    <span className="font-inter text-[11px] font-semibold text-slate-700 dark:text-slate-300">Payslip</span>
+                                                    <span className={`text-[10px] font-bold px-1.5 py-0.5 rounded ${selectedLoan.payslipData ? 'bg-emerald-100 text-emerald-700 dark:bg-emerald-500/20 dark:text-emerald-400' : 'bg-rose-100 text-rose-700 dark:bg-rose-500/20 dark:text-rose-400'}`}>
                                                         {selectedLoan.payslipData ? 'OK' : 'X'}
                                                     </span>
                                                 </div>
@@ -1018,13 +1009,13 @@ export default function LoanAdminLoanManagement() {
 
                                             {/* Active Loan Screenshot */}
                                             {selectedLoan.hasActiveLoan && (
-                                                <div className="dm-doc-card" onClick={() => handleDocClick(selectedLoan.activeLoanScreenshotData, setViewingImage)}>
-                                                    <div className="dm-doc-placeholder">
+                                                <div className="bg-white dark:bg-[#252836] border border-slate-200 dark:border-white/5 rounded-xl overflow-hidden flex flex-col cursor-pointer transition-transform hover:-translate-y-1 hover:shadow-md" onClick={() => handleDocClick(selectedLoan.activeLoanScreenshotData, setViewingImage)}>
+                                                    <div className="h-28 bg-slate-100 dark:bg-black/20 flex items-center justify-center overflow-hidden border-b border-slate-200 dark:border-white/5">
                                                         {renderDocPreview(selectedLoan.activeLoanScreenshotData)}
                                                     </div>
-                                                    <div className="dm-doc-footer">
-                                                        <span className="dm-doc-name">Active Loan</span>
-                                                        <span className={`dm-doc-badge ${selectedLoan.activeLoanScreenshotData ? 'ok' : 'missing'}`}>
+                                                    <div className="p-2.5 flex items-center justify-between">
+                                                        <span className="font-inter text-[11px] font-semibold text-slate-700 dark:text-slate-300">Active Loan</span>
+                                                        <span className={`text-[10px] font-bold px-1.5 py-0.5 rounded ${selectedLoan.activeLoanScreenshotData ? 'bg-emerald-100 text-emerald-700 dark:bg-emerald-500/20 dark:text-emerald-400' : 'bg-rose-100 text-rose-700 dark:bg-rose-500/20 dark:text-rose-400'}`}>
                                                             {selectedLoan.activeLoanScreenshotData ? 'OK' : 'X'}
                                                         </span>
                                                     </div>
@@ -1035,7 +1026,7 @@ export default function LoanAdminLoanManagement() {
                                 </div>
 
                                 {/* ── RIGHT COLUMN ── */}
-                                <div className="dm-column-right">
+                                <div className="md:col-span-5 flex flex-col gap-6">
                                     {/* ── DSS Panel (MOVED HERE) ── */}
                                     <DSSPanel 
                                         analysis={dssAnalysis} 
@@ -1046,24 +1037,24 @@ export default function LoanAdminLoanManagement() {
 
                                     {/* OCR Results Analysis */}
                                     {ocrResults && (
-                                        <div className={`dm-ocr-result-box ${ocrResults.matchFound ? 'pass' : 'fail'}`}>
-                                            <div className="dm-ocr-header">
+                                        <div className={`p-4 rounded-xl border ${ocrResults.matchFound ? 'bg-emerald-50 border-emerald-200 dark:bg-emerald-500/10 dark:border-emerald-500/20' : 'bg-rose-50 border-rose-200 dark:bg-rose-500/10 dark:border-rose-500/20'}`}>
+                                            <div className="flex items-center gap-2 mb-3">
                                                 {ocrResults.matchFound ? (
-                                                    <ShieldCheck size={18} className="dm-ocr-icon pass" />
+                                                    <ShieldCheck size={18} className="text-emerald-600 dark:text-emerald-400" />
                                                 ) : (
-                                                    <AlertTriangle size={18} className="dm-ocr-icon fail" />
+                                                    <AlertTriangle size={18} className="text-rose-600 dark:text-rose-400" />
                                                 )}
-                                                <span className={`dm-ocr-title ${ocrResults.matchFound ? 'pass' : 'fail'}`}>
+                                                <span className={`font-inter text-sm font-bold ${ocrResults.matchFound ? 'text-emerald-800 dark:text-emerald-400' : 'text-rose-800 dark:text-rose-400'}`}>
                                                     {ocrResults.matchFound ? 'OCR Identity Match' : 'OCR Verification Alert'}
                                                 </span>
                                             </div>
-                                            <ul className="dm-ocr-list">
+                                            <ul className="m-0 pl-5 font-inter text-[13px] text-slate-700 dark:text-slate-300 space-y-1">
                                                 {ocrResults.messages.map((m, idx) => (
                                                     <li key={idx}>{m}</li>
                                                 ))}
                                             </ul>
                                             {!ocrResults.matchFound && (
-                                                <div className="dm-ocr-warning">
+                                                <div className="mt-3 p-3 bg-rose-100/50 dark:bg-rose-900/30 rounded-lg font-inter text-[12px] text-rose-800 dark:text-rose-300 leading-relaxed">
                                                     <strong>Important:</strong> The system could not confirm the member's name from the document scan. Please examine the images closely before approval.
                                                 </div>
                                             )}
@@ -1071,18 +1062,18 @@ export default function LoanAdminLoanManagement() {
                                     )}
 
                                     {/* System Note */}
-                                    <div className="dm-note-box">
-                                        <div className="dm-note-title">System Note</div>
-                                        <div className="dm-note-text">
+                                    <div className="p-4 bg-slate-50 dark:bg-[#252836] border border-slate-200 dark:border-white/5 rounded-xl">
+                                        <div className="font-inter text-[12px] font-semibold text-slate-700 dark:text-slate-300 mb-1">System Note</div>
+                                        <div className="font-inter text-[12px] text-slate-500 dark:text-slate-400 leading-relaxed">
                                             Review within 2–3 days. Late penalty 3%/mo applies.
                                         </div>
                                     </div>
 
                                     {/* Rejection Reason (shown when loan is rejected) */}
                                     {selectedLoan.status && selectedLoan.status.toLowerCase() === 'rejected' && selectedLoan.rejectionReason && (
-                                        <div className="dm-note-box" style={{ borderLeft: '4px solid #EF4444', background: '#FEF2F2' }}>
-                                            <div className="dm-note-title" style={{ color: '#DC2626' }}>Rejection Reason</div>
-                                            <div className="dm-note-text" style={{ color: '#991B1B' }}>
+                                        <div className="p-4 bg-slate-50 dark:bg-[#252836] border border-slate-200 dark:border-white/5 rounded-xl" style={{ borderLeft: '4px solid #EF4444', background: '#FEF2F2' }}>
+                                            <div className="font-inter text-[12px] font-semibold text-slate-700 dark:text-slate-300 mb-1" style={{ color: '#DC2626' }}>Rejection Reason</div>
+                                            <div className="font-inter text-[12px] text-slate-500 dark:text-slate-400 leading-relaxed" style={{ color: '#991B1B' }}>
                                                 {selectedLoan.rejectionReason}
                                             </div>
                                         </div>
@@ -1093,8 +1084,8 @@ export default function LoanAdminLoanManagement() {
                         </div>{/* end dm-body */}
 
                         {/* ── Footer ── */}
-                        <div className="dm-footer">
-                            <span className="dm-footer-meta">
+                        <div className="flex items-center justify-between p-[16px_24px] border-t border-slate-200 dark:border-white/10 shrink-0 bg-white dark:bg-[#1E2130]">
+                            <span className="font-inter text-[13px] text-slate-500 dark:text-slate-400">
                                 Applied {fmtDate(selectedLoan.appliedDate)} ·{' '}
                                 {selectedLoan.status === 'pending'
                                     ? 'Pending review'
@@ -1102,32 +1093,32 @@ export default function LoanAdminLoanManagement() {
                                         ? 'Awaiting member response'
                                         : detailStatusLabel}
                             </span>
-                            <div className="dm-footer-actions">
-                                <button className="dm-btn-close" onClick={() => setShowDetailsModal(false)}>
+                            <div className="flex items-center gap-3">
+                                <button className="px-4 py-2 bg-slate-100 dark:bg-white/5 text-slate-700 dark:text-slate-300 font-inter text-[13px] font-semibold rounded-lg hover:bg-slate-200 dark:hover:bg-white/10 transition-colors border-none cursor-pointer" onClick={() => setShowDetailsModal(false)}>
                                     Close
                                 </button>
 
                                 {selectedLoan.status === 'pending' && isOcrLoading && (
-                                    <div className="dm-scan-status">
-                                        <div className="btn-spinner" />
+                                    <div className="flex flex-col gap-2 p-3 bg-slate-50 dark:bg-black/20 rounded-xl border border-slate-100 dark:border-white/5">
+                                        <Loader2 className="animate-spin" size={16} />
                                         <span>Scanning Documents...</span>
                                     </div>
                                 )}
 
                                 {selectedLoan.status === 'awaiting_member_approval' && (
-                                    <span className="dm-awaiting-tag">⏳ Waiting for member approval</span>
+                                    <span className="font-inter text-[12px] text-amber-600 dark:text-amber-400 font-medium">⏳ Waiting for member approval</span>
                                 )}
 
                                 {selectedLoan.status === 'pending' && (
                                     <>
                                         <button
-                                            className="dm-btn-reject"
+                                            className="px-4 py-2 bg-rose-50 dark:bg-rose-500/10 text-rose-600 dark:text-rose-400 font-inter text-[13px] font-semibold rounded-lg hover:bg-rose-100 dark:hover:bg-rose-500/20 transition-colors border-none cursor-pointer"
                                             onClick={() => { setShowDetailsModal(false); handleReject(selectedLoan); }}
                                         >
                                             Reject Request
                                         </button>
                                         <button
-                                            className="dm-btn-approve"
+                                            className="px-6 py-2 bg-emerald-500 text-white font-inter text-[13px] font-semibold rounded-lg hover:bg-emerald-600 transition-colors border-none cursor-pointer shadow-sm disabled:opacity-50 disabled:cursor-not-allowed"
                                             onClick={() => { setShowDetailsModal(false); handleApprove(selectedLoan); }}
                                             disabled={!!actionLoading}
                                         >
@@ -1144,7 +1135,7 @@ export default function LoanAdminLoanManagement() {
 
             {/* ══ Image Lightbox ══ */}
             {viewingImage && (
-                <div className="loan-admin-mgmt-modal-overlay" onClick={() => setViewingImage(null)} style={{ zIndex: 1100 }}>
+                <div className="fixed inset-0 bg-black/50 backdrop-blur-sm flex items-center justify-center z-[1000] p-4" onClick={() => setViewingImage(null)} style={{ zIndex: 1100 }}>
                     <div style={{ position: 'relative', maxWidth: '90vw', maxHeight: '90vh' }} onClick={(e) => e.stopPropagation()}>
                         <button
                             onClick={() => setViewingImage(null)}

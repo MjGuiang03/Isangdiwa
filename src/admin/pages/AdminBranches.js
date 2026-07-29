@@ -3,10 +3,9 @@ import { useState, useEffect, useMemo } from 'react';
 import useSWR from 'swr';
 import { useNavigate } from 'react-router';
 import { toast } from 'sonner';
-import { CalendarDays, Circle, MapPin, Search, Users, TrendingUp } from 'lucide-react';
+import { CalendarDays, Circle, MapPin, Search, Users, TrendingUp , Loader2} from 'lucide-react';
 import { PieChart, Pie, Cell, Tooltip, ResponsiveContainer, Legend, BarChart, Bar, XAxis, YAxis, CartesianGrid, LabelList } from 'recharts';
 import useDebounce from '../../hooks/useDebounce';
-import '../styles/AdminBranches.css';
 
 import API from '../../utils/api';
 import { Plus, XCircle, MoreVertical, Edit2, Trash2 } from 'lucide-react';
@@ -41,36 +40,36 @@ function EditCommunityModal({ branch, onClose, onSave }) {
   };
 
   return (
-    <div className="admin-att-modal-overlay" onClick={onClose} style={{ zIndex: 100 }}>
-      <div className="admin-att-modal admin-att-modal-sm" onClick={e => e.stopPropagation()}>
-        <div className="admin-att-modal-header">
-           <div className="admin-att-modal-icon" style={{ background: '#EFF6FF', color: '#155DFC' }}>
+    <div className="fixed inset-0 bg-black/50 backdrop-blur-sm z-[1000] flex items-center justify-center p-4" onClick={onClose}>
+      <div className="bg-white dark:bg-[#1E2130] rounded-2xl w-full max-w-[400px] shadow-2xl border border-slate-200 dark:border-white/10 flex flex-col max-h-[90vh] overflow-hidden" onClick={e => e.stopPropagation()}>
+        <div className="flex items-center gap-4 p-5 border-b border-slate-200 dark:border-white/10 shrink-0 relative">
+           <div className="w-12 h-12 rounded-xl flex items-center justify-center shrink-0 bg-blue-100 text-blue-600 dark:bg-blue-500/20 dark:text-blue-400">
              <Edit2 size={20} />
            </div>
-          <div className="admin-att-modal-title-group">
-            <h2 className="admin-att-modal-title">Edit Community</h2>
-            <p className="admin-att-modal-subtitle">Update branch information</p>
+          <div className="flex flex-col">
+            <h2 className="m-0 font-inter text-lg font-bold text-slate-800 dark:text-white">Edit Community</h2>
+            <p className="m-0 font-inter text-[13px] text-slate-500 dark:text-slate-400">Update branch information</p>
           </div>
-          <button className="admin-att-modal-close" onClick={onClose}><XCircle size={20} color="#6B7280" /></button>
+          <button className="absolute top-5 right-5 w-8 h-8 flex items-center justify-center rounded-lg bg-slate-100 dark:bg-white/5 text-slate-500 hover:bg-slate-200 dark:hover:bg-white/10 transition-colors cursor-pointer border-none" onClick={onClose}><XCircle size={20} color="#6B7280" /></button>
         </div>
-        <form onSubmit={handleSubmit} className="admin-att-modal-body">
-          <div className="admin-att-form-row">
-             <label className="admin-att-form-label">Branch Name</label>
-             <input type="text" className="admin-att-form-input" autoFocus placeholder="e.g. San Pedro" value={name} onChange={e => setName(e.target.value)} />
+        <form onSubmit={handleSubmit} className="p-6 overflow-y-auto custom-scrollbar flex flex-col gap-5">
+          <div className="flex flex-col gap-1.5">
+             <label className="font-inter text-[13px] font-semibold text-slate-700 dark:text-slate-300">Branch Name</label>
+             <input type="text" className="h-10 px-3 bg-white dark:bg-[#1E2130] border border-slate-300 dark:border-white/10 rounded-lg text-sm font-inter text-slate-800 dark:text-white outline-none focus:border-blue-500 focus:ring-1 focus:ring-blue-500 transition-all w-full" autoFocus placeholder="e.g. San Pedro" value={name} onChange={e => setName(e.target.value)} />
           </div>
-          <div className="admin-att-form-row">
-             <label className="admin-att-form-label">Address</label>
-             <input type="text" className="admin-att-form-input" placeholder="Branch Address" value={address} onChange={e => setAddress(e.target.value)} />
+          <div className="flex flex-col gap-1.5">
+             <label className="font-inter text-[13px] font-semibold text-slate-700 dark:text-slate-300">Address</label>
+             <input type="text" className="h-10 px-3 bg-white dark:bg-[#1E2130] border border-slate-300 dark:border-white/10 rounded-lg text-sm font-inter text-slate-800 dark:text-white outline-none focus:border-blue-500 focus:ring-1 focus:ring-blue-500 transition-all w-full" placeholder="Branch Address" value={address} onChange={e => setAddress(e.target.value)} />
           </div>
-          <div className="admin-att-form-row">
-             <label className="admin-att-form-label">Pastor</label>
-             <input type="text" className="admin-att-form-input" placeholder="Lead Pastor" value={pastor} onChange={e => setPastor(e.target.value)} />
+          <div className="flex flex-col gap-1.5">
+             <label className="font-inter text-[13px] font-semibold text-slate-700 dark:text-slate-300">Pastor</label>
+             <input type="text" className="h-10 px-3 bg-white dark:bg-[#1E2130] border border-slate-300 dark:border-white/10 rounded-lg text-sm font-inter text-slate-800 dark:text-white outline-none focus:border-blue-500 focus:ring-1 focus:ring-blue-500 transition-all w-full" placeholder="Lead Pastor" value={pastor} onChange={e => setPastor(e.target.value)} />
           </div>
         </form>
-        <div className="admin-att-modal-footer">
-          <button type="button" className="admin-att-btn-cancel" onClick={onClose} disabled={saving}>Cancel</button>
-          <button type="button" className="admin-att-btn-primary" onClick={handleSubmit} disabled={saving}>
-            {saving ? <span className="btn-spinner" /> : 'Save Changes'}
+        <div className="p-5 border-t border-slate-200 dark:border-white/10 bg-slate-50 dark:bg-black/20 flex items-center justify-end gap-3 shrink-0">
+          <button type="button" className="h-10 px-4 rounded-lg font-inter text-sm font-semibold transition-all border border-slate-300 dark:border-white/10 bg-white dark:bg-[#1E2130] text-slate-700 dark:text-slate-300 hover:bg-slate-50 dark:hover:bg-white/5 cursor-pointer flex-1 sm:flex-none" onClick={onClose} disabled={saving}>Cancel</button>
+          <button type="button" className="h-10 px-6 rounded-lg font-inter text-sm font-semibold transition-all border-none bg-blue-600 text-white hover:bg-blue-700 cursor-pointer flex items-center justify-center min-w-[100px] flex-1 sm:flex-none" onClick={handleSubmit} disabled={saving}>
+            {saving ? <Loader2 className="animate-spin" size={16} /> : 'Save Changes'}
           </button>
         </div>
       </div>
@@ -108,36 +107,36 @@ function AddCommunityModal({ onClose, onSave }) {
   };
 
   return (
-    <div className="admin-att-modal-overlay" onClick={onClose} style={{ zIndex: 100 }}>
-      <div className="admin-att-modal admin-att-modal-sm" onClick={e => e.stopPropagation()}>
-        <div className="admin-att-modal-header">
-           <div className="admin-att-modal-icon" style={{ background: '#DCFCE7', color: '#16A34A' }}>
+    <div className="fixed inset-0 bg-black/50 backdrop-blur-sm z-[1000] flex items-center justify-center p-4" onClick={onClose}>
+      <div className="bg-white dark:bg-[#1E2130] rounded-2xl w-full max-w-[400px] shadow-2xl border border-slate-200 dark:border-white/10 flex flex-col max-h-[90vh] overflow-hidden" onClick={e => e.stopPropagation()}>
+        <div className="flex items-center gap-4 p-5 border-b border-slate-200 dark:border-white/10 shrink-0 relative">
+           <div className="w-12 h-12 rounded-xl flex items-center justify-center shrink-0 bg-blue-100 text-blue-600 dark:bg-blue-500/20 dark:text-blue-400">
              <Plus size={20} />
            </div>
-          <div className="admin-att-modal-title-group">
-            <h2 className="admin-att-modal-title">Add Community</h2>
-            <p className="admin-att-modal-subtitle">Create a new church branch</p>
+          <div className="flex flex-col">
+            <h2 className="m-0 font-inter text-lg font-bold text-slate-800 dark:text-white">Add Community</h2>
+            <p className="m-0 font-inter text-[13px] text-slate-500 dark:text-slate-400">Create a new church branch</p>
           </div>
-          <button className="admin-att-modal-close" onClick={onClose}><XCircle size={20} color="#6B7280" /></button>
+          <button className="absolute top-5 right-5 w-8 h-8 flex items-center justify-center rounded-lg bg-slate-100 dark:bg-white/5 text-slate-500 hover:bg-slate-200 dark:hover:bg-white/10 transition-colors cursor-pointer border-none" onClick={onClose}><XCircle size={20} color="#6B7280" /></button>
         </div>
-        <form onSubmit={handleSubmit} className="admin-att-modal-body">
-          <div className="admin-att-form-row">
-             <label className="admin-att-form-label">Branch Name</label>
-             <input type="text" className="admin-att-form-input" autoFocus placeholder="e.g. San Pedro" value={name} onChange={e => setName(e.target.value)} />
+        <form onSubmit={handleSubmit} className="p-6 overflow-y-auto custom-scrollbar flex flex-col gap-5">
+          <div className="flex flex-col gap-1.5">
+             <label className="font-inter text-[13px] font-semibold text-slate-700 dark:text-slate-300">Branch Name</label>
+             <input type="text" className="h-10 px-3 bg-white dark:bg-[#1E2130] border border-slate-300 dark:border-white/10 rounded-lg text-sm font-inter text-slate-800 dark:text-white outline-none focus:border-blue-500 focus:ring-1 focus:ring-blue-500 transition-all w-full" autoFocus placeholder="e.g. San Pedro" value={name} onChange={e => setName(e.target.value)} />
           </div>
-          <div className="admin-att-form-row">
-             <label className="admin-att-form-label">Address</label>
-             <input type="text" className="admin-att-form-input" placeholder="Branch Address" value={address} onChange={e => setAddress(e.target.value)} />
+          <div className="flex flex-col gap-1.5">
+             <label className="font-inter text-[13px] font-semibold text-slate-700 dark:text-slate-300">Address</label>
+             <input type="text" className="h-10 px-3 bg-white dark:bg-[#1E2130] border border-slate-300 dark:border-white/10 rounded-lg text-sm font-inter text-slate-800 dark:text-white outline-none focus:border-blue-500 focus:ring-1 focus:ring-blue-500 transition-all w-full" placeholder="Branch Address" value={address} onChange={e => setAddress(e.target.value)} />
           </div>
-          <div className="admin-att-form-row">
-             <label className="admin-att-form-label">Pastor</label>
-             <input type="text" className="admin-att-form-input" placeholder="Lead Pastor" value={pastor} onChange={e => setPastor(e.target.value)} />
+          <div className="flex flex-col gap-1.5">
+             <label className="font-inter text-[13px] font-semibold text-slate-700 dark:text-slate-300">Pastor</label>
+             <input type="text" className="h-10 px-3 bg-white dark:bg-[#1E2130] border border-slate-300 dark:border-white/10 rounded-lg text-sm font-inter text-slate-800 dark:text-white outline-none focus:border-blue-500 focus:ring-1 focus:ring-blue-500 transition-all w-full" placeholder="Lead Pastor" value={pastor} onChange={e => setPastor(e.target.value)} />
           </div>
         </form>
-        <div className="admin-att-modal-footer">
-          <button type="button" className="admin-att-btn-cancel" onClick={onClose} disabled={saving}>Cancel</button>
-          <button type="button" className="admin-att-btn-primary" onClick={handleSubmit} disabled={saving}>
-            {saving ? <span className="btn-spinner" /> : 'Add Community'}
+        <div className="p-5 border-t border-slate-200 dark:border-white/10 bg-slate-50 dark:bg-black/20 flex items-center justify-end gap-3 shrink-0">
+          <button type="button" className="h-10 px-4 rounded-lg font-inter text-sm font-semibold transition-all border border-slate-300 dark:border-white/10 bg-white dark:bg-[#1E2130] text-slate-700 dark:text-slate-300 hover:bg-slate-50 dark:hover:bg-white/5 cursor-pointer flex-1 sm:flex-none" onClick={onClose} disabled={saving}>Cancel</button>
+          <button type="button" className="h-10 px-6 rounded-lg font-inter text-sm font-semibold transition-all border-none bg-blue-600 text-white hover:bg-blue-700 cursor-pointer flex items-center justify-center min-w-[100px] flex-1 sm:flex-none" onClick={handleSubmit} disabled={saving}>
+            {saving ? <Loader2 className="animate-spin" size={16} /> : 'Add Community'}
           </button>
         </div>
       </div>
@@ -175,23 +174,23 @@ function CommunityInfoModal({ branch, onClose, onEdit, totalAllDonations }) {
   const hasDonationData = totalShare > 0;
 
   return (
-    <div className="admin-att-modal-overlay" onClick={onClose} style={{ zIndex: 100 }}>
-      <div className="admin-att-modal admin-branch-info-modal" onClick={e => e.stopPropagation()}>
-        <div className="admin-att-modal-header">
-           <div className="admin-att-modal-icon admin-branch-info-icon">
+    <div className="fixed inset-0 bg-black/50 backdrop-blur-sm z-[1000] flex items-center justify-center p-4" onClick={onClose}>
+      <div className="bg-white dark:bg-[#1E2130] rounded-2xl w-full max-w-[900px] shadow-2xl border border-slate-200 dark:border-white/10 flex flex-col md:flex-row max-h-[90vh] overflow-hidden relative" onClick={e => e.stopPropagation()}>
+        <div className="flex items-center gap-4 p-5 border-b border-slate-200 dark:border-white/10 shrink-0 relative">
+           <div className="w-16 h-16 rounded-2xl bg-blue-100 text-blue-600 dark:bg-blue-500/20 dark:text-blue-400 flex items-center justify-center shadow-sm">
              <MapPin size={20} />
            </div>
-          <div className="admin-att-modal-title-group">
-            <h2 className="admin-att-modal-title">{branch.name}</h2>
-            <p className="admin-att-modal-subtitle">{branch.province || 'Community Info'}</p>
+          <div className="flex flex-col">
+            <h2 className="m-0 font-inter text-lg font-bold text-slate-800 dark:text-white">{branch.name}</h2>
+            <p className="m-0 font-inter text-[13px] text-slate-500 dark:text-slate-400">{branch.province || 'Community Info'}</p>
           </div>
-          <button className="admin-att-modal-close" onClick={onClose}><XCircle size={20} color="#6B7280" /></button>
+          <button className="absolute top-5 right-5 w-8 h-8 flex items-center justify-center rounded-lg bg-slate-100 dark:bg-white/5 text-slate-500 hover:bg-slate-200 dark:hover:bg-white/10 transition-colors cursor-pointer border-none" onClick={onClose}><XCircle size={20} color="#6B7280" /></button>
         </div>
 
-        <div className="admin-branch-info-top-wrapper">
-          <div className="admin-branch-info-top-chart">
-            <span className="admin-branch-info-att-header">Attendance Performance</span>
-            <div className="admin-branch-info-att-chart">
+        <div className="flex flex-col gap-4 mt-6">
+          <div className="h-[150px] w-full bg-slate-50 dark:bg-black/20 rounded-xl border border-slate-200 dark:border-white/10 p-4 flex items-end gap-2 justify-between">
+            <span className="flex items-center justify-between">Attendance Performance</span>
+            <div className="h-[200px] w-full bg-slate-50 dark:bg-black/20 rounded-xl border border-slate-200 dark:border-white/10 p-4">
               <ResponsiveContainer width="100%" height="100%">
                 <BarChart data={barData} margin={{ top: 5, right: 0, left: -25, bottom: 0 }}>
                   <CartesianGrid strokeDasharray="3 3" vertical={false} stroke="#E2E8F0" />
@@ -207,26 +206,26 @@ function CommunityInfoModal({ branch, onClose, onEdit, totalAllDonations }) {
           </div>
         </div>
 
-        <div className="admin-att-modal-body admin-branch-info-body">
+        <div className="flex flex-col md:flex-row w-full flex-1">
           
           {/* Left Column (Charts and Cards) */}
-          <div className="admin-branch-info-left">
+          <div className="w-full md:w-1/3 bg-slate-50 dark:bg-black/20 border-r border-slate-200 dark:border-white/10 p-6 flex flex-col gap-6 overflow-y-auto custom-scrollbar">
             {/* Main Stats */}
-            <div className="admin-branch-info-stats-grid">
-              <div className="admin-branch-info-stat-box">
-                 <span className="admin-branch-info-stat-label">Total Members</span>
-                 <span className="admin-branch-info-stat-val-members">{branch.members || 0}</span>
+            <div className="grid grid-cols-2 gap-4 mb-6">
+              <div className="p-4 rounded-xl border border-slate-200 dark:border-white/10 bg-slate-50 dark:bg-black/20 flex flex-col gap-1">
+                 <span className="font-inter text-[13px] font-semibold text-slate-500 dark:text-slate-400">Total Members</span>
+                 <span className="font-inter text-2xl font-bold text-blue-600 dark:text-blue-400">{branch.members || 0}</span>
               </div>
-              <div className="admin-branch-info-stat-box">
-                 <span className="admin-branch-info-stat-label">Total Donations</span>
-                 <span className="admin-branch-info-stat-val-donations">₱{(branch.totalDonations || 0).toLocaleString(undefined, { minimumFractionDigits: 2, maximumFractionDigits: 2 })}</span>
+              <div className="p-4 rounded-xl border border-slate-200 dark:border-white/10 bg-slate-50 dark:bg-black/20 flex flex-col gap-1">
+                 <span className="font-inter text-[13px] font-semibold text-slate-500 dark:text-slate-400">Total Donations</span>
+                 <span className="font-inter text-2xl font-bold text-emerald-600 dark:text-emerald-400">₱{(branch.totalDonations || 0).toLocaleString(undefined, { minimumFractionDigits: 2, maximumFractionDigits: 2 })}</span>
               </div>
             </div>
 
             {/* Chart */}
-            <div className="admin-branch-info-chart-box">
-              <span className="admin-branch-info-chart-label">Donation Share</span>
-              <div className="admin-branch-info-chart-wrapper">
+            <div className="h-[200px] w-full bg-slate-50 dark:bg-black/20 rounded-xl border border-slate-200 dark:border-white/10 p-4 mt-2">
+              <span className="font-inter text-sm font-bold text-slate-800 dark:text-white">Donation Share</span>
+              <div className="flex flex-col gap-4 mt-2">
                 <ResponsiveContainer width="100%" height="100%">
                   <PieChart>
                     <Pie 
@@ -265,26 +264,26 @@ function CommunityInfoModal({ branch, onClose, onEdit, totalAllDonations }) {
           </div>
 
           {/* Right Column (Info) */}
-          <div className="admin-branch-info-right">
-            <div className="admin-branch-info-right-header">
-              <span className="admin-branch-info-right-title">Community Details</span>
-              <button onClick={() => onEdit(branch)} className="admin-branch-info-edit-btn" title="Edit Details">
+          <div className="w-full md:w-2/3 p-6 flex flex-col overflow-y-auto custom-scrollbar">
+            <div className="flex items-center justify-between mb-6">
+              <span className="m-0 font-inter text-lg font-bold text-slate-800 dark:text-white">Community Details</span>
+              <button onClick={() => onEdit(branch)} className="h-9 px-3 bg-white dark:bg-[#161922] border border-slate-200 dark:border-white/10 rounded-lg text-sm font-inter font-semibold text-slate-700 dark:text-slate-300 hover:bg-slate-50 dark:hover:bg-white/5 transition-colors cursor-pointer flex items-center gap-2" title="Edit Details">
                 <Edit2 size={14} />
               </button>
             </div>
             
-            <div className="admin-branch-info-details">
-              <div className="admin-branch-info-detail-row">
-                <span className="admin-branch-info-detail-label">Lead Pastor</span>
-                <span className="admin-branch-info-detail-val">{branch.pastor || 'Not assigned'}</span>
+            <div className="flex flex-col gap-3">
+              <div className="flex flex-col gap-1">
+                <span className="font-inter text-xs font-semibold text-slate-500 dark:text-slate-400 uppercase tracking-wide">Lead Pastor</span>
+                <span className="font-inter text-sm font-medium text-slate-800 dark:text-white">{branch.pastor || 'Not assigned'}</span>
               </div>
-              <div className="admin-branch-info-detail-row">
-                <span className="admin-branch-info-detail-label">Address</span>
-                <span className="admin-branch-info-detail-val">{branch.address || branch.location || 'No address provided'}</span>
+              <div className="flex flex-col gap-1">
+                <span className="font-inter text-xs font-semibold text-slate-500 dark:text-slate-400 uppercase tracking-wide">Address</span>
+                <span className="font-inter text-sm font-medium text-slate-800 dark:text-white">{branch.address || branch.location || 'No address provided'}</span>
               </div>
-              <div className="admin-branch-info-detail-row">
-                <span className="admin-branch-info-detail-label">Status</span>
-                <span className={`admin-branch-info-detail-val ${branch.members > 0 ? 'active' : 'idle'}`}>{branch.members > 0 ? 'Active Community' : 'Idle'}</span>
+              <div className="flex flex-col gap-1">
+                <span className="font-inter text-xs font-semibold text-slate-500 dark:text-slate-400 uppercase tracking-wide">Status</span>
+                <span className={`inline-flex items-center px-2.5 py-1 rounded-full text-[11px] font-bold tracking-wide uppercase ${branch.members > 0 ? 'bg-emerald-100 text-emerald-700 dark:bg-emerald-500/20 dark:text-emerald-400' : 'bg-slate-100 text-slate-700 dark:bg-white/10 dark:text-slate-300'}`}>{branch.members > 0 ? 'Active Community' : 'Idle'}</span>
               </div>
             </div>
           </div>
@@ -380,48 +379,54 @@ export default function AdminBranches() {
     return () => window.removeEventListener('click', handleClickOutside);
   }, []);
 
-  // Compute stats from fetched branches
-  const totalMembers = branches.reduce((s, b) => s + (b.members || 0), 0);
-  const totalAllDonations = branches.reduce((sum, b) => sum + (b.totalDonations || 0), 0);
+  // Compute stats from fetched branches using useMemo for max performance
+  const { totalMembers, totalAllDonations } = useMemo(() => {
+    const members = (branches || []).reduce((s, b) => s + (b.members || 0), 0);
+    const donations = (branches || []).reduce((sum, b) => sum + (b.totalDonations || 0), 0);
+    return { totalMembers: members, totalAllDonations: donations };
+  }, [branches]);
 
-  const groupedBranches = (branches || []).reduce((acc, b) => {
-    if (filterActive && (b.members || 0) === 0) return acc;
-    
-    // Parse province from address if not explicitly present
-    let province = b.province;
-    if (!province && b.address) {
-      const parts = b.address.split(', ');
-      if (parts.length > 0) province = parts[0];
-    }
-    province = province || 'Other Provinces';
-    if (!acc[province]) acc[province] = [];
-    acc[province].push(b);
-    return acc;
-  }, {});
+  const { groupedBranches, provinceOrder } = useMemo(() => {
+    const grouped = (branches || []).reduce((acc, b) => {
+      if (filterActive && (b.members || 0) === 0) return acc;
+      
+      // Parse province from address if not explicitly present
+      let province = b.province;
+      if (!province && b.address) {
+        const parts = b.address.split(', ');
+        if (parts.length > 0) province = parts[0];
+      }
+      province = province || 'Other Provinces';
+      if (!acc[province]) acc[province] = [];
+      acc[province].push(b);
+      return acc;
+    }, {});
 
-  const provinceOrder = Object.keys(groupedBranches).sort();
+    const order = Object.keys(grouped).sort();
+    return { groupedBranches: grouped, provinceOrder: order };
+  }, [branches, filterActive]);
 
 
   return (
-    <div className="admin-branch-main">
+    <div className="flex flex-col gap-6 p-6 max-w-[1400px] mx-auto w-full h-full bg-slate-100 dark:bg-[#161922]">
       {/* Header */}
-      <div className="admin-branch-header">
+      <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-4 shrink-0">
         <div>
-          <h1 className="admin-branch-title">Communities</h1>
-          <p className="admin-branch-subtitle">Manage church communities by province</p>
+          <h1 className="m-0 font-inter text-2xl font-bold text-slate-800 dark:text-white">Communities</h1>
+          <p className="m-0 font-inter text-sm text-slate-500 dark:text-slate-400 mt-1">Manage church communities by province</p>
         </div>
-        <div className="admin-branch-search-container">
-          <div className="admin-branch-search-input-box">
-            <Search size={18} className="admin-branch-search-icon" />
+        <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-4 bg-white dark:bg-[#1E2130] border border-slate-200 dark:border-white/10 p-4 rounded-xl shadow-sm shrink-0">
+          <div className="relative flex-1 max-w-[400px]">
+            <Search size={18} className="absolute left-3 top-1/2 -translate-y-1/2 text-slate-400 pointer-events-none" />
             <input
               type="text"
               placeholder="Search by province or branch..."
               value={search}
               onChange={e => setSearch(e.target.value)}
-              className="admin-branch-search-input"
+              className="w-full h-10 pl-10 pr-4 bg-slate-50 dark:bg-[#161922] border border-slate-300 dark:border-white/10 rounded-lg text-sm font-inter text-slate-800 dark:text-white outline-none focus:border-blue-500 transition-all"
             />
           </div>
-          <button className="admin-branch-btn-add" onClick={() => setShowAddModal(true)}>
+          <button className="h-10 px-4 bg-blue-600 text-white font-inter text-sm font-semibold rounded-lg hover:bg-blue-700 transition-colors border-none cursor-pointer flex items-center gap-2" onClick={() => setShowAddModal(true)}>
             <Plus size={18} />
             Add Community
           </button>
@@ -429,65 +434,81 @@ export default function AdminBranches() {
       </div>
 
       {/* Stats Cards */}
-      <div className="admin-branch-stats">
+      <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-4">
+        {/* Total Communities */}
         <div 
-          className={`admin-branch-stat-card ${!filterActive ? 'active-stat-card' : ''}`}
+          className={`group relative bg-white dark:bg-[#1E2130] border rounded-2xl p-5 flex flex-col gap-1 overflow-hidden cursor-pointer transition-all duration-300 hover:shadow-lg hover:-translate-y-1 ${!filterActive ? 'border-blue-500/50 shadow-md ring-1 ring-blue-500/20' : 'border-slate-200 dark:border-white/10 hover:border-blue-500/30'}`}
           onClick={() => setFilterActive(false)}
         >
-          <div className="admin-branch-stat-header">
-            <span className="admin-branch-stat-label">Total Communities</span>
-            <div className="adm-stat-icon-wrap" style={{ background: 'rgba(255,255,255,0.1) !important' }}><MapPin size={20} color="white" /></div>
+          <div className="flex items-center justify-between relative z-10">
+            <span className="font-inter font-bold text-[11px] tracking-widest text-slate-500 dark:text-slate-400 uppercase">Total Communities</span>
+            <div className={`w-10 h-10 rounded-xl flex items-center justify-center shrink-0 transition-transform duration-300 group-hover:scale-110 shadow-sm ${!filterActive ? 'bg-blue-600 text-white' : 'bg-gradient-to-br from-blue-50 to-blue-100/50 dark:from-blue-500/20 dark:to-blue-500/10 text-blue-600 dark:text-blue-400 border border-blue-200/60 dark:border-blue-500/30'}`}>
+              <MapPin size={20} strokeWidth={2.2} />
+            </div>
           </div>
-          <p className="admin-branch-stat-value">{loading ? '—' : totalCount}</p>
+          <p className="font-inter font-extrabold text-[28px] tracking-tight text-slate-900 dark:text-white m-0 mt-2 relative z-10">{loading ? '—' : totalCount}</p>
+          <div className={`absolute -right-6 -bottom-6 w-32 h-32 rounded-full blur-3xl pointer-events-none transition-opacity duration-300 ${!filterActive ? 'bg-blue-500/20 opacity-100' : 'bg-blue-500/10 opacity-0 group-hover:opacity-100'}`}></div>
         </div>
 
+        {/* Total Members */}
         <div 
-          className={`admin-branch-stat-card ${filterActive ? 'active-stat-card' : ''}`}
+          className={`group relative bg-white dark:bg-[#1E2130] border rounded-2xl p-5 flex flex-col gap-1 overflow-hidden cursor-pointer transition-all duration-300 hover:shadow-lg hover:-translate-y-1 ${filterActive ? 'border-indigo-500/50 shadow-md ring-1 ring-indigo-500/20' : 'border-slate-200 dark:border-white/10 hover:border-indigo-500/30'}`}
           onClick={() => setFilterActive(true)}
         >
-          <div className="admin-branch-stat-header">
-            <span className="admin-branch-stat-label">Total Members</span>
-            <div className="adm-stat-icon-wrap" style={{ background: 'rgba(255,255,255,0.1) !important' }}><Users size={20} color="white" /></div>
+          <div className="flex items-center justify-between relative z-10">
+            <span className="font-inter font-bold text-[11px] tracking-widest text-slate-500 dark:text-slate-400 uppercase">Total Members</span>
+            <div className={`w-10 h-10 rounded-xl flex items-center justify-center shrink-0 transition-transform duration-300 group-hover:scale-110 shadow-sm ${filterActive ? 'bg-indigo-600 text-white' : 'bg-gradient-to-br from-indigo-50 to-indigo-100/50 dark:from-indigo-500/20 dark:to-indigo-500/10 text-indigo-600 dark:text-indigo-400 border border-indigo-200/60 dark:border-indigo-500/30'}`}>
+              <Users size={20} strokeWidth={2.2} />
+            </div>
           </div>
-          <p className="admin-branch-stat-value">
+          <p className="font-inter font-extrabold text-[28px] tracking-tight text-slate-900 dark:text-white m-0 mt-2 relative z-10 flex items-center gap-2">
             {loading ? '—' : totalMembers.toLocaleString()}
-            <span style={{ fontSize: '14px', fontWeight: '400', marginLeft: '8px', color: 'rgba(255,255,255,0.6)' }}>
-               ({(branches || []).filter(b => (b.members || 0) > 0).length} active)
-            </span>
+            {!loading && <span className="text-[12px] font-medium text-slate-500 dark:text-slate-400 tracking-normal mt-1">({(branches || []).filter(b => (b.members || 0) > 0).length} active)</span>}
           </p>
+          <div className={`absolute -right-6 -bottom-6 w-32 h-32 rounded-full blur-3xl pointer-events-none transition-opacity duration-300 ${filterActive ? 'bg-indigo-500/20 opacity-100' : 'bg-indigo-500/10 opacity-0 group-hover:opacity-100'}`}></div>
         </div>
 
-        <div className="admin-branch-stat-card">
-          <div className="admin-branch-stat-header">
-            <span className="admin-branch-stat-label">Total Services</span>
-            <div className="adm-stat-icon-wrap" style={{ background: 'rgba(255,255,255,0.1) !important' }}><CalendarDays size={20} color="white" /></div>
+        {/* Total Services */}
+        <div className="group relative bg-white dark:bg-[#1E2130] border border-slate-200 dark:border-white/10 rounded-2xl p-5 flex flex-col gap-1 overflow-hidden transition-all duration-300 hover:shadow-lg hover:-translate-y-1 hover:border-purple-500/30">
+          <div className="flex items-center justify-between relative z-10">
+            <span className="font-inter font-bold text-[11px] tracking-widest text-slate-500 dark:text-slate-400 uppercase">Total Services</span>
+            <div className="w-10 h-10 rounded-xl flex items-center justify-center shrink-0 transition-transform duration-300 group-hover:scale-110 shadow-sm bg-gradient-to-br from-purple-50 to-purple-100/50 dark:from-purple-500/20 dark:to-purple-500/10 text-purple-600 dark:text-purple-400 border border-purple-200/60 dark:border-purple-500/30">
+              <CalendarDays size={20} strokeWidth={2.2} />
+            </div>
           </div>
-          <p className="admin-branch-stat-value">{loading ? '—' : totalServices.toLocaleString()}</p>
+          <p className="font-inter font-extrabold text-[28px] tracking-tight text-slate-900 dark:text-white m-0 mt-2 relative z-10">{loading ? '—' : totalServices.toLocaleString()}</p>
+          <div className="absolute -right-6 -bottom-6 w-32 h-32 bg-purple-500/10 rounded-full blur-3xl pointer-events-none opacity-0 group-hover:opacity-100 transition-opacity duration-300"></div>
         </div>
 
-        <div className="admin-branch-stat-card">
-          <div className="admin-branch-stat-header">
-            <span className="admin-branch-stat-label">Growth Rate (this month)</span>
-            <div className="adm-stat-icon-wrap" style={{ background: 'rgba(255,255,255,0.1) !important' }}><TrendingUp size={20} color="white" /></div>
+        {/* Growth Rate */}
+        <div className="group relative bg-white dark:bg-[#1E2130] border border-slate-200 dark:border-white/10 rounded-2xl p-5 flex flex-col gap-1 overflow-hidden transition-all duration-300 hover:shadow-lg hover:-translate-y-1 hover:border-emerald-500/30">
+          <div className="flex items-center justify-between relative z-10">
+            <span className="font-inter font-bold text-[11px] tracking-widest text-slate-500 dark:text-slate-400 uppercase">Growth Rate</span>
+            <div className="w-10 h-10 rounded-xl flex items-center justify-center shrink-0 transition-transform duration-300 group-hover:scale-110 shadow-sm bg-gradient-to-br from-emerald-50 to-emerald-100/50 dark:from-emerald-500/20 dark:to-emerald-500/10 text-emerald-600 dark:text-emerald-400 border border-emerald-200/60 dark:border-emerald-500/30">
+              <TrendingUp size={20} strokeWidth={2.2} />
+            </div>
           </div>
-          <p className="admin-branch-stat-value">
+          <p className="font-inter font-extrabold text-[28px] tracking-tight text-slate-900 dark:text-white m-0 mt-2 relative z-10 flex items-center gap-2">
             {loading ? '—' : `+${growthRate}%`}
-            <span style={{ fontSize: '12px', fontWeight: '400', marginLeft: '8px', color: (growthRate > 0 ? '#4ADE80' : 'rgba(255,255,255,0.6)') }}>
-              {growthRate > 0 ? 'Trending Up' : 'Steady'}
-            </span>
+            {!loading && (
+              <span className={`inline-flex items-center px-2 py-0.5 rounded-full text-[10px] font-bold tracking-wide uppercase mt-1 ${growthRate > 0 ? 'bg-emerald-50 text-emerald-600 dark:bg-emerald-500/10 dark:text-emerald-400' : 'bg-slate-100 text-slate-600 dark:bg-white/5 dark:text-slate-400'}`}>
+                {growthRate > 0 ? 'Trending Up' : 'Steady'}
+              </span>
+            )}
           </p>
+          <div className="absolute -right-6 -bottom-6 w-32 h-32 bg-emerald-500/10 rounded-full blur-3xl pointer-events-none opacity-0 group-hover:opacity-100 transition-opacity duration-300"></div>
         </div>
       </div>
 
       {/* Grouped Table View */}
-      <div className="admin-branch-list-wrapper">
+      <div className="flex-1 overflow-y-auto custom-scrollbar flex flex-col gap-6 pb-6">
         {loading ? (
-           <div className="admin-branch-loading">
-             <div className="admin-branch-spinner"></div>
+           <div className="flex flex-col items-center justify-center gap-4 py-20">
+             <div className="w-5 h-5 rounded-full border-2 border-white/20 border-t-white animate-spin"></div>
              <p>Loading communities...</p>
            </div>
         ) : branches.length === 0 ? (
-          <div className="admin-branch-empty">No communities found.</div>
+          <div className="px-4 py-8 text-center text-slate-500 dark:text-slate-400 text-sm font-inter">No communities found.</div>
         ) : (
           provinceOrder.map(province => {
             const list = groupedBranches[province];
@@ -498,37 +519,37 @@ export default function AdminBranches() {
             const hasMore = list.length > visibleLimit;
 
             return (
-              <div key={province} className="admin-branch-region-section">
-                <div className="admin-branch-region-header">
+              <div key={province} className="flex flex-col gap-4 bg-white dark:bg-[#1E2130] border border-slate-200 dark:border-white/10 rounded-xl shadow-sm overflow-hidden">
+                <div className="px-5 py-4 bg-slate-50 dark:bg-black/20 border-b border-slate-200 dark:border-white/10 flex items-center justify-between cursor-pointer hover:bg-slate-100 dark:hover:bg-white/5 transition-colors">
                   <div className="adm-reg-icon"><MapPin size={16} color="white" /></div>
                   <span className="adm-reg-name">{province}</span>
                   <span className="adm-reg-count">{list.length} {list.length === 1 ? 'Branch' : 'Branches'}</span>
                 </div>
-                <div className="admin-branch-table-container">
-                  <table className="admin-branch-table">
+                <div className="overflow-x-auto">
+                  <table className="w-full text-left border-collapse min-w-[800px]">
                     <thead>
                       <tr>
-                        <th>Branch Name</th>
-                        <th>Lead Pastor</th>
-                        <th>Full Address</th>
-                        <th>Members</th>
-                        <th>Status</th>
-                        <th style={{ textAlign: 'right' }}>Actions</th>
+                        <th className="px-4 py-3 bg-slate-50 dark:bg-black/20 border-b border-slate-200 dark:border-white/10 font-semibold text-[11px] tracking-wider uppercase text-slate-500 dark:text-slate-400 whitespace-nowrap sticky top-0 z-10">Branch Name</th>
+                        <th className="px-4 py-3 bg-slate-50 dark:bg-black/20 border-b border-slate-200 dark:border-white/10 font-semibold text-[11px] tracking-wider uppercase text-slate-500 dark:text-slate-400 whitespace-nowrap sticky top-0 z-10">Lead Pastor</th>
+                        <th className="px-4 py-3 bg-slate-50 dark:bg-black/20 border-b border-slate-200 dark:border-white/10 font-semibold text-[11px] tracking-wider uppercase text-slate-500 dark:text-slate-400 whitespace-nowrap sticky top-0 z-10">Full Address</th>
+                        <th className="px-4 py-3 bg-slate-50 dark:bg-black/20 border-b border-slate-200 dark:border-white/10 font-semibold text-[11px] tracking-wider uppercase text-slate-500 dark:text-slate-400 whitespace-nowrap sticky top-0 z-10">Members</th>
+                        <th className="px-4 py-3 bg-slate-50 dark:bg-black/20 border-b border-slate-200 dark:border-white/10 font-semibold text-[11px] tracking-wider uppercase text-slate-500 dark:text-slate-400 whitespace-nowrap sticky top-0 z-10">Status</th>
+                        <th className="px-4 py-3 bg-slate-50 dark:bg-black/20 border-b border-slate-200 dark:border-white/10 font-semibold text-[11px] tracking-wider uppercase text-slate-500 dark:text-slate-400 whitespace-nowrap sticky top-0 z-10" style={{ textAlign: 'right' }}>Actions</th>
                       </tr>
                     </thead>
                     <tbody>
                       {displayedList.map(branch => (
                         <tr key={branch._id} onClick={() => setViewingBranch(branch)} style={{ cursor: 'pointer' }} className="adm-branch-row-hover">
                           <td className="adm-br-name-cell">{branch.name}</td>
-                          <td>{branch.pastor || '—'}</td>
+                          <td className="px-4 py-3 border-b border-slate-100 dark:border-white/5 text-sm font-inter text-slate-700 dark:text-slate-300">{branch.pastor || '—'}</td>
                           <td className="adm-br-addr-cell">{branch.address || branch.location || '—'}</td>
                           <td className="adm-td-members">{branch.members || 0}</td>
-                          <td>
+                          <td className="px-4 py-3 border-b border-slate-100 dark:border-white/5 text-sm font-inter text-slate-700 dark:text-slate-300">
                             <span className={`adm-status-pill ${branch.members > 0 ? 'adm-status-active' : 'adm-status-idle'}`}>
                               {branch.members > 0 ? 'Active' : 'Idle'}
                             </span>
                           </td>
-                          <td style={{ textAlign: 'right', position: 'relative' }}>
+                          <td className="px-4 py-3 border-b border-slate-100 dark:border-white/5 text-sm font-inter text-slate-700 dark:text-slate-300" style={{ textAlign: 'right', position: 'relative' }}>
                             <button 
                               className="adm-action-menu-btn" 
                               onClick={(e) => { e.stopPropagation(); setOpenMenuId(openMenuId === branch._id ? null : branch._id); }}
@@ -553,9 +574,9 @@ export default function AdminBranches() {
                   </table>
                 </div>
                 {hasMore && (
-                  <div className="admin-branch-view-more-container">
+                  <div className="p-3 text-center border-t border-slate-100 dark:border-white/5">
                     <button 
-                      className="admin-branch-view-more-btn"
+                      className="text-sm font-inter font-semibold text-blue-600 hover:text-blue-700 bg-transparent border-none cursor-pointer"
                       onClick={() => setVisibleCounts(prev => ({ ...prev, [province]: (prev[province] || 5) + 5 }))}
                     >
                       View More ({list.length - visibleLimit} left)

@@ -1,7 +1,7 @@
 import { useState, useEffect, useRef } from 'react';
 import { useAuth } from '../../context/AuthContext';
-import '../styles/Chatbot.css';
-import { Send, X, Sparkles } from 'lucide-react';
+
+import { Send, X, Sparkles, Bot } from 'lucide-react';
 import API from '../../utils/api';
 
 
@@ -11,7 +11,7 @@ import API from '../../utils/api';
 const KB_SHARED = [
   {
     patterns: ['hello', 'hi', 'hey', 'good morning', 'good afternoon', 'good evening', 'kumusta', 'magandang umaga', 'magandang hapon'],
-    responses: ["Hello! 👋 I'm IsangDiwa Chatbot, your assistant. How can I help you today?"],
+    responses: ["Hello! 👋 I'm IsangDiwa Chatbot, your AI assistant. How can I help you today?"],
     quickReplies: ['Donations', 'Savings', 'Attendance', 'Branches']
   },
   {
@@ -75,7 +75,6 @@ const KB_MEMBER_BLOCK = [
 
 function getLocalResponse(input, isOfficer) {
   const normalized = input.toLowerCase().trim();
-  // Check role-specific KB first
   const roleKB = isOfficer ? KB_OFFICER_ONLY : KB_MEMBER_BLOCK;
   for (const entry of roleKB) {
     if (entry.patterns.some(p => normalized.includes(p))) {
@@ -113,12 +112,10 @@ export default function Chatbot({ isOpen, onClose }) {
   const bottomRef = useRef(null);
   const inputRef = useRef(null);
 
-  // Scroll to bottom whenever messages change
   useEffect(() => {
     bottomRef.current?.scrollIntoView({ behavior: 'smooth' });
   }, [messages, isTyping]);
 
-  // Focus input when opened
   useEffect(() => {
     if (isOpen) {
       setTimeout(() => inputRef.current?.focus(), 300);
@@ -141,7 +138,6 @@ export default function Chatbot({ isOpen, onClose }) {
     setIsTyping(true);
 
     try {
-      // Build history for context (last 8 messages)
       const history = [...messages, userMsg]
         .filter(m => m.text && !m.greeting)
         .slice(-8)
@@ -177,7 +173,6 @@ export default function Chatbot({ isOpen, onClose }) {
       }
       throw new Error('API returned failure');
     } catch (err) {
-      // Fallback to local keyword matching
       console.warn('[Chatbot] AI unavailable, using fallback:', err.message);
       const fallback = getLocalResponse(userText, isOfficer);
       const defaultReplies = isOfficer
@@ -209,7 +204,6 @@ export default function Chatbot({ isOpen, onClose }) {
     return date.toLocaleTimeString('en-US', { hour: 'numeric', minute: '2-digit', hour12: true });
   };
 
-  // Render a single text segment: handles **bold** inline
   const renderInline = (text, keyPrefix) => {
     const parts = text.split(/(\*\*[^*]+\*\*)/g);
     return parts.map((part, i) => {
@@ -220,24 +214,23 @@ export default function Chatbot({ isOpen, onClose }) {
     });
   };
 
-  // Full markdown renderer: bullet lists, numbered lists, bold, plain text
   const renderText = (text) => {
     const lines = text.split('\n');
     const elements = [];
     let listItems = [];
-    let listType = null; // 'ul' or 'ol'
+    let listType = null;
 
     const flushList = () => {
       if (listItems.length === 0) return;
       if (listType === 'ol') {
         elements.push(
-          <ol key={`ol-${elements.length}`} style={{ margin: '4px 0 4px 16px', paddingLeft: '4px' }}>
+          <ol key={`ol-${elements.length}`} className="my-1 ml-4 list-decimal pl-1">
             {listItems.map((item, i) => <li key={i}>{item}</li>)}
           </ol>
         );
       } else {
         elements.push(
-          <ul key={`ul-${elements.length}`} style={{ margin: '4px 0 4px 16px', paddingLeft: '4px', listStyleType: 'disc' }}>
+          <ul key={`ul-${elements.length}`} className="my-1 ml-4 list-disc pl-1">
             {listItems.map((item, i) => <li key={i}>{item}</li>)}
           </ul>
         );
@@ -264,7 +257,7 @@ export default function Chatbot({ isOpen, onClose }) {
           elements.push(<br key={`br-${idx}`} />);
         } else {
           elements.push(
-            <span key={`line-${idx}`} style={{ display: 'block' }}>
+            <span key={`line-${idx}`} className="block">
               {renderInline(line, `line-${idx}`)}
             </span>
           );
@@ -279,59 +272,72 @@ export default function Chatbot({ isOpen, onClose }) {
   if (!isOpen) return null;
 
   return (
-    <div className="cb-overlay" onClick={onClose}>
-      <div className="cb-window" onClick={e => e.stopPropagation()}>
-
+    <div className="fixed inset-0 z-[99999] bg-black/50 backdrop-blur-xs flex items-end sm:items-center justify-center sm:justify-end p-0 sm:p-6 font-inter" onClick={onClose}>
+      <div 
+        className="relative w-full sm:w-[400px] h-[100dvh] sm:h-[580px] max-h-[100dvh] sm:max-h-[85vh] bg-white dark:bg-[#1E2130] rounded-none sm:rounded-3xl shadow-2xl border-0 sm:border border-slate-200 dark:border-white/10 flex flex-col overflow-hidden text-left font-inter"
+        onClick={e => e.stopPropagation()}
+      >
         {/* Header */}
-        <div className="cb-header">
-          <div className="cb-header-brand">
-            <div className="cb-avatar">
-              <Sparkles size={20} color="#fff" />
+        <div className="px-5 py-4 bg-gradient-to-r from-blue-600 via-indigo-600 to-blue-700 text-white flex items-center justify-between shadow-md">
+          <div className="flex items-center gap-3">
+            <div className="relative w-10 h-10 rounded-2xl bg-white/20 backdrop-blur-md flex items-center justify-center text-white border border-white/30 shadow-inner shrink-0">
+              <Bot size={22} />
+              <Sparkles size={11} className="absolute -top-1 -right-1 text-amber-300 animate-pulse" />
             </div>
-            <div className="cb-header-info">
-              <p className="cb-header-name">
-                IsangDiwa Chatbot
-                <span className="cb-ai-badge">AI</span>
-              </p>
-              <span className="cb-header-status">
-                <span className="cb-live-dot" />
+            <div>
+              <div className="flex items-center gap-2">
+                <span className="text-sm font-bold text-white font-dm">IsangDiwa AI</span>
+                <span className="px-2 py-0.5 text-[9px] font-extrabold bg-white/20 backdrop-blur-xs rounded-full uppercase tracking-wider text-white">
+                  Assistant
+                </span>
+              </div>
+              <span className="text-[11px] text-blue-100 flex items-center gap-1.5 mt-0.5">
+                <span className="w-2 h-2 rounded-full bg-emerald-400 animate-pulse inline-block" />
                 Online
               </span>
             </div>
           </div>
-          <button className="cb-close-btn" onClick={onClose} aria-label="Close chat">
+          <button 
+            className="w-8 h-8 rounded-full flex items-center justify-center bg-white/10 hover:bg-white/20 transition-all text-white border-none cursor-pointer active:scale-95" 
+            onClick={onClose} 
+            aria-label="Close chat"
+          >
             <X size={18} />
           </button>
         </div>
 
         {/* Messages */}
-        <div className="cb-messages">
+        <div className="flex-1 overflow-y-auto p-4 space-y-4 bg-slate-50/70 dark:bg-slate-900/40">
           {messages.map(msg => (
-            <div key={msg.id} className={`cb-msg-row cb-msg-row--${msg.sender}`}>
+            <div key={msg.id} className={`flex items-end gap-2.5 text-xs ${msg.sender === 'user' ? 'justify-end' : 'justify-start'}`}>
               {msg.sender === 'bot' && (
-                <div className="cb-bot-avatar">
-                  <Sparkles size={12} color="#fff" />
+                <div className="w-8 h-8 rounded-xl bg-gradient-to-tr from-blue-600 to-indigo-600 flex items-center justify-center text-white shrink-0 mb-1 shadow-md shadow-blue-500/20">
+                  <Bot size={16} />
                 </div>
               )}
-              <div className={`cb-bubble cb-bubble--${msg.sender}`}>
+              <div className={`max-w-[85%] p-4 rounded-2xl shadow-xs space-y-2 leading-relaxed ${
+                msg.sender === 'user' 
+                  ? 'bg-gradient-to-r from-blue-600 to-indigo-600 text-white rounded-br-xs font-medium' 
+                  : 'bg-white dark:bg-slate-800 text-slate-800 dark:text-slate-100 border border-slate-200/80 dark:border-white/10 rounded-bl-xs'
+              }`}>
                 {msg.greeting ? (
-                  <p className="cb-bubble-text">
-                    👋 Hi <strong>{firstName}</strong>! I'm <strong>IsangDiwa Chatbot</strong>, your AI-powered assistant.
-                    I can help with <strong>donations</strong>, <strong>savings</strong>, <strong>attendance</strong>, and more.
+                  <p className="text-xs">
+                    👋 Hi <strong className="font-bold">{firstName}</strong>! I'm <strong className="font-bold">IsangDiwa Chatbot</strong>, your AI-powered assistant.
+                    I can help with <strong className="font-bold">donations</strong>, <strong className="font-bold">savings</strong>, <strong className="font-bold">attendance</strong>, and more.
                     {' '}Type anything to get started!
                   </p>
                 ) : (
-                  <div className="cb-bubble-text">
+                  <div className="text-xs space-y-1">
                     {msg.text ? renderText(msg.text) : null}
                   </div>
                 )}
-                <div className="cb-bubble-meta">
+                <div className={`flex items-center gap-1.5 text-[10px] ${msg.sender === 'user' ? 'justify-end text-blue-100' : 'justify-between text-slate-400 dark:text-slate-500'}`}>
                   {msg.sender === 'bot' && msg.isAI && (
-                    <span className="cb-ai-indicator">
-                      <Sparkles size={10} /> AI
+                    <span className="flex items-center gap-1 text-[9px] font-bold text-blue-600 dark:text-blue-400 bg-blue-50 dark:bg-blue-950/60 px-1.5 py-0.5 rounded-md border border-blue-200/50 dark:border-blue-800/40">
+                      <Sparkles size={9} /> AI
                     </span>
                   )}
-                  <span className="cb-bubble-time">{formatTime(msg.timestamp)}</span>
+                  <span>{formatTime(msg.timestamp)}</span>
                 </div>
               </div>
             </div>
@@ -339,14 +345,14 @@ export default function Chatbot({ isOpen, onClose }) {
 
           {/* Typing indicator */}
           {isTyping && (
-            <div className="cb-msg-row cb-msg-row--bot">
-              <div className="cb-bot-avatar">
-                <Sparkles size={12} color="#fff" />
+            <div className="flex items-end gap-2.5 text-xs justify-start">
+              <div className="w-8 h-8 rounded-xl bg-gradient-to-tr from-blue-600 to-indigo-600 flex items-center justify-center text-white shrink-0 mb-1 shadow-md shadow-blue-500/20">
+                <Bot size={16} />
               </div>
-              <div className="cb-bubble cb-bubble--bot cb-typing-bubble">
-                <span className="cb-typing-dot" />
-                <span className="cb-typing-dot" />
-                <span className="cb-typing-dot" />
+              <div className="px-4 py-3 rounded-2xl rounded-bl-xs bg-white dark:bg-slate-800 border border-slate-200/80 dark:border-white/10 flex items-center gap-1.5 shadow-xs">
+                <span className="w-2 h-2 rounded-full bg-blue-500 animate-bounce [animation-delay:-0.3s]" />
+                <span className="w-2 h-2 rounded-full bg-blue-500 animate-bounce [animation-delay:-0.15s]" />
+                <span className="w-2 h-2 rounded-full bg-blue-500 animate-bounce" />
               </div>
             </div>
           )}
@@ -356,9 +362,13 @@ export default function Chatbot({ isOpen, onClose }) {
             const lastBot = [...messages].reverse().find(m => m.sender === 'bot');
             if (!lastBot?.quickReplies?.length) return null;
             return (
-              <div className="cb-quick-replies">
+              <div className="flex flex-wrap gap-1.5 pt-1 pl-10">
                 {lastBot.quickReplies.map(qr => (
-                  <button key={qr} className="cb-quick-btn" onClick={() => sendMessage(qr)}>
+                  <button
+                    key={qr}
+                    className="px-3.5 py-1.5 bg-blue-50/80 dark:bg-blue-950/50 hover:bg-blue-600 hover:text-white dark:hover:bg-blue-600 text-blue-600 dark:text-blue-400 font-semibold rounded-xl text-xs transition-all border border-blue-200/70 dark:border-blue-800/60 active:scale-95 shadow-2xs cursor-pointer"
+                    onClick={() => sendMessage(qr)}
+                  >
                     {qr}
                   </button>
                 ))}
@@ -370,10 +380,10 @@ export default function Chatbot({ isOpen, onClose }) {
         </div>
 
         {/* Input */}
-        <div className="cb-input-bar">
+        <div className="p-3 bg-white dark:bg-[#1E2130] border-t border-slate-100 dark:border-white/10 flex items-center gap-2">
           <input
             ref={inputRef}
-            className="cb-input"
+            className="flex-1 px-4 py-2.5 bg-slate-100 dark:bg-slate-800/80 border border-slate-200 dark:border-white/10 focus:border-blue-500 dark:focus:border-blue-500 rounded-xl text-xs text-slate-900 dark:text-white placeholder-slate-400 dark:placeholder-slate-500 outline-none transition-all"
             placeholder="Ask me anything about IsangDiwa..."
             value={input}
             onChange={e => setInput(e.target.value)}
@@ -382,12 +392,12 @@ export default function Chatbot({ isOpen, onClose }) {
             disabled={isTyping}
           />
           <button
-            className="cb-send-btn"
+            className="w-10 h-10 rounded-xl bg-gradient-to-r from-blue-600 to-indigo-600 hover:from-blue-500 hover:to-indigo-500 active:scale-95 disabled:opacity-40 text-white flex items-center justify-center shadow-md shadow-blue-500/30 transition-all shrink-0 cursor-pointer border-none"
             onClick={() => sendMessage()}
             disabled={!input.trim() || isTyping}
             aria-label="Send message"
           >
-            <Send size={18} />
+            <Send size={16} />
           </button>
         </div>
       </div>

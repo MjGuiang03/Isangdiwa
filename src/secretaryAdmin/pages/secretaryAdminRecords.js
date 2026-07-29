@@ -2,12 +2,10 @@ import { useState, useEffect, useMemo } from 'react';
 import useSWR from 'swr';
 import useDebounce from '../../hooks/useDebounce';
 import SecretaryAdminSidebar from '../components/secretaryAdminSidebar';
-import '../styles/secretaryAdminRecords.css';
-import '../../styles/sharedPagination.css';
 
 import API from '../../utils/api';
 import { Banknote, CalendarDays, Search } from 'lucide-react';
-
+import Pagination from '../../components/Pagination';
 
 export default function SecretaryLoanRecords() {
     const [searchQuery, setSearchQuery] = useState('');
@@ -76,180 +74,163 @@ export default function SecretaryLoanRecords() {
     const filteredRecords = records;
 
     return (
-        <div className="sec-admin-records-page">
+        <div className="flex h-screen bg-slate-50 dark:bg-[#0b0f19] overflow-hidden font-inter">
             <SecretaryAdminSidebar />
 
-            <div className="sec-admin-records-content">
-                {/* Header */}
-                <div className="sec-admin-records-header">
-                    <h1 className="sec-admin-records-title">Processing Records</h1>
-                    <p className="sec-admin-records-subtitle">View all processed loan disbursements with date and time stamps</p>
-                </div>
-
-                {/* Status Cards */}
-                <div className="sec-admin-records-stats" style={{ gridTemplateColumns: 'repeat(4, 1fr)' }}>
-                    <div className="sec-admin-records-stat-card">
-                        <p className="sec-admin-records-stat-label">Total Processed</p>
-                        <p className="sec-admin-records-stat-value blue">{totalProcessed}</p>
-                    </div>
-                    <div className="sec-admin-records-stat-card">
-                        <p className="sec-admin-records-stat-label">Cash Payments</p>
-                        <p className="sec-admin-records-stat-value" style={{ color: '#F59E0B' }}>{cashCount}</p>
-                    </div>
-                    <div className="sec-admin-records-stat-card">
-                        <p className="sec-admin-records-stat-label">E-Wallet Transfers</p>
-                        <p className="sec-admin-records-stat-value blue">{gcashCount}</p>
-                    </div>
-                    <div className="sec-admin-records-stat-card">
-                        <p className="sec-admin-records-stat-label">Bank Transfers</p>
-                        <p className="sec-admin-records-stat-value green">{bankTransferCount}</p>
-                    </div>
-                </div>
-
-                {/* Search and Filters */}
-                <div className="sec-admin-records-toolbar">
-                    <div className="sec-admin-records-search">
-                        <Search size={20} color="#9CA3AF" />
-                        <input
-                            type="text"
-                            placeholder="Search by loan ID or member name..."
-                            value={searchQuery}
-                            onChange={(e) => setSearchQuery(e.target.value)}
-                        />
+            <div className="flex-1 flex flex-col h-screen overflow-hidden">
+                <div className="flex-1 overflow-y-auto p-4 md:p-6 lg:p-8">
+                    {/* Header */}
+                    <div className="flex flex-col gap-1 mb-6">
+                        <h1 className="font-inter text-2xl font-bold text-slate-900 dark:text-white m-0">Processing Records</h1>
+                        <p className="font-inter text-sm text-slate-500 dark:text-slate-400 m-0">View all processed loan disbursements with date and time stamps</p>
                     </div>
 
-                    <div className="sec-admin-records-filters">
-                        <button
-                            className={`sec-admin-records-filter-btn ${activeFilter === 'all' ? 'active' : ''}`}
-                            onClick={() => setActiveFilter('all')}
-                        >
-                            All
-                        </button>
-                        <button
-                            className={`sec-admin-records-filter-btn ${activeFilter === 'cash' ? 'active' : ''}`}
-                            onClick={() => setActiveFilter('cash')}
-                        >
-                            Cash
-                        </button>
-                        <button
-                            className={`sec-admin-records-filter-btn ${activeFilter === 'e-wallet' ? 'active' : ''}`}
-                            onClick={() => setActiveFilter('e-wallet')}
-                        >
-                            E-Wallet
-                        </button>
-                        <button
-                            className={`sec-admin-records-filter-btn ${activeFilter === 'bank' ? 'active' : ''}`}
-                            onClick={() => setActiveFilter('bank')}
-                        >
-                            Bank Transfer
-                        </button>
+                    {/* Status Cards */}
+                    <div className="grid grid-cols-2 md:grid-cols-4 gap-4 mb-6">
+                        <div className="bg-white dark:bg-[#1E2130] border border-slate-200 dark:border-white/10 rounded-xl p-4 shadow-sm flex flex-col gap-1 transition-transform hover:-translate-y-0.5">
+                            <p className="font-inter font-semibold text-[11px] tracking-wider uppercase text-slate-500 dark:text-slate-400 m-0">Total Processed</p>
+                            <p className="font-inter font-bold text-2xl text-navy dark:text-blue-400 m-0">{totalProcessed}</p>
+                        </div>
+                        <div className="bg-white dark:bg-[#1E2130] border border-slate-200 dark:border-white/10 rounded-xl p-4 shadow-sm flex flex-col gap-1 transition-transform hover:-translate-y-0.5">
+                            <p className="font-inter font-semibold text-[11px] tracking-wider uppercase text-slate-500 dark:text-slate-400 m-0">Cash Payments</p>
+                            <p className="font-inter font-bold text-2xl text-amber-500 m-0">{cashCount}</p>
+                        </div>
+                        <div className="bg-white dark:bg-[#1E2130] border border-slate-200 dark:border-white/10 rounded-xl p-4 shadow-sm flex flex-col gap-1 transition-transform hover:-translate-y-0.5">
+                            <p className="font-inter font-semibold text-[11px] tracking-wider uppercase text-slate-500 dark:text-slate-400 m-0">E-Wallet Transfers</p>
+                            <p className="font-inter font-bold text-2xl text-blue-600 dark:text-blue-400 m-0">{gcashCount}</p>
+                        </div>
+                        <div className="bg-white dark:bg-[#1E2130] border border-slate-200 dark:border-white/10 rounded-xl p-4 shadow-sm flex flex-col gap-1 transition-transform hover:-translate-y-0.5">
+                            <p className="font-inter font-semibold text-[11px] tracking-wider uppercase text-slate-500 dark:text-slate-400 m-0">Bank Transfers</p>
+                            <p className="font-inter font-bold text-2xl text-emerald-600 m-0">{bankTransferCount}</p>
+                        </div>
                     </div>
-                </div>
 
-                {/* Records Table */}
-                <div className="sec-admin-records-table-container">
-                    {loading ? (
-                        <div style={{ padding: '40px', textAlign: 'center', color: '#6B7280' }}>Loading records...</div>
-                    ) : (
-                        <table className="sec-admin-records-table">
-                            <thead>
-                                <tr>
-                                    <th>Loan ID</th>
-                                    <th>Member</th>
-                                    <th>Amount</th>
-                                    <th>Purpose</th>
-                                    <th>Processed Date & Time</th>
-                                    <th>Payment Method</th>
-                                </tr>
-                            </thead>
-                            <tbody>
-                                {filteredRecords.length === 0 ? (
-                                    <tr>
-                                        <td colSpan="6" style={{ textAlign: 'center', padding: '40px', color: '#6B7280' }}>
-                                            No records found
-                                        </td>
-                                    </tr>
-                                ) : (
-                                    filteredRecords.map(record => (
-                                        <tr key={record.id}>
-                                            <td className="sec-admin-records-table-id">{record.id}</td>
-                                            <td className="sec-admin-records-table-member">{record.member}</td>
-                                            <td className="sec-admin-records-table-amount">{record.amount}</td>
-                                            <td>{record.purpose}</td>
-                                            <td>
-                                                <div className="sec-admin-records-table-datetime">
-                                                    <div className="sec-admin-records-date">
-                                                        <CalendarDays size={14} color="#6B7280" />
-                                                        {record.processedDate}
-                                                    </div>
-                                                    <div className="sec-admin-records-time">
-                                                        <CalendarDays size={14} color="#6B7280" />
-                                                        {record.processedTime}
-                                                    </div>
-                                                </div>
-                                            </td>
-                                            <td>
-                                                {record.paymentMethod === 'Cash' && (
-                                                    <div className="sec-admin-records-payment cash" style={{ color: '#F59E0B' }}>
-                                                        <Banknote size={16} color="#F59E0B" />
-                                                        <span>Cash</span>
-                                                    </div>
-                                                )}
-                                                {record.paymentMethod === 'E-Wallet' && (
-                                                    <div className="sec-admin-records-payment gcash">
-                                                        <Banknote size={16} color="#155DFC" />
-                                                        <span>E-Wallet</span>
-                                                        {record.reference && <span className="sec-admin-records-reference">{record.reference}</span>}
-                                                    </div>
-                                                )}
-                                                {record.paymentMethod === 'Bank Transfer' && (
-                                                    <div className="sec-admin-records-payment bank">
-                                                        <Banknote size={16} color="#00A63E" />
-                                                        <span>Bank Transfer</span>
-                                                    </div>
-                                                )}
-                                            </td>
-                                        </tr>
-                                    ))
-                                )}
-                            </tbody>
-                        </table>
-                    )}
-                </div>
+                    {/* Search and Filters */}
+                    <div className="flex flex-col md:flex-row gap-4 items-start md:items-center justify-between mb-6">
+                        <div className="relative w-full md:w-96">
+                            <Search size={18} className="absolute left-4 top-1/2 -translate-y-1/2 text-slate-400" />
+                            <input
+                                type="text"
+                                placeholder="Search by loan ID or member name..."
+                                value={searchQuery}
+                                onChange={(e) => setSearchQuery(e.target.value)}
+                                className="w-full h-10 pl-11 pr-4 py-2 bg-white dark:bg-[#1E2130] border border-slate-200 dark:border-white/10 rounded-lg text-sm font-inter text-slate-900 dark:text-white placeholder:text-slate-400 focus:outline-none focus:border-navy dark:focus:border-blue-500 transition-colors"
+                            />
+                        </div>
 
-                {/* Pagination */}
-                {totalCount > LIMIT && (
-                    <div className="pg-bar">
-                        <span className="pg-info">
-                            Showing {(page - 1) * LIMIT + 1}–{Math.min(page * LIMIT, totalCount)} of {totalCount}
-                        </span>
-                        <div className="pg-controls">
+                        <div className="flex gap-1 bg-white dark:bg-[#1E2130] border border-slate-200 dark:border-white/10 rounded-lg p-1 w-full md:w-fit h-auto items-center overflow-x-auto overflow-y-hidden">
                             <button
-                                className="pg-btn"
-                                onClick={() => setPage(p => Math.max(1, p - 1))}
-                                disabled={page === 1}
+                                className={`flex items-center justify-center gap-2 h-8 px-4 rounded-md font-inter text-sm cursor-pointer transition-all border-none whitespace-nowrap ${activeFilter === 'all' ? 'bg-navy text-white shadow-sm dark:bg-[#0D1F45]' : 'bg-transparent text-slate-500 dark:text-slate-400 hover:bg-slate-50 dark:hover:bg-white/5'}`}
+                                onClick={() => setActiveFilter('all')}
                             >
-                                ← Prev
+                                All
                             </button>
-                            {Array.from({ length: Math.ceil(totalCount / LIMIT) }, (_, i) => i + 1).map(p => (
-                                <button
-                                    key={p}
-                                    className={`pg-btn pg-num${page === p ? ' active' : ''}`}
-                                    onClick={() => setPage(p)}
-                                >
-                                    {p}
-                                </button>
-                            ))}
                             <button
-                                className="pg-btn"
-                                onClick={() => setPage(p => Math.min(Math.ceil(totalCount / LIMIT), p + 1))}
-                                disabled={page === Math.ceil(totalCount / LIMIT)}
+                                className={`flex items-center justify-center gap-2 h-8 px-4 rounded-md font-inter text-sm cursor-pointer transition-all border-none whitespace-nowrap ${activeFilter === 'cash' ? 'bg-navy text-white shadow-sm dark:bg-[#0D1F45]' : 'bg-transparent text-slate-500 dark:text-slate-400 hover:bg-slate-50 dark:hover:bg-white/5'}`}
+                                onClick={() => setActiveFilter('cash')}
                             >
-                                Next →
+                                Cash
+                            </button>
+                            <button
+                                className={`flex items-center justify-center gap-2 h-8 px-4 rounded-md font-inter text-sm cursor-pointer transition-all border-none whitespace-nowrap ${activeFilter === 'e-wallet' ? 'bg-navy text-white shadow-sm dark:bg-[#0D1F45]' : 'bg-transparent text-slate-500 dark:text-slate-400 hover:bg-slate-50 dark:hover:bg-white/5'}`}
+                                onClick={() => setActiveFilter('e-wallet')}
+                            >
+                                E-Wallet
+                            </button>
+                            <button
+                                className={`flex items-center justify-center gap-2 h-8 px-4 rounded-md font-inter text-sm cursor-pointer transition-all border-none whitespace-nowrap ${activeFilter === 'bank' ? 'bg-navy text-white shadow-sm dark:bg-[#0D1F45]' : 'bg-transparent text-slate-500 dark:text-slate-400 hover:bg-slate-50 dark:hover:bg-white/5'}`}
+                                onClick={() => setActiveFilter('bank')}
+                            >
+                                Bank Transfer
                             </button>
                         </div>
                     </div>
-                )}
+
+                    {/* Records Table */}
+                    <div className="bg-white dark:bg-[#1E2130] border border-slate-200 dark:border-white/10 rounded-xl overflow-x-auto shadow-sm">
+                        {loading ? (
+                            <div className="p-10 text-center text-slate-500 font-inter text-sm">Loading records...</div>
+                        ) : (
+                            <table className="w-full text-left border-collapse min-w-[900px]">
+                                <thead>
+                                    <tr>
+                                        <th className="bg-slate-50 dark:bg-black/20 border-b border-slate-200 dark:border-white/10 px-4 py-3 font-inter font-semibold text-[11px] tracking-wider uppercase text-slate-500 dark:text-slate-400">Loan ID</th>
+                                        <th className="bg-slate-50 dark:bg-black/20 border-b border-slate-200 dark:border-white/10 px-4 py-3 font-inter font-semibold text-[11px] tracking-wider uppercase text-slate-500 dark:text-slate-400">Member</th>
+                                        <th className="bg-slate-50 dark:bg-black/20 border-b border-slate-200 dark:border-white/10 px-4 py-3 font-inter font-semibold text-[11px] tracking-wider uppercase text-slate-500 dark:text-slate-400">Amount</th>
+                                        <th className="bg-slate-50 dark:bg-black/20 border-b border-slate-200 dark:border-white/10 px-4 py-3 font-inter font-semibold text-[11px] tracking-wider uppercase text-slate-500 dark:text-slate-400">Purpose</th>
+                                        <th className="bg-slate-50 dark:bg-black/20 border-b border-slate-200 dark:border-white/10 px-4 py-3 font-inter font-semibold text-[11px] tracking-wider uppercase text-slate-500 dark:text-slate-400">Processed Date & Time</th>
+                                        <th className="bg-slate-50 dark:bg-black/20 border-b border-slate-200 dark:border-white/10 px-4 py-3 font-inter font-semibold text-[11px] tracking-wider uppercase text-slate-500 dark:text-slate-400">Payment Method</th>
+                                    </tr>
+                                </thead>
+                                <tbody>
+                                    {filteredRecords.length === 0 ? (
+                                        <tr>
+                                            <td colSpan="6" className="text-center p-10 text-slate-500 font-inter text-sm">
+                                                No records found
+                                            </td>
+                                        </tr>
+                                    ) : (
+                                        filteredRecords.map(record => (
+                                            <tr key={record.id} className="hover:bg-slate-50/50 dark:hover:bg-white/5 transition-colors">
+                                                <td className="px-4 py-3 border-b border-slate-100 dark:border-white/5 font-inter text-[13px] text-slate-900 dark:text-white font-medium align-middle">{record.id}</td>
+                                                <td className="px-4 py-3 border-b border-slate-100 dark:border-white/5 font-inter text-[13px] text-slate-900 dark:text-white font-medium align-middle">{record.member}</td>
+                                                <td className="px-4 py-3 border-b border-slate-100 dark:border-white/5 font-inter text-[13px] text-slate-900 dark:text-white font-semibold align-middle">{record.amount}</td>
+                                                <td className="px-4 py-3 border-b border-slate-100 dark:border-white/5 font-inter text-[13px] text-slate-900 dark:text-slate-200 align-middle">{record.purpose}</td>
+                                                <td className="px-4 py-3 border-b border-slate-100 dark:border-white/5 font-inter align-middle">
+                                                    <div className="flex flex-col gap-1">
+                                                        <div className="flex items-center gap-1.5 text-xs text-slate-600 dark:text-slate-400 font-medium">
+                                                            <CalendarDays size={14} className="text-slate-400" />
+                                                            {record.processedDate}
+                                                        </div>
+                                                        <div className="flex items-center gap-1.5 text-xs text-slate-600 dark:text-slate-400 font-medium">
+                                                            <CalendarDays size={14} className="text-slate-400" />
+                                                            {record.processedTime}
+                                                        </div>
+                                                    </div>
+                                                </td>
+                                                <td className="px-4 py-3 border-b border-slate-100 dark:border-white/5 font-inter align-middle">
+                                                    {record.paymentMethod === 'Cash' && (
+                                                        <div className="flex items-center gap-2 w-fit px-3 py-1.5 rounded-lg border font-medium text-[12px] bg-amber-50 text-amber-700 border-amber-200 dark:bg-amber-500/10 dark:text-amber-400 dark:border-amber-800/30">
+                                                            <Banknote size={16} />
+                                                            <span>Cash</span>
+                                                        </div>
+                                                    )}
+                                                    {record.paymentMethod === 'E-Wallet' && (
+                                                        <div className="flex items-center gap-2 w-fit px-3 py-1.5 rounded-lg border font-medium text-[12px] bg-blue-50 text-blue-700 border-blue-200 dark:bg-blue-500/10 dark:text-blue-400 dark:border-blue-800/30">
+                                                            <Banknote size={16} />
+                                                            <span>E-Wallet</span>
+                                                            {record.reference && <span className="ml-1 text-[10px] text-slate-500 dark:text-slate-400 tracking-wide bg-white/50 dark:bg-black/20 px-1.5 rounded">{record.reference}</span>}
+                                                        </div>
+                                                    )}
+                                                    {record.paymentMethod === 'Bank Transfer' && (
+                                                        <div className="flex items-center gap-2 w-fit px-3 py-1.5 rounded-lg border font-medium text-[12px] bg-emerald-50 text-emerald-700 border-emerald-200 dark:bg-emerald-500/10 dark:text-emerald-400 dark:border-emerald-800/30">
+                                                            <Banknote size={16} />
+                                                            <span>Bank Transfer</span>
+                                                        </div>
+                                                    )}
+                                                </td>
+                                            </tr>
+                                        ))
+                                    )}
+                                </tbody>
+                            </table>
+                        )}
+                    </div>
+
+                    {/* Pagination */}
+                    {totalCount > LIMIT && (
+                        <div className="mt-6 bg-white dark:bg-[#1E2130] rounded-xl border border-slate-200 dark:border-white/5 shadow-sm overflow-hidden">
+                            <Pagination
+                                currentPage={page}
+                                totalPages={Math.ceil(totalCount / LIMIT)}
+                                onPageChange={setPage}
+                                totalItems={totalCount}
+                                itemsPerPage={LIMIT}
+                                itemName="records"
+                            />
+                        </div>
+                    )}
+                </div>
             </div>
         </div>
     );

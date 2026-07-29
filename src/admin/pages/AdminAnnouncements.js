@@ -1,10 +1,9 @@
 import { useState, useEffect } from 'react';
 import useSWR from 'swr';
-import { useNavigate } from 'react-router';
+import { useNavigate } from 'react-router-dom';
 import { toast } from 'sonner';
-import { Calendar, Clock, Edit, Globe, MapPin, Megaphone, Trash2 } from 'lucide-react';
+import { Calendar, Clock, Edit, Globe, MapPin, Megaphone, Trash2 , Loader2} from 'lucide-react';
 import API from '../../utils/api';
-import '../styles/AdminAnnouncements.css';
 
 const fmtDate = (d) =>
   d ? new Date(d).toLocaleDateString('en-PH', { month: 'short', day: 'numeric', year: 'numeric' }) : '';
@@ -266,18 +265,18 @@ export default function AdminAnnouncements() {
     : form.targetBranches.join(', ') || 'No branch selected';
 
   return (
-    <div className="admin-announce-main">
-      <div className="admin-announce-header">
-        <h1 className="admin-announce-title">Announcements</h1>
+    <div className="flex flex-col h-full bg-slate-100 dark:bg-[#161922] p-6 max-w-[1400px] mx-auto w-full gap-6">
+      <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-4 shrink-0">
+        <h1 className="m-0 font-inter text-2xl font-bold text-slate-800 dark:text-white">Announcements</h1>
 
       </div>
 
-      <div className="admin-announce-grid">
+      <div className="grid grid-cols-1 lg:grid-cols-2 gap-6 overflow-y-auto custom-scrollbar pb-6">
 
         {/* ── LEFT: Create / Edit Form ── */}
-        <div className="admin-announce-card">
-          <div className="admin-announce-card-header" style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
-            <p className="admin-announce-card-title">{editingId ? 'Edit Announcement' : 'Post New Announcement'}</p>
+        <div className="bg-white dark:bg-[#1E2130] border border-slate-200 dark:border-white/10 rounded-xl shadow-sm overflow-hidden flex flex-col transition-all hover:shadow-md hover:-translate-y-1 relative">
+          <div className="p-4 border-b border-slate-200 dark:border-white/10 flex justify-between items-center bg-slate-50 dark:bg-black/20">
+            <p className="m-0 font-inter text-sm font-bold text-slate-800 dark:text-white line-clamp-1">{editingId ? 'Edit Announcement' : 'Post New Announcement'}</p>
             {editingId && (
               <button type="button" onClick={cancelEdit} style={{ background: 'none', border: 'none', color: '#64748b', cursor: 'pointer', fontSize: '13px' }}>
                 Cancel Edit
@@ -285,12 +284,12 @@ export default function AdminAnnouncements() {
             )}
           </div>
 
-          <form className="admin-announce-form" onSubmit={handleSubmit}>
+          <form className="flex flex-col gap-6 p-6" onSubmit={handleSubmit}>
 
             {/* Template Picker */}
-            <div className="admin-announce-form-group">
-              <label className="admin-announce-label">Template</label>
-              <div className="admin-announce-template-grid">
+            <div className="flex flex-col gap-1.5">
+              <label className="font-inter text-[13px] font-semibold text-slate-700 dark:text-slate-300 flex items-center gap-1">Template</label>
+              <div className="grid grid-cols-1 sm:grid-cols-3 gap-3">
                 {[
                   { id: 'banner', label: 'Banner top' },
                   { id: 'side', label: 'Side image' },
@@ -299,22 +298,22 @@ export default function AdminAnnouncements() {
                   <button
                     key={t.id}
                     type="button"
-                    className={`admin-announce-tpl-btn${template === t.id ? ' active' : ''}`}
+                    className={`flex flex-col items-center gap-2 p-3 rounded-xl border transition-all cursor-pointer ${template === t.id ? 'border-blue-500 bg-blue-50 dark:bg-blue-500/10 text-blue-700 dark:text-blue-400' : 'border-slate-200 dark:border-white/10 bg-slate-50 dark:bg-black/20 text-slate-500 hover:border-blue-300 dark:hover:border-white/20'}`}
                     onClick={() => setTemplate(t.id)}
                   >
-                    <div className={`admin-announce-tpl-thumb admin-announce-tpl-${t.id}`} />
+                    <div className="w-full h-12 bg-slate-200 dark:bg-white/10 rounded-md flex items-center justify-center text-xs opacity-50" />
                     <span>{t.label}</span>
                   </button>
                 ))}
               </div>
             </div>
 
-            <div className="admin-announce-form-group">
-              <label className="admin-announce-label">Title</label>
+            <div className="flex flex-col gap-1.5">
+              <label className="font-inter text-[13px] font-semibold text-slate-700 dark:text-slate-300 flex items-center gap-1">Title</label>
               <input
                 type="text"
                 name="title"
-                className="admin-announce-input"
+                className="h-10 px-3 bg-white dark:bg-[#161922] border border-slate-300 dark:border-white/10 rounded-lg text-sm font-inter text-slate-800 dark:text-white outline-none focus:border-blue-500 transition-all w-full"
                 placeholder="Announcement title..."
                 value={form.title}
                 onChange={handleChange}
@@ -322,11 +321,11 @@ export default function AdminAnnouncements() {
               />
             </div>
 
-            <div className="admin-announce-form-group">
-              <label className="admin-announce-label">Message</label>
+            <div className="flex flex-col gap-1.5">
+              <label className="font-inter text-[13px] font-semibold text-slate-700 dark:text-slate-300 flex items-center gap-1">Message</label>
               <textarea
                 name="body"
-                className="admin-announce-textarea"
+                className="min-h-[120px] p-3 bg-white dark:bg-[#161922] border border-slate-300 dark:border-white/10 rounded-lg text-sm font-inter text-slate-800 dark:text-white outline-none focus:border-blue-500 transition-all w-full resize-none custom-scrollbar"
                 placeholder="Write the announcement message..."
                 value={form.body}
                 onChange={handleChange}
@@ -335,35 +334,35 @@ export default function AdminAnnouncements() {
             </div>
 
             {template !== 'text' && (
-              <div className="admin-announce-form-group">
-                <label className="admin-announce-label">Images / Banner (Max 8)</label>
+              <div className="flex flex-col gap-1.5">
+                <label className="font-inter text-[13px] font-semibold text-slate-700 dark:text-slate-300 flex items-center gap-1">Images / Banner (Max 8)</label>
                 <input
                   type="file"
                   accept="image/*"
                   multiple
                   onChange={handleImageChange}
-                  className="admin-announce-input"
+                  className="h-10 px-3 bg-white dark:bg-[#161922] border border-slate-300 dark:border-white/10 rounded-lg text-sm font-inter text-slate-800 dark:text-white outline-none focus:border-blue-500 transition-all w-full"
                   disabled={form.images.length >= 8}
                 />
                 
                 {form.images.length > 0 && (
-                  <div className="admin-announce-gallery">
+                  <div className="flex flex-wrap gap-3 mt-3">
                     {form.images.map((img, idx) => (
-                      <div key={idx} className="admin-announce-gallery-item">
-                        <button type="button" className="admin-announce-remove-img" onClick={() => removeImage(idx)}>×</button>
+                      <div key={idx} className="relative w-20 h-20 rounded-lg overflow-hidden border border-slate-200 dark:border-white/10">
+                        <button type="button" className="absolute top-1 right-1 w-5 h-5 rounded bg-black/50 text-white flex items-center justify-center text-xs cursor-pointer hover:bg-black/70 border-none" onClick={() => removeImage(idx)}>×</button>
                         <img src={img} alt="Preview" />
                       </div>
                     ))}
                   </div>
                 )}
-                <p className="admin-announce-img-count">{form.images.length} / 8 images added</p>
+                <p className="m-0 mt-2 font-inter text-[11px] text-slate-500 dark:text-slate-400 text-right">{form.images.length} / 8 images added</p>
               </div>
             )}
 
-            <div className="admin-announce-form-row">
-              <div className="admin-announce-form-group">
-                <label className="admin-announce-label">Category</label>
-                <select name="category" className="admin-announce-select" value={form.category} onChange={handleChange}>
+            <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
+              <div className="flex flex-col gap-1.5">
+                <label className="font-inter text-[13px] font-semibold text-slate-700 dark:text-slate-300 flex items-center gap-1">Category</label>
+                <select name="category" className="h-10 px-3 pr-8 appearance-none bg-white dark:bg-[#161922] border border-slate-300 dark:border-white/10 rounded-lg text-sm font-inter text-slate-700 dark:text-slate-300 outline-none focus:border-blue-500 transition-colors bg-[url('data:image/svg+xml;charset=US-ASCII,%3Csvg%20xmlns%3D%22http%3A%2F%2Fwww.w3.org%2F2000%2Fsvg%22%20width%3D%2216%22%20height%3D%2216%22%20viewBox%3D%220%200%2024%2024%22%20fill%3D%22none%22%20stroke%3D%22%236B7280%22%20stroke-width%3D%222%22%20stroke-linecap%3D%22round%22%20stroke-linejoin%3D%22round%22%3E%3Cpolyline%20points%3D%226%209%2012%2015%2018%209%22%3E%3C%2Fpolyline%3E%3C%2Fsvg%3E')] bg-[length:16px] bg-[position:right_12px_center] bg-no-repeat w-full" value={form.category} onChange={handleChange}>
                   <option value="Divine Service">Divine Service</option>
                   <option value="Bible Study">Bible Study</option>
                   <option value="Summer Youth Camp">Summer Youth Camp</option>
@@ -382,7 +381,7 @@ export default function AdminAnnouncements() {
                   <input
                     type="text"
                     name="customCategory"
-                    className="admin-announce-input admin-ann-mt-8"
+                    className="h-10 px-3 mt-2 bg-white dark:bg-[#161922] border border-slate-300 dark:border-white/10 rounded-lg text-sm font-inter text-slate-800 dark:text-white outline-none focus:border-blue-500 transition-all w-full"
                     placeholder="Enter custom category..."
                     value={form.customCategory}
                     onChange={handleChange}
@@ -390,14 +389,14 @@ export default function AdminAnnouncements() {
                   />
                 )}
               </div>
-              <div className="admin-announce-form-group">
-                <label className="admin-announce-label">Target Audience</label>
-                <div className="admin-announce-radio-group">
+              <div className="flex flex-col gap-1.5">
+                <label className="font-inter text-[13px] font-semibold text-slate-700 dark:text-slate-300 flex items-center gap-1">Target Audience</label>
+                <div className="flex flex-col gap-2 mt-1">
                   {[
                     { value: 'all', label: 'All Branches' },
                     { value: 'branches', label: 'Selected' },
                   ].map(opt => (
-                    <label key={opt.value} className={`admin-announce-radio-item${form.visibility === opt.value ? ' active' : ''}`}>
+                    <label key={opt.value} className={`flex items-center gap-2 px-3 py-2 rounded-lg border cursor-pointer transition-colors ${form.visibility === opt.value ? 'border-blue-500 bg-blue-50 dark:bg-blue-500/10 text-blue-700 dark:text-blue-400' : 'border-slate-200 dark:border-white/10 hover:bg-slate-50 dark:hover:bg-white/5'}`}>
                       <input type="radio" name="visibility" value={opt.value} checked={form.visibility === opt.value} onChange={handleChange} />
                       <span>{opt.label}</span>
                     </label>
@@ -406,30 +405,30 @@ export default function AdminAnnouncements() {
               </div>
             </div>
 
-            <div className="admin-announce-form-row">
-              <div className="admin-announce-form-group">
-                <label className="admin-announce-label">
-                  <Calendar size={13} className="admin-ann-icon-align" />
+            <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
+              <div className="flex flex-col gap-1.5">
+                <label className="font-inter text-[13px] font-semibold text-slate-700 dark:text-slate-300 flex items-center gap-1">
+                  <Calendar size={13} className="mt-[-1px]" />
                   Event Date &amp; Time
                 </label>
                 <input 
                   type="datetime-local" 
                   name="eventDate" 
-                  className="admin-announce-input" 
+                  className="h-10 px-3 bg-white dark:bg-[#161922] border border-slate-300 dark:border-white/10 rounded-lg text-sm font-inter text-slate-800 dark:text-white outline-none focus:border-blue-500 transition-all w-full" 
                   value={form.eventDate} 
                   onChange={handleChange} 
                   min={new Date(new Date().getTime() - new Date().getTimezoneOffset() * 60000).toISOString().slice(0, 16)}
                 />
               </div>
-              <div className="admin-announce-form-group">
-                <label className="admin-announce-label">
-                  <Clock size={13} className="admin-ann-icon-align" />
+              <div className="flex flex-col gap-1.5">
+                <label className="font-inter text-[13px] font-semibold text-slate-700 dark:text-slate-300 flex items-center gap-1">
+                  <Clock size={13} className="mt-[-1px]" />
                   Auto-Disappear Date
                 </label>
                 <input 
                   type="datetime-local" 
                   name="expiresAt" 
-                  className="admin-announce-input" 
+                  className="h-10 px-3 bg-white dark:bg-[#161922] border border-slate-300 dark:border-white/10 rounded-lg text-sm font-inter text-slate-800 dark:text-white outline-none focus:border-blue-500 transition-all w-full" 
                   value={form.expiresAt} 
                   onChange={handleChange} 
                   min={new Date(new Date().getTime() - new Date().getTimezoneOffset() * 60000).toISOString().slice(0, 16)}
@@ -438,14 +437,14 @@ export default function AdminAnnouncements() {
             </div>
 
             {form.visibility === 'branches' && (
-              <div className="admin-announce-form-group">
-                <label className="admin-announce-label">Select Branches</label>
-                <div className="admin-announce-branch-list">
+              <div className="flex flex-col gap-1.5">
+                <label className="font-inter text-[13px] font-semibold text-slate-700 dark:text-slate-300 flex items-center gap-1">Select Branches</label>
+                <div className="flex flex-col gap-2 max-h-[200px] overflow-y-auto custom-scrollbar p-3 border border-slate-200 dark:border-white/10 rounded-lg bg-slate-50 dark:bg-black/20">
                   {branches.length === 0 ? (
-                    <p className="admin-announce-no-branches">No branches found.</p>
+                    <p className="m-0 text-sm text-slate-500 italic">No branches found.</p>
                   ) : (
                     branches.map(b => (
-                      <label key={b} className={`admin-announce-branch-chip${form.targetBranches.includes(b) ? ' selected' : ''}`}>
+                      <label key={b} className={`flex items-center gap-1.5 px-3 py-1.5 rounded-full text-xs font-semibold cursor-pointer border transition-colors ${form.targetBranches.includes(b) ? 'bg-blue-100 text-blue-700 border-blue-200 dark:bg-blue-500/20 dark:text-blue-400 dark:border-blue-500/30' : 'bg-white dark:bg-white/5 text-slate-600 dark:text-slate-300 border-slate-200 dark:border-white/10 hover:border-slate-300 dark:hover:border-white/20'}`}>
                         <input type="checkbox" checked={form.targetBranches.includes(b)} onChange={() => toggleBranch(b)} />
                         <MapPin size={11} />
                         <span>{b}</span>
@@ -456,61 +455,61 @@ export default function AdminAnnouncements() {
               </div>
             )}
 
-            <button type="submit" className="admin-announce-submit" disabled={submitting}>
+            <button type="submit" className="h-10 px-6 rounded-lg font-inter text-sm font-semibold transition-all border-none bg-blue-600 text-white hover:bg-blue-700 cursor-pointer disabled:opacity-50 disabled:cursor-not-allowed flex items-center justify-center gap-2 min-w-[120px]" disabled={submitting}>
               {submitting
-                ? <span className="btn-spinner" />
+                ? <Loader2 className="animate-spin" size={16} />
                 : <><Megaphone size={16} /> {editingId ? 'Update Announcement' : 'Post Announcement'}</>}
             </button>
           </form>
         </div>
 
         {/* ── RIGHT: Compact List ── */}
-        <div className="admin-announce-card admin-ann-card-col">
+        <div className="bg-white dark:bg-[#1E2130] border border-slate-200 dark:border-white/10 rounded-xl shadow-sm flex flex-col transition-all hover:shadow-md h-[calc(100vh-200px)]">
 
           {/* Live Preview */}
-          <div className="admin-announce-card-header admin-ann-header-no-border">
-            <p className="admin-announce-card-title">Live Preview</p>
+          <div className="p-4 flex justify-between items-center bg-slate-50 dark:bg-black/20 rounded-t-xl">
+            <p className="m-0 font-inter text-sm font-bold text-slate-800 dark:text-white line-clamp-1">Live Preview</p>
           </div>
-          <div className="admin-ann-pad-20">
-            <div className="admin-announce-preview-wrap">
-              <div className={`ann-card ann-card-${template}`}>
+          <div className="p-5 flex-1 overflow-y-auto custom-scrollbar">
+            <div className="flex flex-col gap-4">
+              <div className="flex flex-col bg-white dark:bg-[#161922] border border-slate-200 dark:border-white/10 rounded-xl overflow-hidden shadow-sm">
                 {template === 'banner' && (
-                  <div className="ann-banner">
+                  <div className="w-full h-32 bg-slate-100 dark:bg-white/5 relative">
                     {form.images.length > 0
                       ? (
-                        <div className="ann-slider">
+                        <div className="w-full h-full flex overflow-x-auto snap-x snap-mandatory">
                           {form.images.map((img, i) => (
                             <img key={i} src={img} alt="" onClick={() => window.open(img, '_blank')} />
                           ))}
                         </div>
                       )
-                      : <div className="ann-banner-placeholder"><Megaphone size={24} color="#1E3A8A" /></div>
+                      : <div className="w-full h-full flex items-center justify-center opacity-30"><Megaphone size={24} color="#1E3A8A" /></div>
                     }
                   </div>
                 )}
                 {template === 'side' && (
-                  <div className="ann-side-img">
+                  <div className="hidden">
                     {form.images.length > 0
                       ? (
-                        <div className="ann-slider">
+                        <div className="w-full h-full flex overflow-x-auto snap-x snap-mandatory">
                           {form.images.map((img, i) => (
                             <img key={i} src={img} alt="" onClick={() => window.open(img, '_blank')} />
                           ))}
                         </div>
                       )
-                      : <div className="ann-banner-placeholder"><Megaphone size={20} color="#1E3A8A" /></div>
+                      : <div className="w-full h-full flex items-center justify-center opacity-30"><Megaphone size={20} color="#1E3A8A" /></div>
                     }
                   </div>
                 )}
-                <div className="ann-body">
-                  <span className="ann-cat">{form.category === 'Other' ? (form.customCategory || 'Custom Category') : form.category}</span>
-                  <p className="ann-title">
-                    {form.title || <span className="admin-ann-placeholder-italic">Announcement title...</span>}
+                <div className="p-4 flex flex-col gap-2">
+                  <span className="text-[10px] font-bold uppercase tracking-wider text-blue-600 dark:text-blue-400">{form.category === 'Other' ? (form.customCategory || 'Custom Category') : form.category}</span>
+                  <p className="m-0 font-inter text-base font-bold text-slate-800 dark:text-white leading-tight">
+                    {form.title || <span className="italic opacity-70">Announcement title...</span>}
                   </p>
-                  <p className="ann-msg">
-                    {form.body || <span className="admin-ann-placeholder-italic">Your message will appear here.</span>}
+                  <p className="m-0 font-inter text-sm text-slate-600 dark:text-slate-400 leading-relaxed">
+                    {form.body || <span className="italic opacity-70">Your message will appear here.</span>}
                   </p>
-                  <div className="ann-meta">
+                  <div className="mt-2 flex flex-wrap items-center gap-3 text-xs text-slate-500 dark:text-slate-400 font-medium">
                     <span><Calendar size={10} /> {previewDate}</span>
                     <span><Globe size={10} /> {previewAudience}</span>
                   </div>
@@ -519,50 +518,50 @@ export default function AdminAnnouncements() {
             </div>
           </div>
 
-          <div className="admin-ann-divider" />
+          <div className="h-[1px] bg-slate-200 dark:bg-white/10 mx-4" />
 
           {/* Stats Bar */}
-          <div className="admin-announce-stats-bar">
-            <div className="admin-announce-stat-item">
-              <span className="admin-announce-stat-number">{items.length}</span>
-              <span className="admin-announce-stat-label">Total</span>
+          <div className="flex items-center justify-between p-4 bg-slate-50 dark:bg-black/20 rounded-xl mb-4">
+            <div className="flex flex-col items-center flex-1">
+              <span className="font-inter font-bold text-xl text-slate-800 dark:text-white">{items.length}</span>
+              <span className="font-inter text-xs font-semibold text-slate-500 dark:text-slate-400 uppercase tracking-wide">Total</span>
             </div>
-            <div className="admin-announce-stat-divider" />
-            <div className="admin-announce-stat-item">
-              <span className="admin-announce-stat-number">{items.filter(a => !isExpired(a.expiresAt)).length}</span>
-              <span className="admin-announce-stat-label">Active</span>
+            <div className="w-[1px] h-8 bg-slate-200 dark:bg-white/10" />
+            <div className="flex flex-col items-center flex-1">
+              <span className="font-inter font-bold text-xl text-slate-800 dark:text-white">{items.filter(a => !isExpired(a.expiresAt)).length}</span>
+              <span className="font-inter text-xs font-semibold text-slate-500 dark:text-slate-400 uppercase tracking-wide">Active</span>
             </div>
-            <div className="admin-announce-stat-divider" />
-            <div className="admin-announce-stat-item">
-              <span className="admin-announce-stat-number">{items.filter(a => isExpired(a.expiresAt)).length}</span>
-              <span className="admin-announce-stat-label">Expired</span>
+            <div className="w-[1px] h-8 bg-slate-200 dark:bg-white/10" />
+            <div className="flex flex-col items-center flex-1">
+              <span className="font-inter font-bold text-xl text-slate-800 dark:text-white">{items.filter(a => isExpired(a.expiresAt)).length}</span>
+              <span className="font-inter text-xs font-semibold text-slate-500 dark:text-slate-400 uppercase tracking-wide">Expired</span>
             </div>
           </div>
 
-          <div className="admin-announce-card-header" style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', padding: '12px 16px', borderBottom: showPosted ? '1px solid #f1f5f9' : 'none' }}>
+          <div className="p-4 flex justify-between items-center bg-slate-50 dark:bg-black/20 rounded-t-xl border-b border-slate-200 dark:border-white/10" style={{ borderBottom: showPosted ? '' : 'none' }}>
             <div>
-              <p className="admin-announce-card-title admin-ann-text-13">Recent Announcements</p>
-              <p className="admin-ann-subtitle-11">Manage active and expired announcements</p>
+              <p className="m-0 font-inter text-[13px] font-bold text-slate-800 dark:text-white">Recent Announcements</p>
+              <p className="m-0 font-inter text-[11px] text-slate-500 dark:text-slate-400">Manage active and expired announcements</p>
             </div>
             <button 
               type="button"
-              className="admin-announce-toggle-btn"
+              className="w-8 h-8 rounded-lg flex items-center justify-center bg-slate-100 dark:bg-white/5 hover:bg-slate-200 dark:hover:bg-white/10 transition-colors border-none cursor-pointer text-slate-600 dark:text-slate-400"
               onClick={() => setShowPosted(!showPosted)}
             >
               {showPosted ? 'Hide List' : 'View List'}
-              <span className="admin-announce-active-badge admin-ann-active-badge-style">
+              <span className="inline-flex items-center px-2 py-0.5 rounded text-[10px] font-bold tracking-wide uppercase bg-blue-100 text-blue-700 dark:bg-blue-500/20 dark:text-blue-400">
                 {items.filter(a => !isExpired(a.expiresAt)).length} active
               </span>
             </button>
           </div>
 
-          <div className={`admin-announce-slide-container ${showPosted ? 'open' : ''}`}>
-            <div className="admin-announce-slide-content">
-              <div className="admin-announce-filter-tabs">
+          <div className={`transition-all duration-300 ease-in-out overflow-hidden flex flex-col ${showPosted ? 'h-full opacity-100' : 'h-0 opacity-0'}`}>
+            <div className="flex flex-col flex-1 overflow-hidden">
+              <div className="flex items-center gap-2 p-3 border-b border-slate-100 dark:border-white/5">
                 {['All', 'Divine Service', 'Bible Study', 'Youth Fellowship', 'Men’s Fellowship', 'Women’s Fellowship'].map(cat => (
                   <button
                     key={cat}
-                    className={`admin-announce-filter-tab${categoryFilter === cat ? ' active' : ''}`}
+                    className={`px-3 py-1.5 rounded-full text-xs font-semibold whitespace-nowrap transition-colors border-none cursor-pointer ${categoryFilter === cat ? 'bg-slate-800 text-white dark:bg-white dark:text-slate-900' : 'bg-slate-100 text-slate-600 dark:bg-white/10 dark:text-slate-300 hover:bg-slate-200 dark:hover:bg-white/20'}`}
                     onClick={() => setCategoryFilter(cat)}
                   >
                     {cat}
@@ -570,53 +569,53 @@ export default function AdminAnnouncements() {
                 ))}
               </div>
 
-              <div className="admin-announce-list">
+              <div className="flex-1 overflow-y-auto custom-scrollbar p-3 flex flex-col gap-3">
                 {loading ? (
                   [1, 2, 3].map(i => (
-                    <div key={i} className="admin-announce-item">
-                      <div className="admin-ann-flex-1">
-                        <div className="user-skeleton admin-ann-skel-title" />
-                        <div className="user-skeleton admin-ann-skel-desc" />
+                    <div key={i} className="flex flex-col p-4 bg-white dark:bg-[#161922] border border-slate-200 dark:border-white/10 rounded-xl hover:border-blue-300 dark:hover:border-white/20 transition-all group relative overflow-hidden">
+                      <div className="flex-1">
+                        <div className="h-4 bg-slate-200 dark:bg-white/10 rounded w-3/4 mb-2 animate-pulse" />
+                        <div className="h-3 bg-slate-200 dark:bg-white/10 rounded w-full mt-2 animate-pulse" />
                       </div>
                     </div>
                   ))
                 ) : (filteredItems => filteredItems.length === 0 ? (
-                  <div className="admin-announce-empty">
-                    <Megaphone size={28} color="#cbd5e1" className="admin-ann-mb-8" />
+                  <div className="flex flex-col items-center justify-center p-8 text-center">
+                    <Megaphone size={28} color="#cbd5e1" className="mb-3 opacity-50" />
                     <p>{items.length === 0 ? 'No announcements yet. Post one!' : `No ${categoryFilter} announcements.`}</p>
                   </div>
                 ) : (
                   filteredItems.map(a => (
-                      <div key={a._id} className={`admin-announce-item${isExpired(a.expiresAt) ? ' expired' : ''}`}>
-                        <div className="admin-announce-item-content">
-                          <p className="admin-announce-item-title">{a.title}</p>
-                          <p className="admin-announce-item-body">{a.body}</p>
-                          <div className="admin-announce-item-meta">
-                            <span className="admin-announce-item-cat">{a.category}</span>
+                      <div key={a._id} className={`flex flex-col p-4 bg-white dark:bg-[#161922] border border-slate-200 dark:border-white/10 rounded-xl transition-all group relative overflow-hidden ${isExpired(a.expiresAt) ? 'opacity-60' : 'hover:border-blue-300 dark:hover:border-white/20'}`}>
+                        <div className="flex flex-col gap-2 relative z-10">
+                          <p className="m-0 font-inter text-sm font-bold text-slate-800 dark:text-white pr-16 line-clamp-2">{a.title}</p>
+                          <p className="m-0 font-inter text-[13px] text-slate-600 dark:text-slate-400 line-clamp-2">{a.body}</p>
+                          <div className="flex flex-wrap items-center gap-2 mt-2">
+                            <span className="inline-flex items-center px-2 py-1 rounded text-[10px] font-bold tracking-wider uppercase bg-slate-100 text-slate-600 dark:bg-white/10 dark:text-slate-400">{a.category}</span>
                             {a.eventDate && (
-                              <span className="admin-announce-item-badge event">
+                              <span className="inline-flex items-center gap-1 px-2 py-1 rounded text-[10px] font-bold tracking-wider uppercase bg-blue-50 text-blue-600 dark:bg-blue-500/20 dark:text-blue-400">
                                 <Calendar size={9} /> {fmtDateTime(a.eventDate)}
                               </span>
                             )}
                             {a.expiresAt && (
-                              <span className={`admin-announce-item-badge${isExpired(a.expiresAt) ? ' expired' : ' expiry'}`}>
+                              <span className={`inline-flex items-center gap-1 px-2 py-1 rounded text-[10px] font-bold tracking-wider uppercase ${isExpired(a.expiresAt) ? 'bg-rose-50 text-rose-600 dark:bg-rose-500/20 dark:text-rose-400' : 'bg-amber-50 text-amber-600 dark:bg-amber-500/20 dark:text-amber-400'}`}>
                                 <Clock size={9} /> {isExpired(a.expiresAt) ? 'Expired' : `Expires ${fmtDate(a.expiresAt)}`}
                               </span>
                             )}
-                            <span className="admin-announce-item-badge scope">
+                            <span className="inline-flex items-center px-2 py-1 rounded text-[10px] font-bold tracking-wider uppercase bg-fuchsia-50 text-fuchsia-600 dark:bg-fuchsia-500/20 dark:text-fuchsia-400">
                               <Globe size={9} /> {getVisibilityLabel(a)}
                             </span>
                           </div>
-                          <div className="admin-announce-item-footer">
+                          <div className="mt-3 pt-3 border-t border-slate-100 dark:border-white/10 flex items-center justify-between text-[11px] font-inter font-semibold text-slate-400 tracking-wide">
                             <span>{fmtDate(a.createdAt)}</span>
                             {a.createdBy && <span>· by {a.createdBy}</span>}
                           </div>
                         </div>
-                        <div className="admin-announce-actions">
-                          <button className="admin-announce-edit" onClick={() => handleEdit(a)} title="Edit">
+                        <div className="absolute top-3 right-3 flex items-center gap-1 opacity-0 group-hover:opacity-100 transition-opacity z-20">
+                          <button className="w-7 h-7 rounded bg-white dark:bg-[#1E2130] border border-slate-200 dark:border-white/10 flex items-center justify-center text-blue-600 hover:bg-blue-50 dark:hover:bg-blue-500/10 cursor-pointer shadow-sm transition-colors" onClick={() => handleEdit(a)} title="Edit">
                             <Edit size={14} />
                           </button>
-                          <button className="admin-announce-delete" onClick={() => handleDelete(a._id)} title="Delete">
+                          <button className="w-7 h-7 rounded bg-white dark:bg-[#1E2130] border border-slate-200 dark:border-white/10 flex items-center justify-center text-rose-600 hover:bg-rose-50 dark:hover:bg-rose-500/10 cursor-pointer shadow-sm transition-colors" onClick={() => handleDelete(a._id)} title="Delete">
                             <Trash2 size={14} />
                           </button>
                         </div>

@@ -1,5 +1,4 @@
 import React, { useMemo } from 'react';
-import '../styles/DonationCategoriesPie.css';
 
 const INITIAL_DONATION_CATEGORIES = [
   { name: 'General Fund', value: 0, color: '#0D1F45' },
@@ -35,26 +34,26 @@ export default function DonationCategoriesPie({ categoryBreakdown = {} }) {
   const formatK = (num) => num >= 1000 ? `${(num / 1000).toFixed(0)}k` : num;
 
   return (
-    <div className="dcp-card" style={{ padding: '24px' }}>
-      <div className="dcp-card-header" style={{ marginBottom: '20px' }}>
+    <div className="bg-white dark:bg-[#1E2130] rounded-xl border border-slate-200 dark:border-white/10 shadow-sm p-6 flex flex-col h-full">
+      <div className="flex items-center justify-between mb-5">
         <div style={{ display: 'flex', flexDirection: 'column', alignItems: 'flex-start', gap: '8px' }}>
-          <h3 className="dcp-card-title" style={{ margin: 0, fontSize: '16px', fontWeight: 700, color: '#111827', fontFamily: "'Inter', sans-serif" }}>Donation Categories</h3>
-          <span className="dcp-stat-chip">
+          <h3 className="m-0 font-inter text-base font-bold text-slate-900 dark:text-white">Donation Categories</h3>
+          <span className="px-2.5 py-1 rounded-full text-xs font-semibold bg-emerald-50 text-emerald-600 dark:bg-emerald-500/10 dark:text-emerald-400">
             ₱{(pieTotal || 0).toLocaleString()}
           </span>
         </div>
       </div>
-      <div className="dcp-donation-list">
+      <div className="mt-4 flex flex-col gap-3 overflow-y-auto custom-scrollbar flex-1 pr-2">
         {sortedDonationData.map((item, idx) => {
           const shortName = item.name.replace('Department', 'Dept');
           const displayLabel = `₱${formatK(item.value || 0)} • ${item.percentage}%`;
           return (
-            <div key={idx} className="dcp-donation-row">
-              <span className="dcp-donation-name">{shortName}</span>
-              <div className="dcp-donation-bar-bg">
-                <div className="dcp-donation-bar-fill" style={{ width: `${item.percentage}%`, backgroundColor: item.fillColor }}></div>
+            <div key={idx} className="flex items-center gap-3">
+              <span className="w-[100px] font-inter text-[13px] font-semibold text-slate-700 dark:text-slate-300 truncate shrink-0">{shortName}</span>
+              <div className="flex-1 h-2 rounded-full bg-slate-100 dark:bg-white/5 overflow-hidden">
+                <div className="h-full rounded-full transition-all duration-500" style={{ width: `${item.percentage}%`, backgroundColor: item.fillColor }}></div>
               </div>
-              <span className="dcp-donation-value">{displayLabel}</span>
+              <span className="w-[80px] font-inter text-xs text-slate-500 dark:text-slate-400 text-right shrink-0">{displayLabel}</span>
             </div>
           );
         })}
