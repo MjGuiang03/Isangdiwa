@@ -65,12 +65,12 @@ export default function Donation() {
   const [formError, setFormError] = useState('');
   const [stats, setStats] = useState({ totalDonated: 0, thisYearTotal: 0, totalCount: 0 });
   const [loading, setLoading] = useState(true);
+  // eslint-disable-next-line no-unused-vars
   const [historyPage] = useState(1);
   const [selectedDonation, setSelectedDonation] = useState(null);
   const [isReceiptModalOpen, setIsReceiptModalOpen] = useState(false);
+  // eslint-disable-next-line no-unused-vars
   const [recentDonations, setRecentDonations] = useState([]);
-  
-  // Settings
   const [approvalMethod, setApprovalMethod] = useState('gateway');
   const [proofFile, setProofFile] = useState(null);
   const [proofBase64, setProofBase64] = useState('');

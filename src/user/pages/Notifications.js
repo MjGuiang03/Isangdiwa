@@ -375,15 +375,7 @@ export default function Notifications() {
           : type === 'payment_pending' ? 'bg-emerald-100 dark:bg-emerald-950/60 text-emerald-700 dark:text-emerald-300'
             : 'bg-teal-100 dark:bg-teal-950/60 text-teal-700 dark:text-teal-300';
 
-  const cardClass = (n) => {
-    let classes = 'relative z-10 p-4 sm:p-5 bg-white dark:bg-[#1E2130] text-slate-900 dark:text-white rounded-2xl flex items-start gap-4 transition-transform cursor-pointer border border-transparent shadow-sm';
-    if (!n.isRead) classes += ' bg-blue-50/60 dark:bg-blue-950/30 border-blue-200/80 dark:border-blue-900/50 font-semibold';
-    if (n.actionRequired) classes += ' border-amber-300 dark:border-amber-700/60 bg-amber-50/60 dark:bg-amber-950/30';
-    if (n.isRead) classes += ' opacity-90 dark:opacity-80';
-    if (n.type === 'announcement') classes += ' border-indigo-200 dark:border-indigo-900/50 bg-indigo-50/50 dark:bg-indigo-950/30';
-    if (n.isUrgent) classes += ' border-red-300 dark:border-red-900/60 bg-red-50/60 dark:bg-red-950/30';
-    return classes;
-  };
+
 
   const handleTermsResponse = async (accepted) => {
     if (!termsModal) return;

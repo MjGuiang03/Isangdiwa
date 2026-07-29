@@ -42,9 +42,9 @@ export default function Savings() {
         thisMonth: 0,
         activeGoals: 0,
         completedGoals: 0,
-        maxLoanable: 0,
     });
-    const [txnPage, setTxnPage] = useState(1);
+    const [txnPage] = useState(1);
+    // eslint-disable-next-line no-unused-vars
     const [txnTotal, setTxnTotal] = useState(0);
     const TXN_LIMIT = 4;
     
@@ -135,36 +135,7 @@ export default function Savings() {
         setGoalPage(1);
     };
 
-    /* ── loanable banner ── */
-    const renderLoanableBanner = () => {
-        const bal = stats.totalSavings || 0;
-        if (bal <= 0) return (
-            <div className="p-4 rounded-xl bg-slate-50 dark:bg-white/5 border border-slate-200 dark:border-white/10 flex flex-col md:flex-row md:items-center justify-between gap-3 text-xs font-inter mt-4">
-                <div>
-                    <strong className="block text-slate-800 dark:text-white">Your current loanable amounts</strong>
-                    <span className="text-slate-500 dark:text-slate-400">Start saving to unlock loan eligibility</span>
-                </div>
-                <div className="flex flex-wrap gap-2">
-                    <span className="px-2.5 py-1 rounded-md bg-slate-200 dark:bg-slate-800 text-slate-600 dark:text-slate-400 font-semibold">Personal — ₱0</span>
-                    <span className="px-2.5 py-1 rounded-md bg-slate-200 dark:bg-slate-800 text-slate-600 dark:text-slate-400 font-semibold">Emergency — ₱0</span>
-                    <span className="px-2.5 py-1 rounded-md bg-slate-200 dark:bg-slate-800 text-slate-600 dark:text-slate-400 font-semibold">Short-Term — ₱0</span>
-                </div>
-            </div>
-        );
-        return (
-            <div className="p-4 rounded-xl bg-blue-50/50 dark:bg-blue-950/20 border border-blue-100 dark:border-blue-900/30 flex flex-col md:flex-row md:items-center justify-between gap-3 text-xs font-inter mt-4">
-                <div>
-                    <strong className="block text-slate-900 dark:text-white">Your current loanable amounts</strong>
-                    <span className="text-slate-500 dark:text-slate-400">Based on {fmt(bal)} savings balance</span>
-                </div>
-                <div className="flex flex-wrap gap-2">
-                    <span className="px-2.5 py-1 rounded-md bg-blue-100 dark:bg-blue-900/40 text-blue-800 dark:text-blue-300 font-semibold">Personal — up to {fmt(bal * 2)}</span>
-                    <span className="px-2.5 py-1 rounded-md bg-amber-100 dark:bg-amber-900/40 text-amber-800 dark:text-amber-300 font-semibold">Emergency — up to {fmt(bal * 1.5)}</span>
-                    <span className="px-2.5 py-1 rounded-md bg-teal-100 dark:bg-teal-900/40 text-teal-800 dark:text-teal-300 font-semibold">Short-Term — up to {fmt(bal)}</span>
-                </div>
-            </div>
-        );
-    };
+
 
     /* ── goals list ── */
     const renderGoals = () => {

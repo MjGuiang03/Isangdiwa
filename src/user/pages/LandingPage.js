@@ -2,7 +2,7 @@
 import React, { useState, useEffect, useRef } from 'react';
 import { useLocation, useNavigate } from 'react-router-dom';
 import { 
-  PiggyBank, Calendar, ArrowRight, ChevronRight, CheckCircle2
+  ArrowRight, ChevronRight, CheckCircle2
 } from 'lucide-react';
 
 import LoginModal from '../components/LoginModal';

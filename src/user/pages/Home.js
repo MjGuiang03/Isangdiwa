@@ -7,14 +7,7 @@ import API from '../../utils/api';
 import { Banknote, CalendarDays, CheckCircle, ChevronRight, ChevronLeft, Clock, Heart, MapPin, PiggyBank, Wallet, FileText, BookOpen, Target, X, Sparkles } from 'lucide-react';
 import { isOfficerPosition } from '../../utils/officerPositions';
 
-const CAT_COLORS = {
-  Events: { bg: 'bg-orange-50 dark:bg-orange-950/40', text: 'text-orange-700 dark:text-orange-300' },
-  General: { bg: 'bg-blue-50 dark:bg-blue-950/40', text: 'text-blue-700 dark:text-blue-300' },
-  Prayer: { bg: 'bg-purple-50 dark:bg-purple-950/40', text: 'text-purple-700 dark:text-purple-300' },
-  Services: { bg: 'bg-emerald-50 dark:bg-emerald-950/40', text: 'text-emerald-700 dark:text-emerald-300' },
-  Donations: { bg: 'bg-pink-50 dark:bg-pink-950/40', text: 'text-pink-700 dark:text-pink-300' },
-  Urgent: { bg: 'bg-rose-50 dark:bg-rose-950/40', text: 'text-rose-700 dark:text-rose-300' },
-};
+
 
 export default function Home() {
   const navigate = useNavigate();
@@ -39,7 +32,6 @@ export default function Home() {
   const [showAllEvents, setShowAllEvents] = useState(false);
   const [currentEventIndex, setCurrentEventIndex] = useState(0);
   const [modalImageIndex, setModalImageIndex] = useState(0);
-  const [lightboxImageIndex, setLightboxImageIndex] = useState(null);
   const [showPrayerModal, setShowPrayerModal] = useState(false);
   const [prayers, setPrayers] = useState([]);
   const [newPrayer, setNewPrayer] = useState("");
@@ -441,12 +433,7 @@ export default function Home() {
     }
   };
 
-  const timeGreeting = useMemo(() => {
-    const hour = new Date().getHours();
-    if (hour < 12) return 'Good morning';
-    if (hour < 18) return 'Good afternoon';
-    return 'Good evening';
-  }, []);
+
 
   return (
     <div className="space-y-5 w-full pb-8">
