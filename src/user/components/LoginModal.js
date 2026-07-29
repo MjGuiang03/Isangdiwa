@@ -2,7 +2,6 @@ import { useState, useEffect, useRef } from 'react';
 import { useNavigate } from 'react-router';
 import { useAuth } from '../../context/AuthContext';
 import { Mail, Lock, Eye, EyeOff, X, AlertTriangle } from 'lucide-react';
-import puacLogo from '../../assets/puaclogo.png';
 import useSwipeDownToClose from '../hooks/useSwipeDownToClose';
 
 // Valid email domains list

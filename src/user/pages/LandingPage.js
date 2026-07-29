@@ -2,9 +2,7 @@
 import React, { useState, useEffect, useRef } from 'react';
 import { useLocation, useNavigate } from 'react-router-dom';
 import { 
-  PiggyBank, Wallet, Calendar, ShieldCheck, 
-  ArrowRight, Users, Church, ChevronRight, CheckCircle2,
-  Sparkles, Globe, MessageSquare
+  PiggyBank, Calendar, ArrowRight, ChevronRight, CheckCircle2
 } from 'lucide-react';
 
 import LoginModal from '../components/LoginModal';
@@ -13,15 +11,9 @@ import ResetPassword from '../components/ResetPassword';
 
 import puacLogo from '../../assets/puaclogo.png';
 import puacCongregation from '../../assets/IMG_8437.JPG';
-import puacCommunity from '../../assets/IMG_8443.JPG';
-import thanksgiving from '../../assets/events/thanksgiving.png';
 import summerYouthCamp from '../../assets/summer youth camp.png';
-import womenFellowship from '../../assets/events/pic1.jfif';
-import youthFellowship from '../../assets/events/youth_fellowship.png';
-import divineService from '../../assets/events/pic2.jfif';
 import bentoImg1 from '../../assets/events/IMG_8439.JPG';
 import bentoImg2 from '../../assets/events/pic4.jfif';
-import youthCampImg from '../../assets/events/IMG_8460.JPG';
 import missionImg from '../../assets/events/pic5.jfif';
 
 import featureSavings from '../../assets/features/savings.jpg';

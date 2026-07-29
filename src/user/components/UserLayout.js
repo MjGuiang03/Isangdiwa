@@ -4,7 +4,7 @@ import Sidebar from './Sidebar';
 
 import Chatbot from './Chatbot';
 import NotificationPrompt from '../../components/NotificationPrompt';
-import { MessageCircle, Bot, Sparkles, X, Menu } from 'lucide-react';
+import { Bot, Sparkles, X, Menu } from 'lucide-react';
 
 export default function UserLayout() {
   const [chatOpen, setChatOpen] = useState(false);
