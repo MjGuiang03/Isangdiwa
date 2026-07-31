@@ -3,6 +3,7 @@ import { useState, useEffect } from 'react';
 import { useNavigate } from 'react-router';
 import { toast } from 'sonner';
 import LoanAdminSidebar from './loanAdminSidebar';
+import PageHeader from '../components/PageHeader';
 import { useTheme } from '../../context/ThemeContext';
 import API from '../../utils/api';
 
@@ -201,13 +202,13 @@ export default function LoanAdminSettings() {
         <div className="flex h-screen overflow-hidden bg-slate-100 dark:bg-[#161922]">
             <LoanAdminSidebar />
 
-            <div className="flex-1 overflow-y-auto p-6 bg-slate-100 dark:bg-[#161922]">
+            <div className="flex-1 overflow-y-auto p-6 pb-16 bg-slate-100 dark:bg-[#161922] w-full">
                 <div className="flex flex-col gap-6 max-w-[1000px] mx-auto w-full min-h-screen">
                     {/* Header */}
-                    <div className="flex flex-col gap-1">
-                        <h1 className="m-0 font-inter text-2xl font-bold text-slate-800 dark:text-white">Loan Admin Settings</h1>
-                        <p className="m-0 font-inter text-sm text-slate-500 dark:text-slate-400">Configure your personal account details, security, and notification preferences</p>
-                    </div>
+                    <PageHeader 
+                        title="Loan Admin Settings" 
+                        subtitle="Configure your personal account details, security, and notification preferences." 
+                    />
 
                     {/* Personal Profile Section */}
                     <div className="bg-white dark:bg-[#1E2130] border border-slate-200 dark:border-white/10 rounded-2xl p-6 shadow-sm flex flex-col gap-6 relative">

@@ -722,7 +722,7 @@ function LinkRFIDModal({ member, onClose, onSave }) {
 /* ═══════════════════════════════════════════════════════════════════════════
    MAIN PAGE
 ═══════════════════════════════════════════════════════════════════════════ */
-const ITEMS_PER_PAGE = 10;
+const ITEMS_PER_PAGE = 5;
 
 export default function AdminMembers() {
   const navigate = useNavigate();
@@ -794,8 +794,64 @@ export default function AdminMembers() {
 
   useEffect(() => { setCurrentPage(1); }, [debouncedSearchMembers, roleFilter]);
 
+  if (!data && loadingMembers) {
+    return (
+      <div className="flex flex-col min-h-full bg-slate-100 dark:bg-[#161922] p-6 max-w-[1400px] mx-auto w-full gap-6 animate-pulse">
+        {/* Header Skeleton */}
+        <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-4">
+          <div className="flex flex-col gap-2">
+            <div className="h-8 w-48 bg-slate-200 dark:bg-slate-700/80 rounded-lg"></div>
+            <div className="h-4 w-72 bg-slate-200 dark:bg-slate-700/80 rounded-md"></div>
+          </div>
+          <div className="h-10 w-36 bg-slate-200 dark:bg-slate-700/80 rounded-xl"></div>
+        </div>
+
+        {/* 4 Stat Cards Skeleton */}
+        <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-5">
+          {[1, 2, 3, 4].map((i) => (
+            <div key={i} className="bg-white dark:bg-[#1E2130] border border-slate-200 dark:border-white/10 rounded-2xl p-6 shadow-sm flex flex-col justify-between h-[138px]">
+              <div className="flex items-start justify-between">
+                <div className="flex flex-col gap-2">
+                  <div className="h-3.5 w-24 bg-slate-200 dark:bg-slate-700/80 rounded"></div>
+                  <div className="h-8 w-20 bg-slate-200 dark:bg-slate-700/80 rounded-lg"></div>
+                </div>
+                <div className="w-12 h-12 rounded-[14px] bg-slate-200 dark:bg-slate-700/80"></div>
+              </div>
+              <div className="h-4 w-28 bg-slate-200 dark:bg-slate-700/80 rounded mt-2"></div>
+            </div>
+          ))}
+        </div>
+
+        {/* Table & Filter Toolbar Skeleton */}
+        <div className="w-full bg-white dark:bg-[#1E2130] border border-slate-200 dark:border-white/10 rounded-2xl shadow-sm overflow-hidden flex flex-col">
+          <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-4 p-4 border-b border-slate-200 dark:border-white/10 bg-slate-50 dark:bg-black/20">
+            <div className="h-10 w-full sm:w-80 bg-slate-200 dark:bg-slate-700/80 rounded-xl"></div>
+            <div className="h-10 w-44 bg-slate-200 dark:bg-slate-700/80 rounded-xl"></div>
+          </div>
+          <div className="divide-y divide-slate-100 dark:divide-white/5 p-4">
+            {[1, 2, 3, 4, 5].map((i) => (
+              <div key={i} className="flex items-center justify-between py-3.5 gap-4">
+                <div className="flex items-center gap-3 w-1/4">
+                  <div className="w-10 h-10 rounded-full bg-slate-200 dark:bg-slate-700/80 shrink-0"></div>
+                  <div className="flex flex-col gap-1.5 flex-1">
+                    <div className="h-4 w-3/4 bg-slate-200 dark:bg-slate-700/80 rounded"></div>
+                    <div className="h-3 w-1/2 bg-slate-200 dark:bg-slate-700/80 rounded"></div>
+                  </div>
+                </div>
+                <div className="h-4 w-24 bg-slate-200 dark:bg-slate-700/80 rounded"></div>
+                <div className="h-4 w-28 bg-slate-200 dark:bg-slate-700/80 rounded"></div>
+                <div className="h-6 w-20 bg-slate-200 dark:bg-slate-700/80 rounded-full"></div>
+                <div className="h-8 w-16 bg-slate-200 dark:bg-slate-700/80 rounded-lg"></div>
+              </div>
+            ))}
+          </div>
+        </div>
+      </div>
+    );
+  }
+
   return (
-    <div className="flex flex-col h-full bg-slate-100 dark:bg-[#161922] p-6 max-w-[1400px] mx-auto w-full gap-6">
+    <div className="flex flex-col min-h-full bg-slate-100 dark:bg-[#161922] p-6 max-w-[1400px] mx-auto w-full gap-6">
 
       {editMember   && <EditModal   member={editMember}   onClose={() => setEditMember(null)}   onSave={()    => { setEditMember(null);   fetchMembers(); }} />}
       {deleteMember && <DeleteModal member={deleteMember} onClose={() => setDeleteMember(null)} onConfirm={() => { setDeleteMember(null); fetchMembers(); }} />}
@@ -897,9 +953,9 @@ export default function AdminMembers() {
 
       {/* Header */}
       <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-4 shrink-0">
-        <div className="flex flex-col gap-1">
+        <div>
           <h1 className="m-0 font-inter text-2xl font-bold text-slate-800 dark:text-white">Member Management</h1>
-
+          <p className="m-0 font-inter text-sm text-slate-500 dark:text-slate-400 mt-1">Manage congregation directory, roles, RFID tags, and member profiles</p>
         </div>
         <button className="h-10 px-4 bg-blue-600 text-white font-inter text-sm font-semibold rounded-lg hover:bg-blue-700 transition-colors border-none cursor-pointer flex items-center gap-2" onClick={() => setShowAddModal(true)}>
           <UserPlus size={20} />
@@ -910,75 +966,113 @@ export default function AdminMembers() {
       {/* Stats Grid */}
       <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-5 gap-5 mb-5 mt-2">
         {/* Total Members */}
-        <div className={`group relative rounded-2xl p-5 shadow-[0_2px_12px_-4px_rgba(0,0,0,0.05)] overflow-hidden transition-all duration-300 hover:shadow-[0_12px_32px_rgba(0,0,0,0.08)] dark:hover:shadow-[0_12px_32px_rgba(0,0,0,0.3)] hover:-translate-y-1 cursor-pointer flex flex-col justify-between ${roleFilter === 'all' ? 'ring-2 ring-blue-500 border-transparent shadow-md bg-blue-50/50 dark:bg-blue-500/10' : 'bg-white dark:bg-[#1E2130] border border-slate-200 dark:border-white/10'}`} onClick={() => setRoleFilter('all')}>
-          <div className="absolute top-0 right-0 w-28 h-28 bg-blue-500/10 rounded-full blur-2xl -mr-8 -mt-8 transition-transform duration-500 group-hover:scale-150"></div>
-          
-          <div className="flex items-start justify-between relative z-10 mb-3">
-            <span className="text-[11px] font-semibold text-slate-500 dark:text-slate-400 font-inter uppercase tracking-wider leading-tight pr-2 mt-1">Total Members</span>
-            <div className={`w-10 h-10 rounded-xl flex items-center justify-center shrink-0 transition-transform duration-300 group-hover:scale-110 shadow-sm ${roleFilter === 'all' ? 'bg-blue-600 text-white' : 'bg-gradient-to-br from-blue-50 to-blue-100/50 dark:from-blue-500/20 dark:to-blue-500/10 text-blue-600 dark:text-blue-400 border border-blue-200/60 dark:border-blue-500/30'}`}>
-              <UsersIcon size={20} strokeWidth={2.2} />
+        <div className={`group relative rounded-2xl p-6 shadow-[0_2px_12px_-4px_rgba(0,0,0,0.05)] overflow-hidden transition-all duration-300 hover:shadow-[0_12px_32px_rgba(0,0,0,0.08)] dark:hover:shadow-[0_12px_32px_rgba(0,0,0,0.3)] hover:-translate-y-1 cursor-pointer ${roleFilter === 'all' ? 'ring-2 ring-blue-500 border-transparent shadow-md bg-blue-50/50 dark:bg-blue-500/10' : 'bg-white dark:bg-[#1E2130] border border-slate-200 dark:border-white/10'}`} onClick={() => setRoleFilter('all')}>
+          <div className="absolute top-0 right-0 w-32 h-32 bg-blue-500/10 rounded-full blur-3xl -mr-10 -mt-10 transition-transform duration-500 group-hover:scale-150"></div>
+          <div className="flex items-start justify-between relative z-10 mb-4">
+            <div className="flex flex-col">
+              <span className="font-inter font-semibold text-[13px] tracking-wider uppercase text-slate-500 dark:text-slate-400 mb-1">Total Members</span>
+              <div className="font-inter font-extrabold text-[32px] text-slate-900 dark:text-white tracking-tight leading-none">{stats.total ?? 0}</div>
+            </div>
+            <div className={`w-12 h-12 rounded-[14px] flex items-center justify-center shrink-0 transition-transform duration-300 group-hover:scale-110 shadow-sm ${roleFilter === 'all' ? 'bg-blue-600 text-white' : 'bg-gradient-to-br from-blue-50 to-blue-100/50 dark:from-blue-500/20 dark:to-blue-500/10 text-blue-600 dark:text-blue-400 border border-blue-200/60 dark:border-blue-500/30'}`}>
+              <UsersIcon size={24} strokeWidth={2.2} />
             </div>
           </div>
-          <h3 className="text-[28px] font-extrabold text-slate-900 dark:text-white font-inter tracking-tight m-0 relative z-10 mt-auto">{stats.total ?? 0}</h3>
+          <div className="flex items-center gap-2 relative z-10 mt-1">
+            <div className="flex items-center gap-1 bg-blue-50 dark:bg-blue-500/10 text-blue-600 dark:text-blue-400 px-2 py-0.5 rounded-md text-xs font-bold border border-blue-100 dark:border-blue-500/20">
+              <span>All</span>
+            </div>
+            <span className="font-inter text-xs font-medium text-slate-500 dark:text-slate-400">registered</span>
+          </div>
         </div>
 
         {/* Officers */}
-        <div className={`group relative rounded-2xl p-5 shadow-[0_2px_12px_-4px_rgba(0,0,0,0.05)] overflow-hidden transition-all duration-300 hover:shadow-[0_12px_32px_rgba(0,0,0,0.08)] dark:hover:shadow-[0_12px_32px_rgba(0,0,0,0.3)] hover:-translate-y-1 cursor-pointer flex flex-col justify-between ${roleFilter === 'officer' ? 'ring-2 ring-purple-500 border-transparent shadow-md bg-purple-50/50 dark:bg-purple-500/10' : 'bg-white dark:bg-[#1E2130] border border-slate-200 dark:border-white/10'}`} onClick={() => setRoleFilter('officer')}>
-          <div className="absolute top-0 right-0 w-28 h-28 bg-purple-500/10 rounded-full blur-2xl -mr-8 -mt-8 transition-transform duration-500 group-hover:scale-150"></div>
-          
-          <div className="flex items-start justify-between relative z-10 mb-3">
-            <span className="text-[11px] font-semibold text-slate-500 dark:text-slate-400 font-inter uppercase tracking-wider leading-tight pr-2 mt-1">Officers</span>
-            <div className={`w-10 h-10 rounded-xl flex items-center justify-center shrink-0 transition-transform duration-300 group-hover:scale-110 shadow-sm ${roleFilter === 'officer' ? 'bg-purple-600 text-white' : 'bg-gradient-to-br from-purple-50 to-purple-100/50 dark:from-purple-500/20 dark:to-purple-500/10 text-purple-600 dark:text-purple-400 border border-purple-200/60 dark:border-purple-500/30'}`}>
-              <Lock size={20} strokeWidth={2.2} />
+        <div className={`group relative rounded-2xl p-6 shadow-[0_2px_12px_-4px_rgba(0,0,0,0.05)] overflow-hidden transition-all duration-300 hover:shadow-[0_12px_32px_rgba(0,0,0,0.08)] dark:hover:shadow-[0_12px_32px_rgba(0,0,0,0.3)] hover:-translate-y-1 cursor-pointer ${roleFilter === 'officer' ? 'ring-2 ring-purple-500 border-transparent shadow-md bg-purple-50/50 dark:bg-purple-500/10' : 'bg-white dark:bg-[#1E2130] border border-slate-200 dark:border-white/10'}`} onClick={() => setRoleFilter('officer')}>
+          <div className="absolute top-0 right-0 w-32 h-32 bg-purple-500/10 rounded-full blur-3xl -mr-10 -mt-10 transition-transform duration-500 group-hover:scale-150"></div>
+          <div className="flex items-start justify-between relative z-10 mb-4">
+            <div className="flex flex-col">
+              <span className="font-inter font-semibold text-[13px] tracking-wider uppercase text-slate-500 dark:text-slate-400 mb-1">Officers</span>
+              <div className="font-inter font-extrabold text-[32px] text-slate-900 dark:text-white tracking-tight leading-none">{stats.officers ?? 0}</div>
+            </div>
+            <div className={`w-12 h-12 rounded-[14px] flex items-center justify-center shrink-0 transition-transform duration-300 group-hover:scale-110 shadow-sm ${roleFilter === 'officer' ? 'bg-purple-600 text-white' : 'bg-gradient-to-br from-purple-50 to-purple-100/50 dark:from-purple-500/20 dark:to-purple-500/10 text-purple-600 dark:text-purple-400 border border-purple-200/60 dark:border-purple-500/30'}`}>
+              <Lock size={24} strokeWidth={2.2} />
             </div>
           </div>
-          <h3 className="text-[28px] font-extrabold text-slate-900 dark:text-white font-inter tracking-tight m-0 relative z-10 mt-auto">{stats.officers ?? 0}</h3>
+          <div className="flex items-center gap-2 relative z-10 mt-1">
+            <div className="flex items-center gap-1 bg-purple-50 dark:bg-purple-500/10 text-purple-600 dark:text-purple-400 px-2 py-0.5 rounded-md text-xs font-bold border border-purple-100 dark:border-purple-500/20">
+              <span>Leaders</span>
+            </div>
+            <span className="font-inter text-xs font-medium text-slate-500 dark:text-slate-400">church officers</span>
+          </div>
         </div>
 
         {/* Active Members */}
-        <div className={`group relative rounded-2xl p-5 shadow-[0_2px_12px_-4px_rgba(0,0,0,0.05)] overflow-hidden transition-all duration-300 hover:shadow-[0_12px_32px_rgba(0,0,0,0.08)] dark:hover:shadow-[0_12px_32px_rgba(0,0,0,0.3)] hover:-translate-y-1 cursor-pointer flex flex-col justify-between ${roleFilter === 'active' ? 'ring-2 ring-emerald-500 border-transparent shadow-md bg-emerald-50/50 dark:bg-emerald-500/10' : 'bg-white dark:bg-[#1E2130] border border-slate-200 dark:border-white/10'}`} onClick={() => setRoleFilter('active')}>
-          <div className="absolute top-0 right-0 w-28 h-28 bg-emerald-500/10 rounded-full blur-2xl -mr-8 -mt-8 transition-transform duration-500 group-hover:scale-150"></div>
-          
-          <div className="flex items-start justify-between relative z-10 mb-3">
-            <span className="text-[11px] font-semibold text-slate-500 dark:text-slate-400 font-inter uppercase tracking-wider leading-tight pr-2 mt-1">Active</span>
-            <div className={`w-10 h-10 rounded-xl flex items-center justify-center shrink-0 transition-transform duration-300 group-hover:scale-110 shadow-sm ${roleFilter === 'active' ? 'bg-emerald-600 text-white' : 'bg-gradient-to-br from-emerald-50 to-emerald-100/50 dark:from-emerald-500/20 dark:to-emerald-500/10 text-emerald-600 dark:text-emerald-400 border border-emerald-200/60 dark:border-emerald-500/30'}`}>
-              <CheckCircle2 size={20} strokeWidth={2.2} />
+        <div className={`group relative rounded-2xl p-6 shadow-[0_2px_12px_-4px_rgba(0,0,0,0.05)] overflow-hidden transition-all duration-300 hover:shadow-[0_12px_32px_rgba(0,0,0,0.08)] dark:hover:shadow-[0_12px_32px_rgba(0,0,0,0.3)] hover:-translate-y-1 cursor-pointer ${roleFilter === 'active' ? 'ring-2 ring-emerald-500 border-transparent shadow-md bg-emerald-50/50 dark:bg-emerald-500/10' : 'bg-white dark:bg-[#1E2130] border border-slate-200 dark:border-white/10'}`} onClick={() => setRoleFilter('active')}>
+          <div className="absolute top-0 right-0 w-32 h-32 bg-emerald-500/10 rounded-full blur-3xl -mr-10 -mt-10 transition-transform duration-500 group-hover:scale-150"></div>
+          <div className="flex items-start justify-between relative z-10 mb-4">
+            <div className="flex flex-col">
+              <span className="font-inter font-semibold text-[13px] tracking-wider uppercase text-slate-500 dark:text-slate-400 mb-1">Active</span>
+              <div className="font-inter font-extrabold text-[32px] text-emerald-600 dark:text-emerald-400 tracking-tight leading-none">{stats.active ?? 0}</div>
+            </div>
+            <div className={`w-12 h-12 rounded-[14px] flex items-center justify-center shrink-0 transition-transform duration-300 group-hover:scale-110 shadow-sm ${roleFilter === 'active' ? 'bg-emerald-600 text-white' : 'bg-gradient-to-br from-emerald-50 to-emerald-100/50 dark:from-emerald-500/20 dark:to-emerald-500/10 text-emerald-600 dark:text-emerald-400 border border-emerald-200/60 dark:border-emerald-500/30'}`}>
+              <CheckCircle2 size={24} strokeWidth={2.2} />
             </div>
           </div>
-          <h3 className="text-[28px] font-extrabold text-emerald-600 dark:text-emerald-400 font-inter tracking-tight m-0 relative z-10 mt-auto">{stats.active ?? 0}</h3>
+          <div className="flex items-center gap-2 relative z-10 mt-1">
+            <div className="flex items-center gap-1 bg-emerald-50 dark:bg-emerald-500/10 text-emerald-600 dark:text-emerald-400 px-2 py-0.5 rounded-md text-xs font-bold border border-emerald-100 dark:border-emerald-500/20">
+              <CheckCircle2 size={14} strokeWidth={2.5} />
+              <span>Active</span>
+            </div>
+            <span className="font-inter text-xs font-medium text-slate-500 dark:text-slate-400">status</span>
+          </div>
         </div>
 
         {/* Inactive Members */}
-        <div className={`group relative rounded-2xl p-5 shadow-[0_2px_12px_-4px_rgba(0,0,0,0.05)] overflow-hidden transition-all duration-300 hover:shadow-[0_12px_32px_rgba(0,0,0,0.08)] dark:hover:shadow-[0_12px_32px_rgba(0,0,0,0.3)] hover:-translate-y-1 cursor-pointer flex flex-col justify-between ${roleFilter === 'inactive' ? 'ring-2 ring-amber-500 border-transparent shadow-md bg-amber-50/50 dark:bg-amber-500/10' : 'bg-white dark:bg-[#1E2130] border border-slate-200 dark:border-white/10'}`} onClick={() => setRoleFilter('inactive')}>
-          <div className="absolute top-0 right-0 w-28 h-28 bg-amber-500/10 rounded-full blur-2xl -mr-8 -mt-8 transition-transform duration-500 group-hover:scale-150"></div>
-          
-          <div className="flex items-start justify-between relative z-10 mb-3">
-            <span className="text-[11px] font-semibold text-slate-500 dark:text-slate-400 font-inter uppercase tracking-wider leading-tight pr-2 mt-1">Inactive</span>
-            <div className={`w-10 h-10 rounded-xl flex items-center justify-center shrink-0 transition-transform duration-300 group-hover:scale-110 shadow-sm ${roleFilter === 'inactive' ? 'bg-amber-500 text-white' : 'bg-gradient-to-br from-amber-50 to-amber-100/50 dark:from-amber-500/20 dark:to-amber-500/10 text-amber-600 dark:text-amber-400 border border-amber-200/60 dark:border-amber-500/30'}`}>
-              <XCircle size={20} strokeWidth={2.2} />
+        <div className={`group relative rounded-2xl p-6 shadow-[0_2px_12px_-4px_rgba(0,0,0,0.05)] overflow-hidden transition-all duration-300 hover:shadow-[0_12px_32px_rgba(0,0,0,0.08)] dark:hover:shadow-[0_12px_32px_rgba(0,0,0,0.3)] hover:-translate-y-1 cursor-pointer ${roleFilter === 'inactive' ? 'ring-2 ring-amber-500 border-transparent shadow-md bg-amber-50/50 dark:bg-amber-500/10' : 'bg-white dark:bg-[#1E2130] border border-slate-200 dark:border-white/10'}`} onClick={() => setRoleFilter('inactive')}>
+          <div className="absolute top-0 right-0 w-32 h-32 bg-amber-500/10 rounded-full blur-3xl -mr-10 -mt-10 transition-transform duration-500 group-hover:scale-150"></div>
+          <div className="flex items-start justify-between relative z-10 mb-4">
+            <div className="flex flex-col">
+              <span className="font-inter font-semibold text-[13px] tracking-wider uppercase text-slate-500 dark:text-slate-400 mb-1">Inactive</span>
+              <div className="font-inter font-extrabold text-[32px] text-amber-500 dark:text-amber-400 tracking-tight leading-none">{stats.inactive ?? 0}</div>
+            </div>
+            <div className={`w-12 h-12 rounded-[14px] flex items-center justify-center shrink-0 transition-transform duration-300 group-hover:scale-110 shadow-sm ${roleFilter === 'inactive' ? 'bg-amber-500 text-white' : 'bg-gradient-to-br from-amber-50 to-amber-100/50 dark:from-amber-500/20 dark:to-amber-500/10 text-amber-600 dark:text-amber-400 border border-amber-200/60 dark:border-amber-500/30'}`}>
+              <XCircle size={24} strokeWidth={2.2} />
             </div>
           </div>
-          <h3 className="text-[28px] font-extrabold text-amber-500 dark:text-amber-400 font-inter tracking-tight m-0 relative z-10 mt-auto">{stats.inactive ?? 0}</h3>
+          <div className="flex items-center gap-2 relative z-10 mt-1">
+            <div className="flex items-center gap-1 bg-amber-50 dark:bg-amber-500/10 text-amber-600 dark:text-amber-400 px-2 py-0.5 rounded-md text-xs font-bold border border-amber-100 dark:border-amber-500/20">
+              <XCircle size={14} strokeWidth={2.5} />
+              <span>Inactive</span>
+            </div>
+            <span className="font-inter text-xs font-medium text-slate-500 dark:text-slate-400">status</span>
+          </div>
         </div>
 
         {/* New This Month */}
-        <div className={`group relative rounded-2xl p-5 shadow-[0_2px_12px_-4px_rgba(0,0,0,0.05)] overflow-hidden transition-all duration-300 hover:shadow-[0_12px_32px_rgba(0,0,0,0.08)] dark:hover:shadow-[0_12px_32px_rgba(0,0,0,0.3)] hover:-translate-y-1 cursor-pointer flex flex-col justify-between ${roleFilter === 'new' ? 'ring-2 ring-indigo-500 border-transparent shadow-md bg-indigo-50/50 dark:bg-indigo-500/10' : 'bg-white dark:bg-[#1E2130] border border-slate-200 dark:border-white/10'}`} onClick={() => setRoleFilter('new')}>
-          <div className="absolute top-0 right-0 w-28 h-28 bg-indigo-500/10 rounded-full blur-2xl -mr-8 -mt-8 transition-transform duration-500 group-hover:scale-150"></div>
-          
-          <div className="flex items-start justify-between relative z-10 mb-3">
-            <span className="text-[11px] font-semibold text-slate-500 dark:text-slate-400 font-inter uppercase tracking-wider leading-tight pr-2 mt-1">New This Month</span>
-            <div className={`w-10 h-10 rounded-xl flex items-center justify-center shrink-0 transition-transform duration-300 group-hover:scale-110 shadow-sm ${roleFilter === 'new' ? 'bg-indigo-600 text-white' : 'bg-gradient-to-br from-indigo-50 to-indigo-100/50 dark:from-indigo-500/20 dark:to-indigo-500/10 text-indigo-600 dark:text-indigo-400 border border-indigo-200/60 dark:border-indigo-500/30'}`}>
-              <UserPlus size={20} strokeWidth={2.2} />
+        <div className={`group relative rounded-2xl p-6 shadow-[0_2px_12px_-4px_rgba(0,0,0,0.05)] overflow-hidden transition-all duration-300 hover:shadow-[0_12px_32px_rgba(0,0,0,0.08)] dark:hover:shadow-[0_12px_32px_rgba(0,0,0,0.3)] hover:-translate-y-1 cursor-pointer ${roleFilter === 'new' ? 'ring-2 ring-indigo-500 border-transparent shadow-md bg-indigo-50/50 dark:bg-indigo-500/10' : 'bg-white dark:bg-[#1E2130] border border-slate-200 dark:border-white/10'}`} onClick={() => setRoleFilter('new')}>
+          <div className="absolute top-0 right-0 w-32 h-32 bg-indigo-500/10 rounded-full blur-3xl -mr-10 -mt-10 transition-transform duration-500 group-hover:scale-150"></div>
+          <div className="flex items-start justify-between relative z-10 mb-4">
+            <div className="flex flex-col">
+              <span className="font-inter font-semibold text-[13px] tracking-wider uppercase text-slate-500 dark:text-slate-400 mb-1">New This Month</span>
+              <div className="font-inter font-extrabold text-[32px] text-slate-900 dark:text-white tracking-tight leading-none">{stats.newThisMonth ?? 0}</div>
+            </div>
+            <div className={`w-12 h-12 rounded-[14px] flex items-center justify-center shrink-0 transition-transform duration-300 group-hover:scale-110 shadow-sm ${roleFilter === 'new' ? 'bg-indigo-600 text-white' : 'bg-gradient-to-br from-indigo-50 to-indigo-100/50 dark:from-indigo-500/20 dark:to-indigo-500/10 text-indigo-600 dark:text-indigo-400 border border-indigo-200/60 dark:border-indigo-500/30'}`}>
+              <UserPlus size={24} strokeWidth={2.2} />
             </div>
           </div>
-          <h3 className="text-[28px] font-extrabold text-slate-900 dark:text-white font-inter tracking-tight m-0 relative z-10 mt-auto">{stats.newThisMonth ?? 0}</h3>
+          <div className="flex items-center gap-2 relative z-10 mt-1">
+            <div className="flex items-center gap-1 bg-indigo-50 dark:bg-indigo-500/10 text-indigo-600 dark:text-indigo-400 px-2 py-0.5 rounded-md text-xs font-bold border border-indigo-100 dark:border-indigo-500/20">
+              <UserPlus size={14} strokeWidth={2.5} />
+              <span>New</span>
+            </div>
+            <span className="font-inter text-xs font-medium text-slate-500 dark:text-slate-400">joined recently</span>
+          </div>
         </div>
       </div>
 
 
 
       {/* Regular Members Section */}
-      <div className="flex-1 flex flex-col bg-white dark:bg-[#1E2130] border border-slate-200 dark:border-white/10 rounded-xl shadow-sm overflow-hidden min-h-[500px]">
+      <div className="w-full bg-white dark:bg-[#1E2130] border border-slate-200 dark:border-white/10 rounded-xl shadow-sm overflow-hidden mb-6">
         <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-4 p-4 border-b border-slate-200 dark:border-white/10 bg-slate-50 dark:bg-black/20 shrink-0">
           <div className="flex items-center gap-3">
             <UsersIcon size={24} color="#155DFC" strokeWidth={2} />
@@ -1010,17 +1104,26 @@ export default function AdminMembers() {
           </div>
         </div>
 
-        <div className="flex-1 overflow-x-auto overflow-y-auto custom-scrollbar">
-          <table className="w-full text-left border-collapse min-w-[900px]">
+        <div className="overflow-x-auto" style={{ minHeight: '310px' }}>
+          <table className="w-full text-left border-collapse min-w-[900px]" style={{ tableLayout: 'fixed' }}>
+            <colgroup>
+              <col style={{ width: '13%' }} />
+              <col style={{ width: '22%' }} />
+              <col style={{ width: '22%' }} />
+              <col style={{ width: '16%' }} />
+              <col style={{ width: '12%' }} />
+              <col style={{ width: '9%' }} />
+              <col style={{ width: '6%' }} />
+            </colgroup>
             <thead>
-              <tr className="border-b-2 border-slate-200 dark:border-white/10 text-left">
-                <th className="px-4 py-3 font-inter text-[11px] font-semibold text-slate-500 dark:text-slate-400 uppercase tracking-wider sticky top-0 bg-white dark:bg-[#1E2130] z-10">Member ID</th>
-                <th className="px-4 py-3 font-inter text-[11px] font-semibold text-slate-500 dark:text-slate-400 uppercase tracking-wider sticky top-0 bg-white dark:bg-[#1E2130] z-10">Name</th>
-                <th className="px-4 py-3 font-inter text-[11px] font-semibold text-slate-500 dark:text-slate-400 uppercase tracking-wider sticky top-0 bg-white dark:bg-[#1E2130] z-10">Contact</th>
-                <th className="px-4 py-3 font-inter text-[11px] font-semibold text-slate-500 dark:text-slate-400 uppercase tracking-wider sticky top-0 bg-white dark:bg-[#1E2130] z-10">Community</th>
-                <th className="px-4 py-3 font-inter text-[11px] font-semibold text-slate-500 dark:text-slate-400 uppercase tracking-wider sticky top-0 bg-white dark:bg-[#1E2130] z-10">Position</th>
-                <th className="px-4 py-3 font-inter text-[11px] font-semibold text-slate-500 dark:text-slate-400 uppercase tracking-wider sticky top-0 bg-white dark:bg-[#1E2130] z-10">Status</th>
-                <th className="px-4 py-3 font-inter text-[11px] font-semibold text-slate-500 dark:text-slate-400 uppercase tracking-wider sticky top-0 bg-white dark:bg-[#1E2130] z-10 text-right pr-6">Actions</th>
+              <tr className="border-b border-slate-200 dark:border-white/10 text-left">
+                <th className="px-4 py-3 bg-slate-50 dark:bg-black/20 font-inter text-[11px] font-semibold text-slate-500 dark:text-slate-400 uppercase tracking-wider sticky top-0 z-10">Member ID</th>
+                <th className="px-4 py-3 bg-slate-50 dark:bg-black/20 font-inter text-[11px] font-semibold text-slate-500 dark:text-slate-400 uppercase tracking-wider sticky top-0 z-10">Name</th>
+                <th className="px-4 py-3 bg-slate-50 dark:bg-black/20 font-inter text-[11px] font-semibold text-slate-500 dark:text-slate-400 uppercase tracking-wider sticky top-0 z-10">Contact</th>
+                <th className="px-4 py-3 bg-slate-50 dark:bg-black/20 font-inter text-[11px] font-semibold text-slate-500 dark:text-slate-400 uppercase tracking-wider sticky top-0 z-10">Community</th>
+                <th className="px-4 py-3 bg-slate-50 dark:bg-black/20 font-inter text-[11px] font-semibold text-slate-500 dark:text-slate-400 uppercase tracking-wider sticky top-0 z-10">Position</th>
+                <th className="px-4 py-3 bg-slate-50 dark:bg-black/20 font-inter text-[11px] font-semibold text-slate-500 dark:text-slate-400 uppercase tracking-wider sticky top-0 z-10">Status</th>
+                <th className="px-4 py-3 bg-slate-50 dark:bg-black/20 font-inter text-[11px] font-semibold text-slate-500 dark:text-slate-400 uppercase tracking-wider sticky top-0 z-10 text-right pr-4">Actions</th>
               </tr>
             </thead>
             <tbody>
@@ -1028,7 +1131,7 @@ export default function AdminMembers() {
                 Array.from({ length: 5 }).map((_, i) => (
                   <tr key={i} className="hover:bg-slate-50 dark:hover:bg-white/5 transition-colors border-b border-slate-100 dark:border-white/5">
                     {Array.from({ length: 7 }).map((__, j) => (
-                      <td key={j}><div className="h-5 bg-slate-200 dark:bg-white/10 rounded animate-pulse w-3/4" /></td>
+                      <td key={j} className="px-4 py-3"><div className="h-5 bg-slate-200 dark:bg-white/10 rounded animate-pulse w-3/4" /></td>
                     ))}
                   </tr>
                 ))
@@ -1037,27 +1140,27 @@ export default function AdminMembers() {
               ) : (
                 members.map(m => (
                   <tr key={m._id} className="hover:bg-slate-50 dark:hover:bg-white/5 transition-colors border-b border-slate-100 dark:border-white/5">
-                    <td className="px-4 py-2 text-[13px] font-inter font-semibold text-slate-800 dark:text-white">{m.memberId || '—'}</td>
-                    <td>
-                      <div className="px-4 py-2 flex items-center gap-3">
+                    <td className="px-4 py-3 text-[13px] font-inter font-semibold text-slate-800 dark:text-white truncate">{m.memberId || '—'}</td>
+                    <td className="px-4 py-3">
+                      <div className="flex items-center gap-2.5">
                         <div className="w-8 h-8 rounded-full bg-blue-100 dark:bg-blue-500/20 text-blue-600 dark:text-blue-400 flex items-center justify-center shrink-0 font-bold text-xs">{(m.fullName || m.name || 'M').charAt(0)}</div>
-                        <span className="m-0 text-[13px] font-semibold text-slate-800 dark:text-white truncate max-w-[150px]">{m.fullName || m.name}</span>
+                        <span className="m-0 text-[13px] font-semibold text-slate-800 dark:text-white truncate">{m.fullName || m.name}</span>
                       </div>
                     </td>
-                    <td>
-                      <div className="px-4 py-2 flex flex-col gap-0.5">
-                        <span className="text-[13px] font-inter text-slate-700 dark:text-slate-300 truncate max-w-[160px]" title={m.email}>{m.email}</span>
+                    <td className="px-4 py-3">
+                      <div className="flex flex-col gap-0.5">
+                        <span className="text-[13px] font-inter text-slate-700 dark:text-slate-300 truncate" title={m.email}>{m.email}</span>
                         <span className="text-[11px] text-slate-500 dark:text-slate-400">{m.phone}</span>
                       </div>
                     </td>
-                    <td className="px-4 py-2 text-[13px] font-inter text-slate-700 dark:text-slate-300">{m.branch || 'Bulacan Main'}</td>
-                    <td className="px-4 py-2 text-[13px] font-inter text-slate-700 dark:text-slate-300">{m.position || 'Member'}</td>
-                    <td className="px-4 py-2">
+                    <td className="px-4 py-3 text-[13px] font-inter text-slate-700 dark:text-slate-300 truncate">{m.branch || 'Bulacan Main'}</td>
+                    <td className="px-4 py-3 text-[13px] font-inter text-slate-700 dark:text-slate-300 truncate">{m.position || 'Member'}</td>
+                    <td className="px-4 py-3">
                       <span className={`inline-flex items-center px-2 py-0.5 rounded-full text-[10px] font-bold tracking-wide uppercase ${m.status?.toLowerCase() === 'active' ? 'bg-emerald-50 text-emerald-600 dark:bg-emerald-500/10 dark:text-emerald-400' : 'bg-slate-100 text-slate-600 dark:bg-white/5 dark:text-slate-400'}`}>
                         {m.status || 'Active'}
                       </span>
                     </td>
-                    <td className="px-4 py-2 relative text-right">
+                    <td className="px-4 py-3 relative text-right">
                       <div className="flex items-center justify-end">
                         <button 
                           className="w-8 h-8 rounded-lg flex items-center justify-center hover:bg-slate-100 dark:hover:bg-white/5 text-slate-400 transition-colors border-none bg-transparent cursor-pointer" 
@@ -1066,21 +1169,21 @@ export default function AdminMembers() {
                             setOpenDropdownId(openDropdownId === m._id ? null : m._id); 
                           }}
                         >
-                          <MoreVertical size={20} color="#6B7280" />
+                          <MoreVertical size={18} color="#6B7280" />
                         </button>
                         {openDropdownId === m._id && (
-                          <div className="absolute right-8 top-1/2 -translate-y-1/2 w-32 bg-white dark:bg-[#1E2130] rounded-xl shadow-lg border border-slate-200 dark:border-white/10 py-1 z-50 overflow-hidden" onClick={(e) => e.stopPropagation()}>
-                            <button className="w-full flex items-center gap-2 px-4 py-2 text-sm font-medium text-slate-700 dark:text-slate-300 hover:bg-slate-50 dark:hover:bg-white/5 transition-colors border-none bg-transparent cursor-pointer text-left" onClick={() => { setOpenDropdownId(null); setViewMember(m); }}>
-                              <Eye size={16} /> View
+                          <div className="absolute right-6 top-10 w-36 bg-white dark:bg-[#1E2130] rounded-xl shadow-lg border border-slate-200 dark:border-white/10 py-1 z-50 overflow-hidden" onClick={(e) => e.stopPropagation()}>
+                            <button className="w-full flex items-center gap-2 px-4 py-2 text-xs font-medium text-slate-700 dark:text-slate-300 hover:bg-slate-50 dark:hover:bg-white/5 transition-colors border-none bg-transparent cursor-pointer text-left" onClick={() => { setOpenDropdownId(null); setViewMember(m); }}>
+                              <Eye size={14} /> View
                             </button>
-                            <button className="w-full flex items-center gap-2 px-4 py-2 text-sm font-medium text-slate-700 dark:text-slate-300 hover:bg-slate-50 dark:hover:bg-white/5 transition-colors border-none bg-transparent cursor-pointer text-left" onClick={() => { setOpenDropdownId(null); setEditMember(m); }}>
-                              <Edit size={16} /> Edit
+                            <button className="w-full flex items-center gap-2 px-4 py-2 text-xs font-medium text-slate-700 dark:text-slate-300 hover:bg-slate-50 dark:hover:bg-white/5 transition-colors border-none bg-transparent cursor-pointer text-left" onClick={() => { setOpenDropdownId(null); setEditMember(m); }}>
+                              <Edit size={14} /> Edit
                             </button>
-                            <button className="w-full flex items-center gap-2 px-4 py-2 text-sm font-medium text-slate-700 dark:text-slate-300 hover:bg-slate-50 dark:hover:bg-white/5 transition-colors border-none bg-transparent cursor-pointer text-left" onClick={() => { setOpenDropdownId(null); setEnrollRFIDMember(m); }}>
-                              <CreditCard size={16} /> Link RFID
+                            <button className="w-full flex items-center gap-2 px-4 py-2 text-xs font-medium text-slate-700 dark:text-slate-300 hover:bg-slate-50 dark:hover:bg-white/5 transition-colors border-none bg-transparent cursor-pointer text-left" onClick={() => { setOpenDropdownId(null); setEnrollRFIDMember(m); }}>
+                              <CreditCard size={14} /> Link RFID
                             </button>
-                            <button className="w-full flex items-center gap-2 px-4 py-2 text-sm font-medium text-rose-600 hover:bg-rose-50 dark:hover:bg-rose-500/10 transition-colors border-none bg-transparent cursor-pointer text-left" onClick={() => { setOpenDropdownId(null); setDeleteMember(m); }}>
-                              <Trash2 size={16} /> Delete
+                            <button className="w-full flex items-center gap-2 px-4 py-2 text-xs font-medium text-rose-600 hover:bg-rose-50 dark:hover:bg-rose-500/10 transition-colors border-none bg-transparent cursor-pointer text-left" onClick={() => { setOpenDropdownId(null); setDeleteMember(m); }}>
+                              <Trash2 size={14} /> Delete
                             </button>
                           </div>
                         )}
@@ -1093,7 +1196,9 @@ export default function AdminMembers() {
           </table>
         </div>
 
-        {pagination.totalPages > 1 && (
+        {/* Pagination */}
+
+        {!loadingMembers && (
           <div className="border-t border-slate-200 dark:border-white/10 shrink-0 bg-white dark:bg-[#1E2130]">
             <Pagination
               currentPage={currentPage}

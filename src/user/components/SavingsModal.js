@@ -1,7 +1,8 @@
 import { useState, useEffect } from 'react';
 import { useAuth } from '../../context/AuthContext';
 import API from '../../utils/api';
-import { CheckCircle, X, ArrowDownRight, ArrowUpLeft, Repeat, History, CreditCard, Smartphone, Building2, Info, UploadCloud, FileCheck2 } from 'lucide-react';
+import { CheckCircle, X, ArrowDownRight, ArrowUpLeft, Repeat, History, CreditCard, Smartphone, Building2, Info, UploadCloud, FileCheck2, PiggyBank } from 'lucide-react';
+import useSwipeToClose, { DragHandle } from '../hooks/useSwipeToClose';
 
 const fmt = (n) =>
     n != null ? `₱${Number(n).toLocaleString('en-PH', { minimumFractionDigits: 2 })}` : '₱0.00';
@@ -30,6 +31,7 @@ const CloseIcon = () => (
    1.  DEPOSIT MODAL  (full — opened from top "+ Deposit" btn)
 ───────────────────────────────────────────────────────────── */
 function DepositModal({ goals, onClose }) {
+    const { modalStyle, touchHandlers } = useSwipeToClose(onClose);
     const [selectedGoal, setSelectedGoal] = useState(goals[0]?._id || '');
     const [amount, setAmount] = useState('');
     const [note, setNote] = useState('');
@@ -136,7 +138,8 @@ function DepositModal({ goals, onClose }) {
 
     return (
         <div className="svm-overlay" onClick={onClose}>
-            <div className="svm-modal" onClick={e => e.stopPropagation()}>
+            <div className="svm-modal" style={modalStyle} {...touchHandlers} onClick={e => e.stopPropagation()}>
+                <DragHandle />
                 <div className="svm-modal-head">
                     <div>
                         <div className="svm-modal-title">Deposit to savings</div>
@@ -339,6 +342,7 @@ function DepositModal({ goals, onClose }) {
    2.  NEW GOAL MODAL
 ───────────────────────────────────────────────────────────── */
 function NewGoalModal({ onClose }) {
+    const { modalStyle, touchHandlers } = useSwipeToClose(onClose);
     const [nameOption, setNameOption] = useState('');
     const [customName, setCustomName] = useState('');
     const [targetAmount, setTarget] = useState('');
@@ -400,7 +404,8 @@ function NewGoalModal({ onClose }) {
 
     return (
         <div className="svm-overlay" onClick={onClose}>
-            <div className="svm-modal" onClick={e => e.stopPropagation()}>
+            <div className="svm-modal" style={modalStyle} {...touchHandlers} onClick={e => e.stopPropagation()}>
+                <DragHandle />
                 <div className="svm-modal-head">
                     <div>
                         <div className="svm-modal-title">Create a savings goal</div>
@@ -474,6 +479,7 @@ function NewGoalModal({ onClose }) {
    3.  QUICK DEPOSIT MODAL  (opened from + icon on goal row)
 ───────────────────────────────────────────────────────────── */
 function QuickDepositModal({ goal, goals, onClose }) {
+    const { modalStyle, touchHandlers } = useSwipeToClose(onClose);
     const [amount, setAmount] = useState('');
     const [note, setNote] = useState('');
     const [paymentMethod, setPaymentMethod] = useState('E-Wallet');
@@ -566,7 +572,8 @@ function QuickDepositModal({ goal, goals, onClose }) {
 
     return (
         <div className="svm-overlay" onClick={onClose}>
-            <div className="svm-modal svm-modal--sm" onClick={e => e.stopPropagation()}>
+            <div className="svm-modal svm-modal--sm" style={modalStyle} {...touchHandlers} onClick={e => e.stopPropagation()}>
+                <DragHandle />
                 <div className="svm-modal-head">
                     <div>
                         <div className="svm-modal-title">Quick deposit</div>
@@ -764,6 +771,7 @@ function QuickDepositModal({ goal, goals, onClose }) {
    4.  EDIT GOAL MODAL
 ───────────────────────────────────────────────────────────── */
 function EditGoalModal({ goal, onClose }) {
+    const { modalStyle, touchHandlers } = useSwipeToClose(onClose);
     // Detect if the existing name matches a preset or is custom
     const matchedPreset = GOAL_NAME_OPTIONS.find(
         o => o.value !== 'others' && o.value === goal?.name
@@ -866,7 +874,8 @@ function EditGoalModal({ goal, onClose }) {
 
     return (
         <div className="svm-overlay" onClick={onClose}>
-            <div className="svm-modal" onClick={e => e.stopPropagation()}>
+            <div className="svm-modal" style={modalStyle} {...touchHandlers} onClick={e => e.stopPropagation()}>
+                <DragHandle />
                 <div className="svm-modal-head">
                     <div>
                         <div className="svm-modal-title">Edit goal</div>
@@ -996,6 +1005,7 @@ function EditGoalModal({ goal, onClose }) {
    5.  TRANSFER MODAL  (move funds between goals)
 ───────────────────────────────────────────────────────────── */
 function TransferModal({ goal, goals, onClose }) {
+    const { modalStyle, touchHandlers } = useSwipeToClose(onClose);
     const [fromGoalId, setFromGoalId] = useState(goal?._id || '');
     const [toGoalId, setToGoalId] = useState('');
     const [amount, setAmount] = useState('');
@@ -1037,7 +1047,8 @@ function TransferModal({ goal, goals, onClose }) {
 
     return (
         <div className="svm-overlay" onClick={onClose}>
-            <div className="svm-modal" onClick={e => e.stopPropagation()}>
+            <div className="svm-modal" style={modalStyle} {...touchHandlers} onClick={e => e.stopPropagation()}>
+                <DragHandle />
                 <div className="svm-modal-head">
                     <div>
                         <div className="svm-modal-title">Transfer funds</div>
@@ -1161,6 +1172,7 @@ function TransferModal({ goal, goals, onClose }) {
    3.5 GOAL INFO MODAL (Read-only + history)
 ───────────────────────────────────────────────────────────── */
 function GoalInfoModal({ goal, onClose, onEdit, onTransfer, onQuickDeposit }) {
+    const { modalStyle, touchHandlers } = useSwipeToClose(onClose);
     const [transactions, setTransactions] = useState([]);
     const [loading, setLoading] = useState(true);
 
@@ -1195,7 +1207,8 @@ function GoalInfoModal({ goal, onClose, onEdit, onTransfer, onQuickDeposit }) {
 
     return (
         <div className="svm-overlay" onClick={onClose}>
-            <div className="svm-modal" onClick={e => e.stopPropagation()}>
+            <div className="svm-modal" style={modalStyle} {...touchHandlers} onClick={e => e.stopPropagation()}>
+                <DragHandle />
                 <div className="svm-modal-head">
                     <div className="svm-modal-title-row">
                         <div className="svm-modal-title">{goal.name}</div>
@@ -1302,6 +1315,7 @@ function GoalInfoModal({ goal, onClose, onEdit, onTransfer, onQuickDeposit }) {
    6.  TRANSACTION INFO MODAL (Specific details)
  ───────────────────────────────────────────────────────────── */
 function TransactionInfoModal({ transaction, onClose }) {
+    const { modalStyle, touchHandlers } = useSwipeToClose(onClose);
     const [fullImage, setFullImage] = useState(false);
 
 
@@ -1321,7 +1335,8 @@ function TransactionInfoModal({ transaction, onClose }) {
 
     return (
         <div className="svm-overlay" onClick={onClose}>
-            <div className="svm-modal svm-modal--sm" onClick={e => e.stopPropagation()}>
+            <div className="svm-modal svm-modal--sm" style={modalStyle} {...touchHandlers} onClick={e => e.stopPropagation()}>
+                <DragHandle />
                 {/* Header */}
                 <div className="svm-modal-head">
                     <div>
@@ -1437,10 +1452,13 @@ function TransactionInfoModal({ transaction, onClose }) {
             )}
         </div>
     );
-}/* ─────────────────────────────────────────────────────────────
+}
+
+/* ─────────────────────────────────────────────────────────────
    8.  WITHDRAW MODAL
 ───────────────────────────────────────────────────────────── */
-function WithdrawModal({ goals, onClose }) {
+function WithdrawModal({ goals, onClose, onOpenDeposit }) {
+    const { modalStyle, touchHandlers } = useSwipeToClose(onClose);
     const { profile } = useAuth();
     const activeGoals = goals.filter(g => (g.savedAmount || 0) > 0);
     const [selectedGoal, setSelectedGoal] = useState(activeGoals[0]?._id || '');
@@ -1461,12 +1479,12 @@ function WithdrawModal({ goals, onClose }) {
     const remainingPct = goal?.targetAmount > 0
         ? Math.max(0, Math.round((remaining / goal.targetAmount) * 100))
         : 0;
+    const isOtherReason = reasonOption === 'Others';
+    const finalReason = isOtherReason ? customReason : reasonOption;
 
     const handleSubmit = async () => {
-        const finalReason = reasonOption === 'Others' ? customReason : reasonOption;
-
-        if (!numAmt || numAmt <= 0) { setError('Please enter a valid amount.'); return; }
-        if (!selectedGoal) { setError('Please select a goal.'); return; }
+        if (!selectedGoal) { setError('Select a goal to withdraw from.'); return; }
+        if (!numAmt || numAmt <= 0) { setError('Enter a valid withdrawal amount.'); return; }
         if (numAmt > balance) { setError(`Insufficient balance. Available: ${fmt(balance)}`); return; }
         if (!finalReason.trim()) { setError('Please provide a reason for withdrawal.'); return; }
         if (!accountNumber.trim()) { setError('Please provide your account number.'); return; }
@@ -1501,23 +1519,38 @@ function WithdrawModal({ goals, onClose }) {
     if (activeGoals.length === 0) {
         return (
             <div className="svm-overlay" onClick={onClose}>
-                <div className="svm-modal svm-modal--sm" onClick={e => e.stopPropagation()}>
+                <div className="svm-modal svm-modal--sm" style={modalStyle} {...touchHandlers} onClick={e => e.stopPropagation()}>
+                    <DragHandle />
                     <div className="svm-modal-head">
                         <div>
-                            <div className="svm-modal-title">Withdraw savings</div>
+                            <div className="svm-modal-title">Withdraw Savings</div>
                             <div className="svm-modal-sub">No funds available to withdraw</div>
                         </div>
                         <button className="svm-close-btn" onClick={onClose}><CloseIcon /></button>
                     </div>
-                    <div className="svm-modal-body">
-                        <div className="svm-withdraw-empty">
-                            <ArrowUpLeft size={28} />
-                            <p>You don't have any savings to withdraw yet. Start by making a deposit to one of your goals.</p>
+
+                    <div className="svm-modal-body text-center py-6 px-4 font-inter">
+                        <div className="w-14 h-14 rounded-2xl bg-amber-50 dark:bg-amber-950/40 text-amber-600 dark:text-amber-400 flex items-center justify-center border border-amber-200/60 dark:border-amber-900/30 mx-auto mb-3 shadow-xs">
+                            <PiggyBank size={28} />
                         </div>
+                        <h3 className="text-base font-extrabold text-slate-900 dark:text-white font-dm mb-1.5">
+                            No Savings Available Yet
+                        </h3>
+                        <p className="text-xs text-slate-500 dark:text-slate-400 font-inter leading-relaxed max-w-xs mx-auto">
+                            You don't have active savings funds to withdraw yet. Start by making a deposit or creating a new goal.
+                        </p>
                     </div>
-                    <div className="svm-modal-footer">
-                        <button className="svm-btn-cancel" style={{ flex: 1 }} onClick={onClose}>Close</button>
-                    </div>
+
+                    {onOpenDeposit ? (
+                        <div className="svm-modal-footer">
+                            <button 
+                                className="w-full h-10 px-4 rounded-xl bg-[#1E3A8A] hover:bg-[#2B4EAF] text-white text-xs font-bold font-inter transition-all border-none cursor-pointer shadow-md active:scale-95" 
+                                onClick={() => { onClose(); onOpenDeposit(); }}
+                            >
+                                + Deposit Now
+                            </button>
+                        </div>
+                    ) : null}
                 </div>
             </div>
         );
@@ -1525,7 +1558,8 @@ function WithdrawModal({ goals, onClose }) {
 
     return (
         <div className="svm-overlay" onClick={onClose}>
-            <div className="svm-modal" onClick={e => e.stopPropagation()}>
+            <div className="svm-modal" style={modalStyle} {...touchHandlers} onClick={e => e.stopPropagation()}>
+                <DragHandle />
                 <div className="svm-modal-head">
                     <div>
                         <div className="svm-modal-title">Withdraw savings</div>
@@ -1720,7 +1754,7 @@ function WithdrawModal({ goals, onClose }) {
 /* ─────────────────────────────────────────────────────────────
    ROOT EXPORT  — renders whichever modal is active
 ───────────────────────────────────────────────────────────── */
-export default function SavingsModals({ modal, modalData, goals: propGoals, onClose, onEdit, onTransfer, onQuickDeposit }) {
+export default function SavingsModals({ modal, modalData, goals: propGoals, onClose, onEdit, onTransfer, onQuickDeposit, onOpenDeposit }) {
     const [allGoals, setAllGoals] = useState(propGoals || []);
     const [loadingGoals, setLoadingGoals] = useState(false);
 
@@ -1778,7 +1812,7 @@ export default function SavingsModals({ modal, modalData, goals: propGoals, onCl
         return loadingGoals ? null : <TransferModal goal={modalData} goals={allGoals} onClose={onClose} />;
 
     if (modal === 'withdraw')
-        return loadingGoals ? null : <WithdrawModal goals={allGoals} onClose={onClose} />;
+        return loadingGoals ? null : <WithdrawModal goals={allGoals} onClose={onClose} onOpenDeposit={onOpenDeposit} />;
 
     if (modal === 'transactionInfo')
         return <TransactionInfoModal transaction={modalData} onClose={onClose} />;

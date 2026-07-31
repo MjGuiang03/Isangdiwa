@@ -1,10 +1,17 @@
 import { useState } from 'react';
+import useSWR from 'swr';
+import API from '../../utils/api';
 import { Banknote, Check, Smartphone, Building2, X, AlertTriangle } from 'lucide-react';
+
+const fetcherPublic = (url) => fetch(url).then(res => res.json());
 
 export default function SecProcessLoanModal({ loan, onClose, onProcess }) {
     const [paymentMethod, setPaymentMethod] = useState(loan.disbursementMethod || 'e-wallet');
     const [reason, setReason] = useState('');
     const [processing, setProcessing] = useState(false);
+
+    const { data: publicSettings } = useSWR(`${API}/api/settings/public`, fetcherPublic, { revalidateOnFocus: false });
+    const isManualApproval = publicSettings?.paymentApprovalMethod === 'manual';
 
     const handleProcess = async () => {
         if (paymentMethod !== (loan.disbursementMethod || 'cash') && !reason.trim()) {
@@ -57,28 +64,30 @@ export default function SecProcessLoanModal({ loan, onClose, onProcess }) {
 
                 {/* Body */}
                 <div className="px-6 py-5 flex flex-col gap-4 overflow-y-auto max-h-[calc(90vh-130px)]">
-                    {/* Info Row */}
-                    <div className="grid grid-cols-3 gap-3">
-                        <div className="bg-slate-50 dark:bg-black/20 rounded-xl p-3 flex flex-col gap-0.5">
-                            <p className="font-inter text-[10px] font-semibold text-slate-400 uppercase tracking-wider m-0">Member</p>
-                            <p className="font-inter text-[13px] font-semibold text-slate-900 dark:text-white m-0 truncate">{loan.member}</p>
+                    {/* Info Single Container */}
+                    <div className="bg-slate-50 dark:bg-slate-800/40 rounded-xl p-4 border border-slate-100 dark:border-white/5 space-y-3">
+                        <div className="grid grid-cols-3 gap-3">
+                            <div className="flex flex-col gap-0.5">
+                                <p className="font-inter text-[10px] font-bold text-slate-400 dark:text-slate-400 uppercase tracking-wider m-0">Member</p>
+                                <p className="font-inter text-[13px] font-semibold text-slate-900 dark:text-white m-0 truncate">{loan.member}</p>
+                            </div>
+                            <div className="flex flex-col gap-0.5">
+                                <p className="font-inter text-[10px] font-bold text-slate-400 dark:text-slate-400 uppercase tracking-wider m-0">Amount</p>
+                                <p className="font-inter text-[15px] font-bold text-navy dark:text-blue-400 m-0">₱{loan.amount.toLocaleString()}</p>
+                            </div>
+                            <div className="flex flex-col gap-0.5">
+                                <p className="font-inter text-[10px] font-bold text-slate-400 dark:text-slate-400 uppercase tracking-wider m-0">User Preference</p>
+                                <p className="font-inter text-[13px] font-semibold text-blue-600 dark:text-blue-400 m-0 capitalize">{loan.disbursementMethod || 'N/A'}</p>
+                            </div>
                         </div>
-                        <div className="bg-navy/5 dark:bg-blue-500/10 border border-navy/10 dark:border-blue-500/20 rounded-xl p-3 flex flex-col gap-0.5">
-                            <p className="font-inter text-[10px] font-semibold text-slate-400 uppercase tracking-wider m-0">Amount</p>
-                            <p className="font-inter text-[15px] font-bold text-navy dark:text-blue-400 m-0">₱{loan.amount.toLocaleString()}</p>
-                        </div>
-                        <div className="bg-slate-50 dark:bg-black/20 rounded-xl p-3 flex flex-col gap-0.5">
-                            <p className="font-inter text-[10px] font-semibold text-slate-400 uppercase tracking-wider m-0">User Preference</p>
-                            <p className="font-inter text-[13px] font-semibold text-blue-600 dark:text-blue-400 m-0 capitalize">{loan.disbursementMethod || 'N/A'}</p>
-                        </div>
-                    </div>
 
-                    {loan.disbursementAccount && (
-                        <div className="bg-slate-50 dark:bg-black/20 rounded-xl px-4 py-2.5 flex items-center gap-3">
-                            <p className="font-inter text-[12px] text-slate-500 dark:text-slate-400 m-0">Account Info:</p>
-                            <p className="font-inter text-[13px] font-semibold text-slate-900 dark:text-white m-0">{loan.disbursementAccount}</p>
-                        </div>
-                    )}
+                        {loan.disbursementAccount && (
+                            <div className="pt-2 border-t border-slate-200/60 dark:border-white/5 flex items-center gap-2">
+                                <span className="font-inter text-[10px] font-bold text-slate-400 dark:text-slate-400 uppercase tracking-wider">Account Details:</span>
+                                <span className="font-inter text-[12.5px] font-semibold text-slate-800 dark:text-white">{loan.disbursementAccount}</span>
+                            </div>
+                        )}
+                    </div>
 
                     {/* Payment Method Selection */}
                     <div>
@@ -129,10 +138,15 @@ export default function SecProcessLoanModal({ loan, onClose, onProcess }) {
                             : <AlertTriangle size={16} className="shrink-0 mt-0.5" />
                         }
                         <p className="font-inter text-[12px] m-0 leading-relaxed">
-                            {isDigital
-                                ? <>The amount of <strong>₱{loan.amount.toLocaleString()}</strong> will be sent via <strong>PayMongo</strong> to <strong>{loan.disbursementAccount || "the member's account"}</strong>.</>
-                                : <>Cash disbursement of <strong>₱{loan.amount.toLocaleString()}</strong> — the member must pick up at the office.</>
-                            }
+                            {isDigital ? (
+                                isManualApproval ? (
+                                    <>The amount of <strong>₱{loan.amount.toLocaleString()}</strong> will be transferred directly to <strong>{loan.disbursementAccount || "the member's account"}</strong> (Manual Approval Mode).</>
+                                ) : (
+                                    <>The amount of <strong>₱{loan.amount.toLocaleString()}</strong> will be processed via <strong>Payment Gateway</strong> to <strong>{loan.disbursementAccount || "the member's account"}</strong>.</>
+                                )
+                            ) : (
+                                <>Cash disbursement of <strong>₱{loan.amount.toLocaleString()}</strong> — the member must pick up at the office.</>
+                            )}
                         </p>
                     </div>
                 </div>
@@ -151,7 +165,11 @@ export default function SecProcessLoanModal({ loan, onClose, onProcess }) {
                         className="h-9 px-5 bg-navy hover:bg-blue-800 dark:bg-[#0D1F45] dark:hover:bg-blue-900 text-white border-none rounded-lg font-inter text-[13px] font-semibold cursor-pointer transition-colors flex items-center gap-2 disabled:opacity-60 disabled:cursor-not-allowed"
                     >
                         <Check size={15} />
-                        {processing ? 'Processing…' : isDigital ? 'Send via PayMongo' : 'Confirm Cash Disbursement'}
+                        {processing 
+                            ? 'Processing…' 
+                            : isDigital 
+                                ? (isManualApproval ? 'Confirm Direct Transfer' : 'Process via Payment Gateway') 
+                                : 'Confirm Cash Disbursement'}
                     </button>
                 </div>
             </div>

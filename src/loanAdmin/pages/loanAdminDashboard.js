@@ -10,10 +10,11 @@ import {
   ReferenceLine, LabelList, AreaChart, Area, Label
 } from 'recharts';
 import LoanAdminSidebar from './loanAdminSidebar';
+import PageHeader from '../components/PageHeader';
 
 
 import API from '../../utils/api';
-import { Banknote, CheckCircle, LayoutDashboard, PiggyBank, X, Filter, Expand } from 'lucide-react';
+import { Banknote, CheckCircle, LayoutDashboard, PiggyBank, X, Filter, Expand, TrendingUp } from 'lucide-react';
 
 
 const fmt = (n) =>
@@ -207,6 +208,20 @@ export default function LoanAdminDashboard() {
     return allLoans.filter(l => l.disbursed && l.disbursementDate);
   }, [allLoans]);
 
+  const [interestFilter, setInterestFilter] = useState('all');
+
+  const totalInterestFiltered = useMemo(() => {
+    if (!allLoans || allLoans.length === 0) return 0;
+    return allLoans.reduce((sum, loan) => {
+      if (loan.status !== 'completed' && loan.status !== 'active' && loan.status !== 'approved') return sum;
+      if (interestFilter === '2x' && loan.interestRateMultiplier !== 2) return sum;
+      if (interestFilter === '1.5x' && loan.interestRateMultiplier !== 1.5) return sum;
+      if (interestFilter === '1x' && loan.interestRateMultiplier !== 1) return sum;
+      const interest = (loan.totalRepayment || loan.amount || 0) - (loan.amount || 0);
+      return sum + (interest > 0 ? interest : 0);
+    }, 0);
+  }, [allLoans, interestFilter]);
+
   // Filtered loans for This Month modal
   const filteredMonthLoans = useMemo(() => {
     return allDisbursedLoans.filter(l => {
@@ -314,92 +329,163 @@ export default function LoanAdminDashboard() {
     return filteredDisbLoans.reduce((s, l) => s + (Number(l.amount) || 0), 0);
   }, [filteredDisbLoans]);
 
+  if (isLoading) {
+    return (
+      <div className="flex h-screen overflow-hidden bg-slate-100 dark:bg-[#161922]">
+        <LoanAdminSidebar />
+        <div className="p-6 pb-16 flex-1 overflow-y-auto w-full animate-pulse flex flex-col gap-6">
+          {/* Header Skeleton */}
+          <div className="flex flex-col gap-2">
+            <div className="h-8 w-56 bg-slate-200 dark:bg-slate-700/80 rounded-lg"></div>
+            <div className="h-4 w-96 bg-slate-200 dark:bg-slate-700/80 rounded-md"></div>
+          </div>
+
+          {/* 6 Stat Cards Skeleton */}
+          <div className="bg-white dark:bg-[#1E2130] border border-slate-200 dark:border-white/10 rounded-2xl shadow-sm overflow-hidden mb-6">
+            <div className="grid grid-cols-2 md:grid-cols-3 lg:grid-cols-6 divide-y md:divide-y-0 lg:divide-x divide-slate-200 dark:divide-white/10">
+              {[1, 2, 3, 4, 5, 6].map((i) => (
+                <div key={i} className="p-4 min-h-[105px] flex flex-col justify-between">
+                  <div className="flex justify-between items-start">
+                    <div className="h-3 w-20 bg-slate-200 dark:bg-slate-700/80 rounded"></div>
+                    <div className="w-8 h-8 rounded-lg bg-slate-200 dark:bg-slate-700/80"></div>
+                  </div>
+                  <div className="h-6 w-24 bg-slate-200 dark:bg-slate-700/80 rounded mt-3"></div>
+                </div>
+              ))}
+            </div>
+          </div>
+
+          {/* Charts Grid Skeletons */}
+          <div className="grid grid-cols-1 lg:grid-cols-2 gap-5">
+            <div className="h-[320px] bg-white dark:bg-[#1E2130] border border-slate-200 dark:border-white/10 rounded-2xl p-6">
+              <div className="h-5 w-48 bg-slate-200 dark:bg-slate-700/80 rounded mb-4"></div>
+              <div className="h-4/5 bg-slate-100 dark:bg-slate-800/50 rounded-xl"></div>
+            </div>
+            <div className="h-[320px] bg-white dark:bg-[#1E2130] border border-slate-200 dark:border-white/10 rounded-2xl p-6">
+              <div className="h-5 w-48 bg-slate-200 dark:bg-slate-700/80 rounded mb-4"></div>
+              <div className="h-4/5 bg-slate-100 dark:bg-slate-800/50 rounded-xl"></div>
+            </div>
+          </div>
+
+          {/* Recent Table Skeleton */}
+          <div className="h-64 bg-white dark:bg-[#1E2130] border border-slate-200 dark:border-white/10 rounded-2xl p-6">
+            <div className="h-5 w-52 bg-slate-200 dark:bg-slate-700/80 rounded mb-4"></div>
+            <div className="flex flex-col gap-3">
+              {[1, 2, 3].map((i) => (
+                <div key={i} className="h-12 bg-slate-100 dark:bg-slate-800/50 rounded-xl"></div>
+              ))}
+            </div>
+          </div>
+        </div>
+      </div>
+    );
+  }
+
   return (
     <div className="flex h-screen overflow-hidden bg-slate-100 dark:bg-[#161922]">
       <LoanAdminSidebar />
-      <div className="p-[20px_24px] flex-1 flex flex-col gap-2.5 bg-transparent overflow-y-auto">
+      <div className="p-6 pb-16 flex-1 overflow-y-auto w-full">
         {!expandedChart && (<>
         {/* Header */}
-        {/* Header */}
-        <div className="flex items-center justify-between pb-2 mb-[2px] max-md:flex-col max-md:items-start max-md:gap-3">
-          <div className="flex flex-col gap-0.5">
-            <h1 className="font-inter text-lg font-normal text-gray-600 m-0 tracking-[-0.01em] dark:text-gray-400">
-              {(() => {
-                const h = new Date().getHours();
-                return h < 12 ? 'Good Morning' : h < 18 ? 'Good Afternoon' : 'Good Evening';
-              })()}, <span className="text-gray-900 font-bold dark:text-gray-200">Loan Staff</span>
-            </h1>
-            <p className="font-inter text-[13px] text-gray-400 m-0 font-normal dark:text-gray-400/60">
+        <PageHeader
+          title={
+            <>
+              <span className="text-slate-500 dark:text-slate-400 font-normal">
+                {(() => {
+                  const h = new Date().getHours();
+                  return h < 12 ? 'Good Morning' : h < 18 ? 'Good Afternoon' : 'Good Evening';
+                })()}, 
+              </span>{' '}
+              <span className="text-slate-900 dark:text-white font-bold">Loan Staff</span>
+            </>
+          }
+          subtitle={
+            <>
               Loan operations overview for <strong>{new Date().toLocaleDateString('en-US', { weekday: 'long', month: 'long', day: 'numeric', year: 'numeric' })}</strong>
-            </p>
-          </div>
-        </div>
+            </>
+          }
+        />
 
-        {/* Row 1 — 5 Stat Cards */}
-        <div className="grid grid-cols-2 md:grid-cols-3 lg:grid-cols-5 gap-5 mb-6">
-          {/* Pending Review */}
-          <div className="group relative bg-white dark:bg-[#1E2130] border border-slate-200 dark:border-white/10 rounded-2xl p-5 shadow-[0_2px_12px_-4px_rgba(0,0,0,0.05)] overflow-hidden transition-all duration-300 hover:shadow-[0_12px_32px_rgba(0,0,0,0.08)] dark:hover:shadow-[0_12px_32px_rgba(0,0,0,0.3)] hover:-translate-y-1 cursor-pointer flex flex-col justify-between min-h-[140px]" onClick={() => navigate('/loan-admin/loan-management')}>
-            <div className="absolute top-0 right-0 w-28 h-28 bg-amber-500/10 rounded-full blur-2xl -mr-8 -mt-8 transition-transform duration-500 group-hover:scale-150"></div>
-            
-            <div className="flex items-start justify-between relative z-10">
-              <span className="font-inter font-semibold text-xs tracking-wider uppercase text-slate-500 dark:text-slate-400 mt-1 pr-2">Pending Review</span>
-              <div className="w-10 h-10 rounded-xl bg-gradient-to-br from-amber-50 to-amber-100/50 dark:from-amber-500/20 dark:to-amber-500/10 text-amber-600 dark:text-amber-400 flex items-center justify-center shrink-0 border border-amber-200/60 dark:border-amber-500/30 transition-transform duration-300 group-hover:scale-110 shadow-sm">
-                <LayoutDashboard size={20} strokeWidth={2.2} />
+        {/* Row 1 — Unified Metric Bar */}
+        <div className="bg-white dark:bg-[#1E2130] border border-slate-200/80 dark:border-white/10 rounded-2xl shadow-[0_2px_12px_-4px_rgba(0,0,0,0.05)] overflow-hidden mb-6">
+          <div className="grid grid-cols-2 md:grid-cols-3 lg:grid-cols-6 divide-y md:divide-y-0 lg:divide-x divide-slate-200/80 dark:divide-white/10">
+            {/* Pending Review */}
+            <div className="group relative p-4 transition-all duration-200 hover:bg-slate-50/80 dark:hover:bg-white/[0.02] cursor-pointer flex flex-col justify-between min-h-[105px]" onClick={() => navigate('/loan-admin/loan-management')}>
+              <div className="flex items-start justify-between relative z-10">
+                <span className="font-inter font-bold text-[10px] tracking-wider uppercase text-slate-500 dark:text-slate-400 mt-0.5 pr-1">Pending Review</span>
+                <div className="w-8 h-8 rounded-lg bg-amber-500/10 text-amber-600 dark:text-amber-400 flex items-center justify-center shrink-0 border border-amber-500/20 shadow-xs">
+                  <LayoutDashboard size={16} strokeWidth={2.2} />
+                </div>
               </div>
+              <div className="font-inter font-extrabold text-[22px] 2xl:text-[25px] text-slate-900 dark:text-white tracking-tight leading-none relative z-10 mt-2.5">{dash(stats.pending)}</div>
             </div>
-            <div className="font-inter font-extrabold text-[28px] text-slate-900 dark:text-white tracking-tight leading-none relative z-10 mt-4">{dash(stats.pending)}</div>
-          </div>
 
-          {/* Approved Loans */}
-          <div className="group relative bg-white dark:bg-[#1E2130] border border-slate-200 dark:border-white/10 rounded-2xl p-5 shadow-[0_2px_12px_-4px_rgba(0,0,0,0.05)] overflow-hidden transition-all duration-300 hover:shadow-[0_12px_32px_rgba(0,0,0,0.08)] dark:hover:shadow-[0_12px_32px_rgba(0,0,0,0.3)] hover:-translate-y-1 cursor-pointer flex flex-col justify-between min-h-[140px]" onClick={() => navigate('/loan-admin/loan-management')}>
-            <div className="absolute top-0 right-0 w-28 h-28 bg-emerald-500/10 rounded-full blur-2xl -mr-8 -mt-8 transition-transform duration-500 group-hover:scale-150"></div>
-            
-            <div className="flex items-start justify-between relative z-10">
-              <span className="font-inter font-semibold text-xs tracking-wider uppercase text-slate-500 dark:text-slate-400 mt-1 pr-2">Approved Loans</span>
-              <div className="w-10 h-10 rounded-xl bg-gradient-to-br from-emerald-50 to-emerald-100/50 dark:from-emerald-500/20 dark:to-emerald-500/10 text-emerald-600 dark:text-emerald-400 flex items-center justify-center shrink-0 border border-emerald-200/60 dark:border-emerald-500/30 transition-transform duration-300 group-hover:scale-110 shadow-sm">
-                <CheckCircle size={20} strokeWidth={2.2} />
+            {/* Approved Loans */}
+            <div className="group relative p-4 transition-all duration-200 hover:bg-slate-50/80 dark:hover:bg-white/[0.02] cursor-pointer flex flex-col justify-between min-h-[105px]" onClick={() => navigate('/loan-admin/loan-management')}>
+              <div className="flex items-start justify-between relative z-10">
+                <span className="font-inter font-bold text-[10px] tracking-wider uppercase text-slate-500 dark:text-slate-400 mt-0.5 pr-1">Approved Loans</span>
+                <div className="w-8 h-8 rounded-lg bg-emerald-500/10 text-emerald-600 dark:text-emerald-400 flex items-center justify-center shrink-0 border border-emerald-500/20 shadow-xs">
+                  <CheckCircle size={16} strokeWidth={2.2} />
+                </div>
               </div>
+              <div className="font-inter font-extrabold text-[22px] 2xl:text-[25px] text-slate-900 dark:text-white tracking-tight leading-none relative z-10 mt-2.5">{dash(stats.active)}</div>
             </div>
-            <div className="font-inter font-extrabold text-[28px] text-slate-900 dark:text-white tracking-tight leading-none relative z-10 mt-4">{dash(stats.active)}</div>
-          </div>
 
-          {/* Total This Month */}
-          <div className="group relative bg-white dark:bg-[#1E2130] border border-slate-200 dark:border-white/10 rounded-2xl p-5 shadow-[0_2px_12px_-4px_rgba(0,0,0,0.05)] overflow-hidden transition-all duration-300 hover:shadow-[0_12px_32px_rgba(0,0,0,0.08)] dark:hover:shadow-[0_12px_32px_rgba(0,0,0,0.3)] hover:-translate-y-1 cursor-pointer flex flex-col justify-between min-h-[140px]" onClick={openMonthModal}>
-            <div className="absolute top-0 right-0 w-28 h-28 bg-blue-500/10 rounded-full blur-2xl -mr-8 -mt-8 transition-transform duration-500 group-hover:scale-150"></div>
-            
-            <div className="flex items-start justify-between relative z-10">
-              <span className="font-inter font-semibold text-xs tracking-wider uppercase text-slate-500 dark:text-slate-400 mt-1 pr-2">Total This Month</span>
-              <div className="w-10 h-10 rounded-xl bg-gradient-to-br from-blue-50 to-blue-100/50 dark:from-blue-500/20 dark:to-blue-500/10 text-blue-600 dark:text-blue-400 flex items-center justify-center shrink-0 border border-blue-200/60 dark:border-blue-500/30 transition-transform duration-300 group-hover:scale-110 shadow-sm">
-                <LayoutDashboard size={20} strokeWidth={2.2} />
+            {/* Total This Month */}
+            <div className="group relative p-4 transition-all duration-200 hover:bg-slate-50/80 dark:hover:bg-white/[0.02] cursor-pointer flex flex-col justify-between min-h-[105px]" onClick={openMonthModal}>
+              <div className="flex items-start justify-between relative z-10">
+                <span className="font-inter font-bold text-[10px] tracking-wider uppercase text-slate-500 dark:text-slate-400 mt-0.5 pr-1">Total This Month</span>
+                <div className="w-8 h-8 rounded-lg bg-blue-500/10 text-blue-600 dark:text-blue-400 flex items-center justify-center shrink-0 border border-blue-500/20 shadow-xs">
+                  <LayoutDashboard size={16} strokeWidth={2.2} />
+                </div>
               </div>
+              <div className="font-inter font-extrabold text-[22px] 2xl:text-[25px] text-slate-900 dark:text-white tracking-tight leading-none relative z-10 mt-2.5">{dash(stats.totalThisMonth)}</div>
             </div>
-            <div className="font-inter font-extrabold text-[28px] text-slate-900 dark:text-white tracking-tight leading-none relative z-10 mt-4">{dash(stats.totalThisMonth)}</div>
-          </div>
 
-          {/* Total Disbursed */}
-          <div className="group relative bg-white dark:bg-[#1E2130] border border-slate-200 dark:border-white/10 rounded-2xl p-5 shadow-[0_2px_12px_-4px_rgba(0,0,0,0.05)] overflow-hidden transition-all duration-300 hover:shadow-[0_12px_32px_rgba(0,0,0,0.08)] dark:hover:shadow-[0_12px_32px_rgba(0,0,0,0.3)] hover:-translate-y-1 cursor-pointer flex flex-col justify-between min-h-[140px]" onClick={openDisbModal}>
-            <div className="absolute top-0 right-0 w-28 h-28 bg-slate-500/10 dark:bg-blue-500/10 rounded-full blur-2xl -mr-8 -mt-8 transition-transform duration-500 group-hover:scale-150"></div>
-            
-            <div className="flex items-start justify-between relative z-10">
-              <span className="font-inter font-semibold text-xs tracking-wider uppercase text-slate-500 dark:text-slate-400 mt-1 pr-2">Total Disbursed</span>
-              <div className="w-10 h-10 rounded-xl bg-gradient-to-br from-slate-100 to-slate-200/50 dark:from-slate-700/50 dark:to-slate-800/50 text-[#0D1F45] dark:text-[#BFDBFE] flex items-center justify-center shrink-0 border border-slate-200/60 dark:border-white/10 transition-transform duration-300 group-hover:scale-110 shadow-sm">
-                <Banknote size={20} strokeWidth={2.2} />
+            {/* Total Disbursed */}
+            <div className="group relative p-4 transition-all duration-200 hover:bg-slate-50/80 dark:hover:bg-white/[0.02] cursor-pointer flex flex-col justify-between min-h-[105px]" onClick={openDisbModal}>
+              <div className="flex items-start justify-between relative z-10">
+                <span className="font-inter font-bold text-[10px] tracking-wider uppercase text-slate-500 dark:text-slate-400 mt-0.5 pr-1">Total Disbursed</span>
+                <div className="w-8 h-8 rounded-lg bg-indigo-500/10 text-indigo-600 dark:text-indigo-400 flex items-center justify-center shrink-0 border border-indigo-500/20 shadow-xs">
+                  <Banknote size={16} strokeWidth={2.2} />
+                </div>
               </div>
+              <div className="font-inter font-extrabold text-[18px] xl:text-[20px] 2xl:text-[23px] text-slate-900 dark:text-white tracking-tight leading-none relative z-10 mt-2.5" title={fmt(stats.totalDisbursed)}>{dash(fmt(stats.totalDisbursed))}</div>
             </div>
-            <div className="font-inter font-extrabold text-[28px] text-slate-900 dark:text-white tracking-tight leading-none relative z-10 mt-4 truncate">{dash(fmt(stats.totalDisbursed))}</div>
-          </div>
 
-          {/* Total Savings */}
-          <div className="group relative bg-white dark:bg-[#1E2130] border border-slate-200 dark:border-white/10 rounded-2xl p-5 shadow-[0_2px_12px_-4px_rgba(0,0,0,0.05)] overflow-hidden transition-all duration-300 hover:shadow-[0_12px_32px_rgba(0,0,0,0.08)] dark:hover:shadow-[0_12px_32px_rgba(0,0,0,0.3)] hover:-translate-y-1 cursor-pointer flex flex-col justify-between min-h-[140px]" onClick={() => navigate('/loan-admin/payments/savings')}>
-            <div className="absolute top-0 right-0 w-28 h-28 bg-purple-500/10 rounded-full blur-2xl -mr-8 -mt-8 transition-transform duration-500 group-hover:scale-150"></div>
-            
-            <div className="flex items-start justify-between relative z-10">
-              <span className="font-inter font-semibold text-xs tracking-wider uppercase text-slate-500 dark:text-slate-400 mt-1 pr-2">Total Savings</span>
-              <div className="w-10 h-10 rounded-xl bg-gradient-to-br from-purple-50 to-purple-100/50 dark:from-purple-500/20 dark:to-purple-500/10 text-purple-600 dark:text-purple-400 flex items-center justify-center shrink-0 border border-purple-200/60 dark:border-purple-500/30 transition-transform duration-300 group-hover:scale-110 shadow-sm">
-                <PiggyBank size={20} strokeWidth={2.2} />
+            {/* Total Savings */}
+            <div className="group relative p-4 transition-all duration-200 hover:bg-slate-50/80 dark:hover:bg-white/[0.02] cursor-pointer flex flex-col justify-between min-h-[105px]" onClick={() => navigate('/loan-admin/payments/savings')}>
+              <div className="flex items-start justify-between relative z-10">
+                <span className="font-inter font-bold text-[10px] tracking-wider uppercase text-slate-500 dark:text-slate-400 mt-0.5 pr-1">Total Savings</span>
+                <div className="w-8 h-8 rounded-lg bg-purple-500/10 text-purple-600 dark:text-purple-400 flex items-center justify-center shrink-0 border border-purple-500/20 shadow-xs">
+                  <PiggyBank size={16} strokeWidth={2.2} />
+                </div>
               </div>
+              <div className="font-inter font-extrabold text-[18px] xl:text-[20px] 2xl:text-[23px] text-slate-900 dark:text-white tracking-tight leading-none relative z-10 mt-2.5" title={fmt(totalSavings)}>{dash(fmt(totalSavings))}</div>
             </div>
-            <div className="font-inter font-extrabold text-[28px] text-slate-900 dark:text-white tracking-tight leading-none relative z-10 mt-4 truncate">{dash(fmt(totalSavings))}</div>
+
+            {/* Total Income from Interest */}
+            <div className="group relative p-4 transition-all duration-200 hover:bg-slate-50/80 dark:hover:bg-white/[0.02] flex flex-col justify-between min-h-[105px]">
+              <div className="flex items-start justify-between relative z-10">
+                <div className="flex flex-col gap-0.5 pr-1">
+                  <span className="font-inter font-bold text-[10px] tracking-wider uppercase text-slate-500 dark:text-slate-400">Total Interest</span>
+                  <select 
+                    value={interestFilter} 
+                    onChange={e => setInterestFilter(e.target.value)} 
+                    className="text-[9px] px-1 py-0.5 rounded border border-slate-200 dark:border-white/10 bg-slate-50 dark:bg-black/20 text-slate-700 dark:text-slate-300 focus:outline-none font-inter cursor-pointer w-fit"
+                  >
+                    <option value="all">All</option>
+                    <option value="2x">2x Savings</option>
+                    <option value="1.5x">1.5x Savings</option>
+                    <option value="1x">1x Savings</option>
+                  </select>
+                </div>
+                <div className="w-8 h-8 rounded-lg bg-teal-500/10 text-teal-600 dark:text-teal-400 flex items-center justify-center shrink-0 border border-teal-500/20 shadow-xs">
+                  <TrendingUp size={16} strokeWidth={2.2} />
+                </div>
+              </div>
+              <div className="font-inter font-extrabold text-[18px] xl:text-[20px] 2xl:text-[23px] text-slate-900 dark:text-white tracking-tight leading-none relative z-10 mt-2.5" title={fmt(totalInterestFiltered)}>{dash(fmt(totalInterestFiltered))}</div>
+            </div>
           </div>
         </div>
 

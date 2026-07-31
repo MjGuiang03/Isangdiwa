@@ -1,7 +1,7 @@
 import { Router } from 'express';
 import { ObjectId } from 'mongodb';
 
-import { users, donations } from '../config/db.js';
+import { users, donations, counters } from '../config/db.js';
 import { authenticateUser, authenticateAdmin } from '../middleware/auth.js';
 
 const router = Router();
@@ -26,8 +26,13 @@ router.post('/donations', authenticateUser, async (req, res) => {
 
     const resolvedCommunity = community || user.branch || 'General';
 
-    const count      = await donations.countDocuments();
-    const donationId = `D-${new Date().getFullYear()}-${String(count + 1).padStart(3, '0')}`;
+    const year = new Date().getFullYear();
+    const counterDoc = await counters.findOneAndUpdate(
+      { _id: `donations-${year}` },
+      { $inc: { seq: 1 } },
+      { upsert: true, returnDocument: 'after' }
+    );
+    const donationId = `D-${year}-${String(counterDoc.seq).padStart(3, '0')}`;
 
     const { settings } = await import('../config/db.js');
     const config = await settings.findOne({ _id: 'global' });

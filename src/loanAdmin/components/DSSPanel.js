@@ -1,5 +1,5 @@
 import React, { useRef, useState } from 'react';
-import { CheckCircle, XCircle, Info, AlertCircle, RefreshCw, Download } from 'lucide-react';
+import { CheckCircle, XCircle, Info, AlertCircle, RefreshCw } from 'lucide-react';
 
 
 
@@ -46,19 +46,10 @@ const DSSPanel = ({ analysis, loading, onRefresh, memberName }) => {
 
   return (
     <div className="bg-white dark:bg-[#252836] border border-slate-200 dark:border-white/5 rounded-xl shadow-sm h-full flex flex-col" ref={panelRef}>
-      <div className="flex items-start justify-between p-4 lg:p-6 border-b border-slate-200 dark:border-white/5 shrink-0">
+      <div className="flex items-center justify-between p-4 lg:p-6 border-b border-slate-200 dark:border-white/5 shrink-0">
         <h3 className="font-inter text-[15px] font-bold text-slate-800 dark:text-white m-0 tracking-tight">Decision Support Analysis</h3>
         <div style={{ display: 'flex', alignItems: 'center', gap: '8px' }}>
-          {!exporting && (
-            <button 
-              onClick={handleDownloadPDF} 
-              className="w-7 h-7 rounded-lg bg-slate-50 dark:bg-white/5 text-slate-500 dark:text-slate-400 flex items-center justify-center cursor-pointer hover:bg-slate-100 dark:hover:bg-white/10 transition-colors border-none"
-              title="Download analysis as PDF"
-            >
-              <Download size={14} />
-            </button>
-          )}
-          <div className={`px-2.5 py-1 rounded-md text-[11px] font-bold tracking-wider uppercase ${risk.color === 'green' ? 'bg-emerald-50 text-emerald-600 dark:bg-emerald-500/10 dark:text-emerald-400' : risk.color === 'orange' ? 'bg-amber-50 text-amber-600 dark:bg-amber-500/10 dark:text-amber-400' : 'bg-rose-50 text-rose-600 dark:bg-rose-500/10 dark:text-rose-400'}`}>
+          <div className={`px-2.5 py-1 rounded-md text-[11px] font-bold tracking-wider uppercase whitespace-nowrap shrink-0 ${risk.color === 'green' ? 'bg-emerald-50 text-emerald-600 dark:bg-emerald-500/10 dark:text-emerald-400' : risk.color === 'orange' ? 'bg-amber-50 text-amber-600 dark:bg-amber-500/10 dark:text-amber-400' : 'bg-rose-50 text-rose-600 dark:bg-rose-500/10 dark:text-rose-400'}`}>
             {risk.tier}
           </div>
         </div>
@@ -69,19 +60,19 @@ const DSSPanel = ({ analysis, loading, onRefresh, memberName }) => {
         <h4 className="font-inter text-[12px] font-semibold uppercase tracking-wider text-slate-500 dark:text-slate-400 m-0 mb-4">Eligibility Verification</h4>
         <div className="flex flex-col gap-3">
           <div className="flex items-start gap-3 font-inter text-[13px] text-slate-700 dark:text-slate-300">
-            {eligibility.isActiveMember ? <CheckCircle  size={18} /> : <XCircle className="text-emerald-500 shrink-0 mt-0.5 text-rose-500 shrink-0 mt-0.5" size={18} />}
+            {eligibility.isActiveMember ? <CheckCircle className="text-emerald-500 shrink-0 mt-0.5" size={18} /> : <XCircle className="text-rose-500 shrink-0 mt-0.5" size={18} />}
             <span>Active Member (Attendance)</span>
           </div>
           <div className="flex items-start gap-3 font-inter text-[13px] text-slate-700 dark:text-slate-300">
-            {eligibility.savingsOk ? <CheckCircle  size={18} /> : <XCircle className="text-emerald-500 shrink-0 mt-0.5 text-rose-500 shrink-0 mt-0.5" size={18} />}
+            {eligibility.savingsOk ? <CheckCircle className="text-emerald-500 shrink-0 mt-0.5" size={18} /> : <XCircle className="text-rose-500 shrink-0 mt-0.5" size={18} />}
             <span>Savings ≥ ₱1,000 ({fmt(capacity.totalSavings)})</span>
           </div>
           <div className="flex items-start gap-3 font-inter text-[13px] text-slate-700 dark:text-slate-300">
-            {eligibility.noActiveLoan ? <CheckCircle  size={18} /> : <XCircle className="text-emerald-500 shrink-0 mt-0.5 text-rose-500 shrink-0 mt-0.5" size={18} />}
+            {eligibility.noActiveLoan ? <CheckCircle className="text-emerald-500 shrink-0 mt-0.5" size={18} /> : <XCircle className="text-rose-500 shrink-0 mt-0.5" size={18} />}
             <span>No Active Loans (One at a time)</span>
           </div>
           <div className="flex items-start gap-3 font-inter text-[13px] text-slate-700 dark:text-slate-300">
-            {eligibility.infoValid ? <CheckCircle  size={18} /> : <XCircle className="text-emerald-500 shrink-0 mt-0.5 text-rose-500 shrink-0 mt-0.5" size={18} />}
+            {eligibility.infoValid ? <CheckCircle className="text-emerald-500 shrink-0 mt-0.5" size={18} /> : <XCircle className="text-rose-500 shrink-0 mt-0.5" size={18} />}
             <span>Valid Identity Documents</span>
           </div>
         </div>

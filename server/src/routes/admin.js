@@ -1136,7 +1136,7 @@ router.get('/loans/:id/dss-analysis', authenticateAdmin, async (req, res) => {
 
     // - No Active Loans (One at a time)
     const otherLoans = await loans.find({ email: loan.email, _id: { $ne: new ObjectId(id) } }).toArray();
-    const unpaidLoans = otherLoans.filter(l => l.status === 'active' || l.status === 'approved' || l.remainingBalance > 0);
+    const unpaidLoans = otherLoans.filter(l => l.status === 'active');
     const noActiveLoan = unpaidLoans.length === 0;
 
     // - Information is valid (Selfie + ID) -- Using the files metadata or path

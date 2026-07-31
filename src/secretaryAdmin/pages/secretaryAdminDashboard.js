@@ -3,6 +3,7 @@ import { useState, useEffect, useMemo } from 'react';
 import useSWR from 'swr';
 import { PieChart, Pie, Cell, BarChart, Bar, XAxis, YAxis, CartesianGrid, Tooltip, ResponsiveContainer, Label, Legend, AreaChart, Area, LineChart, Line } from 'recharts';
 import SecretaryAdminSidebar from '../components/secretaryAdminSidebar';
+import PageHeader from '../components/PageHeader';
 
 
 import API from '../../utils/api';
@@ -208,26 +209,60 @@ export default function SecretaryAdminDashboard() {
   return (
     <div className="flex h-screen overflow-hidden bg-slate-100 dark:bg-[#161922]">
       <SecretaryAdminSidebar />
-      <div className="p-[20px_24px] flex-1 flex flex-col gap-2.5 bg-transparent overflow-y-auto">
+      <div className="p-6 pb-16 flex-1 overflow-y-auto w-full">
         {!expandedChart && (
           <>
             {/* Header */}
-        <div className="flex items-center justify-between pb-2 mb-[2px] max-md:flex-col max-md:items-start max-md:gap-3">
-          <div className="flex flex-col gap-0.5">
-            <h1 className="font-inter text-lg font-normal text-gray-600 m-0 tracking-[-0.01em] dark:text-gray-400">
-              {(() => {
-                const h = new Date().getHours();
-                return h < 12 ? 'Good Morning' : h < 18 ? 'Good Afternoon' : 'Good Evening';
-              })()}, <span className="text-gray-900 font-bold dark:text-gray-200">Secretary</span>
-            </h1>
-            <p className="font-inter text-[13px] text-gray-400 m-0 font-normal dark:text-gray-400/60">
-              Disbursement overview for <strong>{new Date().toLocaleDateString('en-US', { weekday: 'long', month: 'long', day: 'numeric', year: 'numeric' })}</strong>
-            </p>
-          </div>
-        </div>
+            <PageHeader
+              title={
+                <>
+                  <span className="text-slate-500 dark:text-slate-400 font-normal">
+                    {(() => {
+                      const h = new Date().getHours();
+                      return h < 12 ? 'Good Morning' : h < 18 ? 'Good Afternoon' : 'Good Evening';
+                    })()}, 
+                  </span>{' '}
+                  <span className="text-slate-900 dark:text-white font-bold">Secretary</span>
+                </>
+              }
+              subtitle={
+                <>
+                  Disbursement overview for <strong>{new Date().toLocaleDateString('en-US', { weekday: 'long', month: 'long', day: 'numeric', year: 'numeric' })}</strong>
+                </>
+              }
+            />
 
         {loading ? (
-          <div className="p-10 text-center text-gray-400 text-[13px]">Loading dashboard data...</div>
+          <div className="animate-pulse flex flex-col gap-6">
+            {/* Stat Cards Row Skeleton */}
+            <div className="grid grid-cols-1 lg:grid-cols-12 gap-5 mb-8">
+              <div className="lg:col-span-5 bg-white dark:bg-[#1E2130] border border-slate-200 dark:border-white/10 rounded-2xl p-6 h-[200px] flex flex-col justify-between">
+                <div className="h-4 w-36 bg-slate-200 dark:bg-slate-700/80 rounded"></div>
+                <div className="h-10 w-48 bg-slate-200 dark:bg-slate-700/80 rounded"></div>
+                <div className="h-12 bg-slate-100 dark:bg-slate-800/50 rounded-xl"></div>
+              </div>
+              <div className="lg:col-span-7 grid grid-cols-1 sm:grid-cols-3 gap-5">
+                {[1, 2, 3].map((i) => (
+                  <div key={i} className="bg-white dark:bg-[#1E2130] border border-slate-200 dark:border-white/10 rounded-2xl p-5 shadow-sm min-h-[140px] flex flex-col justify-between">
+                    <div className="h-3 w-20 bg-slate-200 dark:bg-slate-700/80 rounded"></div>
+                    <div className="h-8 w-16 bg-slate-200 dark:bg-slate-700/80 rounded mt-4"></div>
+                  </div>
+                ))}
+              </div>
+            </div>
+
+            {/* Charts Skeleton */}
+            <div className="grid grid-cols-1 lg:grid-cols-2 gap-5">
+              <div className="h-[280px] bg-white dark:bg-[#1E2130] border border-slate-200 dark:border-white/10 rounded-2xl p-6">
+                <div className="h-5 w-48 bg-slate-200 dark:bg-slate-700/80 rounded mb-4"></div>
+                <div className="h-4/5 bg-slate-100 dark:bg-slate-800/50 rounded-xl"></div>
+              </div>
+              <div className="h-[280px] bg-white dark:bg-[#1E2130] border border-slate-200 dark:border-white/10 rounded-2xl p-6">
+                <div className="h-5 w-48 bg-slate-200 dark:bg-slate-700/80 rounded mb-4"></div>
+                <div className="h-4/5 bg-slate-100 dark:bg-slate-800/50 rounded-xl"></div>
+              </div>
+            </div>
+          </div>
         ) : (
           <>
             {/* Asymmetrical Layout with Consistent White Design */}

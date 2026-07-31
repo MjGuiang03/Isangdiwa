@@ -1,7 +1,7 @@
 import { Router } from 'express';
 import { ObjectId } from 'mongodb';
 
-import { users, loans, savingsGoals, loanPayments, savingsTransactions } from '../config/db.js';
+import { users, admins, loans, savingsGoals, loanPayments, savingsTransactions, counters } from '../config/db.js';
 import { authenticateUser } from '../middleware/auth.js';
 import { authenticateAdmin } from '../middleware/auth.js';
 import { generatePaymentLink, sendPaymongoTransfer } from '../utils/paymongo.js';
@@ -226,8 +226,13 @@ router.post('/loans/apply', authenticateUser, async (req, res) => {
     if (!user) return res.status(404).json({ success: false, message: 'User not found' });
 
     const now = new Date();
-    const seq = String(now.getTime()).slice(-6);
-    const loanId = `LN-${now.getFullYear()}-${seq}`;
+    const year = now.getFullYear();
+    const counterDoc = await counters.findOneAndUpdate(
+      { _id: `loans-${year}` },
+      { $inc: { seq: 1 } },
+      { upsert: true, returnDocument: 'after' }
+    );
+    const loanId = `LN-${year}-${String(counterDoc.seq).padStart(3, '0')}`;
 
     const newLoan = {
       loanId, email, memberName: user.fullName, amount: Number(amount),
@@ -325,7 +330,11 @@ router.get('/admin/loans', authenticateAdmin, async (req, res) => {
     const skip  = (page - 1) * limit;
 
     const query = {};
-    if (status && status !== 'all') {
+    if (status === 'non_completed') {
+      query.status = { $nin: ['completed', 'cancelled'] };
+    } else if (status === 'ongoing') {
+      query.status = 'active';
+    } else if (status && status !== 'all') {
       query.status = status;
     } else {
       query.status = { $ne: 'cancelled' };
@@ -380,7 +389,7 @@ router.get('/admin/loans', authenticateAdmin, async (req, res) => {
 
     const statsResultArr = await loans.aggregate(statsPipeline).toArray();
     const sr = statsResultArr[0] || {};
-    
+
     const stats = {
       pending: sr.pending[0]?.count || 0,
       approved: sr.approved[0]?.count || 0,
@@ -478,6 +487,15 @@ router.put('/admin/loans/:id/propose-terms', authenticateAdmin, async (req, res)
     );
 
     res.status(200).json({ success: true, message: 'Modified terms sent to member for approval' });
+
+    // Notify member about proposed modified terms
+    await notifyUser(
+      loan.email,
+      'loan',
+      'Modified Loan Terms Proposed',
+      `<h2>Updated Loan Terms Proposed</h2><p>The Loan Admin has proposed updated terms for your loan request (ID: <strong>${loan.loanId}</strong>):</p><ul><li><strong>Approved Amount:</strong> ₱${Number(approvedAmount).toLocaleString('en-PH', { minimumFractionDigits: 2 })}</li><li><strong>Repayment Term:</strong> ${repaymentTerm} months</li><li><strong>Monthly Repayment:</strong> ₱${Number(monthlyPayment).toLocaleString('en-PH', { minimumFractionDigits: 2 })}</li></ul><p>Please review and accept/decline these updated terms in your account portal.</p>`,
+      `The Loan Admin proposed updated terms for loan ${loan.loanId}. Please review in your portal.`
+    );
   } catch (err) {
     console.error(err);
     res.status(500).json({ success: false, message: 'Failed to propose terms' });
@@ -542,7 +560,7 @@ router.put('/admin/loans/:id/reject', authenticateAdmin, async (req, res) => {
 router.put('/loans/:id/respond-terms', authenticateUser, async (req, res) => {
   try {
     const { id } = req.params;
-    const { accepted } = req.body;
+    const { accepted, reason } = req.body;
     const email = req.user.email;
 
     const loan = await loans.findOne({ _id: new ObjectId(id) });
@@ -572,21 +590,57 @@ router.put('/loans/:id/respond-terms', authenticateUser, async (req, res) => {
           $push: { statusHistory: { status: 'member_agreed', date: new Date() } }
         }
       );
+
       res.json({ success: true, message: 'You have agreed to the modified terms' });
+
+      // Notify admins that member accepted
+      try {
+        const adminList = await admins.find({ role: { $in: ['loan', 'loanAdmin', 'superadmin', 'admin'] } }).toArray();
+        for (const admin of adminList) {
+          await notifyUser(
+            admin.email,
+            'loan',
+            `Member Accepted Proposed Terms — ${loan.loanId}`,
+            `<h2>Member Accepted Proposed Loan Terms</h2><p>Member <strong>${loan.memberName || loan.email}</strong> has accepted the proposed terms for loan request <strong>${loan.loanId}</strong>.</p><p>Approved Amount: ₱${Number(mt.approvedAmount).toLocaleString('en-PH', { minimumFractionDigits: 2 })} for ${mt.repaymentTerm} months.</p>`,
+            `Member ${loan.memberName || loan.email} accepted proposed terms for loan ${loan.loanId}.`
+          );
+        }
+      } catch (err) {
+        console.error('Failed to notify admins of agreement:', err);
+      }
     } else {
-      // Decline — revert to pending with original terms
+      // Decline — revert to pending with original terms and record decline reason
+      const declineReason = (reason && reason.trim()) ? reason.trim() : 'No specific reason provided';
       await loans.updateOne(
         { _id: new ObjectId(id) },
         {
           $set: {
             status: 'pending',
+            declineReason,
             updatedAt: new Date(),
           },
           $unset: { modifiedTerms: '', memberApprovedTerms: '' },
-          $push: { statusHistory: { status: 'member_declined', date: new Date() } }
+          $push: { statusHistory: { status: 'member_declined', date: new Date(), reason: declineReason } }
         }
       );
+
       res.json({ success: true, message: 'You have declined the modified terms' });
+
+      // Notify loan admins with reason
+      try {
+        const adminList = await admins.find({ role: { $in: ['loan', 'loanAdmin', 'superadmin', 'admin'] } }).toArray();
+        for (const admin of adminList) {
+          await notifyUser(
+            admin.email,
+            'loan',
+            `Member Declined Proposed Terms — ${loan.loanId}`,
+            `<h2>Member Declined Proposed Loan Terms</h2><p>Member <strong>${loan.memberName || loan.email}</strong> (${loan.email}) has declined the proposed terms for loan request (ID: <strong>${loan.loanId}</strong>).</p><p><strong>Reason for Declining:</strong> ${declineReason}</p><p>The loan has reverted to Pending status in your Loan Admin dashboard.</p>`,
+            `Member ${loan.memberName || loan.email} declined proposed terms for loan ${loan.loanId}. Reason: ${declineReason}`
+          );
+        }
+      } catch (err) {
+        console.error('Failed to notify admins of decline:', err);
+      }
     }
   } catch (err) {
     console.error(err);

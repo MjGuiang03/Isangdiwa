@@ -6,6 +6,7 @@ import { toast } from 'sonner';
 import { UserPlus, Search, Edit2, Trash2, Shield, Loader2, X, Info, Eye, EyeOff, Users, KeyRound, UserCog } from 'lucide-react';
 import useDebounce from '../../hooks/useDebounce';
 import API from '../../utils/api';
+import Pagination from '../../components/Pagination';
 
 const ROLE_LABELS = {
   admin: 'Main Admin',
@@ -89,6 +90,8 @@ export default function AdminUserManagement() {
   const [searchQuery, setSearchQuery] = useState('');
   const debouncedSearch = useDebounce(searchQuery, 400);
   const [actionLoading, setActionLoading] = useState(false);
+  const [page, setPage] = useState(1);
+  const PER_PAGE = 5;
 
   // Modals
   const [showAddModal, setShowAddModal] = useState(false);
@@ -225,87 +228,176 @@ export default function AdminUserManagement() {
 
   const isSuperAdmin = (email) => email === superAdminEmail;
 
+  if (!adminsData && loadingAdmins) {
+    return (
+      <div className="flex flex-col gap-6 p-6 max-w-[1400px] mx-auto w-full min-h-screen bg-slate-100 dark:bg-[#161922] animate-pulse">
+        {/* Header Skeleton */}
+        <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-4 shrink-0">
+          <div className="flex flex-col gap-2">
+            <div className="h-8 w-52 bg-slate-200 dark:bg-slate-700/80 rounded-lg"></div>
+            <div className="h-4 w-80 bg-slate-200 dark:bg-slate-700/80 rounded-md"></div>
+          </div>
+          <div className="flex items-center gap-3">
+            <div className="h-10 w-64 bg-slate-200 dark:bg-slate-700/80 rounded-lg"></div>
+            <div className="h-10 w-32 bg-slate-200 dark:bg-slate-700/80 rounded-lg"></div>
+          </div>
+        </div>
+
+        {/* 4 Stat Cards Skeleton */}
+        <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-5">
+          {[1, 2, 3, 4].map((i) => (
+            <div key={i} className="bg-white dark:bg-[#1E2130] border border-slate-200 dark:border-white/10 rounded-2xl p-6 shadow-sm flex flex-col justify-between h-[138px]">
+              <div className="flex items-start justify-between">
+                <div className="flex flex-col gap-2">
+                  <div className="h-3.5 w-24 bg-slate-200 dark:bg-slate-700/80 rounded"></div>
+                  <div className="h-8 w-16 bg-slate-200 dark:bg-slate-700/80 rounded-lg"></div>
+                </div>
+                <div className="w-12 h-12 rounded-[14px] bg-slate-200 dark:bg-slate-700/80"></div>
+              </div>
+              <div className="h-4 w-28 bg-slate-200 dark:bg-slate-700/80 rounded mt-2"></div>
+            </div>
+          ))}
+        </div>
+
+        {/* Table Skeleton */}
+        <div className="w-full bg-white dark:bg-[#1E2130] border border-slate-200 dark:border-white/10 rounded-xl shadow-sm overflow-hidden p-4">
+          <div className="h-10 bg-slate-50 dark:bg-black/20 rounded-lg mb-4"></div>
+          <div className="flex flex-col gap-3">
+            {[1, 2, 3, 4, 5].map((i) => (
+              <div key={i} className="h-14 bg-slate-100 dark:bg-slate-800/50 rounded-lg"></div>
+            ))}
+          </div>
+        </div>
+      </div>
+    );
+  }
+
   return (
     <div className="flex flex-col gap-6 p-6 max-w-[1400px] mx-auto w-full min-h-screen bg-slate-100 dark:bg-[#161922]">
       {/* Header */}
       <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-4 shrink-0">
         <div>
           <h1 className="m-0 font-inter text-2xl font-bold text-slate-800 dark:text-white">User Management</h1>
+          <p className="m-0 font-inter text-sm text-slate-500 dark:text-slate-400 mt-1">Manage administrator accounts, roles, and security permissions</p>
         </div>
-        <button className="h-10 px-4 bg-blue-600 text-white font-inter text-sm font-semibold rounded-lg hover:bg-blue-700 transition-colors border-none cursor-pointer flex items-center gap-2" onClick={() => { setShowAddModal(true); setShowCreatePassword(false); }}>
-          <UserPlus size={18} />
-          <span>Add User</span>
-        </button>
+        <div className="flex items-center gap-3">
+          <div className="relative">
+            <Search size={18} className="absolute left-3 top-1/2 -translate-y-1/2 text-slate-400 pointer-events-none" />
+            <input
+              type="text"
+              placeholder="Search by email..."
+              value={searchQuery}
+              onChange={e => { setSearchQuery(e.target.value); setPage(1); }}
+              className="w-full sm:w-[260px] h-10 pl-10 pr-4 bg-white dark:bg-[#1E2130] border border-slate-300 dark:border-white/10 rounded-lg text-sm font-inter text-slate-800 dark:text-white outline-none focus:border-blue-500 transition-all"
+            />
+          </div>
+          <button className="h-10 px-4 bg-blue-600 text-white font-inter text-sm font-semibold rounded-lg hover:bg-blue-700 transition-colors border-none cursor-pointer flex items-center gap-2 shrink-0" onClick={() => { setShowAddModal(true); setShowCreatePassword(false); }}>
+            <UserPlus size={18} />
+            <span>Add User</span>
+          </button>
+        </div>
       </div>
 
       {/* Stats */}
-      <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-4">
-        <div className="group relative bg-white dark:bg-[#1E2130] border border-slate-200 dark:border-white/10 rounded-2xl p-5 flex flex-col gap-1 overflow-hidden cursor-default transition-all duration-300 hover:shadow-lg hover:-translate-y-1">
-          <div className="flex items-center justify-between relative z-10">
-            <span className="font-inter font-bold text-[11px] tracking-widest text-slate-500 dark:text-slate-400 uppercase">Total Accounts</span>
-            <div className="w-10 h-10 rounded-xl flex items-center justify-center shrink-0 transition-transform duration-300 group-hover:scale-110 shadow-sm bg-gradient-to-br from-blue-50 to-blue-100/50 dark:from-blue-500/20 dark:to-blue-500/10 text-blue-600 dark:text-blue-400 border border-blue-200/60 dark:border-blue-500/30">
-              <Users size={20} strokeWidth={2.2} />
+      <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-5">
+        {/* Total Accounts */}
+        <div className="group relative bg-white dark:bg-[#1E2130] border border-slate-200 dark:border-white/10 rounded-2xl p-6 shadow-[0_2px_12px_-4px_rgba(0,0,0,0.05)] overflow-hidden cursor-default transition-all duration-300 hover:shadow-[0_12px_32px_rgba(0,0,0,0.08)] dark:hover:shadow-[0_12px_32px_rgba(0,0,0,0.3)] hover:-translate-y-1">
+          <div className="absolute top-0 right-0 w-32 h-32 bg-blue-500/10 rounded-full blur-3xl -mr-10 -mt-10 transition-transform duration-500 group-hover:scale-150"></div>
+          <div className="flex items-start justify-between relative z-10 mb-4">
+            <div className="flex flex-col">
+              <span className="font-inter font-semibold text-[13px] tracking-wider uppercase text-slate-500 dark:text-slate-400 mb-1">Total Accounts</span>
+              <div className="font-inter font-extrabold text-[32px] text-slate-900 dark:text-white tracking-tight leading-none">{loading ? '—' : stats.total}</div>
+            </div>
+            <div className="w-12 h-12 rounded-[14px] bg-gradient-to-br from-blue-50 to-blue-100/50 dark:from-blue-500/20 dark:to-blue-500/10 text-blue-600 dark:text-blue-400 flex items-center justify-center shrink-0 border border-blue-200/60 dark:border-blue-500/30 transition-transform duration-300 group-hover:scale-110 shadow-sm">
+              <Users size={24} strokeWidth={2.2} />
             </div>
           </div>
-          <p className="font-inter font-extrabold text-[28px] tracking-tight text-slate-900 dark:text-white m-0 mt-2 relative z-10">{loading ? '—' : stats.total}</p>
-          <div className="absolute -right-6 -bottom-6 w-32 h-32 bg-blue-500/10 rounded-full blur-3xl pointer-events-none opacity-0 group-hover:opacity-100 transition-opacity duration-300"></div>
+          <div className="flex items-center gap-2 relative z-10 mt-1">
+            <div className="flex items-center gap-1 bg-blue-50 dark:bg-blue-500/10 text-blue-600 dark:text-blue-400 px-2 py-0.5 rounded-md text-xs font-bold border border-blue-100 dark:border-blue-500/20">
+              <Users size={14} strokeWidth={2.5} />
+              <span>All</span>
+            </div>
+            <span className="font-inter text-xs font-medium text-slate-500 dark:text-slate-400">admin accounts</span>
+          </div>
         </div>
 
-        <div className="group relative bg-white dark:bg-[#1E2130] border border-slate-200 dark:border-white/10 rounded-2xl p-5 flex flex-col gap-1 overflow-hidden cursor-default transition-all duration-300 hover:shadow-lg hover:-translate-y-1">
-          <div className="flex items-center justify-between relative z-10">
-            <span className="font-inter font-bold text-[11px] tracking-widest text-slate-500 dark:text-slate-400 uppercase">Main Admins</span>
-            <div className="w-10 h-10 rounded-xl flex items-center justify-center shrink-0 transition-transform duration-300 group-hover:scale-110 shadow-sm bg-gradient-to-br from-rose-50 to-rose-100/50 dark:from-rose-500/20 dark:to-rose-500/10 text-rose-600 dark:text-rose-400 border border-rose-200/60 dark:border-rose-500/30">
-              <Shield size={20} strokeWidth={2.2} />
+        {/* Main Admins */}
+        <div className="group relative bg-white dark:bg-[#1E2130] border border-slate-200 dark:border-white/10 rounded-2xl p-6 shadow-[0_2px_12px_-4px_rgba(0,0,0,0.05)] overflow-hidden cursor-default transition-all duration-300 hover:shadow-[0_12px_32px_rgba(0,0,0,0.08)] dark:hover:shadow-[0_12px_32px_rgba(0,0,0,0.3)] hover:-translate-y-1">
+          <div className="absolute top-0 right-0 w-32 h-32 bg-rose-500/10 rounded-full blur-3xl -mr-10 -mt-10 transition-transform duration-500 group-hover:scale-150"></div>
+          <div className="flex items-start justify-between relative z-10 mb-4">
+            <div className="flex flex-col">
+              <span className="font-inter font-semibold text-[13px] tracking-wider uppercase text-slate-500 dark:text-slate-400 mb-1">Main Admins</span>
+              <div className="font-inter font-extrabold text-[32px] text-slate-900 dark:text-white tracking-tight leading-none">{loading ? '—' : stats.admins}</div>
+            </div>
+            <div className="w-12 h-12 rounded-[14px] bg-gradient-to-br from-rose-50 to-rose-100/50 dark:from-rose-500/20 dark:to-rose-500/10 text-rose-600 dark:text-rose-400 flex items-center justify-center shrink-0 border border-rose-200/60 dark:border-rose-500/30 transition-transform duration-300 group-hover:scale-110 shadow-sm">
+              <Shield size={24} strokeWidth={2.2} />
             </div>
           </div>
-          <p className="font-inter font-extrabold text-[28px] tracking-tight text-slate-900 dark:text-white m-0 mt-2 relative z-10">{loading ? '—' : stats.admins}</p>
-          <div className="absolute -right-6 -bottom-6 w-32 h-32 bg-rose-500/10 rounded-full blur-3xl pointer-events-none opacity-0 group-hover:opacity-100 transition-opacity duration-300"></div>
+          <div className="flex items-center gap-2 relative z-10 mt-1">
+            <div className="flex items-center gap-1 bg-rose-50 dark:bg-rose-500/10 text-rose-600 dark:text-rose-400 px-2 py-0.5 rounded-md text-xs font-bold border border-rose-100 dark:border-rose-500/20">
+              <Shield size={14} strokeWidth={2.5} />
+              <span>Admin</span>
+            </div>
+            <span className="font-inter text-xs font-medium text-slate-500 dark:text-slate-400">full access</span>
+          </div>
         </div>
 
-        <div className="group relative bg-white dark:bg-[#1E2130] border border-slate-200 dark:border-white/10 rounded-2xl p-5 flex flex-col gap-1 overflow-hidden cursor-default transition-all duration-300 hover:shadow-lg hover:-translate-y-1">
-          <div className="flex items-center justify-between relative z-10">
-            <span className="font-inter font-bold text-[11px] tracking-widest text-slate-500 dark:text-slate-400 uppercase">Loan Officers</span>
-            <div className="w-10 h-10 rounded-xl flex items-center justify-center shrink-0 transition-transform duration-300 group-hover:scale-110 shadow-sm bg-gradient-to-br from-amber-50 to-amber-100/50 dark:from-amber-500/20 dark:to-amber-500/10 text-amber-600 dark:text-amber-400 border border-amber-200/60 dark:border-amber-500/30">
-              <KeyRound size={20} strokeWidth={2.2} />
+        {/* Loan Officers */}
+        <div className="group relative bg-white dark:bg-[#1E2130] border border-slate-200 dark:border-white/10 rounded-2xl p-6 shadow-[0_2px_12px_-4px_rgba(0,0,0,0.05)] overflow-hidden cursor-default transition-all duration-300 hover:shadow-[0_12px_32px_rgba(0,0,0,0.08)] dark:hover:shadow-[0_12px_32px_rgba(0,0,0,0.3)] hover:-translate-y-1">
+          <div className="absolute top-0 right-0 w-32 h-32 bg-amber-500/10 rounded-full blur-3xl -mr-10 -mt-10 transition-transform duration-500 group-hover:scale-150"></div>
+          <div className="flex items-start justify-between relative z-10 mb-4">
+            <div className="flex flex-col">
+              <span className="font-inter font-semibold text-[13px] tracking-wider uppercase text-slate-500 dark:text-slate-400 mb-1">Loan Officers</span>
+              <div className="font-inter font-extrabold text-[32px] text-slate-900 dark:text-white tracking-tight leading-none">{loading ? '—' : stats.loanAdmins}</div>
+            </div>
+            <div className="w-12 h-12 rounded-[14px] bg-gradient-to-br from-amber-50 to-amber-100/50 dark:from-amber-500/20 dark:to-amber-500/10 text-amber-600 dark:text-amber-400 flex items-center justify-center shrink-0 border border-amber-200/60 dark:border-amber-500/30 transition-transform duration-300 group-hover:scale-110 shadow-sm">
+              <KeyRound size={24} strokeWidth={2.2} />
             </div>
           </div>
-          <p className="font-inter font-extrabold text-[28px] tracking-tight text-slate-900 dark:text-white m-0 mt-2 relative z-10">{loading ? '—' : stats.loanAdmins}</p>
-          <div className="absolute -right-6 -bottom-6 w-32 h-32 bg-amber-500/10 rounded-full blur-3xl pointer-events-none opacity-0 group-hover:opacity-100 transition-opacity duration-300"></div>
+          <div className="flex items-center gap-2 relative z-10 mt-1">
+            <div className="flex items-center gap-1 bg-amber-50 dark:bg-amber-500/10 text-amber-600 dark:text-amber-400 px-2 py-0.5 rounded-md text-xs font-bold border border-amber-100 dark:border-amber-500/20">
+              <KeyRound size={14} strokeWidth={2.5} />
+              <span>Loan</span>
+            </div>
+            <span className="font-inter text-xs font-medium text-slate-500 dark:text-slate-400">loan management</span>
+          </div>
         </div>
 
-        <div className="group relative bg-white dark:bg-[#1E2130] border border-slate-200 dark:border-white/10 rounded-2xl p-5 flex flex-col gap-1 overflow-hidden cursor-default transition-all duration-300 hover:shadow-lg hover:-translate-y-1">
-          <div className="flex items-center justify-between relative z-10">
-            <span className="font-inter font-bold text-[11px] tracking-widest text-slate-500 dark:text-slate-400 uppercase">Secretaries</span>
-            <div className="w-10 h-10 rounded-xl flex items-center justify-center shrink-0 transition-transform duration-300 group-hover:scale-110 shadow-sm bg-gradient-to-br from-emerald-50 to-emerald-100/50 dark:from-emerald-500/20 dark:to-emerald-500/10 text-emerald-600 dark:text-emerald-400 border border-emerald-200/60 dark:border-emerald-500/30">
-              <UserCog size={20} strokeWidth={2.2} />
+        {/* Secretaries */}
+        <div className="group relative bg-white dark:bg-[#1E2130] border border-slate-200 dark:border-white/10 rounded-2xl p-6 shadow-[0_2px_12px_-4px_rgba(0,0,0,0.05)] overflow-hidden cursor-default transition-all duration-300 hover:shadow-[0_12px_32px_rgba(0,0,0,0.08)] dark:hover:shadow-[0_12px_32px_rgba(0,0,0,0.3)] hover:-translate-y-1">
+          <div className="absolute top-0 right-0 w-32 h-32 bg-emerald-500/10 rounded-full blur-3xl -mr-10 -mt-10 transition-transform duration-500 group-hover:scale-150"></div>
+          <div className="flex items-start justify-between relative z-10 mb-4">
+            <div className="flex flex-col">
+              <span className="font-inter font-semibold text-[13px] tracking-wider uppercase text-slate-500 dark:text-slate-400 mb-1">Secretaries</span>
+              <div className="font-inter font-extrabold text-[32px] text-slate-900 dark:text-white tracking-tight leading-none">{loading ? '—' : stats.secretaryAdmins}</div>
+            </div>
+            <div className="w-12 h-12 rounded-[14px] bg-gradient-to-br from-emerald-50 to-emerald-100/50 dark:from-emerald-500/20 dark:to-emerald-500/10 text-emerald-600 dark:text-emerald-400 flex items-center justify-center shrink-0 border border-emerald-200/60 dark:border-emerald-500/30 transition-transform duration-300 group-hover:scale-110 shadow-sm">
+              <UserCog size={24} strokeWidth={2.2} />
             </div>
           </div>
-          <p className="font-inter font-extrabold text-[28px] tracking-tight text-slate-900 dark:text-white m-0 mt-2 relative z-10">{loading ? '—' : stats.secretaryAdmins}</p>
-          <div className="absolute -right-6 -bottom-6 w-32 h-32 bg-emerald-500/10 rounded-full blur-3xl pointer-events-none opacity-0 group-hover:opacity-100 transition-opacity duration-300"></div>
-        </div>
-      </div>
-
-      {/* Search */}
-      <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-4 p-4 bg-white dark:bg-[#1E2130] border border-slate-200 dark:border-white/10 rounded-xl shadow-sm shrink-0">
-        <div className="relative flex-1 max-w-[400px]">
-          <Search size={18} className="absolute left-3 top-1/2 -translate-y-1/2 text-slate-400 pointer-events-none" />
-          <input
-            type="text"
-            placeholder="Search by email..."
-            value={searchQuery}
-            onChange={e => setSearchQuery(e.target.value)}
-            className="w-full h-10 pl-10 pr-4 bg-slate-50 dark:bg-[#161922] border border-slate-300 dark:border-white/10 rounded-lg text-sm font-inter text-slate-800 dark:text-white outline-none focus:border-blue-500 transition-all"
-          />
+          <div className="flex items-center gap-2 relative z-10 mt-1">
+            <div className="flex items-center gap-1 bg-emerald-50 dark:bg-emerald-500/10 text-emerald-600 dark:text-emerald-400 px-2 py-0.5 rounded-md text-xs font-bold border border-emerald-100 dark:border-emerald-500/20">
+              <UserCog size={14} strokeWidth={2.5} />
+              <span>Secretary</span>
+            </div>
+            <span className="font-inter text-xs font-medium text-slate-500 dark:text-slate-400">limited access</span>
+          </div>
         </div>
       </div>
 
       {/* Table */}
       <div className="w-full bg-white dark:bg-[#1E2130] border border-slate-200 dark:border-white/10 rounded-xl shadow-sm overflow-hidden">
-        <div className="overflow-x-auto">
+        <div className="overflow-x-auto" style={{ minHeight: '310px' }}>
         {loading ? (
           <div className="flex items-center justify-center gap-2 py-16 text-slate-500 dark:text-slate-400 font-inter text-sm"><Loader2 className="animate-spin" size={18} /> Loading accounts...</div>
         ) : (
-          <table className="w-full text-left border-collapse min-w-[700px]">
+          <table className="w-full text-left border-collapse min-w-[700px]" style={{ tableLayout: 'fixed' }}>
+            <colgroup>
+              <col style={{ width: '40%' }} />
+              <col style={{ width: '20%' }} />
+              <col style={{ width: '20%' }} />
+              <col style={{ width: '20%' }} />
+            </colgroup>
             <thead>
               <tr>
                 <th className="px-5 py-3 bg-slate-50 dark:bg-black/20 border-b border-slate-200 dark:border-white/10 font-semibold text-[11px] tracking-wider uppercase text-slate-500 dark:text-slate-400 whitespace-nowrap sticky top-0 z-10">Account</th>
@@ -318,7 +410,7 @@ export default function AdminUserManagement() {
               {adminList.length === 0 ? (
                 <tr><td colSpan={4} className="px-5 py-12 text-center text-slate-500 dark:text-slate-400 font-inter text-sm">{searchQuery ? 'No results found.' : 'No accounts yet.'}</td></tr>
               ) : (
-                adminList.map(a => (
+                adminList.slice((page - 1) * PER_PAGE, page * PER_PAGE).map(a => (
                   <tr key={a._id} className="hover:bg-slate-50 dark:hover:bg-white/[0.02] transition-colors">
                     <td className="px-5 py-3 border-b border-slate-100 dark:border-white/5">
                       <div className="flex items-center gap-3">
@@ -364,6 +456,18 @@ export default function AdminUserManagement() {
           </table>
         )}
         </div>
+        {adminList.length > PER_PAGE && (
+          <div className="border-t border-slate-200 dark:border-white/10 bg-white dark:bg-[#1E2130]">
+            <Pagination
+              currentPage={page}
+              totalPages={Math.ceil(adminList.length / PER_PAGE)}
+              onPageChange={setPage}
+              totalItems={adminList.length}
+              itemsPerPage={PER_PAGE}
+              itemName="accounts"
+            />
+          </div>
+        )}
       </div>
 
       {/* Info */}

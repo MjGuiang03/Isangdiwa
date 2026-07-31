@@ -272,6 +272,47 @@ export default function Profile() {
     ? new Date(user.created_at || user.createdAt).toLocaleDateString('en-US', { month: 'long', year: 'numeric' })
     : '';
 
+  if (loading) {
+    return (
+      <div className="space-y-6 w-full pb-8 animate-pulse font-inter">
+        {/* Header Skeleton */}
+        <div className="pb-2.5 border-b border-slate-200/80 dark:border-white/10 space-y-2">
+          <div className="h-3 w-32 bg-slate-200 dark:bg-slate-700/80 rounded-md" />
+          <div className="h-7 w-40 bg-slate-200 dark:bg-slate-700/80 rounded-lg" />
+          <div className="h-3.5 w-72 bg-slate-200 dark:bg-slate-700/80 rounded-md" />
+        </div>
+
+        {/* Identity Banner Skeleton */}
+        <div className="h-36 bg-gradient-to-r from-slate-200 to-slate-300 dark:from-slate-800 dark:to-slate-700 rounded-3xl p-6 flex items-center gap-5">
+          <div className="w-20 h-20 rounded-full bg-slate-300 dark:bg-slate-600 shrink-0" />
+          <div className="space-y-2 flex-1">
+            <div className="h-7 w-48 bg-slate-300 dark:bg-slate-600 rounded-lg" />
+            <div className="h-4 w-64 bg-slate-300 dark:bg-slate-600 rounded-md" />
+          </div>
+        </div>
+
+        {/* Account Details Skeleton */}
+        <div className="p-6 bg-white dark:bg-[#1E2130] border border-slate-200/80 dark:border-white/10 rounded-2xl space-y-4">
+          <div className="h-4 w-48 bg-slate-200 dark:bg-slate-700/80 rounded" />
+          <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-3">
+            {[1, 2, 3, 4].map(i => <div key={i} className="h-14 bg-slate-100 dark:bg-slate-800/60 rounded-xl" />)}
+          </div>
+        </div>
+
+        {/* 4 Stat Cards Skeleton */}
+        <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-4">
+          {[1, 2, 3, 4].map(i => <div key={i} className="h-20 bg-white dark:bg-[#1E2130] border border-slate-200/80 dark:border-white/10 rounded-2xl p-4" />)}
+        </div>
+
+        {/* Analytics Grid Skeleton */}
+        <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
+          <div className="h-64 bg-white dark:bg-[#1E2130] border border-slate-200/80 dark:border-white/10 rounded-2xl p-6" />
+          <div className="h-64 bg-white dark:bg-[#1E2130] border border-slate-200/80 dark:border-white/10 rounded-2xl p-6" />
+        </div>
+      </div>
+    );
+  }
+
   return (
     <div className="space-y-6 w-full pb-8 font-inter">
       {showEmailOtp && (

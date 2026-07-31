@@ -1,11 +1,12 @@
 import React from 'react';
 import { X, Copy, Check } from 'lucide-react';
-
+import useSwipeToClose, { DragHandle } from '../hooks/useSwipeToClose';
 
 // You might need to adjust the path to your gcash QR code if you have one
 import gcashQr from '../../assets/gcash_qr.png';
 
 export default function DonationInfoModal({ isOpen, onClose }) {
+  const { modalStyle, touchHandlers } = useSwipeToClose(onClose);
   const [copiedField, setCopiedField] = React.useState('');
 
   if (!isOpen) return null;
@@ -17,9 +18,10 @@ export default function DonationInfoModal({ isOpen, onClose }) {
   };
 
   return (
-    <div className="fixed inset-0 z-[9999] bg-black/60 backdrop-blur-sm flex items-center justify-center p-4 overflow-y-auto" onClick={onClose}>
-      <div className="relative w-full max-w-xl bg-white dark:bg-[#1E2130] rounded-2xl p-6 sm:p-8 shadow-2xl border border-slate-200 dark:border-white/10 max-h-[90vh] overflow-y-auto my-auto text-left" onClick={(e) => e.stopPropagation()}>
-        <button className="absolute top-4 right-4 text-slate-400 hover:text-slate-600 dark:hover:text-white p-2 rounded-full transition-colors" onClick={onClose}>
+    <div className="dim-overlay" onClick={onClose}>
+      <div className="dim-modal" style={modalStyle} {...touchHandlers} onClick={(e) => e.stopPropagation()}>
+        <DragHandle />
+        <button className="absolute top-4 right-4 text-slate-400 hover:text-slate-600 dark:hover:text-white p-2 rounded-full transition-colors z-10" onClick={onClose}>
           <X size={20} />
         </button>
 

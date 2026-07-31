@@ -365,12 +365,16 @@ router.get('/saved-accounts', authenticateUser, async (req, res) => {
     const accounts = [];
     const seen = new Set();
 
-    // 1. From user's manually saved accounts
     const user = await users.findOne({ email });
+    const deletedKeys = new Set(
+      (user?.deletedSavedAccounts || []).map(a => `${a.method}-${a.accountNumber}`)
+    );
+
+    // 1. From user's manually saved accounts
     if (user?.savedAccounts && Array.isArray(user.savedAccounts)) {
       for (const sa of user.savedAccounts) {
         const key = `${sa.method}-${sa.accountNumber}`;
-        if (!seen.has(key)) {
+        if (!seen.has(key) && !deletedKeys.has(key)) {
           seen.add(key);
           accounts.push({
             method: sa.method,
@@ -391,15 +395,20 @@ router.get('/saved-accounts', authenticateUser, async (req, res) => {
       .toArray();
 
     for (const w of withdrawals) {
-      const key = `${w.sendMethod || 'e-wallet'}-${w.accountNumber}`;
-      if (!seen.has(key)) {
+      const method = w.sendMethod || 'e-wallet';
+      const key = `${method}-${w.accountNumber}`;
+      if (!seen.has(key) && !deletedKeys.has(key)) {
         seen.add(key);
+        let rawLabel = `${w.accountName || ''} - ${w.accountNumber}`.trim();
+        if (method === 'e-wallet' && !rawLabel.startsWith('GCash') && !rawLabel.startsWith('Maya')) {
+          rawLabel = `GCash - ${rawLabel}`;
+        }
         accounts.push({
-          method: w.sendMethod || 'e-wallet',
+          method,
           accountNumber: w.accountNumber,
           accountName: w.accountName || '',
           source: 'Savings Withdrawal',
-          label: `${w.accountName || ''} - ${w.accountNumber}`.trim(),
+          label: rawLabel,
         });
       }
     }
@@ -407,14 +416,14 @@ router.get('/saved-accounts', authenticateUser, async (req, res) => {
     // 3. From user profile (phone as E-Wallet)
     if (user?.phone) {
       const key = `e-wallet-${user.phone}`;
-      if (!seen.has(key)) {
+      if (!seen.has(key) && !deletedKeys.has(key)) {
         seen.add(key);
         accounts.push({
           method: 'e-wallet',
           accountNumber: user.phone,
           accountName: user.fullName || '',
           source: 'Profile',
-          label: `${user.fullName || ''} - ${user.phone}`.trim(),
+          label: `GCash - ${user.fullName || ''} - ${user.phone}`.trim(),
         });
       }
     }
@@ -453,12 +462,44 @@ router.post('/saved-accounts', authenticateUser, async (req, res) => {
       addedAt: new Date(),
     };
 
-    await users.updateOne({ email }, { $push: { savedAccounts: newAccount } });
+    // Make sure it's removed from deleted list if re-added
+    await users.updateOne(
+      { email },
+      {
+        $push: { savedAccounts: newAccount },
+        $pull: { deletedSavedAccounts: { method, accountNumber } }
+      }
+    );
 
     res.json({ success: true, message: 'Account saved successfully' });
   } catch (err) {
     console.error('Failed to save account:', err);
     res.status(500).json({ success: false, message: 'Failed to save account' });
+  }
+});
+
+/* ================== DELETE A SAVED PAYMENT ACCOUNT ================== */
+router.delete('/saved-accounts', authenticateUser, async (req, res) => {
+  try {
+    const email = req.user.email;
+    const { method, accountNumber } = req.body;
+
+    if (!method || !accountNumber) {
+      return res.status(400).json({ success: false, message: 'Method and account number are required' });
+    }
+
+    await users.updateOne(
+      { email },
+      {
+        $pull: { savedAccounts: { method, accountNumber } },
+        $addToSet: { deletedSavedAccounts: { method, accountNumber } }
+      }
+    );
+
+    res.json({ success: true, message: 'Saved account deleted successfully' });
+  } catch (err) {
+    console.error('Failed to delete account:', err);
+    res.status(500).json({ success: false, message: 'Failed to delete account' });
   }
 });
 

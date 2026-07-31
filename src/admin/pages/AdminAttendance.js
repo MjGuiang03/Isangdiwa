@@ -438,6 +438,56 @@ export default function AdminAttendance() {
     }
   };
 
+  if (!attendanceData && attendanceLoading) {
+    return (
+      <div className="flex flex-col h-full bg-slate-100 dark:bg-[#161922] p-6 max-w-[1400px] mx-auto w-full gap-6 animate-pulse">
+        {/* Header Skeleton */}
+        <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-4 shrink-0">
+          <div className="flex flex-col gap-2">
+            <div className="h-8 w-60 bg-slate-200 dark:bg-slate-700/80 rounded-lg"></div>
+            <div className="h-4 w-80 bg-slate-200 dark:bg-slate-700/80 rounded-md"></div>
+          </div>
+          <div className="h-10 w-44 bg-slate-200 dark:bg-slate-700/80 rounded-xl"></div>
+        </div>
+
+        {/* 4 Stat Cards Skeleton */}
+        <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-5">
+          {[1, 2, 3, 4].map((i) => (
+            <div key={i} className="bg-white dark:bg-[#1E2130] border border-slate-200 dark:border-white/10 rounded-2xl p-6 shadow-sm flex flex-col justify-between h-[138px]">
+              <div className="flex items-start justify-between">
+                <div className="flex flex-col gap-2">
+                  <div className="h-3.5 w-24 bg-slate-200 dark:bg-slate-700/80 rounded"></div>
+                  <div className="h-8 w-20 bg-slate-200 dark:bg-slate-700/80 rounded-lg"></div>
+                </div>
+                <div className="w-12 h-12 rounded-[14px] bg-slate-200 dark:bg-slate-700/80"></div>
+              </div>
+              <div className="h-4 w-28 bg-slate-200 dark:bg-slate-700/80 rounded mt-2"></div>
+            </div>
+          ))}
+        </div>
+
+        {/* Sessions Table Skeleton */}
+        <div className="flex-1 flex flex-col bg-white dark:bg-[#1E2130] border border-slate-200 dark:border-white/10 rounded-xl shadow-sm overflow-hidden min-h-[400px]">
+          <div className="flex items-center gap-3 p-4 border-b border-slate-200 dark:border-white/10">
+            <div className="h-9 w-32 bg-slate-200 dark:bg-slate-700/80 rounded-lg"></div>
+            <div className="h-9 w-32 bg-slate-200 dark:bg-slate-700/80 rounded-lg"></div>
+          </div>
+          <div className="divide-y divide-slate-100 dark:divide-white/5 p-4">
+            {[1, 2, 3, 4, 5].map((i) => (
+              <div key={i} className="flex items-center justify-between py-3.5 gap-4">
+                <div className="h-4 w-32 bg-slate-200 dark:bg-slate-700/80 rounded"></div>
+                <div className="h-4 w-28 bg-slate-200 dark:bg-slate-700/80 rounded"></div>
+                <div className="h-4 w-24 bg-slate-200 dark:bg-slate-700/80 rounded"></div>
+                <div className="h-4 w-20 bg-slate-200 dark:bg-slate-700/80 rounded"></div>
+                <div className="h-6 w-20 bg-slate-200 dark:bg-slate-700/80 rounded-full"></div>
+              </div>
+            ))}
+          </div>
+        </div>
+      </div>
+    );
+  }
+
   return (
     <div className="flex flex-col h-full bg-slate-100 dark:bg-[#161922] p-6 max-w-[1400px] mx-auto w-full gap-6">
       
@@ -458,35 +508,88 @@ export default function AdminAttendance() {
       </div>
 
       {/* Stats Row */}
-      <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-4">
-        <div className="bg-white dark:bg-[#1E2130] border border-slate-200 dark:border-white/10 rounded-xl p-5 shadow-sm flex flex-col gap-3">
-          <div className="flex items-center justify-between">
-            <span className="font-inter font-semibold text-[13px] tracking-wide text-slate-600 dark:text-slate-400">Total Attendance Today</span>
-            <div className="w-10 h-10 rounded-xl bg-blue-500 flex items-center justify-center shrink-0 shadow-sm"><UserCheck size={18} color="white" /></div>
+      <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-5">
+        {/* Total Attendance Today */}
+        <div className="group relative bg-white dark:bg-[#1E2130] border border-slate-200 dark:border-white/10 rounded-2xl p-6 shadow-[0_2px_12px_-4px_rgba(0,0,0,0.05)] overflow-hidden transition-all duration-300 hover:shadow-[0_12px_32px_rgba(0,0,0,0.08)] dark:hover:shadow-[0_12px_32px_rgba(0,0,0,0.3)] hover:-translate-y-1">
+          <div className="absolute top-0 right-0 w-32 h-32 bg-blue-500/10 rounded-full blur-3xl -mr-10 -mt-10 transition-transform duration-500 group-hover:scale-150"></div>
+          <div className="flex items-start justify-between relative z-10 mb-4">
+            <div className="flex flex-col">
+              <span className="font-inter font-semibold text-[13px] tracking-wider uppercase text-slate-500 dark:text-slate-400 mb-1">Total Today</span>
+              <div className="font-inter font-extrabold text-[32px] text-slate-900 dark:text-white tracking-tight leading-none">{stats.totalToday.toLocaleString()}</div>
+            </div>
+            <div className="w-12 h-12 rounded-[14px] bg-gradient-to-br from-blue-50 to-blue-100/50 dark:from-blue-500/20 dark:to-blue-500/10 text-blue-600 dark:text-blue-400 flex items-center justify-center shrink-0 border border-blue-200/60 dark:border-blue-500/30 transition-transform duration-300 group-hover:scale-110 shadow-sm">
+              <UserCheck size={24} strokeWidth={2.2} />
+            </div>
           </div>
-          <span className="font-inter font-bold text-3xl text-slate-800 dark:text-white">{stats.totalToday.toLocaleString()}</span>
+          <div className="flex items-center gap-2 relative z-10 mt-1">
+            <div className="flex items-center gap-1 bg-blue-50 dark:bg-blue-500/10 text-blue-600 dark:text-blue-400 px-2 py-0.5 rounded-md text-xs font-bold border border-blue-100 dark:border-blue-500/20">
+              <UserCheck size={14} strokeWidth={2.5} />
+              <span>Live</span>
+            </div>
+            <span className="font-inter text-xs font-medium text-slate-500 dark:text-slate-400">attendees recorded</span>
+          </div>
         </div>
-        <div className="bg-white dark:bg-[#1E2130] border border-slate-200 dark:border-white/10 rounded-xl p-5 shadow-sm flex flex-col gap-3">
-          <div className="flex items-center justify-between">
-            <span className="font-inter font-semibold text-[13px] tracking-wide text-slate-600 dark:text-slate-400">Services This Week</span>
-            <div className="w-10 h-10 rounded-xl bg-emerald-500 flex items-center justify-center shrink-0 shadow-sm"><CalendarDays size={18} color="white" /></div>
+
+        {/* Services This Week */}
+        <div className="group relative bg-white dark:bg-[#1E2130] border border-slate-200 dark:border-white/10 rounded-2xl p-6 shadow-[0_2px_12px_-4px_rgba(0,0,0,0.05)] overflow-hidden transition-all duration-300 hover:shadow-[0_12px_32px_rgba(0,0,0,0.08)] dark:hover:shadow-[0_12px_32px_rgba(0,0,0,0.3)] hover:-translate-y-1">
+          <div className="absolute top-0 right-0 w-32 h-32 bg-emerald-500/10 rounded-full blur-3xl -mr-10 -mt-10 transition-transform duration-500 group-hover:scale-150"></div>
+          <div className="flex items-start justify-between relative z-10 mb-4">
+            <div className="flex flex-col">
+              <span className="font-inter font-semibold text-[13px] tracking-wider uppercase text-slate-500 dark:text-slate-400 mb-1">Services This Week</span>
+              <div className="font-inter font-extrabold text-[32px] text-slate-900 dark:text-white tracking-tight leading-none">{stats.servicesThisWeek}</div>
+            </div>
+            <div className="w-12 h-12 rounded-[14px] bg-gradient-to-br from-emerald-50 to-emerald-100/50 dark:from-emerald-500/20 dark:to-emerald-500/10 text-emerald-600 dark:text-emerald-400 flex items-center justify-center shrink-0 border border-emerald-200/60 dark:border-emerald-500/30 transition-transform duration-300 group-hover:scale-110 shadow-sm">
+              <CalendarDays size={24} strokeWidth={2.2} />
+            </div>
           </div>
-          <span className="font-inter font-bold text-3xl text-slate-800 dark:text-white">{stats.servicesThisWeek}</span>
+          <div className="flex items-center gap-2 relative z-10 mt-1">
+            <div className="flex items-center gap-1 bg-emerald-50 dark:bg-emerald-500/10 text-emerald-600 dark:text-emerald-400 px-2 py-0.5 rounded-md text-xs font-bold border border-emerald-100 dark:border-emerald-500/20">
+              <CalendarDays size={14} strokeWidth={2.5} />
+              <span>Active</span>
+            </div>
+            <span className="font-inter text-xs font-medium text-slate-500 dark:text-slate-400">sessions held</span>
+          </div>
         </div>
-        <div className="bg-white dark:bg-[#1E2130] border border-slate-200 dark:border-white/10 rounded-xl p-5 shadow-sm flex flex-col gap-3">
-          <div className="flex items-center justify-between">
-            <span className="font-inter font-semibold text-[13px] tracking-wide text-slate-600 dark:text-slate-400">Average Attendance</span>
-            <div className="w-10 h-10 rounded-xl bg-indigo-500 flex items-center justify-center shrink-0 shadow-sm"><MapPin size={18} color="white" /></div>
+
+        {/* Average Attendance */}
+        <div className="group relative bg-white dark:bg-[#1E2130] border border-slate-200 dark:border-white/10 rounded-2xl p-6 shadow-[0_2px_12px_-4px_rgba(0,0,0,0.05)] overflow-hidden transition-all duration-300 hover:shadow-[0_12px_32px_rgba(0,0,0,0.08)] dark:hover:shadow-[0_12px_32px_rgba(0,0,0,0.3)] hover:-translate-y-1">
+          <div className="absolute top-0 right-0 w-32 h-32 bg-indigo-500/10 rounded-full blur-3xl -mr-10 -mt-10 transition-transform duration-500 group-hover:scale-150"></div>
+          <div className="flex items-start justify-between relative z-10 mb-4">
+            <div className="flex flex-col">
+              <span className="font-inter font-semibold text-[13px] tracking-wider uppercase text-slate-500 dark:text-slate-400 mb-1">Average Attendance</span>
+              <div className="font-inter font-extrabold text-[32px] text-slate-900 dark:text-white tracking-tight leading-none">{stats.avgAttendance.toLocaleString()}</div>
+            </div>
+            <div className="w-12 h-12 rounded-[14px] bg-gradient-to-br from-indigo-50 to-indigo-100/50 dark:from-indigo-500/20 dark:to-indigo-500/10 text-indigo-600 dark:text-indigo-400 flex items-center justify-center shrink-0 border border-indigo-200/60 dark:border-indigo-500/30 transition-transform duration-300 group-hover:scale-110 shadow-sm">
+              <MapPin size={24} strokeWidth={2.2} />
+            </div>
           </div>
-          <span className="font-inter font-bold text-3xl text-slate-800 dark:text-white">{stats.avgAttendance.toLocaleString()}</span>
-          <span className="font-inter text-xs text-slate-500 dark:text-slate-400">past 30 days</span>
+          <div className="flex items-center gap-2 relative z-10 mt-1">
+            <div className="flex items-center gap-1 bg-slate-100 dark:bg-white/10 text-slate-700 dark:text-slate-300 px-2 py-0.5 rounded-md text-xs font-bold border border-slate-200 dark:border-white/10">
+              <span>30d</span>
+            </div>
+            <span className="font-inter text-xs font-medium text-slate-500 dark:text-slate-400">past 30 days</span>
+          </div>
         </div>
-        <div className="bg-white dark:bg-[#1E2130] border border-slate-200 dark:border-white/10 rounded-xl p-5 shadow-sm flex flex-col gap-3">
-          <div className="flex items-center justify-between">
-            <span className="font-inter font-semibold text-[13px] tracking-wide text-slate-600 dark:text-slate-400">Late Arrivals Today</span>
-            <div className="w-10 h-10 rounded-xl bg-amber-500 flex items-center justify-center shrink-0 shadow-sm"><ShieldAlert size={18} color="white" /></div>
+
+        {/* Late Arrivals Today */}
+        <div className="group relative bg-white dark:bg-[#1E2130] border border-slate-200 dark:border-white/10 rounded-2xl p-6 shadow-[0_2px_12px_-4px_rgba(0,0,0,0.05)] overflow-hidden transition-all duration-300 hover:shadow-[0_12px_32px_rgba(0,0,0,0.08)] dark:hover:shadow-[0_12px_32px_rgba(0,0,0,0.3)] hover:-translate-y-1">
+          <div className="absolute top-0 right-0 w-32 h-32 bg-amber-500/10 rounded-full blur-3xl -mr-10 -mt-10 transition-transform duration-500 group-hover:scale-150"></div>
+          <div className="flex items-start justify-between relative z-10 mb-4">
+            <div className="flex flex-col">
+              <span className="font-inter font-semibold text-[13px] tracking-wider uppercase text-slate-500 dark:text-slate-400 mb-1">Late Arrivals</span>
+              <div className="font-inter font-extrabold text-[32px] text-rose-500 dark:text-rose-400 tracking-tight leading-none">{stats.lateToday.toLocaleString()}</div>
+            </div>
+            <div className="w-12 h-12 rounded-[14px] bg-gradient-to-br from-amber-50 to-amber-100/50 dark:from-amber-500/20 dark:to-amber-500/10 text-amber-600 dark:text-amber-400 flex items-center justify-center shrink-0 border border-amber-200/60 dark:border-amber-500/30 transition-transform duration-300 group-hover:scale-110 shadow-sm">
+              <ShieldAlert size={24} strokeWidth={2.2} />
+            </div>
           </div>
-          <span className="font-inter font-bold text-3xl text-rose-500 dark:text-rose-400">{stats.lateToday.toLocaleString()}</span>
+          <div className="flex items-center gap-2 relative z-10 mt-1">
+            <div className="flex items-center gap-1 bg-rose-50 dark:bg-rose-500/10 text-rose-600 dark:text-rose-400 px-2 py-0.5 rounded-md text-xs font-bold border border-rose-100 dark:border-rose-500/20">
+              <ShieldAlert size={14} strokeWidth={2.5} />
+              <span>Today</span>
+            </div>
+            <span className="font-inter text-xs font-medium text-slate-500 dark:text-slate-400">late arrivals</span>
+          </div>
         </div>
       </div>
       {/* Active Sessions / Session Logs Table */}

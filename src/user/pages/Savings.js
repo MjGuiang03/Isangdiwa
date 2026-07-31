@@ -4,6 +4,7 @@ import useSWR from 'swr';
 import SavingsModals from '../components/SavingsModal';
 import API from '../../utils/api';
 import { Circle, PiggyBank, ArrowDownLeft, ArrowUpRight, TrendingUp, Target, Banknote, X, Search } from 'lucide-react';
+import useSwipeToClose, { DragHandle } from '../hooks/useSwipeToClose';
 
 const fmt = (n) =>
     n != null ? `₱${Number(n).toLocaleString('en-PH', { minimumFractionDigits: 2 })}` : '₱0.00';
@@ -278,6 +279,72 @@ export default function Savings() {
         <>
             <div className="space-y-2.5 w-full pb-8">
 
+                {dataLoading && (
+                    <div className="space-y-4 w-full pb-8 animate-pulse font-inter">
+                        {/* Header Skeleton */}
+                        <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-3 pb-2.5 border-b border-slate-200/80 dark:border-white/10">
+                            <div className="space-y-2">
+                                <div className="h-3 w-28 bg-slate-200 dark:bg-slate-700/80 rounded-md" />
+                                <div className="h-7 w-44 bg-slate-200 dark:bg-slate-700/80 rounded-lg" />
+                                <div className="h-3.5 w-56 bg-slate-200 dark:bg-slate-700/80 rounded-md" />
+                            </div>
+                            <div className="flex items-center gap-2.5 shrink-0">
+                                <div className="h-10 w-28 bg-slate-200 dark:bg-slate-700/80 rounded-xl" />
+                                <div className="h-10 w-28 bg-slate-200 dark:bg-slate-700/80 rounded-xl" />
+                            </div>
+                        </div>
+
+                        {/* Loan Eligibility Card Skeleton */}
+                        <div className="bg-white dark:bg-[#1E2130] border border-slate-200/80 dark:border-white/10 rounded-2xl p-4 shadow-sm flex flex-col sm:flex-row sm:items-center justify-between gap-3">
+                            <div className="h-4 w-40 bg-slate-200 dark:bg-slate-700/80 rounded" />
+                            <div className="flex flex-wrap gap-2">
+                                <div className="h-6 w-36 bg-slate-200 dark:bg-slate-700/80 rounded-full" />
+                                <div className="h-6 w-36 bg-slate-200 dark:bg-slate-700/80 rounded-full" />
+                                <div className="h-6 w-36 bg-slate-200 dark:bg-slate-700/80 rounded-full" />
+                            </div>
+                        </div>
+
+                        {/* 4 Stat Cards Skeleton */}
+                        <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-4">
+                            {[1, 2, 3, 4].map((i) => (
+                                <div key={i} className="bg-white dark:bg-[#1E2130] border border-slate-200/80 dark:border-white/10 rounded-2xl p-4 shadow-sm flex flex-col gap-3">
+                                    <div className="flex justify-between items-center">
+                                        <div className="h-3.5 w-24 bg-slate-200 dark:bg-slate-700/80 rounded" />
+                                        <div className="w-8 h-8 rounded-lg bg-slate-200 dark:bg-slate-700/80 shrink-0" />
+                                    </div>
+                                    <div className="h-7 w-32 bg-slate-200 dark:bg-slate-700/80 rounded-md" />
+                                    <div className="h-3 w-28 bg-slate-200 dark:bg-slate-700/80 rounded" />
+                                </div>
+                            ))}
+                        </div>
+
+                        {/* 60/40 Grid Skeleton (Goals & Transactions) */}
+                        <div className="grid grid-cols-1 lg:grid-cols-5 gap-4">
+                            {/* Goals section (60%) */}
+                            <div className="lg:col-span-3 bg-white dark:bg-[#1E2130] border border-slate-200/80 dark:border-white/10 rounded-2xl p-5 shadow-sm space-y-4">
+                                <div className="flex justify-between items-center pb-3 border-b border-slate-100 dark:border-white/5">
+                                    <div className="h-4 w-32 bg-slate-200 dark:bg-slate-700/80 rounded" />
+                                    <div className="h-4 w-20 bg-slate-200 dark:bg-slate-700/80 rounded" />
+                                </div>
+                                {[1, 2, 3].map((j) => (
+                                    <div key={j} className="h-20 bg-slate-100 dark:bg-slate-800/60 rounded-xl" />
+                                ))}
+                            </div>
+
+                            {/* Transaction history (40%) */}
+                            <div className="lg:col-span-2 bg-white dark:bg-[#1E2130] border border-slate-200/80 dark:border-white/10 rounded-2xl p-5 shadow-sm space-y-4">
+                                <div className="flex justify-between items-center pb-3 border-b border-slate-100 dark:border-white/5">
+                                    <div className="h-4 w-36 bg-slate-200 dark:bg-slate-700/80 rounded" />
+                                    <div className="h-4 w-16 bg-slate-200 dark:bg-slate-700/80 rounded" />
+                                </div>
+                                {[1, 2, 3, 4].map((k) => (
+                                    <div key={k} className="h-14 bg-slate-100 dark:bg-slate-800/60 rounded-xl" />
+                                ))}
+                            </div>
+                        </div>
+                    </div>
+                )}
+
                 {!dataLoading && (
                     <>
                         {/* Savings Page Header */}
@@ -457,6 +524,7 @@ export default function Savings() {
                 modalData={modalData}
                 goals={goals}
                 onClose={closeModal}
+                onOpenDeposit={() => setModal('deposit')}
                 onEdit={(goal) => {
                     setModal('editGoal');
                     setModalData(goal);
@@ -494,6 +562,7 @@ export default function Savings() {
 }
 
 function AllTransactionsModal({ isOpen, onClose, onSelectTxn }) {
+    const { modalStyle, touchHandlers } = useSwipeToClose(onClose);
     const [transactions, setTransactions] = useState([]);
     const [loading, setLoading] = useState(true);
     const [filter, setFilter] = useState('all');
@@ -543,7 +612,8 @@ function AllTransactionsModal({ isOpen, onClose, onSelectTxn }) {
 
     return (
         <div className="fixed inset-0 bg-black/60 backdrop-blur-xs z-[1000] flex items-end sm:items-center justify-center p-0 sm:p-4 overflow-hidden sm:overflow-y-auto transition-all duration-300" onClick={onClose}>
-            <div className="bg-white dark:bg-[#1E2130] rounded-t-3xl sm:rounded-2xl w-full h-auto max-h-[92dvh] sm:max-h-[85vh] sm:max-w-2xl overflow-hidden border-t sm:border border-slate-200 dark:border-white/10 shadow-2xl flex flex-col font-inter mobile-slide-up-modal" onClick={e => e.stopPropagation()}>
+            <div className="bg-white dark:bg-[#1E2130] rounded-t-3xl sm:rounded-2xl w-full h-auto max-h-[92dvh] sm:max-h-[85vh] sm:max-w-2xl overflow-hidden border-t sm:border border-slate-200 dark:border-white/10 shadow-2xl flex flex-col font-inter mobile-slide-up-modal" style={modalStyle} {...touchHandlers} onClick={e => e.stopPropagation()}>
+                <DragHandle />
                 {/* Modal Header */}
                 <div className="p-4 sm:p-5 border-b border-slate-100 dark:border-white/10 flex items-center justify-between bg-slate-50/50 dark:bg-white/5 shrink-0">
                     <div>

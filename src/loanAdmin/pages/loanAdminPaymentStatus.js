@@ -3,9 +3,11 @@ import useSWR from 'swr';
 import { useLocation } from 'react-router-dom';
 import { toast } from 'sonner';
 import LoanAdminSidebar from './loanAdminSidebar';
+import PageHeader from '../components/PageHeader';
 
 
 import API from '../../utils/api';
+import Pagination from '../../components/Pagination';
 import { PiggyBank, Search, X, Loader2 } from 'lucide-react'; 
 import { PieChart, Pie, Cell, Tooltip as RechartsTooltip, ResponsiveContainer, Label } from 'recharts';
 
@@ -56,11 +58,17 @@ export default function LoanAdminPaymentStatus() {
   const [selectedSavings, setSelectedSavings] = useState(null);
   const [savingsPage, setSavingsPage] = useState(1);
   const SAVINGS_PER_PAGE = 10;
+  const [loansPage, setLoansPage] = useState(1);
+  const LOANS_PER_PAGE = 10;
+  const [pendingPage, setPendingPage] = useState(1);
+  const PENDING_PER_PAGE = 10;
   const [historyPage, setHistoryPage] = useState(1);
   const HISTORY_PER_PAGE = 10;
   useEffect(() => {
+    setLoansPage(1);
     setSavingsPage(1);
     setHistoryPage(1);
+    setPendingPage(1);
   }, [searchQuery, savingsTypeFilter]);
 
   // Manual Approval State
@@ -377,71 +385,103 @@ export default function LoanAdminPaymentStatus() {
 
 
 
+  if (!loansData && loadingLoans) {
+    return (
+      <div className="flex h-screen overflow-hidden bg-slate-100 dark:bg-[#161922]">
+        <LoanAdminSidebar />
+        <div className="flex-1 overflow-y-auto p-6 pb-16 w-full animate-pulse flex flex-col gap-6">
+          {/* Header Skeleton */}
+          <div className="flex flex-col gap-2">
+            <div className="h-8 w-56 bg-slate-200 dark:bg-slate-700/80 rounded-lg"></div>
+            <div className="h-4 w-96 bg-slate-200 dark:bg-slate-700/80 rounded-md"></div>
+          </div>
+
+          {/* Cards Skeleton */}
+          <div className="bg-white dark:bg-[#1E2130] border border-slate-200 dark:border-white/10 rounded-2xl shadow-sm overflow-hidden mb-6">
+            <div className="grid grid-cols-2 md:grid-cols-4 divide-y md:divide-y-0 md:divide-x divide-slate-200 dark:divide-white/10">
+              {[1, 2, 3, 4].map((i) => (
+                <div key={i} className="p-4 min-h-[90px] flex flex-col justify-between">
+                  <div className="h-3 w-20 bg-slate-200 dark:bg-slate-700/80 rounded"></div>
+                  <div className="h-6 w-16 bg-slate-200 dark:bg-slate-700/80 rounded mt-2"></div>
+                </div>
+              ))}
+            </div>
+          </div>
+
+          {/* Table Skeleton */}
+          <div className="w-full bg-white dark:bg-[#1E2130] border border-slate-200 dark:border-white/10 rounded-xl shadow-sm p-4 flex flex-col gap-4">
+            <div className="h-10 bg-slate-100 dark:bg-slate-800/50 rounded-lg"></div>
+            <div className="flex flex-col gap-3">
+              {[1, 2, 3, 4, 5].map((i) => (
+                <div key={i} className="h-14 bg-slate-100 dark:bg-slate-800/50 rounded-lg"></div>
+              ))}
+            </div>
+          </div>
+        </div>
+      </div>
+    );
+  }
+
   return (
     <div className="flex h-screen overflow-hidden bg-slate-100 dark:bg-[#161922]">
       <LoanAdminSidebar />
-      <div className="flex-1 overflow-y-auto p-6 flex flex-col gap-5">
-        <div className="flex items-center justify-between">
-          <h1 className="font-inter text-xl font-bold text-slate-800 dark:text-white m-0">
-            {isSavingsRoute ? 'Savings Overview' : 'Loan Payments'}
-          </h1>
-          <button 
-            onClick={() => { resetWalkin(); setShowWalkinModal(true); setWalkinType(isSavingsRoute ? 'savings' : 'loan'); }}
-            className="flex items-center gap-2 px-4 py-2.5 bg-blue-600 text-white text-sm font-semibold font-inter rounded-lg hover:bg-blue-700 transition-colors border-none cursor-pointer shadow-sm"
-          >
-            <PiggyBank size={16} />
-            Process Walk-in
-          </button>
-        </div>
+      <div className="flex-1 overflow-y-auto p-6 pb-16 w-full">
+        <PageHeader 
+          title={isSavingsRoute ? 'Savings Overview' : 'Loan Payments'}
+          subtitle={isSavingsRoute ? 'Monitor member savings accounts, deposits, and role distribution.' : 'Track active loan repayments, schedules, and payment statuses.'}
+          rightElement={
+            <button 
+              onClick={() => { resetWalkin(); setShowWalkinModal(true); setWalkinType(isSavingsRoute ? 'savings' : 'loan'); }}
+              className="flex items-center gap-2 px-4 py-2.5 bg-blue-600 text-white text-sm font-semibold font-inter rounded-lg hover:bg-blue-700 transition-colors border-none cursor-pointer shadow-sm"
+            >
+              <PiggyBank size={16} />
+              Process Walk-in
+            </button>
+          }
+        />
 
         {!isSavingsRoute && (
-          <div className="grid grid-cols-2 md:grid-cols-4 gap-4">
-            <div className="bg-white dark:bg-[#1E2130] border border-slate-200 dark:border-white/10 rounded-xl p-5 shadow-sm flex flex-col gap-2">
-              <div className="flex items-center justify-between mb-3 min-h-[24px]">
-                <p className="font-inter font-semibold text-[11px] tracking-wider uppercase text-slate-500 dark:text-slate-400 m-0">On Track</p>
+          <div className="bg-white dark:bg-[#1E2130] border border-slate-200/80 dark:border-white/10 rounded-2xl shadow-[0_2px_12px_-4px_rgba(0,0,0,0.05)] overflow-hidden mb-6">
+            <div className="grid grid-cols-2 md:grid-cols-4 divide-y md:divide-y-0 md:divide-x divide-slate-200/80 dark:divide-white/10">
+              <div className="group relative p-4 transition-all duration-200 hover:bg-slate-50/80 dark:hover:bg-white/[0.02] flex flex-col justify-between min-h-[90px]">
+                <span className="font-inter font-bold text-[10px] tracking-wider uppercase text-slate-500 dark:text-slate-400 mt-0.5">On Track</span>
+                <p className="font-inter font-extrabold text-2xl text-emerald-500 dark:text-emerald-400 m-0 mt-2">{counts.onTrack}</p>
               </div>
-              <p className="font-inter font-bold text-3xl text-emerald-500 m-0">{counts.onTrack}</p>
-            </div>
-            <div className="bg-white dark:bg-[#1E2130] border border-slate-200 dark:border-white/10 rounded-xl p-5 shadow-sm flex flex-col gap-2">
-              <div className="flex items-center justify-between mb-3 min-h-[24px]">
-                <p className="font-inter font-semibold text-[11px] tracking-wider uppercase text-slate-500 dark:text-slate-400 m-0">Overdue (1-30d)</p>
+              <div className="group relative p-4 transition-all duration-200 hover:bg-slate-50/80 dark:hover:bg-white/[0.02] flex flex-col justify-between min-h-[90px]">
+                <span className="font-inter font-bold text-[10px] tracking-wider uppercase text-slate-500 dark:text-slate-400 mt-0.5">Overdue (1-30d)</span>
+                <p className="font-inter font-extrabold text-2xl text-amber-500 dark:text-amber-400 m-0 mt-2">{counts.overdue}</p>
               </div>
-              <p className="font-inter font-bold text-3xl text-amber-500 m-0">{counts.overdue}</p>
-            </div>
-            <div className="bg-white dark:bg-[#1E2130] border border-slate-200 dark:border-white/10 rounded-xl p-5 shadow-sm flex flex-col gap-2">
-              <div className="flex items-center justify-between mb-3 min-h-[24px]">
-                <p className="font-inter font-semibold text-[11px] tracking-wider uppercase text-slate-500 dark:text-slate-400 m-0">High Risk (31-60d)</p>
+              <div className="group relative p-4 transition-all duration-200 hover:bg-slate-50/80 dark:hover:bg-white/[0.02] flex flex-col justify-between min-h-[90px]">
+                <span className="font-inter font-bold text-[10px] tracking-wider uppercase text-slate-500 dark:text-slate-400 mt-0.5">High Risk (31-60d)</span>
+                <p className="font-inter font-extrabold text-2xl text-orange-500 dark:text-orange-400 m-0 mt-2">{counts.highRisk}</p>
               </div>
-              <p className="font-inter font-bold text-3xl text-orange-500 m-0">{counts.highRisk}</p>
-            </div>
-            <div className="bg-white dark:bg-[#1E2130] border border-slate-200 dark:border-white/10 rounded-xl p-5 shadow-sm flex flex-col gap-2">
-              <div className="flex items-center justify-between mb-3 min-h-[24px]">
-                <p className="font-inter font-semibold text-[11px] tracking-wider uppercase text-slate-500 dark:text-slate-400 m-0">Default (60+d)</p>
+              <div className="group relative p-4 transition-all duration-200 hover:bg-slate-50/80 dark:hover:bg-white/[0.02] flex flex-col justify-between min-h-[90px]">
+                <span className="font-inter font-bold text-[10px] tracking-wider uppercase text-slate-500 dark:text-slate-400 mt-0.5">Default (60+d)</span>
+                <p className="font-inter font-extrabold text-2xl text-rose-500 dark:text-rose-400 m-0 mt-2">{counts.defaulted}</p>
               </div>
-              <p className="font-inter font-bold text-3xl text-rose-500 m-0">{counts.defaulted}</p>
             </div>
           </div>
         )}
 
         {isSavingsRoute && (
-          <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
-            {/* Left Column: Chart */}
-            <div className="md:col-span-2 bg-white dark:bg-[#1E2130] border border-slate-200 dark:border-white/10 rounded-xl p-5 shadow-sm">
-              <h3 className="font-inter text-sm font-semibold text-slate-700 dark:text-slate-300 mb-4 m-0">Savings by Role</h3>
-              <div className="flex flex-col gap-4">
-                {savingsChartData.pieTotal === 0 ? (
-                  <p className="text-sm text-slate-400">No savings deposits available yet.</p>
-                ) : (
-                  <div className="flex flex-col gap-4">
-                    <ResponsiveContainer width="100%" height={240}>
+          <div className="grid grid-cols-1 md:grid-cols-3 gap-4 mb-4">
+            {/* Left Column: Compact Donut Chart */}
+            <div className="md:col-span-2 bg-white dark:bg-[#1E2130] border border-slate-200/80 dark:border-white/10 rounded-xl p-4 shadow-sm flex flex-col justify-between">
+              <h3 className="font-inter text-xs font-semibold uppercase tracking-wider text-slate-500 dark:text-slate-400 m-0 mb-2">Savings by Role</h3>
+              {savingsChartData.pieTotal === 0 ? (
+                <p className="text-xs text-slate-400 py-6">No savings deposits available yet.</p>
+              ) : (
+                <div className="flex flex-col sm:flex-row items-center justify-center gap-8 py-1">
+                  <div className="w-[240px] h-[190px] shrink-0">
+                    <ResponsiveContainer width="100%" height="100%">
                       <PieChart>
                         <Pie
                           data={savingsChartData.pieData}
                           cx="50%"
-                          cy="45%"
-                          innerRadius={50}
-                          outerRadius={100}
-                          paddingAngle={2}
+                          cy="50%"
+                          innerRadius={44}
+                          outerRadius={76}
+                          paddingAngle={3}
                           dataKey="value"
                           label={renderSliceLabel}
                           labelLine={false}
@@ -453,143 +493,148 @@ export default function LoanAdminPaymentStatus() {
                             value={`₱${savingsChartData.pieTotal >= 1000 ? (savingsChartData.pieTotal/1000).toFixed(1).replace(/\.0$/, '') + 'k' : savingsChartData.pieTotal}`} 
                             position="center" 
                             fill="#1e3a5f" 
-                            className="text-lg font-bold font-inter" 
+                            className="text-sm font-extrabold font-inter" 
                           />
                           <Label 
                             value="Total" 
                             position="center" 
-                            dy={16} 
+                            dy={14} 
                             fill="#6B7280" 
-                            className="text-xs font-inter" 
+                            className="text-[10px] font-inter" 
                           />
                         </Pie>
-                        <RechartsTooltip formatter={(value, name, props) => [`₱${(value || 0).toLocaleString()} (${Math.round((value/savingsChartData.pieTotal)*100)}%)`, props.payload.name]} contentStyle={{ borderRadius: '8px', border: 'none', boxShadow: '0 4px 6px -1px rgba(0, 0, 0, 0.1)' }} />
+                        <RechartsTooltip formatter={(value, name, props) => [`₱${(value || 0).toLocaleString()} (${Math.round((value/savingsChartData.pieTotal)*100)}%)`, props.payload.name]} contentStyle={{ borderRadius: '8px', border: 'none', boxShadow: '0 4px 6px -1px rgba(0, 0, 0, 0.1)', fontSize: '11px' }} />
                       </PieChart>
                     </ResponsiveContainer>
-                    <div className="flex flex-col gap-2 px-1">
-                      {savingsChartData.pieData.map((cat, i) => (
-                        <div key={i} className="flex items-center justify-between">
-                          <div className="flex items-center gap-2">
-                            <div className="w-2.5 h-2.5 rounded-full shrink-0" style={{ background: cat.color }} />
-                            <span className="font-inter text-[13px] text-slate-700 dark:text-slate-300">{cat.name}</span>
-                          </div>
-                          <span className="font-inter text-[13px] font-semibold text-slate-800 dark:text-white">₱{cat.value.toLocaleString()} — {Math.round((cat.value/savingsChartData.pieTotal)*100)}%</span>
-                        </div>
-                      ))}
-                    </div>
                   </div>
-                )}
-              </div>
+
+                  <div className="flex flex-col gap-2.5 min-w-[240px] max-w-[280px]">
+                    {savingsChartData.pieData.map((cat, i) => (
+                      <div key={i} className="flex items-center justify-between px-3 py-2 rounded-lg bg-slate-50 dark:bg-black/20 border border-slate-100 dark:border-white/5">
+                        <div className="flex items-center gap-2">
+                          <div className="w-2.5 h-2.5 rounded-full shrink-0" style={{ background: cat.color }} />
+                          <span className="font-inter text-xs font-semibold text-slate-700 dark:text-slate-300">{cat.name}</span>
+                        </div>
+                        <span className="font-inter text-xs font-bold text-slate-800 dark:text-white ml-3">₱{cat.value.toLocaleString()} <span className="text-slate-400 text-[11px] font-normal">({Math.round((cat.value/savingsChartData.pieTotal)*100)}%)</span></span>
+                      </div>
+                    ))}
+                  </div>
+                </div>
+              )}
             </div>
 
-            {/* Right Column: 3 Stat Cards */}
-            <div className="flex flex-col gap-4">
-              <div className="bg-white dark:bg-[#1E2130] border border-slate-200 dark:border-white/10 rounded-xl p-5 shadow-sm flex flex-col gap-2 cursor-pointer hover:-translate-y-0.5 transition-transform">
-                <div className="flex items-center justify-between mb-1">
-                  <p className="font-inter font-semibold text-[11px] tracking-wider uppercase text-slate-500 dark:text-slate-400 m-0">Total Savings</p>
-                  <select value={savingsFilter} onChange={e => setSavingsFilter(e.target.value)} className="text-[11px] font-inter p-1 rounded border border-slate-200 dark:border-white/10 bg-white dark:bg-[#252836] text-slate-600 dark:text-slate-400 outline-none cursor-pointer">
-                    <option value="all">All Time</option>
-                    <option value="this_month">This Month</option>
-                    <option value="this_year">This Year</option>
-                  </select>
+            {/* Right Column: Unified Stat Card with Dividers */}
+            <div className="bg-white dark:bg-[#1E2130] border border-slate-200/80 dark:border-white/10 rounded-xl shadow-sm overflow-hidden flex flex-col justify-between">
+              <div className="divide-y divide-slate-100 dark:divide-white/5 flex flex-col h-full justify-between">
+                {/* Total Savings */}
+                <div className="p-3 px-4 flex flex-col justify-center gap-1 hover:bg-slate-50/50 dark:hover:bg-white/[0.02] transition-colors">
+                  <div className="flex items-center justify-between">
+                    <span className="font-inter font-bold text-[10px] tracking-wider uppercase text-slate-500 dark:text-slate-400">Total Savings</span>
+                    <select value={savingsFilter} onChange={e => setSavingsFilter(e.target.value)} className="text-[10px] font-inter px-1.5 py-0.5 rounded border border-slate-200 dark:border-white/10 bg-white dark:bg-[#252836] text-slate-600 dark:text-slate-400 outline-none cursor-pointer">
+                      <option value="all">All Time</option>
+                      <option value="this_month">This Month</option>
+                      <option value="this_year">This Year</option>
+                    </select>
+                  </div>
+                  <p className="font-inter font-bold text-xl text-emerald-500 m-0">{fmt(totalSavingsFiltered)}</p>
                 </div>
-                <p className="font-inter font-bold text-3xl text-emerald-500 m-0">{fmt(totalSavingsFiltered)}</p>
-              </div>
 
-              <div className="bg-white dark:bg-[#1E2130] border border-slate-200 dark:border-white/10 rounded-xl p-5 shadow-sm flex flex-col gap-2 cursor-pointer hover:-translate-y-0.5 transition-transform">
-                <div className="flex items-center justify-between mb-1">
-                  <p className="font-inter font-semibold text-[11px] tracking-wider uppercase text-slate-500 dark:text-slate-400 m-0">Total Withdrawals</p>
+                {/* Total Withdrawals */}
+                <div className="p-3 px-4 flex flex-col justify-center gap-1 hover:bg-slate-50/50 dark:hover:bg-white/[0.02] transition-colors">
+                  <span className="font-inter font-bold text-[10px] tracking-wider uppercase text-slate-500 dark:text-slate-400">Total Withdrawals</span>
+                  <p className="font-inter font-bold text-xl text-rose-600 dark:text-rose-400 m-0">{fmt(totalWithdrawalsFiltered)}</p>
                 </div>
-                <p className="font-inter font-bold text-3xl text-rose-600 m-0">{fmt(totalWithdrawalsFiltered)}</p>
-              </div>
 
-              <div 
-                className="bg-white dark:bg-[#1E2130] border border-slate-200 dark:border-white/10 rounded-xl p-5 shadow-sm flex flex-col gap-2 cursor-pointer hover:-translate-y-0.5 transition-transform" 
-                onClick={() => setActiveTab('pending')}
-              >
-                <div className="flex items-center justify-between mb-1">
-                  <p className="font-inter font-semibold text-[11px] tracking-wider uppercase text-slate-500 dark:text-slate-400 m-0">Pending Review</p>
+                {/* Pending Review */}
+                <div 
+                  className="p-3 px-4 flex flex-col justify-center gap-1 hover:bg-slate-50/50 dark:hover:bg-white/[0.02] transition-colors cursor-pointer"
+                  onClick={() => setActiveTab('pending')}
+                >
+                  <span className="font-inter font-bold text-[10px] tracking-wider uppercase text-slate-500 dark:text-slate-400">Pending Review</span>
+                  <p className="font-inter font-bold text-xl text-orange-600 dark:text-orange-400 m-0">{pendingSavings.length}</p>
                 </div>
-                <p className="font-inter font-bold text-3xl text-orange-600 m-0">{pendingSavings.length}</p>
               </div>
             </div>
           </div>
         )}
 
-        {(!isSavingsRoute || approvalMethod === 'manual') && (
-          <div className="flex items-center gap-1 border-b border-slate-200 dark:border-white/10">
-            <button 
-              onClick={() => setActiveTab(isSavingsRoute ? 'savings' : 'loans')}
-              className={`px-4 py-2 text-[13px] font-semibold font-inter transition-colors border-b-2 -mb-[2px] ${activeTab === (isSavingsRoute ? 'savings' : 'loans') ? 'border-blue-500 text-blue-600 dark:text-blue-400' : 'border-transparent text-slate-500 hover:text-slate-800 dark:text-slate-400'} bg-transparent cursor-pointer`}
-            >
-              {isSavingsRoute ? 'Savings Records' : 'Active Loans'}
-            </button>
-            {!isSavingsRoute && (
+        {/* Control Toolbar: Tabs + Search + Filter */}
+        <div className="flex flex-wrap items-center justify-between gap-4 border-b border-slate-200 dark:border-white/10 mb-4 pb-3">
+          {(!isSavingsRoute || approvalMethod === 'manual') && (
+            <div className="flex items-center gap-1">
               <button 
-                onClick={() => setActiveTab('history')}
-                className={`px-4 py-2 text-[13px] font-semibold font-inter transition-colors border-b-2 -mb-[2px] ${activeTab === 'history' ? 'border-blue-500 text-blue-600 dark:text-blue-400' : 'border-transparent text-slate-500 hover:text-slate-800 dark:text-slate-400'} bg-transparent cursor-pointer`}
+                onClick={() => setActiveTab(isSavingsRoute ? 'savings' : 'loans')}
+                className={`px-4 py-2 text-[13px] font-semibold font-inter transition-colors border-b-2 -mb-[13px] ${activeTab === (isSavingsRoute ? 'savings' : 'loans') ? 'border-blue-500 text-blue-600 dark:text-blue-400' : 'border-transparent text-slate-500 hover:text-slate-800 dark:text-slate-400'} bg-transparent cursor-pointer`}
               >
-                Payment History
+                {isSavingsRoute ? 'Savings Records' : 'Active Loans'}
               </button>
-            )}
-            {approvalMethod === 'manual' && (
-              <button 
-                onClick={() => setActiveTab('pending')}
-                className={`px-4 py-2 flex items-center gap-2 text-[13px] font-semibold font-inter transition-colors border-b-2 -mb-[2px] ${activeTab === 'pending' ? 'border-blue-500 text-blue-600 dark:text-blue-400' : 'border-transparent text-slate-500 hover:text-slate-800 dark:text-slate-400'} bg-transparent cursor-pointer`}
-              >
-                Pending Approvals
-                {(isSavingsRoute ? pendingSavings.length : pendingLoanPayments.length) > 0 && (
-                  <span className="inline-flex items-center justify-center min-w-[18px] h-[18px] px-1 rounded-full bg-rose-500 text-white text-[10px] font-bold">
-                    {isSavingsRoute ? pendingSavings.length : pendingLoanPayments.length}
-                  </span>
-                )}
-              </button>
-            )}
-          </div>
-        )}
-
-        <div className="flex items-center gap-4">
-          <div className="relative flex-1 max-w-[400px]">
-            <Search size={18} color="#9CA3AF" />
-            <input 
-              type="text" 
-              placeholder={isSavingsRoute ? "Search by member name or goal..." : "Search by member name or loan ID..."} 
-              value={searchQuery} 
-              onChange={(e) => setSearchQuery(e.target.value)} 
-              className="w-full h-10 pl-10 pr-4 bg-white dark:bg-[#1E2130] border border-slate-200 dark:border-white/10 rounded-lg text-sm font-inter text-slate-800 dark:text-white placeholder:text-slate-400 focus:outline-none focus:border-blue-500 transition-colors"
-            />
-          </div>
-          {isSavingsRoute && activeTab === 'savings' && (
-            <select 
-              value={savingsTypeFilter} 
-              onChange={(e) => setSavingsTypeFilter(e.target.value)}
-              className="h-10 px-3 bg-white dark:bg-[#1E2130] border border-slate-200 dark:border-white/10 rounded-lg text-sm font-inter text-slate-700 dark:text-slate-300 outline-none focus:border-blue-500 transition-colors cursor-pointer"
-            >
-              <option value="all">All Types</option>
-              <option value="deposit">Deposits Only</option>
-              <option value="withdrawal">Withdrawals Only</option>
-            </select>
+              {!isSavingsRoute && (
+                <button 
+                  onClick={() => setActiveTab('history')}
+                  className={`px-4 py-2 text-[13px] font-semibold font-inter transition-colors border-b-2 -mb-[13px] ${activeTab === 'history' ? 'border-blue-500 text-blue-600 dark:text-blue-400' : 'border-transparent text-slate-500 hover:text-slate-800 dark:text-slate-400'} bg-transparent cursor-pointer`}
+                >
+                  Payment History
+                </button>
+              )}
+              {approvalMethod === 'manual' && (
+                <button 
+                  onClick={() => setActiveTab('pending')}
+                  className={`px-4 py-2 flex items-center gap-2 text-[13px] font-semibold font-inter transition-colors border-b-2 -mb-[13px] ${activeTab === 'pending' ? 'border-blue-500 text-blue-600 dark:text-blue-400' : 'border-transparent text-slate-500 hover:text-slate-800 dark:text-slate-400'} bg-transparent cursor-pointer`}
+                >
+                  Pending Approvals
+                  {(isSavingsRoute ? pendingSavings.length : pendingLoanPayments.length) > 0 && (
+                    <span className="inline-flex items-center justify-center min-w-[18px] h-[18px] px-1 rounded-full bg-rose-500 text-white text-[10px] font-bold">
+                      {isSavingsRoute ? pendingSavings.length : pendingLoanPayments.length}
+                    </span>
+                  )}
+                </button>
+              )}
+            </div>
           )}
+
+          <div className="flex items-center gap-3 max-sm:w-full">
+            <div className="relative max-w-[320px] w-full flex items-center">
+              <Search size={16} className="absolute left-3 top-1/2 -translate-y-1/2 text-slate-400 pointer-events-none z-10" />
+              <input 
+                type="text" 
+                placeholder={isSavingsRoute ? "Search by member name or goal..." : "Search member or loan ID..."} 
+                value={searchQuery} 
+                onChange={(e) => setSearchQuery(e.target.value)} 
+                className="w-full h-9 pl-9 pr-3 bg-white dark:bg-[#1E2130] border border-slate-200 dark:border-white/10 rounded-lg text-xs font-inter text-slate-800 dark:text-white placeholder:text-slate-400 focus:outline-none focus:border-blue-500 transition-colors shadow-sm"
+              />
+            </div>
+            {isSavingsRoute && activeTab === 'savings' && (
+              <select 
+                value={savingsTypeFilter} 
+                onChange={(e) => setSavingsTypeFilter(e.target.value)}
+                className="h-9 px-3 bg-white dark:bg-[#1E2130] border border-slate-200 dark:border-white/10 rounded-lg text-xs font-inter text-slate-700 dark:text-slate-300 outline-none focus:border-blue-500 transition-colors cursor-pointer shadow-sm"
+              >
+                <option value="all">All Types</option>
+                <option value="deposit">Deposits Only</option>
+                <option value="withdrawal">Withdrawals Only</option>
+              </select>
+            )}
+          </div>
         </div>
 
         {activeTab === 'savings' && isSavingsRoute && (
-          <div className="flex flex-col gap-5 mb-5">
+          <div className="flex flex-col gap-2 mb-2">
             {/* Table */}
             <div className="bg-white dark:bg-[#1E2130] border border-slate-200 dark:border-white/10 rounded-xl overflow-x-auto shadow-sm" >
               <table className="w-full text-left border-collapse min-w-[700px]">
               <thead>
                 <tr>
-                  <th className="bg-slate-50 dark:bg-black/20 border-b border-slate-200 dark:border-white/10 px-4 py-3 font-inter font-semibold text-[11px] tracking-wider uppercase text-slate-500 dark:text-slate-400">Date</th>
-                  <th className="bg-slate-50 dark:bg-black/20 border-b border-slate-200 dark:border-white/10 px-4 py-3 font-inter font-semibold text-[11px] tracking-wider uppercase text-slate-500 dark:text-slate-400">Member</th>
-                  <th className="bg-slate-50 dark:bg-black/20 border-b border-slate-200 dark:border-white/10 px-4 py-3 font-inter font-semibold text-[11px] tracking-wider uppercase text-slate-500 dark:text-slate-400">Type</th>
-                  <th className="bg-slate-50 dark:bg-black/20 border-b border-slate-200 dark:border-white/10 px-4 py-3 font-inter font-semibold text-[11px] tracking-wider uppercase text-slate-500 dark:text-slate-400">Goal</th>
-                  <th className="bg-slate-50 dark:bg-black/20 border-b border-slate-200 dark:border-white/10 px-4 py-3 font-inter font-semibold text-[11px] tracking-wider uppercase text-slate-500 dark:text-slate-400">Amount</th>
-                  <th className="bg-slate-50 dark:bg-black/20 border-b border-slate-200 dark:border-white/10 px-4 py-3 font-inter font-semibold text-[11px] tracking-wider uppercase text-slate-500 dark:text-slate-400">Status</th>
+                  <th className="bg-slate-50 dark:bg-black/20 border-b border-slate-200 dark:border-white/10 px-4 py-2.5 font-inter font-semibold text-[11px] tracking-wider uppercase text-slate-500 dark:text-slate-400">Date</th>
+                  <th className="bg-slate-50 dark:bg-black/20 border-b border-slate-200 dark:border-white/10 px-4 py-2.5 font-inter font-semibold text-[11px] tracking-wider uppercase text-slate-500 dark:text-slate-400">Member</th>
+                  <th className="bg-slate-50 dark:bg-black/20 border-b border-slate-200 dark:border-white/10 px-4 py-2.5 font-inter font-semibold text-[11px] tracking-wider uppercase text-slate-500 dark:text-slate-400">Type</th>
+                  <th className="bg-slate-50 dark:bg-black/20 border-b border-slate-200 dark:border-white/10 px-4 py-2.5 font-inter font-semibold text-[11px] tracking-wider uppercase text-slate-500 dark:text-slate-400">Goal</th>
+                  <th className="bg-slate-50 dark:bg-black/20 border-b border-slate-200 dark:border-white/10 px-4 py-2.5 font-inter font-semibold text-[11px] tracking-wider uppercase text-slate-500 dark:text-slate-400">Amount</th>
+                  <th className="bg-slate-50 dark:bg-black/20 border-b border-slate-200 dark:border-white/10 px-4 py-2.5 font-inter font-semibold text-[11px] tracking-wider uppercase text-slate-500 dark:text-slate-400">Status</th>
                 </tr>
               </thead>
               <tbody>
                 {loading ? (
-                  <tr><td colSpan={6} className="text-center p-10 text-slate-400">Loading...</td></tr>
+                  <tr><td colSpan={6} className="text-center p-8 text-slate-400">Loading...</td></tr>
                 ) : (() => {
                   const filteredSavingsList = confirmedSavings.filter(s => {
                     const matchesSearch = (s.memberName || '').toLowerCase().includes(searchQuery.toLowerCase()) || (s.goalName || s.goalId || '').toLowerCase().includes(searchQuery.toLowerCase());
@@ -598,7 +643,7 @@ export default function LoanAdminPaymentStatus() {
                   });
                   
                   if (filteredSavingsList.length === 0) {
-                    return <tr><td colSpan={6} className="text-center p-10 text-slate-400">No records found</td></tr>;
+                    return <tr><td colSpan={6} className="text-center p-8 text-slate-400">No records found</td></tr>;
                   }
                   
                   const paginatedSavings = filteredSavingsList.slice((savingsPage - 1) * SAVINGS_PER_PAGE, savingsPage * SAVINGS_PER_PAGE);
@@ -606,25 +651,25 @@ export default function LoanAdminPaymentStatus() {
                   return (
                     <>
                       {paginatedSavings.map(txn => (
-                        <tr key={txn._id} className="border-b border-slate-100 dark:border-white/5 hover:bg-slate-50 dark:hover:bg-white/5 transition-colors cursor-pointer cursor-pointer" onClick={() => setSelectedSavings(txn)}>
-                          <td className="px-4 py-3 whitespace-nowrap font-inter text-[13px] text-slate-700 dark:text-slate-300">{fmtDate(txn.confirmedAt || txn.date)}</td>
-                          <td className="px-4 py-3 whitespace-nowrap font-inter text-[13px] text-slate-700 dark:text-slate-300">
+                        <tr key={txn._id} className="border-b border-slate-100 dark:border-white/5 hover:bg-slate-50 dark:hover:bg-white/5 transition-colors cursor-pointer" onClick={() => setSelectedSavings(txn)}>
+                          <td className="px-4 py-2 whitespace-nowrap font-inter text-[12.5px] text-slate-700 dark:text-slate-300">{fmtDate(txn.confirmedAt || txn.date)}</td>
+                          <td className="px-4 py-2 whitespace-nowrap font-inter text-[12.5px] text-slate-700 dark:text-slate-300">
                             <div className="flex flex-col">
-                              <p className="font-inter text-sm font-semibold text-slate-800 dark:text-white m-0">{txn.memberName || txn.email}</p>
-                              <p className="font-inter text-[11px] text-slate-500 dark:text-slate-400 m-0 mt-0.5">{txn.email}</p>
+                              <p className="font-inter text-[13px] font-semibold text-slate-800 dark:text-white m-0">{txn.memberName || txn.email}</p>
+                              <p className="font-inter text-[10.5px] text-slate-500 dark:text-slate-400 m-0 mt-0.5">{txn.email}</p>
                             </div>
                           </td>
-                          <td className="px-4 py-3 whitespace-nowrap font-inter text-[13px] text-slate-700 dark:text-slate-300">
-                            <span className={`inline-block px-2.5 py-1 rounded-md text-[11px] font-bold tracking-wider uppercase ${txn.type === 'withdrawal' ? 'bg-rose-100 text-rose-700 dark:bg-rose-500/20 dark:text-rose-400' : 'bg-emerald-100 text-emerald-700 dark:bg-emerald-500/20 dark:text-emerald-400'}`}>
+                          <td className="px-4 py-2 whitespace-nowrap font-inter text-[12.5px] text-slate-700 dark:text-slate-300">
+                            <span className={`inline-block px-2 py-0.5 rounded text-[10.5px] font-bold tracking-wider uppercase ${txn.type === 'withdrawal' ? 'bg-rose-100 text-rose-700 dark:bg-rose-500/20 dark:text-rose-400' : 'bg-emerald-100 text-emerald-700 dark:bg-emerald-500/20 dark:text-emerald-400'}`}>
                               {txn.type}
                             </span>
                           </td>
-                          <td className="text-[13px] text-slate-600 dark:text-slate-400">{txn.goalName || 'General Savings'}</td>
-                          <td className={`px-4 py-3 whitespace-nowrap font-inter text-sm font-bold ${txn.type === 'withdrawal' ? 'text-rose-600 dark:text-rose-400' : 'text-emerald-600 dark:text-emerald-400'}`}>
+                          <td className="px-4 py-2 whitespace-nowrap text-[12.5px] text-slate-600 dark:text-slate-400">{txn.goalName || 'General Savings'}</td>
+                          <td className={`px-4 py-2 whitespace-nowrap font-inter text-[13px] font-bold ${txn.type === 'withdrawal' ? 'text-rose-600 dark:text-rose-400' : 'text-emerald-600 dark:text-emerald-400'}`}>
                             {txn.type === 'withdrawal' ? '-' : '+'}{fmt(txn.amount)}
                           </td>
-                          <td className="px-4 py-3 whitespace-nowrap font-inter text-[13px] text-slate-700 dark:text-slate-300">
-                            <span className="inline-block px-2.5 py-1 rounded-md text-[11px] font-bold tracking-wide uppercase bg-emerald-100 text-emerald-700 dark:bg-emerald-500/20 dark:text-emerald-400">Confirmed</span>
+                          <td className="px-4 py-2 whitespace-nowrap font-inter text-[12.5px] text-slate-700 dark:text-slate-300">
+                            <span className="inline-block px-2 py-0.5 rounded text-[10.5px] font-bold tracking-wide uppercase bg-emerald-100 text-emerald-700 dark:bg-emerald-500/20 dark:text-emerald-400">Confirmed</span>
                           </td>
                         </tr>
                       ))}
@@ -642,197 +687,215 @@ export default function LoanAdminPaymentStatus() {
                 return matchesSearch && matchesType;
               });
               const totalSavingsPages = Math.ceil(filteredSavingsList.length / SAVINGS_PER_PAGE);
-              if (totalSavingsPages > 1) {
-                return (
-                  <div className="flex items-center justify-center gap-4 p-4">
-                    <button disabled={savingsPage === 1} onClick={() => setSavingsPage(p => p - 1)} className="px-4 py-2 text-[13px] font-semibold font-inter bg-white dark:bg-[#1E2130] border border-slate-200 dark:border-white/10 rounded-lg text-slate-700 dark:text-slate-300 hover:bg-slate-50 dark:hover:bg-white/5 transition-colors cursor-pointer disabled:opacity-40 disabled:cursor-not-allowed">Prev</button>
-                    <span className="font-inter text-[13px] text-slate-500 dark:text-slate-400">Page {savingsPage} of {totalSavingsPages}</span>
-                    <button disabled={savingsPage === totalSavingsPages} onClick={() => setSavingsPage(p => p + 1)} className="px-4 py-2 text-[13px] font-semibold font-inter bg-white dark:bg-[#1E2130] border border-slate-200 dark:border-white/10 rounded-lg text-slate-700 dark:text-slate-300 hover:bg-slate-50 dark:hover:bg-white/5 transition-colors cursor-pointer disabled:opacity-40 disabled:cursor-not-allowed">Next</button>
-                  </div>
-                );
-              }
-              return null;
+              return (
+                <Pagination
+                  currentPage={savingsPage}
+                  totalPages={totalSavingsPages}
+                  onPageChange={(newPage) => setSavingsPage(newPage)}
+                  totalItems={filteredSavingsList.length}
+                  itemsPerPage={SAVINGS_PER_PAGE}
+                  itemName="savings records"
+                />
+              );
             })()}
           </div>
         )}
 
         {activeTab === 'loans' && !isSavingsRoute && (
-          <div className="bg-white dark:bg-[#1E2130] border border-slate-200 dark:border-white/10 rounded-xl overflow-x-auto shadow-sm">
-            <table className="w-full text-left border-collapse min-w-[700px]">
-              <thead>
-                <tr>
-                  <th className="bg-slate-50 dark:bg-black/20 border-b border-slate-200 dark:border-white/10 px-4 py-3 font-inter font-semibold text-[11px] tracking-wider uppercase text-slate-500 dark:text-slate-400">Loan ID</th>
-                  <th className="bg-slate-50 dark:bg-black/20 border-b border-slate-200 dark:border-white/10 px-4 py-3 font-inter font-semibold text-[11px] tracking-wider uppercase text-slate-500 dark:text-slate-400">Member</th>
-                  <th className="bg-slate-50 dark:bg-black/20 border-b border-slate-200 dark:border-white/10 px-4 py-3 font-inter font-semibold text-[11px] tracking-wider uppercase text-slate-500 dark:text-slate-400">Amount</th>
-                  <th className="bg-slate-50 dark:bg-black/20 border-b border-slate-200 dark:border-white/10 px-4 py-3 font-inter font-semibold text-[11px] tracking-wider uppercase text-slate-500 dark:text-slate-400">Paid</th>
-                  <th className="bg-slate-50 dark:bg-black/20 border-b border-slate-200 dark:border-white/10 px-4 py-3 font-inter font-semibold text-[11px] tracking-wider uppercase text-slate-500 dark:text-slate-400">Balance</th>
-                  <th className="bg-slate-50 dark:bg-black/20 border-b border-slate-200 dark:border-white/10 px-4 py-3 font-inter font-semibold text-[11px] tracking-wider uppercase text-slate-500 dark:text-slate-400">Due Date</th>
-                  <th className="bg-slate-50 dark:bg-black/20 border-b border-slate-200 dark:border-white/10 px-4 py-3 font-inter font-semibold text-[11px] tracking-wider uppercase text-slate-500 dark:text-slate-400">Days Late</th>
-                  <th className="bg-slate-50 dark:bg-black/20 border-b border-slate-200 dark:border-white/10 px-4 py-3 font-inter font-semibold text-[11px] tracking-wider uppercase text-slate-500 dark:text-slate-400">Status</th>
-                </tr>
-              </thead>
-              <tbody>
-                {loading ? (
-                  <tr><td colSpan={8} className="text-center p-10 text-slate-400">Loading...</td></tr>
-                ) : filtered.length === 0 ? (
-                  <tr><td colSpan={8} className="text-center p-10 text-slate-400">No active loans found</td></tr>
-                ) : (
-                  filtered.map(loan => (
-                    <tr key={loan._id} onClick={() => setSelectedLoan(loan)} className="cursor-pointer border-b border-slate-100 dark:border-white/5 hover:bg-slate-50 dark:hover:bg-white/5 transition-colors cursor-pointer">
-                      <td className="px-4 py-3 font-inter text-sm font-semibold text-blue-600 dark:text-blue-400 whitespace-nowrap">{loan.loanId}</td>
-                      <td className="px-4 py-3 whitespace-nowrap font-inter text-[13px] text-slate-700 dark:text-slate-300">
-                        <div className="flex flex-col">
-                          <p className="font-inter text-sm font-semibold text-slate-800 dark:text-white m-0">{loan.memberName}</p>
-                          <p className="font-inter text-[11px] text-slate-500 dark:text-slate-400 m-0 mt-0.5">{loan.email}</p>
-                        </div>
-                      </td>
-                      <td className="px-4 py-3 whitespace-nowrap font-inter text-sm font-bold text-slate-800 dark:text-white">{fmt(loan.amount)}</td>
-                      <td className="text-[13px]">{loan.paidMonths || 0}/{loan.termMonths || 0}</td>
-                      <td className="px-4 py-3 whitespace-nowrap font-inter text-sm font-bold text-slate-800 dark:text-white">{fmt(loan.remainingBalance)}</td>
-                      <td className="px-4 py-3 whitespace-nowrap font-inter text-[13px] text-slate-700 dark:text-slate-300">{fmtDate(loan.effectiveDueDate)}</td>
-                      <td className={`font-semibold ${loan.daysLate > 0 ? 'text-rose-600 dark:text-rose-400' : 'text-emerald-600 dark:text-emerald-400'}`}>
-                        {loan.daysLate > 0 ? `${loan.daysLate} days` : '—'}
-                      </td>
-                      <td className="px-4 py-3 whitespace-nowrap font-inter text-[13px] text-slate-700 dark:text-slate-300">
-                        <span className={`inline-block px-2.5 py-1 rounded-md text-[11px] font-bold tracking-wide uppercase ${loan.paymentStatus.cls === 'on-track' ? 'bg-emerald-100 text-emerald-700 dark:bg-emerald-500/20 dark:text-emerald-400' : loan.paymentStatus.cls === 'reminder' ? 'bg-amber-100 text-amber-700 dark:bg-amber-500/20 dark:text-amber-400' : loan.paymentStatus.cls === 'delinquent' ? 'bg-orange-100 text-orange-700 dark:bg-orange-500/20 dark:text-orange-400' : loan.paymentStatus.cls === 'high-risk' ? 'bg-rose-100 text-rose-700 dark:bg-rose-500/20 dark:text-rose-400' : 'bg-red-900 text-white'}`}>{loan.paymentStatus.label}</span>
-                      </td>
-                    </tr>
-                  ))
-                )}
-              </tbody>
-            </table>
+          <div className="flex flex-col gap-2">
+            <div className="bg-white dark:bg-[#1E2130] border border-slate-200 dark:border-white/10 rounded-xl overflow-x-auto shadow-sm">
+              <table className="w-full text-left border-collapse min-w-[700px]">
+                <thead>
+                  <tr>
+                    <th className="bg-slate-50 dark:bg-black/20 border-b border-slate-200 dark:border-white/10 px-4 py-3 font-inter font-semibold text-[11px] tracking-wider uppercase text-slate-500 dark:text-slate-400">Loan ID</th>
+                    <th className="bg-slate-50 dark:bg-black/20 border-b border-slate-200 dark:border-white/10 px-4 py-3 font-inter font-semibold text-[11px] tracking-wider uppercase text-slate-500 dark:text-slate-400">Member</th>
+                    <th className="bg-slate-50 dark:bg-black/20 border-b border-slate-200 dark:border-white/10 px-4 py-3 font-inter font-semibold text-[11px] tracking-wider uppercase text-slate-500 dark:text-slate-400">Amount</th>
+                    <th className="bg-slate-50 dark:bg-black/20 border-b border-slate-200 dark:border-white/10 px-4 py-3 font-inter font-semibold text-[11px] tracking-wider uppercase text-slate-500 dark:text-slate-400">Paid</th>
+                    <th className="bg-slate-50 dark:bg-black/20 border-b border-slate-200 dark:border-white/10 px-4 py-3 font-inter font-semibold text-[11px] tracking-wider uppercase text-slate-500 dark:text-slate-400">Balance</th>
+                    <th className="bg-slate-50 dark:bg-black/20 border-b border-slate-200 dark:border-white/10 px-4 py-3 font-inter font-semibold text-[11px] tracking-wider uppercase text-slate-500 dark:text-slate-400">Due Date</th>
+                    <th className="bg-slate-50 dark:bg-black/20 border-b border-slate-200 dark:border-white/10 px-4 py-3 font-inter font-semibold text-[11px] tracking-wider uppercase text-slate-500 dark:text-slate-400">Days Late</th>
+                    <th className="bg-slate-50 dark:bg-black/20 border-b border-slate-200 dark:border-white/10 px-4 py-3 font-inter font-semibold text-[11px] tracking-wider uppercase text-slate-500 dark:text-slate-400">Status</th>
+                  </tr>
+                </thead>
+                <tbody>
+                  {loading ? (
+                    <tr><td colSpan={8} className="text-center p-10 text-slate-400">Loading...</td></tr>
+                  ) : filtered.length === 0 ? (
+                    <tr><td colSpan={8} className="text-center p-10 text-slate-400">No active loans found</td></tr>
+                  ) : (
+                    filtered.slice((loansPage - 1) * LOANS_PER_PAGE, loansPage * LOANS_PER_PAGE).map(loan => (
+                      <tr key={loan._id} onClick={() => setSelectedLoan(loan)} className="cursor-pointer border-b border-slate-100 dark:border-white/5 hover:bg-slate-50 dark:hover:bg-white/5 transition-colors cursor-pointer">
+                        <td className="px-4 py-3 font-inter text-sm font-semibold text-blue-600 dark:text-blue-400 whitespace-nowrap">{loan.loanId}</td>
+                        <td className="px-4 py-3 whitespace-nowrap font-inter text-[13px] text-slate-700 dark:text-slate-300">
+                          <div className="flex flex-col">
+                            <p className="font-inter text-sm font-semibold text-slate-800 dark:text-white m-0">{loan.memberName}</p>
+                            <p className="font-inter text-[11px] text-slate-500 dark:text-slate-400 m-0 mt-0.5">{loan.email}</p>
+                          </div>
+                        </td>
+                        <td className="px-4 py-3 whitespace-nowrap font-inter text-sm font-bold text-slate-800 dark:text-white">{fmt(loan.amount)}</td>
+                        <td className="text-[13px]">{loan.paidMonths || 0}/{loan.termMonths || 0}</td>
+                        <td className="px-4 py-3 whitespace-nowrap font-inter text-sm font-bold text-slate-800 dark:text-white">{fmt(loan.remainingBalance)}</td>
+                        <td className="px-4 py-3 whitespace-nowrap font-inter text-[13px] text-slate-700 dark:text-slate-300">{fmtDate(loan.effectiveDueDate)}</td>
+                        <td className={`font-semibold ${loan.daysLate > 0 ? 'text-rose-600 dark:text-rose-400' : 'text-emerald-600 dark:text-emerald-400'}`}>
+                          {loan.daysLate > 0 ? `${loan.daysLate} days` : '—'}
+                        </td>
+                        <td className="px-4 py-3 whitespace-nowrap font-inter text-[13px] text-slate-700 dark:text-slate-300">
+                          <span className={`inline-block px-2.5 py-1 rounded-md text-[11px] font-bold tracking-wide uppercase ${loan.paymentStatus.cls === 'on-track' ? 'bg-emerald-100 text-emerald-700 dark:bg-emerald-500/20 dark:text-emerald-400' : loan.paymentStatus.cls === 'reminder' ? 'bg-amber-100 text-amber-700 dark:bg-amber-500/20 dark:text-amber-400' : loan.paymentStatus.cls === 'delinquent' ? 'bg-orange-100 text-orange-700 dark:bg-orange-500/20 dark:text-orange-400' : loan.paymentStatus.cls === 'high-risk' ? 'bg-rose-100 text-rose-700 dark:bg-rose-500/20 dark:text-rose-400' : 'bg-red-900 text-white'}`}>{loan.paymentStatus.label}</span>
+                        </td>
+                      </tr>
+                    ))
+                  )}
+                </tbody>
+              </table>
+            </div>
+
+            <Pagination
+              currentPage={loansPage}
+              totalPages={Math.ceil(filtered.length / LOANS_PER_PAGE)}
+              onPageChange={(newPage) => setLoansPage(newPage)}
+              totalItems={filtered.length}
+              itemsPerPage={LOANS_PER_PAGE}
+              itemName="active loans"
+            />
           </div>
         )}
 
         {/* Pending Approvals Tab */}
         {activeTab === 'pending' && (
-          <div className="bg-white dark:bg-[#1E2130] border border-slate-200 dark:border-white/10 rounded-xl overflow-x-auto shadow-sm">
-            <table className="w-full text-left border-collapse min-w-[700px]">
-              <thead>
-                <tr>
-                  <th className="bg-slate-50 dark:bg-black/20 border-b border-slate-200 dark:border-white/10 px-4 py-3 font-inter font-semibold text-[11px] tracking-wider uppercase text-slate-500 dark:text-slate-400">Date</th>
-                  <th className="bg-slate-50 dark:bg-black/20 border-b border-slate-200 dark:border-white/10 px-4 py-3 font-inter font-semibold text-[11px] tracking-wider uppercase text-slate-500 dark:text-slate-400">Member</th>
-                  <th className="bg-slate-50 dark:bg-black/20 border-b border-slate-200 dark:border-white/10 px-4 py-3 font-inter font-semibold text-[11px] tracking-wider uppercase text-slate-500 dark:text-slate-400">Type</th>
-                  <th className="bg-slate-50 dark:bg-black/20 border-b border-slate-200 dark:border-white/10 px-4 py-3 font-inter font-semibold text-[11px] tracking-wider uppercase text-slate-500 dark:text-slate-400">Amount</th>
-                  <th className="bg-slate-50 dark:bg-black/20 border-b border-slate-200 dark:border-white/10 px-4 py-3 font-inter font-semibold text-[11px] tracking-wider uppercase text-slate-500 dark:text-slate-400">Method</th>
-                  <th className="bg-slate-50 dark:bg-black/20 border-b border-slate-200 dark:border-white/10 px-4 py-3 font-inter font-semibold text-[11px] tracking-wider uppercase text-slate-500 dark:text-slate-400">Reference</th>
-                  <th className="bg-slate-50 dark:bg-black/20 border-b border-slate-200 dark:border-white/10 px-4 py-3 font-inter font-semibold text-[11px] tracking-wider uppercase text-slate-500 dark:text-slate-400">Proof</th>
-                  <th className="bg-slate-50 dark:bg-black/20 border-b border-slate-200 dark:border-white/10 px-4 py-3 font-inter font-semibold text-[11px] tracking-wider uppercase text-slate-500 dark:text-slate-400">Actions</th>
-                </tr>
-              </thead>
-              <tbody>
-                {pendingLoading ? (
-                  <tr><td colSpan={8} className="text-center p-10 text-slate-400">Loading...</td></tr>
-                ) : (isSavingsRoute ? pendingSavings : pendingLoanPayments).length === 0 ? (
-                  <tr><td colSpan={8} className="text-center p-10 text-slate-400">No pending approvals</td></tr>
-                ) : (
-                  (isSavingsRoute ? pendingSavings : pendingLoanPayments).map(txn => (
-                    <tr key={txn._id} className="border-b border-slate-100 dark:border-white/5 hover:bg-slate-50 dark:hover:bg-white/5 transition-colors cursor-pointer">
-                      <td className="px-4 py-3 whitespace-nowrap font-inter text-[13px] text-slate-700 dark:text-slate-300">{fmtDate(txn.submittedAt || txn.createdAt || txn.date)}</td>
-                      <td className="px-4 py-3 whitespace-nowrap font-inter text-[13px] text-slate-700 dark:text-slate-300">
-                        <div className="flex flex-col">
-                          <p className="font-inter text-sm font-semibold text-slate-800 dark:text-white m-0">{txn.memberName || txn.email}</p>
-                          <p className="font-inter text-[11px] text-slate-500 dark:text-slate-400 m-0 mt-0.5">{isSavingsRoute ? `Goal: ${txn.goalId}` : `Loan: ${txn.loanId}`}</p>
-                        </div>
-                      </td>
-                      <td className="px-4 py-3 whitespace-nowrap font-inter text-[13px] text-slate-700 dark:text-slate-300">
-                        <span className={`inline-block px-2 py-0.5 rounded-md text-[11px] font-bold font-inter capitalize ${txn.paymentType === 'full' ? 'bg-emerald-100 text-emerald-800 dark:bg-emerald-500/20 dark:text-emerald-400' : txn.paymentType === 'advance' ? 'bg-blue-100 text-blue-800 dark:bg-blue-500/20 dark:text-blue-400' : 'bg-slate-100 text-slate-700 dark:bg-white/10 dark:text-slate-300'}`}>
-                          {txn.paymentType || 'regular'}
-                          {txn.monthsCovered > 1 && ` (${txn.monthsCovered}mo)`}
-                        </span>
-                      </td>
-                      <td className="px-4 py-3 whitespace-nowrap font-inter text-sm font-bold text-slate-800 dark:text-white text-orange-600 dark:text-orange-400">{fmt(txn.amount)}</td>
-                      <td className="capitalize">{txn.paymentMethod || 'cash'}</td>
-                      <td className="px-4 py-3 whitespace-nowrap font-inter text-[13px] text-slate-700 dark:text-slate-300">{txn.referenceNumber || '—'}</td>
-                      <td className="px-4 py-3 whitespace-nowrap font-inter text-[13px] text-slate-700 dark:text-slate-300">
-                        {(txn.proofData || txn.proofOfPayment) ? (
-                          <img 
-                            src={txn.proofData || txn.proofOfPayment} 
-                            alt="Proof" 
-                            className="w-8 h-8 object-cover rounded shadow-sm cursor-pointer border border-slate-200 dark:border-white/10" 
-                            onClick={(e) => { e.stopPropagation(); const win = window.open(); win.document.write(`<img src="${txn.proofData || txn.proofOfPayment}" style="max-width:100%;" />`); }}
-                          />
-                        ) : (
-                          <span className="text-xs text-slate-400">No Proof</span>
-                        )}
-                      </td>
-                      <td className="px-4 py-3 whitespace-nowrap font-inter text-[13px] text-slate-700 dark:text-slate-300">
-                        <button onClick={() => { setPendingDetail(txn); setShowRejectInput(false); }} className="px-3 py-1.5 rounded-md font-semibold text-xs border-none cursor-pointer transition-colors bg-blue-100 text-blue-800 hover:bg-blue-200 dark:bg-blue-500/20 dark:text-blue-400 dark:hover:bg-blue-500/30">Review</button>
-                      </td>
-                    </tr>
-                  ))
-                )}
-              </tbody>
-            </table>
+          <div className="flex flex-col gap-2">
+            <div className="bg-white dark:bg-[#1E2130] border border-slate-200 dark:border-white/10 rounded-xl overflow-x-auto shadow-sm">
+              <table className="w-full text-left border-collapse min-w-[700px]">
+                <thead>
+                  <tr>
+                    <th className="bg-slate-50 dark:bg-black/20 border-b border-slate-200 dark:border-white/10 px-4 py-3 font-inter font-semibold text-[11px] tracking-wider uppercase text-slate-500 dark:text-slate-400">Date</th>
+                    <th className="bg-slate-50 dark:bg-black/20 border-b border-slate-200 dark:border-white/10 px-4 py-3 font-inter font-semibold text-[11px] tracking-wider uppercase text-slate-500 dark:text-slate-400">Member</th>
+                    <th className="bg-slate-50 dark:bg-black/20 border-b border-slate-200 dark:border-white/10 px-4 py-3 font-inter font-semibold text-[11px] tracking-wider uppercase text-slate-500 dark:text-slate-400">Type</th>
+                    <th className="bg-slate-50 dark:bg-black/20 border-b border-slate-200 dark:border-white/10 px-4 py-3 font-inter font-semibold text-[11px] tracking-wider uppercase text-slate-500 dark:text-slate-400">Amount</th>
+                    <th className="bg-slate-50 dark:bg-black/20 border-b border-slate-200 dark:border-white/10 px-4 py-3 font-inter font-semibold text-[11px] tracking-wider uppercase text-slate-500 dark:text-slate-400">Method</th>
+                    <th className="bg-slate-50 dark:bg-black/20 border-b border-slate-200 dark:border-white/10 px-4 py-3 font-inter font-semibold text-[11px] tracking-wider uppercase text-slate-500 dark:text-slate-400">Reference</th>
+                    <th className="bg-slate-50 dark:bg-black/20 border-b border-slate-200 dark:border-white/10 px-4 py-3 font-inter font-semibold text-[11px] tracking-wider uppercase text-slate-500 dark:text-slate-400">Proof</th>
+                    <th className="bg-slate-50 dark:bg-black/20 border-b border-slate-200 dark:border-white/10 px-4 py-3 font-inter font-semibold text-[11px] tracking-wider uppercase text-slate-500 dark:text-slate-400">Actions</th>
+                  </tr>
+                </thead>
+                <tbody>
+                  {pendingLoading ? (
+                    <tr><td colSpan={8} className="text-center p-10 text-slate-400">Loading...</td></tr>
+                  ) : (isSavingsRoute ? pendingSavings : pendingLoanPayments).length === 0 ? (
+                    <tr><td colSpan={8} className="text-center p-10 text-slate-400">No pending approvals</td></tr>
+                  ) : (
+                    (isSavingsRoute ? pendingSavings : pendingLoanPayments).slice((pendingPage - 1) * PENDING_PER_PAGE, pendingPage * PENDING_PER_PAGE).map(txn => (
+                      <tr key={txn._id} className="border-b border-slate-100 dark:border-white/5 hover:bg-slate-50 dark:hover:bg-white/5 transition-colors cursor-pointer">
+                        <td className="px-4 py-3 whitespace-nowrap font-inter text-[13px] text-slate-700 dark:text-slate-300">{fmtDate(txn.submittedAt || txn.createdAt || txn.date)}</td>
+                        <td className="px-4 py-3 whitespace-nowrap font-inter text-[13px] text-slate-700 dark:text-slate-300">
+                          <div className="flex flex-col">
+                            <p className="font-inter text-sm font-semibold text-slate-800 dark:text-white m-0">{txn.memberName || txn.email}</p>
+                            <p className="font-inter text-[11px] text-slate-500 dark:text-slate-400 m-0 mt-0.5">{isSavingsRoute ? `Goal: ${txn.goalId}` : `Loan: ${txn.loanId}`}</p>
+                          </div>
+                        </td>
+                        <td className="px-4 py-3 whitespace-nowrap font-inter text-[13px] text-slate-700 dark:text-slate-300">
+                          <span className={`inline-block px-2 py-0.5 rounded-md text-[11px] font-bold font-inter capitalize ${txn.paymentType === 'full' ? 'bg-emerald-100 text-emerald-800 dark:bg-emerald-500/20 dark:text-emerald-400' : txn.paymentType === 'advance' ? 'bg-blue-100 text-blue-800 dark:bg-blue-500/20 dark:text-blue-400' : 'bg-slate-100 text-slate-700 dark:bg-white/10 dark:text-slate-300'}`}>
+                            {txn.paymentType || 'regular'}
+                            {txn.monthsCovered > 1 && ` (${txn.monthsCovered}mo)`}
+                          </span>
+                        </td>
+                        <td className="px-4 py-3 whitespace-nowrap font-inter text-sm font-bold text-slate-800 dark:text-white text-orange-600 dark:text-orange-400">{fmt(txn.amount)}</td>
+                        <td className="capitalize">{txn.paymentMethod || 'cash'}</td>
+                        <td className="px-4 py-3 whitespace-nowrap font-inter text-[13px] text-slate-700 dark:text-slate-300">{txn.referenceNumber || '—'}</td>
+                        <td className="px-4 py-3 whitespace-nowrap font-inter text-[13px] text-slate-700 dark:text-slate-300">
+                          {(txn.proofData || txn.proofOfPayment) ? (
+                            <img 
+                              src={txn.proofData || txn.proofOfPayment} 
+                              alt="Proof" 
+                              className="w-8 h-8 object-cover rounded shadow-sm cursor-pointer border border-slate-200 dark:border-white/10" 
+                              onClick={(e) => { e.stopPropagation(); const win = window.open(); win.document.write(`<img src="${txn.proofData || txn.proofOfPayment}" style="max-width:100%;" />`); }}
+                            />
+                          ) : (
+                            <span className="text-xs text-slate-400">No Proof</span>
+                          )}
+                        </td>
+                        <td className="px-4 py-3 whitespace-nowrap font-inter text-[13px] text-slate-700 dark:text-slate-300">
+                          <button onClick={() => { setPendingDetail(txn); setShowRejectInput(false); }} className="px-3 py-1.5 rounded-md font-semibold text-xs border-none cursor-pointer transition-colors bg-blue-100 text-blue-800 hover:bg-blue-200 dark:bg-blue-500/20 dark:text-blue-400 dark:hover:bg-blue-500/30">Review</button>
+                        </td>
+                      </tr>
+                    ))
+                  )}
+                </tbody>
+              </table>
+            </div>
+
+            <Pagination
+              currentPage={pendingPage}
+              totalPages={Math.ceil((isSavingsRoute ? pendingSavings : pendingLoanPayments).length / PENDING_PER_PAGE)}
+              onPageChange={(newPage) => setPendingPage(newPage)}
+              totalItems={(isSavingsRoute ? pendingSavings : pendingLoanPayments).length}
+              itemsPerPage={PENDING_PER_PAGE}
+              itemName="pending approvals"
+            />
           </div>
         )}
 
         {/* Payment History Tab (Loans Only) */}
         {activeTab === 'history' && !isSavingsRoute && (
-          <div className="bg-white dark:bg-[#1E2130] border border-slate-200 dark:border-white/10 rounded-xl overflow-x-auto shadow-sm">
-            <table className="w-full text-left border-collapse min-w-[700px]">
-              <thead>
-                <tr>
-                  <th className="bg-slate-50 dark:bg-black/20 border-b border-slate-200 dark:border-white/10 px-4 py-3 font-inter font-semibold text-[11px] tracking-wider uppercase text-slate-500 dark:text-slate-400">Date</th>
-                  <th className="bg-slate-50 dark:bg-black/20 border-b border-slate-200 dark:border-white/10 px-4 py-3 font-inter font-semibold text-[11px] tracking-wider uppercase text-slate-500 dark:text-slate-400">Member</th>
-                  <th className="bg-slate-50 dark:bg-black/20 border-b border-slate-200 dark:border-white/10 px-4 py-3 font-inter font-semibold text-[11px] tracking-wider uppercase text-slate-500 dark:text-slate-400">Type</th>
-                  <th className="bg-slate-50 dark:bg-black/20 border-b border-slate-200 dark:border-white/10 px-4 py-3 font-inter font-semibold text-[11px] tracking-wider uppercase text-slate-500 dark:text-slate-400">Amount</th>
-                  <th className="bg-slate-50 dark:bg-black/20 border-b border-slate-200 dark:border-white/10 px-4 py-3 font-inter font-semibold text-[11px] tracking-wider uppercase text-slate-500 dark:text-slate-400">Method</th>
-                  <th className="bg-slate-50 dark:bg-black/20 border-b border-slate-200 dark:border-white/10 px-4 py-3 font-inter font-semibold text-[11px] tracking-wider uppercase text-slate-500 dark:text-slate-400">Reference</th>
-                  <th className="bg-slate-50 dark:bg-black/20 border-b border-slate-200 dark:border-white/10 px-4 py-3 font-inter font-semibold text-[11px] tracking-wider uppercase text-slate-500 dark:text-slate-400">Status</th>
-                </tr>
-              </thead>
-              <tbody>
-                {loading ? (
-                  <tr><td colSpan={7} className="text-center p-10 text-slate-400">Loading...</td></tr>
-                ) : loanHistory.length === 0 ? (
-                  <tr><td colSpan={7} className="text-center p-10 text-slate-400">No payment history found</td></tr>
-                ) : (
-                  loanHistory.map(txn => (
-                    <tr key={txn._id} className="border-b border-slate-100 dark:border-white/5 hover:bg-slate-50 dark:hover:bg-white/5 transition-colors cursor-pointer cursor-pointer" onClick={() => setPendingDetail(txn)}>
-                      <td className="px-4 py-3 whitespace-nowrap font-inter text-[13px] text-slate-700 dark:text-slate-300">{fmtDate(txn.submittedAt || txn.createdAt || txn.date)}</td>
-                      <td className="px-4 py-3 whitespace-nowrap font-inter text-[13px] text-slate-700 dark:text-slate-300">
-                        <div className="flex flex-col">
-                          <p className="font-inter text-sm font-semibold text-slate-800 dark:text-white m-0">{txn.memberName || txn.email}</p>
-                          <p className="font-inter text-[11px] text-slate-500 dark:text-slate-400 m-0 mt-0.5">{`Loan: ${txn.loanId}`}</p>
-                        </div>
-                      </td>
-                      <td className="px-4 py-3 whitespace-nowrap font-inter text-[13px] text-slate-700 dark:text-slate-300">
-                        <span className={`inline-block px-2 py-0.5 rounded-md text-[11px] font-bold font-inter capitalize ${txn.paymentType === 'full' ? 'bg-emerald-100 text-emerald-800 dark:bg-emerald-500/20 dark:text-emerald-400' : txn.paymentType === 'advance' ? 'bg-blue-100 text-blue-800 dark:bg-blue-500/20 dark:text-blue-400' : 'bg-slate-100 text-slate-700 dark:bg-white/10 dark:text-slate-300'}`}>
-                          {txn.paymentType || 'regular'}
-                          {txn.monthsCovered > 1 && ` (${txn.monthsCovered}mo)`}
-                        </span>
-                      </td>
-                      <td className="px-4 py-3 whitespace-nowrap font-inter text-sm font-bold text-slate-800 dark:text-white text-orange-600 dark:text-orange-400">{fmt(txn.amount)}</td>
-                      <td className="capitalize">{txn.paymentMethod || 'cash'}</td>
-                      <td className="px-4 py-3 whitespace-nowrap font-inter text-[13px] text-slate-700 dark:text-slate-300">{txn.referenceNumber || '—'}</td>
-                      <td className="px-4 py-3 whitespace-nowrap font-inter text-[13px] text-slate-700 dark:text-slate-300">
-                        <span className={`inline-block px-2.5 py-1 rounded-md text-[11px] font-bold tracking-wide uppercase ${txn.status === 'confirmed' ? 'bg-emerald-100 text-emerald-700 dark:bg-emerald-500/20 dark:text-emerald-400' : 'bg-slate-100 text-slate-500 dark:bg-slate-800 dark:text-slate-400'}`}>
-                          {txn.status === 'confirmed' ? 'Confirmed' : 'Rejected'}
-                        </span>
-                      </td>
-                    </tr>
-                  ))
-                )}
-              </tbody>
-            </table>
+          <div className="flex flex-col gap-4">
+            <div className="bg-white dark:bg-[#1E2130] border border-slate-200 dark:border-white/10 rounded-xl overflow-x-auto shadow-sm">
+              <table className="w-full text-left border-collapse min-w-[700px]">
+                <thead>
+                  <tr>
+                    <th className="bg-slate-50 dark:bg-black/20 border-b border-slate-200 dark:border-white/10 px-4 py-2.5 font-inter font-semibold text-[11px] tracking-wider uppercase text-slate-500 dark:text-slate-400">Date</th>
+                    <th className="bg-slate-50 dark:bg-black/20 border-b border-slate-200 dark:border-white/10 px-4 py-2.5 font-inter font-semibold text-[11px] tracking-wider uppercase text-slate-500 dark:text-slate-400">Member</th>
+                    <th className="bg-slate-50 dark:bg-black/20 border-b border-slate-200 dark:border-white/10 px-4 py-2.5 font-inter font-semibold text-[11px] tracking-wider uppercase text-slate-500 dark:text-slate-400">Type</th>
+                    <th className="bg-slate-50 dark:bg-black/20 border-b border-slate-200 dark:border-white/10 px-4 py-2.5 font-inter font-semibold text-[11px] tracking-wider uppercase text-slate-500 dark:text-slate-400">Amount</th>
+                    <th className="bg-slate-50 dark:bg-black/20 border-b border-slate-200 dark:border-white/10 px-4 py-2.5 font-inter font-semibold text-[11px] tracking-wider uppercase text-slate-500 dark:text-slate-400">Method</th>
+                    <th className="bg-slate-50 dark:bg-black/20 border-b border-slate-200 dark:border-white/10 px-4 py-2.5 font-inter font-semibold text-[11px] tracking-wider uppercase text-slate-500 dark:text-slate-400">Reference</th>
+                    <th className="bg-slate-50 dark:bg-black/20 border-b border-slate-200 dark:border-white/10 px-4 py-2.5 font-inter font-semibold text-[11px] tracking-wider uppercase text-slate-500 dark:text-slate-400">Status</th>
+                  </tr>
+                </thead>
+                <tbody>
+                  {loading ? (
+                    <tr><td colSpan={7} className="text-center p-8 text-slate-400">Loading...</td></tr>
+                  ) : loanHistory.length === 0 ? (
+                    <tr><td colSpan={7} className="text-center p-8 text-slate-400">No payment history found</td></tr>
+                  ) : (
+                    loanHistory.map(txn => (
+                      <tr key={txn._id} className="border-b border-slate-100 dark:border-white/5 hover:bg-slate-50 dark:hover:bg-white/5 transition-colors cursor-pointer" onClick={() => setPendingDetail(txn)}>
+                        <td className="px-4 py-2 whitespace-nowrap font-inter text-[12.5px] text-slate-700 dark:text-slate-300">{fmtDate(txn.submittedAt || txn.createdAt || txn.date)}</td>
+                        <td className="px-4 py-2 whitespace-nowrap font-inter text-[12.5px] text-slate-700 dark:text-slate-300">
+                          <div className="flex flex-col">
+                            <p className="font-inter text-[13px] font-semibold text-slate-800 dark:text-white m-0">{txn.memberName || txn.email}</p>
+                            <p className="font-inter text-[10.5px] text-slate-500 dark:text-slate-400 m-0 mt-0.5">{`Loan: ${txn.loanId}`}</p>
+                          </div>
+                        </td>
+                        <td className="px-4 py-2 whitespace-nowrap font-inter text-[12.5px] text-slate-700 dark:text-slate-300">
+                          <span className={`inline-block px-2 py-0.5 rounded text-[10.5px] font-bold font-inter capitalize ${txn.paymentType === 'full' ? 'bg-emerald-100 text-emerald-800 dark:bg-emerald-500/20 dark:text-emerald-400' : txn.paymentType === 'advance' ? 'bg-blue-100 text-blue-800 dark:bg-blue-500/20 dark:text-blue-400' : 'bg-slate-100 text-slate-700 dark:bg-white/10 dark:text-slate-300'}`}>
+                            {txn.paymentType || 'regular'}
+                            {txn.monthsCovered > 1 && ` (${txn.monthsCovered}mo)`}
+                          </span>
+                        </td>
+                        <td className="px-4 py-2 whitespace-nowrap font-inter text-[13px] font-bold text-slate-800 dark:text-white">{fmt(txn.amount)}</td>
+                        <td className="px-4 py-2 whitespace-nowrap font-inter text-[12.5px] capitalize text-slate-700 dark:text-slate-300">{txn.paymentMethod || 'cash'}</td>
+                        <td className="px-4 py-2 whitespace-nowrap font-inter text-[12.5px] text-slate-700 dark:text-slate-300">{txn.referenceNumber || '—'}</td>
+                        <td className="px-4 py-2 whitespace-nowrap font-inter text-[12.5px] text-slate-700 dark:text-slate-300">
+                          <span className={`inline-block px-2 py-0.5 rounded text-[10.5px] font-bold tracking-wide uppercase ${txn.status === 'confirmed' ? 'bg-emerald-100 text-emerald-700 dark:bg-emerald-500/20 dark:text-emerald-400' : 'bg-rose-100 text-rose-700 dark:bg-rose-500/20 dark:text-rose-400'}`}>
+                            {txn.status === 'confirmed' ? 'Confirmed' : 'Rejected'}
+                          </span>
+                        </td>
+                      </tr>
+                    ))
+                  )}
+                </tbody>
+              </table>
+            </div>
 
-            {historyTotalCount > HISTORY_PER_PAGE && (
-              <div className="flex items-center justify-center gap-4 p-4" style={{ margin: '20px 0 0 0' }}>
-                <button disabled={historyPage === 1} onClick={() => setHistoryPage(p => p - 1)} className="px-4 py-2 text-[13px] font-semibold font-inter bg-white dark:bg-[#1E2130] border border-slate-200 dark:border-white/10 rounded-lg text-slate-700 dark:text-slate-300 hover:bg-slate-50 dark:hover:bg-white/5 transition-colors cursor-pointer disabled:opacity-40 disabled:cursor-not-allowed">Prev</button>
-                <span className="font-inter text-[13px] text-slate-500 dark:text-slate-400">Page {historyPage} of {Math.ceil(historyTotalCount / HISTORY_PER_PAGE)}</span>
-                <button disabled={historyPage === Math.ceil(historyTotalCount / HISTORY_PER_PAGE)} onClick={() => setHistoryPage(p => p + 1)} className="px-4 py-2 text-[13px] font-semibold font-inter bg-white dark:bg-[#1E2130] border border-slate-200 dark:border-white/10 rounded-lg text-slate-700 dark:text-slate-300 hover:bg-slate-50 dark:hover:bg-white/5 transition-colors cursor-pointer disabled:opacity-40 disabled:cursor-not-allowed">Next</button>
-              </div>
-            )}
+            <Pagination
+              currentPage={historyPage}
+              totalPages={Math.ceil(historyTotalCount / HISTORY_PER_PAGE)}
+              onPageChange={(newPage) => setHistoryPage(newPage)}
+              totalItems={historyTotalCount}
+              itemsPerPage={HISTORY_PER_PAGE}
+              itemName="payment records"
+            />
           </div>
         )}
-
-
-        <div className="flex items-center justify-between p-4 bg-white dark:bg-[#1E2130] rounded-xl border border-slate-200 dark:border-white/10">
-          <p className="font-inter text-[13px] text-slate-500 dark:text-slate-400 m-0">
-            {activeTab === 'loans' ? `Showing ${filtered.length} active loans` : ''}
-          </p>
-        </div>
       </div>
 
       {/* ── Loan Detail Modal ── */}
@@ -1112,31 +1175,39 @@ export default function LoanAdminPaymentStatus() {
 
       {/* ── Walk-in Transaction Modal ── */}
       {showWalkinModal && (
-        <div className="fixed inset-0 bg-black/50 backdrop-blur-sm flex items-center justify-center z-[1000] p-4" onClick={() => setShowWalkinModal(false)} style={{ zIndex: 2000 }}>
-          <div className="bg-white dark:bg-[#1E2130] rounded-2xl w-full max-w-[520px] flex flex-col border border-slate-200 dark:border-white/10 shadow-2xl" style={{ maxWidth: '440px', overflow: 'visible' }} onClick={(e) => e.stopPropagation()}>
-            <div className="flex items-center justify-between p-[18px_24px] border-b border-slate-200 dark:border-white/10 shrink-0" style={{ borderBottom: '1px solid #E5E7EB', paddingBottom: '16px' }}>
+        <div className="fixed inset-0 bg-black/50 backdrop-blur-sm flex items-center justify-center z-[2000] p-4" onClick={() => setShowWalkinModal(false)}>
+          <div className="bg-white dark:bg-[#1E2130] rounded-2xl w-full max-w-[480px] flex flex-col border border-slate-200 dark:border-white/10 shadow-2xl overflow-hidden" onClick={(e) => e.stopPropagation()}>
+            <div className="flex items-center justify-between p-5 border-b border-slate-200 dark:border-white/10 shrink-0">
               <div>
-                <h2 className="font-inter text-lg font-bold text-slate-800 dark:text-white m-0" style={{ fontSize: '18px' }}>Process Walk-in Transaction</h2>
-                <p style={{ fontSize: '13px', color: '#6B7280', margin: '4px 0 0', fontFamily: 'Inter' }}>Process payments or deposits directly on behalf of a user.</p>
+                <h2 className="font-inter text-base font-bold text-slate-800 dark:text-white m-0">Process Walk-in Transaction</h2>
+                <p className="font-inter text-xs text-slate-500 dark:text-slate-400 m-0 mt-0.5">Process payments or deposits directly on behalf of a user.</p>
               </div>
-              <button className="w-8 h-8 border-none bg-slate-100 dark:bg-white/5 text-slate-500 rounded-lg cursor-pointer flex items-center justify-center text-lg font-bold hover:bg-slate-200 transition-colors" onClick={() => setShowWalkinModal(false)}>
+              <button className="w-8 h-8 border-none bg-slate-100 dark:bg-white/5 text-slate-500 rounded-lg cursor-pointer flex items-center justify-center text-lg font-bold hover:bg-slate-200 dark:hover:bg-white/10 transition-colors" onClick={() => setShowWalkinModal(false)}>
                 <X size={16} />
               </button>
             </div>
 
-            <div style={{ padding: '20px 24px', maxHeight: '65vh', overflowY: 'auto' }}>
-              <div className="walkin-form-group">
-                <label className="walkin-label">Transaction Type</label>
-                <select className="walkin-select" value={walkinType} onChange={(e) => { setWalkinType(e.target.value); setWalkinSelectedLoan(''); setWalkinSelectedMember(null); setWalkinAmount(''); }}>
+            <div className="p-5 flex flex-col gap-3.5 max-h-[65vh] overflow-y-auto">
+              <div className="flex flex-col gap-1">
+                <label className="font-inter text-xs font-semibold text-slate-700 dark:text-slate-300">Transaction Type</label>
+                <select 
+                  className="w-full h-9 px-3 bg-white dark:bg-[#252836] border border-slate-200 dark:border-white/10 rounded-lg font-inter text-xs text-slate-800 dark:text-white outline-none focus:border-blue-500 transition-colors cursor-pointer shadow-sm" 
+                  value={walkinType} 
+                  onChange={(e) => { setWalkinType(e.target.value); setWalkinSelectedLoan(''); setWalkinSelectedMember(null); setWalkinAmount(''); }}
+                >
                   <option value="loan">Loan Repayment</option>
                   <option value="savings">Savings Deposit</option>
                 </select>
               </div>
 
               {walkinType === 'loan' ? (
-                <div className="walkin-form-group">
-                  <label className="walkin-label">Select Active Loan</label>
-                  <select className="walkin-select" value={walkinSelectedLoan} onChange={handleWalkinLoanSelected}>
+                <div className="flex flex-col gap-1">
+                  <label className="font-inter text-xs font-semibold text-slate-700 dark:text-slate-300">Select Active Loan</label>
+                  <select 
+                    className="w-full h-9 px-3 bg-white dark:bg-[#252836] border border-slate-200 dark:border-white/10 rounded-lg font-inter text-xs text-slate-800 dark:text-white outline-none focus:border-blue-500 transition-colors cursor-pointer shadow-sm" 
+                    value={walkinSelectedLoan} 
+                    onChange={handleWalkinLoanSelected}
+                  >
                     <option value="">-- Choose Loan --</option>
                     {allLoans.filter(l => l.status === 'active').map(l => (
                       <option key={l._id} value={l._id}>
@@ -1147,29 +1218,34 @@ export default function LoanAdminPaymentStatus() {
                 </div>
               ) : (
                 <>
-                  <div className="walkin-form-group" style={{ position: 'relative' }}>
-                    <label className="walkin-label">Search Member</label>
+                  <div className="flex flex-col gap-1 relative">
+                    <label className="font-inter text-xs font-semibold text-slate-700 dark:text-slate-300">Search Member</label>
                     <input 
                       type="text" 
-                      className="walkin-input" 
+                      className="w-full h-9 px-3 bg-white dark:bg-[#252836] border border-slate-200 dark:border-white/10 rounded-lg font-inter text-xs text-slate-800 dark:text-white placeholder:text-slate-400 outline-none focus:border-blue-500 transition-colors shadow-sm" 
                       placeholder="Type name or email..." 
                       value={walkinSearch}
                       onChange={(e) => handleWalkinSearchChange(e.target.value)}
                     />
                     {showWalkinUsers && walkinUsers.length > 0 && (
-                      <div className="walkin-search-results">
+                      <div className="absolute top-full left-0 right-0 mt-1 bg-white dark:bg-[#1E2130] border border-slate-200 dark:border-white/10 rounded-xl shadow-xl z-50 max-h-48 overflow-y-auto divide-y divide-slate-100 dark:divide-white/5">
                         {walkinUsers.map(u => (
-                          <div key={u._id} className="walkin-search-item" onClick={() => selectWalkinMember(u)}>
-                            <span className="walkin-search-item-title">{u.fullName || 'Unknown'}</span>
-                            <span className="walkin-search-item-sub">{u.email}</span>
+                          <div key={u._id} className="p-2.5 hover:bg-slate-50 dark:hover:bg-white/5 cursor-pointer transition-colors flex flex-col" onClick={() => selectWalkinMember(u)}>
+                            <span className="font-inter text-xs font-semibold text-slate-800 dark:text-white">{u.fullName || 'Unknown'}</span>
+                            <span className="font-inter text-[11px] text-slate-500 dark:text-slate-400">{u.email}</span>
                           </div>
                         ))}
                       </div>
                     )}
                   </div>
-                  <div className="walkin-form-group">
-                    <label className="walkin-label">Select Savings Goal</label>
-                    <select className="walkin-select" value={walkinSelectedGoal} onChange={(e) => setWalkinSelectedGoal(e.target.value)} disabled={!walkinSelectedMember || walkinGoals.length === 0}>
+                  <div className="flex flex-col gap-1">
+                    <label className="font-inter text-xs font-semibold text-slate-700 dark:text-slate-300">Select Savings Goal</label>
+                    <select 
+                      className="w-full h-9 px-3 bg-white dark:bg-[#252836] border border-slate-200 dark:border-white/10 rounded-lg font-inter text-xs text-slate-800 dark:text-white outline-none focus:border-blue-500 transition-colors cursor-pointer shadow-sm disabled:opacity-50" 
+                      value={walkinSelectedGoal} 
+                      onChange={(e) => setWalkinSelectedGoal(e.target.value)} 
+                      disabled={!walkinSelectedMember || walkinGoals.length === 0}
+                    >
                       {!walkinSelectedMember ? (
                         <option value="">-- Search and Select a Member First --</option>
                       ) : walkinGoals.length === 0 ? (
@@ -1187,34 +1263,60 @@ export default function LoanAdminPaymentStatus() {
                 </>
               )}
 
-              <div className="walkin-form-group">
-                <label className="walkin-label">{walkinType === 'loan' ? 'Payment Amount' : 'Deposit Amount'}</label>
-                <div style={{ position: 'relative' }}>
-                  <span style={{ position: 'absolute', left: 12, top: 10, color: '#6B7280', fontFamily: 'Inter', fontSize: '14px', pointerEvents: 'none' }}>₱</span>
-                  <input type="number" className="walkin-input" style={{ paddingLeft: '28px' }} placeholder="0.00" value={walkinAmount} onChange={(e) => setWalkinAmount(e.target.value)} />
+              <div className="flex flex-col gap-1">
+                <label className="font-inter text-xs font-semibold text-slate-700 dark:text-slate-300">{walkinType === 'loan' ? 'Payment Amount' : 'Deposit Amount'}</label>
+                <div className="relative">
+                  <span className="absolute left-3 top-2 text-slate-400 font-inter text-xs pointer-events-none">₱</span>
+                  <input 
+                    type="number" 
+                    className="w-full h-9 pl-7 pr-3 bg-white dark:bg-[#252836] border border-slate-200 dark:border-white/10 rounded-lg font-inter text-xs text-slate-800 dark:text-white placeholder:text-slate-400 outline-none focus:border-blue-500 transition-colors shadow-sm" 
+                    placeholder="0.00" 
+                    value={walkinAmount} 
+                    onChange={(e) => setWalkinAmount(e.target.value)} 
+                  />
                 </div>
               </div>
 
-              <div className="walkin-form-group" style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '12px' }}>
-                <div>
-                  <label className="walkin-label">Payment Method</label>
-                  <select className="walkin-select" value={walkinMethod} onChange={(e) => setWalkinMethod(e.target.value)}>
+              <div className="grid grid-cols-2 gap-3">
+                <div className="flex flex-col gap-1">
+                  <label className="font-inter text-xs font-semibold text-slate-700 dark:text-slate-300">Payment Method</label>
+                  <select 
+                    className="w-full h-9 px-3 bg-white dark:bg-[#252836] border border-slate-200 dark:border-white/10 rounded-lg font-inter text-xs text-slate-800 dark:text-white outline-none focus:border-blue-500 transition-colors cursor-pointer shadow-sm" 
+                    value={walkinMethod} 
+                    onChange={(e) => setWalkinMethod(e.target.value)}
+                  >
                     <option value="cash">Walk-in Cash</option>
                     <option value="e-wallet">E-Wallet</option>
                     <option value="bank">Bank Transfer</option>
                   </select>
                 </div>
-                <div>
-                  <label className="walkin-label">Reference # (Optional)</label>
-                  <input type="text" className="walkin-input" placeholder="e.g. 12345678" value={walkinRef} onChange={(e) => setWalkinRef(e.target.value)} />
+                <div className="flex flex-col gap-1">
+                  <label className="font-inter text-xs font-semibold text-slate-700 dark:text-slate-300">Reference # (Optional)</label>
+                  <input 
+                    type="text" 
+                    className="w-full h-9 px-3 bg-white dark:bg-[#252836] border border-slate-200 dark:border-white/10 rounded-lg font-inter text-xs text-slate-800 dark:text-white placeholder:text-slate-400 outline-none focus:border-blue-500 transition-colors shadow-sm" 
+                    placeholder="e.g. 12345678" 
+                    value={walkinRef} 
+                    onChange={(e) => setWalkinRef(e.target.value)} 
+                  />
                 </div>
               </div>
             </div>
 
-            <div style={{ padding: '16px 24px', borderTop: '1px solid #E5E7EB', display: 'flex', justifyContent: 'flex-end', gap: '10px', background: '#F9FAFB', borderBottomLeftRadius: '16px', borderBottomRightRadius: '16px' }}>
-               <button onClick={() => setShowWalkinModal(false)} disabled={walkinLoading} style={{ background: '#fff', color: '#374151', border: '1px solid #D1D5DB', padding: '10px 20px', borderRadius: '8px', fontSize: '14px', fontWeight: 600, cursor: 'pointer', fontFamily: 'Inter' }}>Cancel</button>
-               <button onClick={handleWalkinSubmit} disabled={walkinLoading} style={{ background: '#155DFC', color: '#fff', border: 'none', padding: '10px 20px', borderRadius: '8px', fontSize: '14px', fontWeight: 600, cursor: 'pointer', fontFamily: 'Inter', display: 'flex', alignItems: 'center', gap: '6px' }}>
-                 {walkinLoading ? <Loader2 className="animate-spin" size={16} /> : null}
+            <div className="p-4 border-t border-slate-200 dark:border-white/10 flex justify-end gap-2 bg-slate-50 dark:bg-black/20">
+               <button 
+                 onClick={() => setShowWalkinModal(false)} 
+                 disabled={walkinLoading} 
+                 className="px-4 py-2 rounded-lg border border-slate-200 dark:border-white/10 bg-white dark:bg-[#252836] text-slate-700 dark:text-slate-300 text-xs font-semibold font-inter hover:bg-slate-50 dark:hover:bg-white/5 transition-colors cursor-pointer"
+               >
+                 Cancel
+               </button>
+               <button 
+                 onClick={handleWalkinSubmit} 
+                 disabled={walkinLoading} 
+                 className="px-4 py-2 rounded-lg border-none bg-blue-600 hover:bg-blue-700 text-white text-xs font-semibold font-inter transition-colors cursor-pointer flex items-center gap-1.5 shadow-sm"
+               >
+                 {walkinLoading ? <Loader2 className="animate-spin" size={14} /> : null}
                  Submit & Confirm
                </button>
             </div>

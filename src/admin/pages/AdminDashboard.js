@@ -70,6 +70,7 @@ export default function AdminDashboard() {
   const [growthMonth, setGrowthMonth] = useState('all');
   const [growthView, setGrowthView] = useState('both'); // 'both', 'total', 'new'
   const [topCommunitiesLimit, setTopCommunitiesLimit] = useState(20);
+  const [donationPeriod, setDonationPeriod] = useState('all'); // 'all', 'thisMonth', 'thisYear'
   
   const [attYear, setAttYear] = useState(new Date().getFullYear());
   const [attMonth, setAttMonth] = useState('all');
@@ -116,7 +117,7 @@ export default function AdminDashboard() {
   );
   
   const { data: donationsData, isValidating: donationsValidating } = useSWR(
-    `${API}/api/admin/donations?limit=1`, 
+    `${API}/api/admin/donations?limit=5000`, 
     fetcherSingle, 
     { 
       revalidateOnFocus: false,
@@ -175,12 +176,33 @@ export default function AdminDashboard() {
   }), [donationsData]);
 
   const pieData = useMemo(() => {
-    const catStats = donationsData?.stats?.categoryBreakdown || {};
+    // If 'all', use the pre-aggregated stats from the server
+    if (donationPeriod === 'all') {
+      const catStats = donationsData?.stats?.categoryBreakdown || {};
+      return INITIAL_DONATION_CATEGORIES.map(cat => ({
+        ...cat,
+        value: catStats[cat.name] || 0
+      }));
+    }
+    // Otherwise, filter donations client-side by period
+    const now = new Date();
+    const allDonations = (donationsData?.donations || []).filter(d => d.status === 'confirmed');
+    const filtered = allDonations.filter(d => {
+      const date = new Date(d.createdAt || d.date);
+      if (donationPeriod === 'thisYear') return date.getFullYear() === now.getFullYear();
+      if (donationPeriod === 'thisMonth') return date.getFullYear() === now.getFullYear() && date.getMonth() === now.getMonth();
+      return true;
+    });
+    const catMap = {};
+    filtered.forEach(d => {
+      const cat = d.category || 'General Fund';
+      catMap[cat] = (catMap[cat] || 0) + (Number(d.amount) || 0);
+    });
     return INITIAL_DONATION_CATEGORIES.map(cat => ({
       ...cat,
-      value: catStats[cat.name] || 0
+      value: catMap[cat.name] || 0
     }));
-  }, [donationsData]);
+  }, [donationsData, donationPeriod]);
 
   const donationsByBranch = useMemo(() => {
     if (!donationsData || !donationsData.success) return [];
@@ -444,6 +466,97 @@ export default function AdminDashboard() {
   if (firstDataIdx > 0) enhancedGrowthData[firstDataIdx].noDataTotal = enhancedGrowthData[firstDataIdx].actualTotal;
 
   const totalAttendanceCount = rawAttendance.filter(a => ['present', 'late'].includes((a.status || '').toLowerCase())).length;
+  const attendanceRate = memberStats.total > 0 ? Math.round((totalAttendanceCount / memberStats.total) * 100) : 0;
+
+  // Donation period filtering
+  const donationPeriodLabel = donationPeriod === 'thisMonth' ? 'This Month' : donationPeriod === 'thisYear' ? `${new Date().getFullYear()}` : 'All Time';
+
+  const isDashboardLoading = !membersData && !donationsData && !attendData && (membersValidating || donationsValidating || attendValidating);
+
+  if (isDashboardLoading) {
+    return (
+      <div className="flex flex-col gap-6 p-6 max-w-[1400px] mx-auto w-full animate-pulse">
+        {/* Header Skeleton */}
+        <div className="flex items-center justify-between flex-wrap gap-4">
+          <div className="flex flex-col gap-2">
+            <div className="h-8 w-64 bg-slate-200 dark:bg-slate-700/80 rounded-lg"></div>
+            <div className="h-4 w-80 bg-slate-200 dark:bg-slate-700/80 rounded-md"></div>
+          </div>
+          <div className="flex items-center gap-3">
+            <div className="h-10 w-28 bg-slate-200 dark:bg-slate-700/80 rounded-xl"></div>
+            <div className="h-10 w-28 bg-slate-200 dark:bg-slate-700/80 rounded-xl"></div>
+          </div>
+        </div>
+
+        {/* 4 Stat Cards Skeleton */}
+        <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-5">
+          {[1, 2, 3, 4].map((i) => (
+            <div key={i} className="bg-white dark:bg-[#1E2130] border border-slate-200 dark:border-white/10 rounded-2xl p-6 shadow-sm flex flex-col justify-between h-[138px]">
+              <div className="flex items-start justify-between">
+                <div className="flex flex-col gap-2">
+                  <div className="h-3.5 w-24 bg-slate-200 dark:bg-slate-700/80 rounded"></div>
+                  <div className="h-8 w-20 bg-slate-200 dark:bg-slate-700/80 rounded-lg"></div>
+                </div>
+                <div className="w-12 h-12 rounded-[14px] bg-slate-200 dark:bg-slate-700/80"></div>
+              </div>
+              <div className="flex items-center gap-2 mt-2">
+                <div className="h-5 w-16 bg-slate-200 dark:bg-slate-700/80 rounded-md"></div>
+                <div className="h-3.5 w-24 bg-slate-200 dark:bg-slate-700/80 rounded"></div>
+              </div>
+            </div>
+          ))}
+        </div>
+
+        {/* AI Insights Card Skeleton */}
+        <div className="bg-white dark:bg-[#1E2130] border border-slate-200 dark:border-white/10 rounded-2xl p-6 shadow-sm">
+          <div className="flex items-center justify-between mb-6">
+            <div className="flex items-center gap-2">
+              <div className="w-5 h-5 rounded-full bg-slate-200 dark:bg-slate-700/80"></div>
+              <div className="h-5 w-32 bg-slate-200 dark:bg-slate-700/80 rounded"></div>
+              <div className="h-5 w-28 bg-slate-200 dark:bg-slate-700/80 rounded-full"></div>
+            </div>
+            <div className="h-4 w-20 bg-slate-200 dark:bg-slate-700/80 rounded"></div>
+          </div>
+          <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+            {[1, 2, 3, 4].map((i) => (
+              <div key={i} className="flex gap-4 p-4 rounded-xl bg-slate-50 dark:bg-black/20 border border-slate-100 dark:border-white/5">
+                <div className="w-8 h-8 rounded-full bg-slate-200 dark:bg-slate-700/80 shrink-0"></div>
+                <div className="flex-1 flex flex-col gap-2">
+                  <div className="h-4 w-1/3 bg-slate-200 dark:bg-slate-700/80 rounded"></div>
+                  <div className="h-3 w-full bg-slate-200 dark:bg-slate-700/80 rounded"></div>
+                </div>
+              </div>
+            ))}
+          </div>
+        </div>
+
+        {/* Analytics Row Skeleton */}
+        <div className="grid grid-cols-1 lg:grid-cols-2 gap-4">
+          {[1, 2].map((i) => (
+            <div key={i} className="bg-white dark:bg-[#1E2130] border border-slate-200 dark:border-white/10 rounded-2xl p-5 shadow-sm h-[340px] flex flex-col justify-between">
+              <div className="flex items-center justify-between mb-4">
+                <div className="flex flex-col gap-2">
+                  <div className="h-5 w-40 bg-slate-200 dark:bg-slate-700/80 rounded"></div>
+                  <div className="h-3.5 w-56 bg-slate-200 dark:bg-slate-700/80 rounded"></div>
+                </div>
+                <div className="h-7 w-24 bg-slate-200 dark:bg-slate-700/80 rounded-lg"></div>
+              </div>
+              <div className="flex-1 flex flex-col justify-around py-2">
+                {[1, 2, 3, 4, 5].map((j) => (
+                  <div key={j} className="flex items-center gap-3">
+                    <div className="w-3 h-3 rounded-full bg-slate-200 dark:bg-slate-700/80"></div>
+                    <div className="h-3.5 w-24 bg-slate-200 dark:bg-slate-700/80 rounded"></div>
+                    <div className="flex-1 h-2 bg-slate-200 dark:bg-slate-700/80 rounded-full"></div>
+                    <div className="h-3.5 w-16 bg-slate-200 dark:bg-slate-700/80 rounded"></div>
+                  </div>
+                ))}
+              </div>
+            </div>
+          ))}
+        </div>
+      </div>
+    );
+  }
 
   return (
     <div className="flex flex-col gap-6 p-6 max-w-[1400px] mx-auto w-full">
@@ -642,76 +755,81 @@ export default function AdminDashboard() {
 
       {/* ── Row 2: Analytics Row ── */}
       <div className="grid grid-cols-1 lg:grid-cols-2 gap-4">
-        {/* Donation Categories Custom List */}
-        <div className="bg-white dark:bg-[#1E2130] border border-slate-100 dark:border-white/5 rounded-2xl p-6 shadow-[0_2px_12px_-4px_rgba(0,0,0,0.04)] flex flex-col gap-5 relative group">
-          <div className="absolute top-0 right-0 w-32 h-32 bg-blue-500/5 rounded-full blur-3xl -mr-10 -mt-10 pointer-events-none transition-transform duration-500 group-hover:scale-125"></div>
-          <div className="flex items-start justify-between" style={{ marginBottom: '20px' }}>
-            <div style={{ display: 'flex', flexDirection: 'column', alignItems: 'flex-start', gap: '8px' }}>
-              <h3 className="m-0 font-inter text-base font-bold text-slate-800 dark:text-white">Donation Categories</h3>
-              <span className="font-mono font-semibold m-0 px-3 py-1 bg-blue-50 text-blue-700 dark:bg-blue-500/20 dark:text-blue-400 rounded-full text-[13px]">
-                ₱{(pieTotal || 0).toLocaleString()}
-              </span>
+        {/* Donation Categories */}
+        <div className="bg-white dark:bg-[#1E2130] border border-slate-200/80 dark:border-white/10 rounded-2xl p-5 shadow-[0_2px_12px_-4px_rgba(0,0,0,0.04)] flex flex-col relative group overflow-hidden">
+          <div className="absolute top-0 right-0 w-32 h-32 bg-amber-500/5 rounded-full blur-3xl -mr-10 -mt-10 pointer-events-none transition-transform duration-500 group-hover:scale-125"></div>
+          <div className="flex items-center justify-between mb-5 relative z-10">
+            <div>
+              <h3 className="m-0 font-inter text-[15px] font-bold text-slate-900 dark:text-white leading-tight">Donation Categories</h3>
+              <p className="m-0 font-inter text-xs text-slate-500 dark:text-slate-400 mt-0.5">{donationPeriodLabel} · <span className="font-mono font-semibold text-amber-600 dark:text-amber-400">₱{(pieTotal || 0).toLocaleString()}</span></p>
             </div>
-            <button className="p-1.5 rounded-lg hover:bg-slate-100 dark:hover:bg-white/5 text-slate-400 transition-colors border-none bg-transparent cursor-pointer" onClick={() => setExpandedChart('donations')} title="Expand Chart"><Expand size={16} color="#4B5563" strokeWidth={2.5} /></button>
+            <div className="flex items-center gap-2">
+              <select value={donationPeriod} onChange={e => setDonationPeriod(e.target.value)} className="h-7 px-2 pr-6 appearance-none bg-slate-50 dark:bg-white/5 border border-slate-200 dark:border-white/10 rounded-lg text-[11px] font-inter font-semibold text-slate-600 dark:text-slate-400 outline-none cursor-pointer focus:border-blue-500 transition-colors bg-[url('data:image/svg+xml;charset=US-ASCII,%3Csvg%20xmlns%3D%22http%3A%2F%2Fwww.w3.org%2F2000%2Fsvg%22%20width%3D%2212%22%20height%3D%2212%22%20viewBox%3D%220%200%2024%2024%22%20fill%3D%22none%22%20stroke%3D%22%236B7280%22%20stroke-width%3D%222%22%20stroke-linecap%3D%22round%22%20stroke-linejoin%3D%22round%22%3E%3Cpolyline%20points%3D%226%209%2012%2015%2018%209%22%3E%3C%2Fpolyline%3E%3C%2Fsvg%3E')] bg-[length:12px] bg-[position:right_6px_center] bg-no-repeat">
+                <option value="all">All Time</option>
+                <option value="thisYear">This Year</option>
+                <option value="thisMonth">This Month</option>
+              </select>
+              <button className="p-1.5 rounded-lg hover:bg-slate-100 dark:hover:bg-white/5 text-slate-400 hover:text-slate-600 dark:hover:text-slate-300 transition-colors border-none bg-transparent cursor-pointer" onClick={() => setExpandedChart('donations')} title="Expand"><Expand size={15} strokeWidth={2.5} /></button>
+            </div>
           </div>
-          <div className="flex flex-col gap-3 flex-1 overflow-y-auto pr-2 custom-scrollbar max-h-[250px]">
+          <div className="flex flex-col gap-2.5 flex-1 overflow-y-auto pr-1 custom-scrollbar max-h-[260px]">
             {sortedDonationData.map((item, idx) => (
-              <div key={idx} className="flex items-center gap-3 text-sm font-inter">
-                <span className="w-32 truncate text-slate-600 dark:text-slate-400">{item.shortName}</span>
-                <div className="flex-1 h-2 bg-slate-100 dark:bg-white/5 rounded-full overflow-hidden">
-                  <div className="h-full rounded-full transition-all duration-500" style={{ width: `${item.percentage}%`, backgroundColor: item.fillColor }}></div>
+              <div key={idx} className="flex items-center gap-3 text-[13px] font-inter py-1">
+                <div className="w-2.5 h-2.5 rounded-full shrink-0" style={{ backgroundColor: item.fillColor }}></div>
+                <span className="w-28 truncate font-medium text-slate-700 dark:text-slate-300">{item.shortName}</span>
+                <div className="flex-1 h-1.5 bg-slate-100 dark:bg-white/5 rounded-full overflow-hidden">
+                  <div className="h-full rounded-full transition-all duration-700 ease-out" style={{ width: `${item.percentage}%`, backgroundColor: item.fillColor }}></div>
                 </div>
-                <span className="w-24 text-right font-medium text-slate-700 dark:text-slate-300 tabular-nums">{item.displayLabel}</span>
+                <span className="w-24 text-right font-semibold text-slate-600 dark:text-slate-400 tabular-nums text-xs">{item.displayLabel}</span>
               </div>
             ))}
           </div>
         </div>
 
-        {/* Members by Branch Bar */}
-        <div className="bg-white dark:bg-[#1E2130] border border-slate-100 dark:border-white/5 rounded-2xl p-6 shadow-[0_2px_12px_-4px_rgba(0,0,0,0.04)] flex flex-col gap-5 relative group">
-          <div className="absolute top-0 right-0 w-32 h-32 bg-emerald-500/5 rounded-full blur-3xl -mr-10 -mt-10 pointer-events-none transition-transform duration-500 group-hover:scale-125"></div>
-          <div className="flex items-start justify-between">
+        {/* Members by Community */}
+        <div className="bg-white dark:bg-[#1E2130] border border-slate-200/80 dark:border-white/10 rounded-2xl p-5 shadow-[0_2px_12px_-4px_rgba(0,0,0,0.04)] flex flex-col relative group overflow-hidden">
+          <div className="absolute top-0 right-0 w-32 h-32 bg-blue-500/5 rounded-full blur-3xl -mr-10 -mt-10 pointer-events-none transition-transform duration-500 group-hover:scale-125"></div>
+          <div className="flex items-center justify-between mb-5 relative z-10">
             <div>
-              <h3 className="m-0 font-inter text-base font-bold text-slate-800 dark:text-white">Members by Community</h3>
-              <span className="m-0 mt-1 font-inter text-[13px] text-slate-500 dark:text-slate-400"><strong className="font-mono font-medium text-slate-700 dark:text-slate-300">{memberStats.total}</strong> total across <strong className="font-mono font-medium text-slate-700 dark:text-slate-300">{membersByBranch.length}</strong> communities</span>
+              <h3 className="m-0 font-inter text-[15px] font-bold text-slate-900 dark:text-white leading-tight">Members by Community</h3>
+              <p className="m-0 font-inter text-xs text-slate-500 dark:text-slate-400 mt-0.5"><span className="font-mono font-semibold text-blue-600 dark:text-blue-400">{memberStats.total}</span> total across <span className="font-mono font-semibold text-slate-700 dark:text-slate-300">{membersByBranch.length}</span> communities</p>
             </div>
-            <div style={{ display: 'flex', alignItems: 'center', gap: '8px' }}>
+            <div className="flex items-center gap-2">
               <select 
                 value={topCommunitiesLimit} 
                 onChange={(e) => setTopCommunitiesLimit(Number(e.target.value))}
-                className="h-9 px-3 pr-8 appearance-none bg-white dark:bg-[#1E2130] border border-slate-200 dark:border-white/10 rounded-lg text-[13px] font-inter font-medium text-slate-700 dark:text-slate-300 outline-none cursor-pointer focus:border-blue-500 transition-colors bg-[url('data:image/svg+xml;charset=US-ASCII,%3Csvg%20xmlns%3D%22http%3A%2F%2Fwww.w3.org%2F2000%2Fsvg%22%20width%3D%2216%22%20height%3D%2216%22%20viewBox%3D%220%200%2024%2024%22%20fill%3D%22none%22%20stroke%3D%22%236B7280%22%20stroke-width%3D%222%22%20stroke-linecap%3D%22round%22%20stroke-linejoin%3D%22round%22%3E%3Cpolyline%20points%3D%226%209%2012%2015%2018%209%22%3E%3C%2Fpolyline%3E%3C%2Fsvg%3E')] bg-[length:16px] bg-[position:right_8px_center] bg-no-repeat"
-                style={{ padding: '4px 24px 4px 8px', fontSize: '11px', height: '26px' }}
+                className="h-7 px-2 pr-6 appearance-none bg-slate-50 dark:bg-white/5 border border-slate-200 dark:border-white/10 rounded-lg text-[11px] font-inter font-semibold text-slate-600 dark:text-slate-400 outline-none cursor-pointer focus:border-blue-500 transition-colors bg-[url('data:image/svg+xml;charset=US-ASCII,%3Csvg%20xmlns%3D%22http%3A%2F%2Fwww.w3.org%2F2000%2Fsvg%22%20width%3D%2212%22%20height%3D%2212%22%20viewBox%3D%220%200%2024%2024%22%20fill%3D%22none%22%20stroke%3D%22%236B7280%22%20stroke-width%3D%222%22%20stroke-linecap%3D%22round%22%20stroke-linejoin%3D%22round%22%3E%3Cpolyline%20points%3D%226%209%2012%2015%2018%209%22%3E%3C%2Fpolyline%3E%3C%2Fsvg%3E')] bg-[length:12px] bg-[position:right_6px_center] bg-no-repeat"
               >
                 <option value={10}>Top 10</option>
                 <option value={20}>Top 20</option>
                 <option value={40}>Top 40</option>
                 <option value={70}>Top 70</option>
               </select>
-              <button className="p-1.5 rounded-lg hover:bg-slate-100 dark:hover:bg-white/5 text-slate-400 transition-colors border-none bg-transparent cursor-pointer" onClick={() => setExpandedChart('branches')} title="Expand Chart"><Expand size={16} color="#4B5563" strokeWidth={2.5} /></button>
+              <button className="p-1.5 rounded-lg hover:bg-slate-100 dark:hover:bg-white/5 text-slate-400 hover:text-slate-600 dark:hover:text-slate-300 transition-colors border-none bg-transparent cursor-pointer" onClick={() => setExpandedChart('branches')} title="Expand"><Expand size={15} strokeWidth={2.5} /></button>
             </div>
           </div>
-          <div className="w-full h-[250px]">
+          <div className="w-full h-[260px]">
             <ResponsiveContainer width="100%" height="100%">
               <BarChart 
                 data={membersByBranch.length > 0 ? membersByBranch.slice(0, topCommunitiesLimit) : [{ branch: 'No data', count: 0 }]} 
                 layout={isHorizontalMembers ? "vertical" : "horizontal"}
-                margin={isHorizontalMembers ? { top: 0, right: 30, left: 10, bottom: 0 } : { top: 20, right: 8, left: -25, bottom: 40 }}
+                margin={isHorizontalMembers ? { top: 0, right: 30, left: 10, bottom: 0 } : { top: 10, right: 8, left: -25, bottom: 40 }}
               >
-                <CartesianGrid strokeDasharray="3 3" stroke="#F3F4F6" horizontal={!isHorizontalMembers} vertical={isHorizontalMembers} />
+                <CartesianGrid strokeDasharray="3 3" stroke="#E5E7EB" strokeOpacity={0.6} horizontal={!isHorizontalMembers} vertical={isHorizontalMembers} />
                 {isHorizontalMembers ? (
                   <>
                     <XAxis type="number" stroke="#9CA3AF" fontSize={11} domain={[0, maxMembersInBranch + 1]} allowDecimals={false} hide />
-                    <YAxis dataKey="branch" type="category" stroke="#9CA3AF" fontSize={11} fontFamily="DM Sans, sans-serif" fontWeight={400} width={160} />
+                    <YAxis dataKey="branch" type="category" stroke="#9CA3AF" fontSize={11} fontFamily="Inter, sans-serif" fontWeight={500} width={160} />
                   </>
                 ) : (
                   <>
-                    <XAxis dataKey="branch" stroke="#9CA3AF" fontSize={11} fontFamily="DM Sans, sans-serif" fontWeight={400} angle={-45} textAnchor="end" height={60} interval={0} tickMargin={5} />
-                    <YAxis stroke="#9CA3AF" fontSize={11} fontFamily="DM Mono, monospace" fontWeight={500} domain={[0, maxMembersInBranch + 1]} allowDecimals={false} />
+                    <XAxis dataKey="branch" stroke="#9CA3AF" fontSize={10} fontFamily="Inter, sans-serif" fontWeight={500} angle={-45} textAnchor="end" height={60} interval={0} tickMargin={5} />
+                    <YAxis stroke="#9CA3AF" fontSize={11} fontFamily="Inter, sans-serif" fontWeight={500} domain={[0, maxMembersInBranch + 1]} allowDecimals={false} axisLine={false} tickLine={false} />
                   </>
                 )}
-                <Tooltip cursor={{ fill: '#F9FAFB' }} formatter={(value) => [value, 'Members']} />
-                <Bar dataKey="count" fill="#2563EB" radius={isHorizontalMembers ? [0, 4, 4, 0] : [4, 4, 0, 0]} barSize={isHorizontalMembers ? 20 : 32} name="Members">
-                  <LabelList dataKey="count" position={isHorizontalMembers ? "right" : "top"} fill="#6B7280" fontSize={11} fontFamily="DM Mono, monospace" fontWeight={500} />
+                <Tooltip cursor={{ fill: 'rgba(59,130,246,0.04)' }} formatter={(value) => [value, 'Members']} contentStyle={{ borderRadius: '12px', border: '1px solid #E5E7EB', fontSize: '12px', fontFamily: 'Inter, sans-serif' }} />
+                <Bar dataKey="count" fill="#3B82F6" radius={isHorizontalMembers ? [0, 6, 6, 0] : [6, 6, 0, 0]} barSize={isHorizontalMembers ? 18 : 28} name="Members">
+                  <LabelList dataKey="count" position={isHorizontalMembers ? "right" : "top"} fill="#6B7280" fontSize={10} fontFamily="Inter, sans-serif" fontWeight={600} />
                 </Bar>
               </BarChart>
             </ResponsiveContainer>
@@ -719,71 +837,88 @@ export default function AdminDashboard() {
         </div>
       </div>
 
-      {/* ── Row 3 & 4: Charts ── */}
+      {/* ── Row 3: Charts ── */}
       <div className="grid grid-cols-1 lg:grid-cols-2 gap-4">
-        <div className="bg-white dark:bg-[#1E2130] border border-slate-100 dark:border-white/5 rounded-2xl p-6 shadow-[0_2px_12px_-4px_rgba(0,0,0,0.04)] flex flex-col gap-5 relative group">
-          <div className="absolute top-0 right-0 w-32 h-32 bg-indigo-500/5 rounded-full blur-3xl -mr-10 -mt-10 pointer-events-none transition-transform duration-500 group-hover:scale-125"></div>
-          <div className="flex items-start justify-between">
+        {/* Member Growth Trends */}
+        <div className="bg-white dark:bg-[#1E2130] border border-slate-200/80 dark:border-white/10 rounded-2xl p-5 shadow-[0_2px_12px_-4px_rgba(0,0,0,0.04)] flex flex-col relative group overflow-hidden">
+          <div className="absolute top-0 right-0 w-32 h-32 bg-emerald-500/5 rounded-full blur-3xl -mr-10 -mt-10 pointer-events-none transition-transform duration-500 group-hover:scale-125"></div>
+          <div className="flex items-center justify-between mb-5 relative z-10">
             <div>
-              <h3 className="m-0 font-inter text-base font-bold text-slate-800 dark:text-white">Member Growth Trends</h3>
-              <span className={`m-0 mt-1 font-inter text-[13px] font-semibold ${momGrowth >= 0 ? 'text-emerald-500' : 'text-rose-500'}`}>
-                {momGrowth >= 0 ? '↑' : '↓'} {Math.abs(momGrowth)}% vs last month · {memberStats.total.toLocaleString()} members
-              </span>
+              <h3 className="m-0 font-inter text-[15px] font-bold text-slate-900 dark:text-white leading-tight">Member Growth Trends</h3>
+              <p className="m-0 font-inter text-xs text-slate-500 dark:text-slate-400 mt-0.5">
+                <span className={`font-semibold ${momGrowth >= 0 ? 'text-emerald-600 dark:text-emerald-400' : 'text-rose-600 dark:text-rose-400'}`}>{momGrowth >= 0 ? '↑' : '↓'} {Math.abs(momGrowth)}%</span> vs last month · <span className="font-mono font-semibold text-slate-700 dark:text-slate-300">{memberStats.total.toLocaleString()}</span> members
+              </p>
             </div>
-            <button className="p-1.5 rounded-lg hover:bg-slate-100 dark:hover:bg-white/5 text-slate-400 transition-colors border-none bg-transparent cursor-pointer" onClick={() => setExpandedChart('growth')} title="Expand Chart"><Expand size={16} color="#4B5563" strokeWidth={2.5} /></button>
+            <div className="flex items-center gap-2">
+              <select value={growthMonth} onChange={e => setGrowthMonth(e.target.value)} className="h-7 px-2 pr-6 appearance-none bg-slate-50 dark:bg-white/5 border border-slate-200 dark:border-white/10 rounded-lg text-[11px] font-inter font-semibold text-slate-600 dark:text-slate-400 outline-none cursor-pointer focus:border-blue-500 transition-colors bg-[url('data:image/svg+xml;charset=US-ASCII,%3Csvg%20xmlns%3D%22http%3A%2F%2Fwww.w3.org%2F2000%2Fsvg%22%20width%3D%2212%22%20height%3D%2212%22%20viewBox%3D%220%200%2024%2024%22%20fill%3D%22none%22%20stroke%3D%22%236B7280%22%20stroke-width%3D%222%22%20stroke-linecap%3D%22round%22%20stroke-linejoin%3D%22round%22%3E%3Cpolyline%20points%3D%226%209%2012%2015%2018%209%22%3E%3C%2Fpolyline%3E%3C%2Fsvg%3E')] bg-[length:12px] bg-[position:right_6px_center] bg-no-repeat">
+                <option value="all">All Months</option>
+                {['Jan','Feb','Mar','Apr','May','Jun','Jul','Aug','Sep','Oct','Nov','Dec'].map((m, i) => <option key={i} value={String(i)}>{m}</option>)}
+              </select>
+              <button className="p-1.5 rounded-lg hover:bg-slate-100 dark:hover:bg-white/5 text-slate-400 hover:text-slate-600 dark:hover:text-slate-300 transition-colors border-none bg-transparent cursor-pointer" onClick={() => setExpandedChart('growth')} title="Expand"><Expand size={15} strokeWidth={2.5} /></button>
+            </div>
           </div>
-          <div className="w-full h-[250px]">
+          <div className="w-full h-[260px]">
             <ResponsiveContainer width="100%" height="100%">
-              <ComposedChart data={enhancedGrowthData} margin={{ top: 20, right: 8, left: -25, bottom: 5 }}>
+              <ComposedChart data={enhancedGrowthData} margin={{ top: 10, right: 8, left: -25, bottom: 5 }}>
                 <defs>
                   <linearGradient id="colorTotal" x1="0" y1="0" x2="0" y2="1">
-                    <stop offset="5%" stopColor="#155DFC" stopOpacity={0.1}/>
-                    <stop offset="95%" stopColor="#155DFC" stopOpacity={0}/>
+                    <stop offset="5%" stopColor="#3B82F6" stopOpacity={0.12}/>
+                    <stop offset="95%" stopColor="#3B82F6" stopOpacity={0}/>
                   </linearGradient>
                 </defs>
-                <CartesianGrid strokeDasharray="3 3" stroke="#F3F4F6" vertical={false} />
-                <XAxis dataKey="label" stroke="#9CA3AF" fontSize={11} fontFamily="DM Sans, sans-serif" fontWeight={400} axisLine={false} tickLine={false} />
-                <YAxis stroke="#9CA3AF" fontSize={11} fontFamily="DM Mono, monospace" fontWeight={500} axisLine={false} tickLine={false} allowDecimals={false} domain={[0, memberStats.total > 0 ? memberStats.total + 2 : 'auto']} />
-                <Tooltip formatter={(value, name) => [value, name === 'actualTotal' ? 'Total Members' : name === 'newMembers' ? 'New Members' : name]} />
-                <Legend wrapperStyle={{ paddingTop: '15px', fontSize: '11px', fontFamily: 'DM Sans, sans-serif', fontWeight: 400 }} verticalAlign="bottom" />
+                <CartesianGrid strokeDasharray="3 3" stroke="#E5E7EB" strokeOpacity={0.6} vertical={false} />
+                <XAxis dataKey="label" stroke="#9CA3AF" fontSize={11} fontFamily="Inter, sans-serif" fontWeight={500} axisLine={false} tickLine={false} />
+                <YAxis stroke="#9CA3AF" fontSize={11} fontFamily="Inter, sans-serif" fontWeight={500} axisLine={false} tickLine={false} allowDecimals={false} domain={[0, memberStats.total > 0 ? memberStats.total + 2 : 'auto']} />
+                <Tooltip formatter={(value, name) => [value, name === 'actualTotal' ? 'Total Members' : name === 'newMembers' ? 'New Members' : name]} contentStyle={{ borderRadius: '12px', border: '1px solid #E5E7EB', fontSize: '12px', fontFamily: 'Inter, sans-serif' }} />
+                <Legend wrapperStyle={{ paddingTop: '15px', fontSize: '11px', fontFamily: 'Inter, sans-serif', fontWeight: 500 }} verticalAlign="bottom" />
                 
                 {enhancedGrowthData.length > 0 && enhancedGrowthData.findIndex(d => d.actualTotal !== null) > 0 && (
                   <ReferenceLine 
                     x={enhancedGrowthData[enhancedGrowthData.findIndex(d => d.actualTotal !== null)].label} 
                     stroke="#9CA3AF" 
                     strokeDasharray="3 3" 
-                    label={{ position: 'insideTopLeft', value: 'Registration Opened', fill: '#9CA3AF', fontSize: 11, fontFamily: 'DM Sans, sans-serif' }} 
+                    label={{ position: 'insideTopLeft', value: 'Registration Opened', fill: '#9CA3AF', fontSize: 10, fontFamily: 'Inter, sans-serif' }} 
                   />
                 )}
                 
-                <Bar dataKey="newMembers" barSize={16} fill="#F5B247" radius={[4, 4, 4, 4]} name="New Members" />
-                <Area type="monotone" dataKey="actualTotal" stroke="#155DFC" strokeWidth={3} fillOpacity={1} fill="url(#colorTotal)" name="Total Members" connectNulls dot={false} activeDot={{ r: 6 }} />
+                <Bar dataKey="newMembers" barSize={14} fill="#F59E0B" radius={[4, 4, 4, 4]} name="New Members" />
+                <Area type="monotone" dataKey="actualTotal" stroke="#3B82F6" strokeWidth={2.5} fillOpacity={1} fill="url(#colorTotal)" name="Total Members" connectNulls dot={false} activeDot={{ r: 5, fill: '#3B82F6', stroke: '#fff', strokeWidth: 2 }} />
   
               </ComposedChart>
             </ResponsiveContainer>
           </div>
         </div>
 
-        <div className="bg-white dark:bg-[#1E2130] border border-slate-100 dark:border-white/5 rounded-2xl p-6 shadow-[0_2px_12px_-4px_rgba(0,0,0,0.04)] flex flex-col gap-5 relative group">
+        {/* Attendance Trends */}
+        <div className="bg-white dark:bg-[#1E2130] border border-slate-200/80 dark:border-white/10 rounded-2xl p-5 shadow-[0_2px_12px_-4px_rgba(0,0,0,0.04)] flex flex-col relative group overflow-hidden">
           <div className="absolute top-0 right-0 w-32 h-32 bg-violet-500/5 rounded-full blur-3xl -mr-10 -mt-10 pointer-events-none transition-transform duration-500 group-hover:scale-125"></div>
-          <div className="flex items-start justify-between">
+          <div className="flex items-center justify-between mb-5 relative z-10">
             <div>
-              <h3 className="m-0 font-inter text-base font-bold text-slate-800 dark:text-white">Attendance Trends</h3>
-              <span ><span className="m-0 mt-1 font-inter text-[13px] text-slate-500 dark:text-slate-400 font-mono font-medium text-slate-700 dark:text-slate-300">{totalAttendanceCount}</span> total attendees recorded — {new Date().getFullYear()}</span>
+              <h3 className="m-0 font-inter text-[15px] font-bold text-slate-900 dark:text-white leading-tight">Attendance Trends</h3>
+              <p className="m-0 font-inter text-xs text-slate-500 dark:text-slate-400 mt-0.5"><span className="font-mono font-semibold text-violet-600 dark:text-violet-400">{totalAttendanceCount}</span> recorded · <span className="font-mono font-semibold text-emerald-600 dark:text-emerald-400">{attendanceRate}%</span> attendance rate</p>
             </div>
-            <button className="p-1.5 rounded-lg hover:bg-slate-100 dark:hover:bg-white/5 text-slate-400 transition-colors border-none bg-transparent cursor-pointer" onClick={() => setExpandedChart('attendance')} title="Expand Chart"><Expand size={16} color="#4B5563" strokeWidth={2.5} /></button>
+            <div className="flex items-center gap-1.5">
+              <select value={attMonth} onChange={e => setAttMonth(e.target.value)} className="h-7 px-2 pr-6 appearance-none bg-slate-50 dark:bg-white/5 border border-slate-200 dark:border-white/10 rounded-lg text-[11px] font-inter font-semibold text-slate-600 dark:text-slate-400 outline-none cursor-pointer focus:border-blue-500 transition-colors bg-[url('data:image/svg+xml;charset=US-ASCII,%3Csvg%20xmlns%3D%22http%3A%2F%2Fwww.w3.org%2F2000%2Fsvg%22%20width%3D%2212%22%20height%3D%2212%22%20viewBox%3D%220%200%2024%2024%22%20fill%3D%22none%22%20stroke%3D%22%236B7280%22%20stroke-width%3D%222%22%20stroke-linecap%3D%22round%22%20stroke-linejoin%3D%22round%22%3E%3Cpolyline%20points%3D%226%209%2012%2015%2018%209%22%3E%3C%2Fpolyline%3E%3C%2Fsvg%3E')] bg-[length:12px] bg-[position:right_6px_center] bg-no-repeat">
+                <option value="all">All Months</option>
+                {['Jan','Feb','Mar','Apr','May','Jun','Jul','Aug','Sep','Oct','Nov','Dec'].map((m, i) => <option key={i} value={String(i)}>{m}</option>)}
+              </select>
+              <select value={attBranch} onChange={e => setAttBranch(e.target.value)} className="h-7 px-2 pr-6 appearance-none bg-slate-50 dark:bg-white/5 border border-slate-200 dark:border-white/10 rounded-lg text-[11px] font-inter font-semibold text-slate-600 dark:text-slate-400 outline-none cursor-pointer focus:border-blue-500 transition-colors max-w-[110px] truncate bg-[url('data:image/svg+xml;charset=US-ASCII,%3Csvg%20xmlns%3D%22http%3A%2F%2Fwww.w3.org%2F2000%2Fsvg%22%20width%3D%2212%22%20height%3D%2212%22%20viewBox%3D%220%200%2024%2024%22%20fill%3D%22none%22%20stroke%3D%22%236B7280%22%20stroke-width%3D%222%22%20stroke-linecap%3D%22round%22%20stroke-linejoin%3D%22round%22%3E%3Cpolyline%20points%3D%226%209%2012%2015%2018%209%22%3E%3C%2Fpolyline%3E%3C%2Fsvg%3E')] bg-[length:12px] bg-[position:right_6px_center] bg-no-repeat">
+                <option value="all">All Branches</option>
+                {membersByBranch.map(b => <option key={b.branch} value={b.branch}>{b.branch}</option>)}
+              </select>
+              <button className="p-1.5 rounded-lg hover:bg-slate-100 dark:hover:bg-white/5 text-slate-400 hover:text-slate-600 dark:hover:text-slate-300 transition-colors border-none bg-transparent cursor-pointer" onClick={() => setExpandedChart('attendance')} title="Expand"><Expand size={15} strokeWidth={2.5} /></button>
+            </div>
           </div>
-          <div className="w-full h-[250px]">
+          <div className="w-full h-[260px]">
             <ResponsiveContainer width="100%" height="100%">
-              <BarChart data={attendVsDonData} margin={{ top: 20, right: 8, left: -25, bottom: 5 }}>
-                <CartesianGrid strokeDasharray="3 3" stroke="#F3F4F6" />
-                <XAxis dataKey="label" stroke="#9CA3AF" fontSize={11} fontFamily="DM Sans, sans-serif" fontWeight={400} />
-                <YAxis stroke="#9CA3AF" fontSize={11} fontFamily="DM Mono, monospace" fontWeight={500} allowDecimals={false} label={{ value: 'Attendees', angle: -90, position: 'insideLeft', fill: '#9CA3AF', fontSize: 11, fontFamily: 'DM Sans, sans-serif', fontWeight: 400, offset: -5 }} />
-                <Tooltip cursor={{ fill: '#F9FAFB' }} />
-                <Legend iconType="square" wrapperStyle={{ paddingTop: '15px', fontSize: '11px', fontFamily: 'DM Sans, sans-serif', fontWeight: 400 }} verticalAlign="bottom" />
-                <Bar dataKey="present" fill="#155DFC" stackId="a" name="Present" />
-                <Bar dataKey="late" fill="#F5B247" stackId="a" name="Late" />
-                <Bar dataKey="absent" fill="#EF4444" stackId="a" name="Absent" />
+              <BarChart data={attendVsDonData} margin={{ top: 10, right: 8, left: -25, bottom: 5 }}>
+                <CartesianGrid strokeDasharray="3 3" stroke="#E5E7EB" strokeOpacity={0.6} vertical={false} />
+                <XAxis dataKey="label" stroke="#9CA3AF" fontSize={11} fontFamily="Inter, sans-serif" fontWeight={500} axisLine={false} tickLine={false} />
+                <YAxis stroke="#9CA3AF" fontSize={11} fontFamily="Inter, sans-serif" fontWeight={500} allowDecimals={false} axisLine={false} tickLine={false} />
+                <Tooltip cursor={{ fill: 'rgba(139,92,246,0.04)' }} contentStyle={{ borderRadius: '12px', border: '1px solid #E5E7EB', fontSize: '12px', fontFamily: 'Inter, sans-serif' }} />
+                <Legend iconType="square" wrapperStyle={{ paddingTop: '15px', fontSize: '11px', fontFamily: 'Inter, sans-serif', fontWeight: 500 }} verticalAlign="bottom" />
+                <Bar dataKey="present" fill="#3B82F6" stackId="a" name="Present" radius={[0, 0, 0, 0]} />
+                <Bar dataKey="absent" fill="#EF4444" stackId="a" name="Absent" radius={[4, 4, 0, 0]} />
               </BarChart>
             </ResponsiveContainer>
           </div>

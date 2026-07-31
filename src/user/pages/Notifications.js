@@ -31,10 +31,10 @@ const fmtTime = (date, isReminder) => {
 
   if (mins < 1) return 'just now';
   if (mins < 60) return `${mins} minute${mins > 1 ? 's' : ''} ago`;
-  
+
   if (hours < 24) return `${hours} hour${hours > 1 ? 's' : ''} ago · ${dateStrShort}, ${timeStr}`;
   if (daysAgo < 7) return `${daysAgo} day${daysAgo > 1 ? 's' : ''} ago · ${dateStrShort}, ${timeStr}`;
-  
+
   return `${dateStrFull} · ${timeStr}`;
 };
 
@@ -89,7 +89,17 @@ export default function Notifications() {
   });
 
   /* ── Terms review modal state ── */
+  const DECLINE_REASONS = [
+    'Monthly payment is too high',
+    'Repayment term is too short',
+    'Approved amount is insufficient',
+    'No longer interested / No longer needed',
+    'Others (Please specify)',
+  ];
   const [termsModal, setTermsModal] = useState(null);  // the loan object
+  const [confirmAction, setConfirmAction] = useState(null); // 'agree' | 'decline' | null
+  const [declineReasonSelect, setDeclineReasonSelect] = useState('Monthly payment is too high');
+  const [declineCustomReason, setDeclineCustomReason] = useState('');
   const [termsLoading, setTermsLoading] = useState(false);
 
   const fetcherSingle = (url) => fetch(url, { headers: { Authorization: `Bearer ${localStorage.getItem('token')}` } }).then(res => res.ok ? res.json() : { success: false });
@@ -101,12 +111,12 @@ export default function Notifications() {
   const { data: ppData, isValidating: ppValidating } = useSWR(`${API}/api/loans/my-payments`, fetcherSingle, { revalidateOnFocus: false });
   const { data: readData, isValidating: readValidating, mutate: mutateRead } = useSWR(`${API}/api/read-notifications`, fetcherSingle, { revalidateOnFocus: false });
 
-  const loading = (!lData && lValidating) || 
-                  (!dData && dValidating) ||
-                  (!aData && aValidating) ||
-                  (!sData && sValidating) ||
-                  (!ppData && ppValidating) ||
-                  (!readData && readValidating);
+  const loading = (!lData && lValidating) ||
+    (!dData && dValidating) ||
+    (!aData && aValidating) ||
+    (!sData && sValidating) ||
+    (!ppData && ppValidating) ||
+    (!readData && readValidating);
 
   useEffect(() => {
     if (readData && readData.readIds) {
@@ -220,8 +230,8 @@ export default function Notifications() {
           message: p.status === 'pending'
             ? `Month #${p.monthNumber || ''} payment of ₱${Number(p.amount).toLocaleString()} via ${(p.paymentMethod || 'cash').toUpperCase()} is awaiting confirmation.`
             : (p.status === 'confirmed'
-               ? `Month #${p.monthNumber || ''} · ₱${Number(p.amount).toLocaleString()} via ${(p.paymentMethod || 'cash').toUpperCase()} · Confirmed`
-               : `Your Month #${p.monthNumber || ''} payment of ₱${Number(p.amount).toLocaleString()} via ${(p.paymentMethod || 'cash').toUpperCase()} was rejected.`),
+              ? `Month #${p.monthNumber || ''} · ₱${Number(p.amount).toLocaleString()} via ${(p.paymentMethod || 'cash').toUpperCase()} · Confirmed`
+              : `Your Month #${p.monthNumber || ''} payment of ₱${Number(p.amount).toLocaleString()} via ${(p.paymentMethod || 'cash').toUpperCase()} was rejected.`),
           paymentData: p,
           isUrgent: p.status === 'rejected',
         });
@@ -239,7 +249,8 @@ export default function Notifications() {
             title: 'Donation Confirmed — Thank You!',
             message: `Blessings! Your donation of ₱${Number(d.amount).toLocaleString()} for ${d.category} has been confirmed. We truly appreciate your support for the ministry.`,
             amount: d.amount,
-            category: d.category
+            category: d.category,
+            donationId: d.donationId
           });
         } else if (d.status === 'rejected') {
           items.push({
@@ -250,6 +261,7 @@ export default function Notifications() {
             message: `We were unable to confirm your donation of ₱${Number(d.amount).toLocaleString()} for ${d.category}. ${d.rejectReason ? `Reason: ${d.rejectReason}` : 'Please review your submission details.'}`,
             amount: d.amount,
             category: d.category,
+            donationId: d.donationId,
             isUrgent: true
           });
         }
@@ -266,7 +278,8 @@ export default function Notifications() {
           title: 'Savings Validated',
           message: `Your deposit of ₱${Number(s.amount).toLocaleString()} is now confirmed.`,
           amount: s.amount,
-          goalName: s.goalName
+          goalName: s.goalName,
+          savingsRefId: s.savingsRefId
         });
       });
     }
@@ -356,15 +369,15 @@ export default function Notifications() {
     );
 
     if (type === 'loan') {
-      if (title.includes('Disbursed'))  return wrap('bg-blue-100 dark:bg-blue-950/60', 'text-blue-600 dark:text-blue-400', Landmark);
-      if (title.includes('Approved'))   return wrap('bg-emerald-100 dark:bg-emerald-950/60', 'text-emerald-600 dark:text-emerald-400', BadgeCheck);
-      if (title.includes('Reminder'))   return wrap('bg-rose-100 dark:bg-rose-950/60', 'text-rose-600 dark:text-rose-400', AlertCircle);
+      if (title.includes('Disbursed')) return wrap('bg-blue-100 dark:bg-blue-950/60', 'text-blue-600 dark:text-blue-400', Landmark);
+      if (title.includes('Approved')) return wrap('bg-emerald-100 dark:bg-emerald-950/60', 'text-emerald-600 dark:text-emerald-400', BadgeCheck);
+      if (title.includes('Reminder')) return wrap('bg-rose-100 dark:bg-rose-950/60', 'text-rose-600 dark:text-rose-400', AlertCircle);
       return wrap('bg-blue-100 dark:bg-blue-950/60', 'text-blue-600 dark:text-blue-400', Banknote);
     }
-    if (type === 'payment_pending')     return wrap('bg-emerald-100 dark:bg-emerald-950/60', 'text-emerald-600 dark:text-emerald-400', CircleCheck);
-    if (type === 'savings')             return wrap('bg-[#F0D89A]/30 dark:bg-amber-950/60', 'text-amber-700 dark:text-amber-300', PiggyBank);
-    if (type === 'donation')            return wrap('bg-pink-100 dark:bg-pink-950/60', 'text-pink-600 dark:text-pink-400', Heart);
-    if (type === 'attendance')          return wrap('bg-teal-100 dark:bg-teal-950/60', 'text-teal-600 dark:text-teal-400', CalendarDays);
+    if (type === 'payment_pending') return wrap('bg-emerald-100 dark:bg-emerald-950/60', 'text-emerald-600 dark:text-emerald-400', CircleCheck);
+    if (type === 'savings') return wrap('bg-[#F0D89A]/30 dark:bg-amber-950/60', 'text-amber-700 dark:text-amber-300', PiggyBank);
+    if (type === 'donation') return wrap('bg-pink-100 dark:bg-pink-950/60', 'text-pink-600 dark:text-pink-400', Heart);
+    if (type === 'attendance') return wrap('bg-teal-100 dark:bg-teal-950/60', 'text-teal-600 dark:text-teal-400', CalendarDays);
     return wrap('bg-blue-100 dark:bg-blue-950/60', 'text-blue-600 dark:text-blue-400', Bell);
   };
 
@@ -377,7 +390,7 @@ export default function Notifications() {
 
 
 
-  const handleTermsResponse = async (accepted) => {
+  const handleTermsResponse = async (accepted, reason = '') => {
     if (!termsModal) return;
     setTermsLoading(true);
     try {
@@ -385,11 +398,14 @@ export default function Notifications() {
       const res = await fetch(`${API}/api/loans/${termsModal._id}/respond-terms`, {
         method: 'PUT',
         headers: { Authorization: `Bearer ${token}`, 'Content-Type': 'application/json' },
-        body: JSON.stringify({ accepted }),
+        body: JSON.stringify({ accepted, reason }),
       });
       const data = await res.json();
       if (!res.ok) { alert(data.message || 'Failed'); return; }
       setTermsModal(null);
+      setConfirmAction(null);
+      setDeclineReasonSelect('Monthly payment is too high');
+      setDeclineCustomReason('');
       // Wait for re-fetch or rely on SWR revalidation
       mutateRead();
     } catch {
@@ -463,13 +479,6 @@ export default function Notifications() {
           if (!n.isRead) markAsRead(n.id);
           if (n.actionRequired && n.loanData) {
             setTermsModal(n.loanData);
-          } else if (isSimple) {
-            setExpandedSimple(prev => {
-              const next = new Set(prev);
-              if (next.has(n.id)) next.delete(n.id);
-              else next.add(n.id);
-              return next;
-            });
           } else {
             setDetailModal(n);
           }
@@ -563,11 +572,11 @@ export default function Notifications() {
         text = 'View Donations →';
         link = '/donations';
       }
-      
+
       if (!text) return null;
-      
+
       return (
-        <span 
+        <span
           onClick={(e) => { e.stopPropagation(); window.location.href = link; }}
           className="text-xs font-bold text-blue-600 dark:text-blue-400 hover:underline cursor-pointer inline-block"
         >
@@ -577,17 +586,15 @@ export default function Notifications() {
     };
 
     return (
-      <div className={`relative overflow-hidden rounded-2xl border transition-all mb-3 font-inter ${
-        isExpanded ? 'ring-2 ring-blue-500/50' : ''
-      } ${
-        n.isUrgent
+      <div className={`relative overflow-hidden rounded-2xl border transition-all mb-3 font-inter ${isExpanded ? 'ring-2 ring-blue-500/50' : ''
+        } ${n.isUrgent
           ? 'border-rose-200/90 dark:border-rose-900/50 bg-rose-50/40 dark:bg-rose-950/20'
           : n.actionRequired
-          ? 'border-amber-200/90 dark:border-amber-900/50 bg-amber-50/40 dark:bg-amber-950/20'
-          : !n.isRead
-          ? 'border-blue-200/90 dark:border-blue-900/40 bg-white dark:bg-[#1E2130] shadow-sm shadow-blue-100/50 dark:shadow-none'
-          : 'border-slate-200/70 dark:border-white/10 bg-slate-50/60 dark:bg-[#1E2130]/60'
-      }`}>
+            ? 'border-amber-200/90 dark:border-amber-900/50 bg-amber-50/40 dark:bg-amber-950/20'
+            : !n.isRead
+              ? 'border-blue-200/90 dark:border-blue-900/40 bg-white dark:bg-[#1E2130] shadow-sm shadow-blue-100/50 dark:shadow-none'
+              : 'border-slate-200/70 dark:border-white/10 bg-slate-50/60 dark:bg-[#1E2130]/60'
+        }`}>
         {/* Swipe-to-read blue bg (ONLY visible when swiping left) */}
         {swipeOffset < 0 && (
           <div className="absolute inset-0 bg-blue-600 flex items-center justify-end px-6 z-0 rounded-2xl">
@@ -599,15 +606,14 @@ export default function Notifications() {
         )}
 
         <div
-          className={`relative z-10 flex items-start gap-3 p-3.5 sm:p-4 transition-transform ${
-            n.isUrgent
+          className={`relative z-10 flex items-start gap-3 p-3.5 sm:p-4 transition-transform ${n.isUrgent
               ? 'bg-rose-50/40 dark:bg-rose-950/30 border-l-4 border-l-rose-500'
               : n.actionRequired
-              ? 'bg-amber-50/40 dark:bg-amber-950/30 border-l-4 border-l-amber-500'
-              : !n.isRead
-              ? 'bg-white dark:bg-[#1E2130] border-l-4 border-l-blue-600 dark:border-l-blue-500'
-              : 'bg-slate-50/60 dark:bg-[#1E2130]/60 border-l-4 border-l-transparent'
-          } rounded-2xl`}
+                ? 'bg-amber-50/40 dark:bg-amber-950/30 border-l-4 border-l-amber-500'
+                : !n.isRead
+                  ? 'bg-white dark:bg-[#1E2130] border-l-4 border-l-blue-600 dark:border-l-blue-500'
+                  : 'bg-slate-50/60 dark:bg-[#1E2130]/60 border-l-4 border-l-transparent'
+            } rounded-2xl`}
           style={{ transform: `translateX(${swipeOffset}px)` }}
           onTouchStart={handleTouchStart}
           onTouchMove={handleTouchMove}
@@ -673,43 +679,8 @@ export default function Notifications() {
                   </button>
                 )}
 
-                {isSimple && (
-                  <ChevronDown
-                    size={14}
-                    className={`text-slate-400 transition-transform duration-200 shrink-0 ${isExpanded ? 'rotate-180' : ''}`}
-                  />
-                )}
               </div>
             </div>
-
-            {/* Expandable detail content for simple items */}
-            {isSimple && (
-              <div className={`overflow-hidden transition-all duration-300 ${isExpanded ? 'max-h-96 pt-3 mt-2 border-t border-slate-100 dark:border-white/5' : 'max-h-0'}`}>
-                <div className="space-y-2 font-inter">
-                  {n.type === 'attendance' && (
-                    <div className="grid grid-cols-2 sm:grid-cols-3 gap-3 p-3 rounded-xl bg-slate-50 dark:bg-slate-800/40 text-xs">
-                      <div><label className="block text-[10px] font-bold text-slate-400 dark:text-slate-500 uppercase tracking-wider">Service</label><span className="font-bold text-slate-800 dark:text-slate-200">{n.service || 'Sunday Service'}</span></div>
-                      <div><label className="block text-[10px] font-bold text-slate-400 dark:text-slate-500 uppercase tracking-wider">Community</label><span className="font-bold text-slate-800 dark:text-slate-200">{n.branch || 'Unknown Community'}</span></div>
-                      <div><label className="block text-[10px] font-bold text-slate-400 dark:text-slate-500 uppercase tracking-wider">Recorded On</label><span className="font-bold text-slate-800 dark:text-slate-200">{new Date(n.timestamp).toLocaleDateString()}</span></div>
-                    </div>
-                  )}
-                  {n.type === 'savings' && (
-                    <div className="grid grid-cols-2 sm:grid-cols-3 gap-3 p-3 rounded-xl bg-slate-50 dark:bg-slate-800/40 text-xs">
-                      <div><label className="block text-[10px] font-bold text-slate-400 dark:text-slate-500 uppercase tracking-wider">Goal</label><span className="font-bold text-slate-800 dark:text-slate-200">{n.goalName || 'General Savings'}</span></div>
-                      <div><label className="block text-[10px] font-bold text-slate-400 dark:text-slate-500 uppercase tracking-wider">Amount</label><span className="font-bold text-blue-600 dark:text-blue-400">₱{Number(n.amount || 0).toLocaleString()}</span></div>
-                      <div><label className="block text-[10px] font-bold text-slate-400 dark:text-slate-500 uppercase tracking-wider">Date</label><span className="font-bold text-slate-800 dark:text-slate-200">{new Date(n.timestamp).toLocaleDateString()}</span></div>
-                    </div>
-                  )}
-                  {n.type === 'donation' && (
-                    <div className="grid grid-cols-2 sm:grid-cols-3 gap-3 p-3 rounded-xl bg-slate-50 dark:bg-slate-800/40 text-xs">
-                      <div><label className="block text-[10px] font-bold text-slate-400 dark:text-slate-500 uppercase tracking-wider">Category</label><span className="font-bold text-slate-800 dark:text-slate-200">{n.category || 'Tithe'}</span></div>
-                      <div><label className="block text-[10px] font-bold text-slate-400 dark:text-slate-500 uppercase tracking-wider">Amount</label><span className="font-bold text-pink-600 dark:text-pink-400">₱{Number(n.amount || 0).toLocaleString()}</span></div>
-                      <div><label className="block text-[10px] font-bold text-slate-400 dark:text-slate-500 uppercase tracking-wider">Date</label><span className="font-bold text-slate-800 dark:text-slate-200">{new Date(n.timestamp).toLocaleDateString()}</span></div>
-                    </div>
-                  )}
-                </div>
-              </div>
-            )}
           </div>
         </div>
       </div>
@@ -740,19 +711,17 @@ export default function Notifications() {
             ].map(({ key, label, shortLabel }) => (
               <button
                 key={key}
-                className={`px-2 sm:px-3 py-1.5 rounded-xl text-[11px] sm:text-xs font-bold transition-all cursor-pointer flex items-center gap-1 shrink-0 border-none ${
-                  activeFilter === key 
-                    ? 'bg-blue-600 text-white shadow-md shadow-blue-500/20' 
+                className={`px-2 sm:px-3 py-1.5 rounded-xl text-[11px] sm:text-xs font-bold transition-all cursor-pointer flex items-center gap-1 shrink-0 border-none ${activeFilter === key
+                    ? 'bg-blue-600 text-white shadow-md shadow-blue-500/20'
                     : 'bg-white dark:bg-[#1E2130] border border-slate-200/80 dark:border-white/10 text-slate-700 dark:text-slate-300 hover:bg-slate-50 dark:hover:bg-slate-800/50'
-                }`}
+                  }`}
                 onClick={() => setActiveFilter(key)}
               >
                 <span className="hidden sm:inline">{label}</span>
                 <span className="inline sm:hidden">{shortLabel}</span>
                 {getUnreadCount(key) > 0 && (
-                  <span className={`px-1.5 py-0.2 rounded-full text-[10px] font-extrabold ${
-                    activeFilter === key ? 'bg-white text-blue-600' : 'bg-blue-600 text-white'
-                  }`}>
+                  <span className={`px-1.5 py-0.2 rounded-full text-[10px] font-extrabold ${activeFilter === key ? 'bg-white text-blue-600' : 'bg-blue-600 text-white'
+                    }`}>
                     {getUnreadCount(key)}
                   </span>
                 )}
@@ -760,8 +729,8 @@ export default function Notifications() {
             ))}
           </div>
 
-          <button 
-            className="text-xs font-bold text-blue-600 dark:text-blue-400 hover:underline cursor-pointer border-none bg-transparent shrink-0 ml-auto" 
+          <button
+            className="text-xs font-bold text-blue-600 dark:text-blue-400 hover:underline cursor-pointer border-none bg-transparent shrink-0 ml-auto"
             onClick={markAllAsRead}
           >
             Mark all as read
@@ -830,13 +799,13 @@ export default function Notifications() {
       {/* ── Terms Review Modal ── */}
       {termsModal && (
         <div className="fixed inset-0 z-[9999] bg-black/60 backdrop-blur-sm flex items-end sm:items-center justify-center p-0 sm:p-4 overflow-hidden sm:overflow-y-auto" onClick={() => !termsLoading && setTermsModal(null)}>
-          <div className="relative w-full max-w-xl bg-white dark:bg-[#1E2130] rounded-t-3xl sm:rounded-2xl p-6 sm:p-8 shadow-2xl border-t sm:border border-slate-200 dark:border-white/10 max-h-[90vh] overflow-y-auto text-left space-y-4 font-inter" onClick={(e) => e.stopPropagation()}>
+          <div className="relative w-full max-w-xl bg-white dark:bg-[#1E2130] rounded-t-3xl sm:rounded-2xl p-5 sm:p-6 shadow-2xl border-t sm:border border-slate-200 dark:border-white/10 max-h-[90vh] overflow-y-auto text-left space-y-3 font-inter" onClick={(e) => e.stopPropagation()}>
             {/* Mobile Drag Indicator Pill */}
-            <div className="w-12 h-1.5 bg-slate-300 dark:bg-slate-700 rounded-full mx-auto -mt-1 mb-2 sm:hidden shrink-0" />
+            <div className="w-12 h-1.5 bg-slate-300 dark:bg-slate-700 rounded-full mx-auto -mt-1 mb-1 sm:hidden shrink-0" />
 
-            <div className="flex items-center justify-between pb-3 border-b border-slate-100 dark:border-white/5">
-              <h2 className="text-xl font-bold text-slate-900 dark:text-white">Loan Terms Modified</h2>
-              <button className="text-slate-400 hover:text-slate-600 dark:hover:text-white p-1 rounded-full transition-colors" onClick={() => setTermsModal(null)}>
+            <div className="flex items-center justify-between pb-2 border-b border-slate-100 dark:border-white/5">
+              <h2 className="text-lg sm:text-xl font-bold text-slate-900 dark:text-white">Loan Terms Modified</h2>
+              <button className="text-slate-400 hover:text-slate-600 dark:hover:text-white p-1 rounded-full transition-colors cursor-pointer border-none bg-transparent" onClick={() => setTermsModal(null)}>
                 <X size={20} />
               </button>
             </div>
@@ -871,14 +840,14 @@ export default function Notifications() {
             <div className="flex items-center gap-3 pt-2">
               <button
                 className="flex-1 py-2.5 bg-slate-100 dark:bg-slate-800 hover:bg-slate-200 dark:hover:bg-slate-700 text-slate-700 dark:text-slate-300 font-semibold rounded-xl transition-all text-xs cursor-pointer border-none"
-                onClick={() => handleTermsResponse(false)}
+                onClick={() => setConfirmAction('decline')}
                 disabled={termsLoading}
               >
                 Decline
               </button>
               <button
                 className="flex-1 py-2.5 bg-blue-600 hover:bg-blue-700 text-white font-semibold rounded-xl shadow-md transition-all text-xs flex items-center justify-center cursor-pointer border-none"
-                onClick={() => handleTermsResponse(true)}
+                onClick={() => setConfirmAction('agree')}
                 disabled={termsLoading}
               >
                 {termsLoading ? <span className="w-4 h-4 border-2 border-white border-t-transparent rounded-full animate-spin inline-block" /> : 'Agree to Terms'}
@@ -888,20 +857,117 @@ export default function Notifications() {
         </div>
       )}
 
+      {/* ── Sub-Confirmation Modal for Decline / Agree ── */}
+      {termsModal && confirmAction && (
+        <div className="fixed inset-0 z-[10000] bg-black/60 backdrop-blur-xs flex items-center justify-center p-4" onClick={() => !termsLoading && setConfirmAction(null)}>
+          <div className="bg-white dark:bg-[#1E2130] rounded-2xl w-full max-w-sm p-6 shadow-2xl border border-slate-200 dark:border-white/10 text-center space-y-4 font-inter" onClick={(e) => e.stopPropagation()}>
+            {confirmAction === 'decline' ? (
+              <>
+                <div className="w-12 h-12 rounded-full bg-rose-100 dark:bg-rose-500/20 text-rose-600 dark:text-rose-400 flex items-center justify-center mx-auto">
+                  <AlertCircle size={26} />
+                </div>
+                <div className="space-y-1">
+                  <h3 className="text-base font-bold text-slate-900 dark:text-white">Decline Proposed Terms?</h3>
+                  <p className="text-xs text-slate-500 dark:text-slate-400 leading-relaxed">
+                    Please select a reason for declining the terms for loan <strong className="text-slate-700 dark:text-slate-200">{termsModal.loanId}</strong>:
+                  </p>
+                </div>
+
+                {/* Reason Selection Dropdown */}
+                <div className="space-y-2 text-left pt-1">
+                  <label className="block text-[11px] font-bold text-slate-600 dark:text-slate-300">
+                    Reason for Declining <span className="text-rose-500">*</span>
+                  </label>
+                  <select
+                    className="w-full px-3 py-2 bg-slate-50 dark:bg-slate-800 border border-slate-200 dark:border-white/10 rounded-xl text-xs text-slate-800 dark:text-slate-200 outline-none focus:ring-2 focus:ring-rose-500/50 cursor-pointer"
+                    value={declineReasonSelect}
+                    onChange={(e) => setDeclineReasonSelect(e.target.value)}
+                  >
+                    {DECLINE_REASONS.map((r) => (
+                      <option key={r} value={r}>{r}</option>
+                    ))}
+                  </select>
+
+                  {declineReasonSelect === 'Others (Please specify)' && (
+                    <textarea
+                      className="w-full px-3 py-2 bg-slate-50 dark:bg-slate-800 border border-slate-200 dark:border-white/10 rounded-xl text-xs text-slate-800 dark:text-slate-200 outline-none focus:ring-2 focus:ring-rose-500/50 resize-none font-inter"
+                      rows={3}
+                      placeholder="Type your specific reason here..."
+                      value={declineCustomReason}
+                      onChange={(e) => setDeclineCustomReason(e.target.value)}
+                    />
+                  )}
+                </div>
+
+                <div className="flex items-center gap-2.5 pt-2">
+                  <button
+                    className="flex-1 py-2.5 bg-slate-100 dark:bg-slate-800 hover:bg-slate-200 dark:hover:bg-slate-700 text-slate-700 dark:text-slate-300 font-semibold rounded-xl text-xs transition-all cursor-pointer border-none"
+                    onClick={() => setConfirmAction(null)}
+                    disabled={termsLoading}
+                  >
+                    Go Back
+                  </button>
+                  <button
+                    className="flex-1 py-2.5 bg-rose-600 hover:bg-rose-700 disabled:opacity-50 text-white font-semibold rounded-xl text-xs transition-all shadow-md cursor-pointer border-none flex items-center justify-center"
+                    onClick={() => {
+                      const finalReason = declineReasonSelect === 'Others (Please specify)' ? declineCustomReason.trim() : declineReasonSelect;
+                      handleTermsResponse(false, finalReason);
+                    }}
+                    disabled={termsLoading || (declineReasonSelect === 'Others (Please specify)' && !declineCustomReason.trim())}
+                  >
+                    {termsLoading ? <span className="w-4 h-4 border-2 border-white border-t-transparent rounded-full animate-spin" /> : 'Yes, Decline'}
+                  </button>
+                </div>
+              </>
+            ) : (
+              <>
+                <div className="w-12 h-12 rounded-full bg-blue-100 dark:bg-blue-500/20 text-blue-600 dark:text-blue-400 flex items-center justify-center mx-auto">
+                  <CircleCheck size={26} />
+                </div>
+                <div className="space-y-1">
+                  <h3 className="text-base font-bold text-slate-900 dark:text-white">Accept Proposed Terms?</h3>
+                  <p className="text-xs text-slate-500 dark:text-slate-400 leading-relaxed">
+                    By agreeing, your loan <strong className="text-slate-700 dark:text-slate-200">{termsModal.loanId}</strong> will be updated to <strong className="text-blue-600 dark:text-blue-400">{fmt(termsModal.modifiedTerms?.approvedAmount)}</strong> ({termsModal.modifiedTerms?.repaymentTerm} months) and submitted for final approval.
+                  </p>
+                </div>
+                <div className="flex items-center gap-2.5 pt-2">
+                  <button
+                    className="flex-1 py-2.5 bg-slate-100 dark:bg-slate-800 hover:bg-slate-200 dark:hover:bg-slate-700 text-slate-700 dark:text-slate-300 font-semibold rounded-xl text-xs transition-all cursor-pointer border-none"
+                    onClick={() => setConfirmAction(null)}
+                    disabled={termsLoading}
+                  >
+                    Cancel
+                  </button>
+                  <button
+                    className="flex-1 py-2.5 bg-blue-600 hover:bg-blue-700 text-white font-semibold rounded-xl text-xs transition-all shadow-md cursor-pointer border-none flex items-center justify-center"
+                    onClick={() => {
+                      setConfirmAction(null);
+                      handleTermsResponse(true);
+                    }}
+                    disabled={termsLoading}
+                  >
+                    {termsLoading ? <span className="w-4 h-4 border-2 border-white border-t-transparent rounded-full animate-spin" /> : 'Yes, Accept'}
+                  </button>
+                </div>
+              </>
+            )}
+          </div>
+        </div>
+      )}
+
       {/* ── Notification Detail Modal (Loans/Payments Receipt Slider) ── */}
       {detailModal && (
         <div className="fixed inset-0 z-[9999] bg-black/60 backdrop-blur-sm flex items-end sm:items-center justify-center p-0 sm:p-4 overflow-hidden sm:overflow-y-auto" onClick={() => setDetailModal(null)}>
           <div
-            className={`relative w-full max-w-sm sm:max-w-md bg-white dark:bg-[#1E2130] rounded-t-3xl sm:rounded-3xl p-4 sm:p-5 shadow-2xl border-t sm:border border-slate-200/80 dark:border-white/10 max-h-[92vh] overflow-y-auto text-left space-y-2.5 font-inter ${
-              isDraggingModal ? '' : 'transition-transform duration-200'
-            }`}
+            className={`relative w-full max-w-sm sm:max-w-md bg-white dark:bg-[#1E2130] rounded-t-3xl sm:rounded-3xl p-4 sm:p-5 shadow-2xl border-t sm:border border-slate-200/80 dark:border-white/10 max-h-[92vh] overflow-y-auto text-left space-y-2.5 font-inter ${isDraggingModal ? '' : 'transition-transform duration-200'
+              }`}
             style={{ transform: modalDragY > 0 ? `translateY(${modalDragY}px)` : 'none' }}
             onTouchStart={handleModalTouchStart}
             onTouchMove={handleModalTouchMove}
             onTouchEnd={handleModalTouchEnd}
             onClick={(e) => e.stopPropagation()}
           >
-            
+
             {/* Mobile Drag Handle Pill */}
             <div className="w-full pt-0.5 pb-1 flex justify-center sm:hidden cursor-grab active:cursor-grabbing">
               <div className="w-12 h-1.5 bg-slate-300 dark:bg-slate-700 rounded-full shrink-0" />
@@ -961,7 +1027,7 @@ export default function Notifications() {
                 {detailModal.paymentData.proofData && (
                   <div className="space-y-1 pt-1 border-t border-slate-100 dark:border-white/5">
                     <label className="text-[11px] font-bold text-slate-700 dark:text-slate-300 block">Proof of Payment</label>
-                    <div 
+                    <div
                       className="group relative rounded-xl overflow-hidden border border-slate-200 dark:border-white/10 cursor-pointer bg-slate-50 dark:bg-slate-900 flex items-center justify-center p-1"
                       onClick={() => setPreviewImage(detailModal.paymentData.proofData)}
                     >
@@ -1003,6 +1069,103 @@ export default function Notifications() {
                   onClick={() => window.location.href = '/loans'}
                 >
                   View Loan Details →
+                </button>
+              </div>
+            )}
+
+            {/* SAVINGS NOTIFICATION CONTENT */}
+            {detailModal.type === 'savings' && (
+              <div className="space-y-2.5 pt-0.5">
+                <div className="p-2.5 rounded-xl bg-slate-50 dark:bg-slate-800/50 border border-slate-200/70 dark:border-white/5 text-center">
+                  <span className="text-[9px] font-bold text-slate-400 dark:text-slate-500 uppercase tracking-widest block mb-0.5">Amount Deposited</span>
+                  <div className="text-2xl font-extrabold font-dm text-slate-900 dark:text-white tracking-tight">
+                    ₱{Number(detailModal.amount || 0).toLocaleString('en-PH', { minimumFractionDigits: 2 })}
+                  </div>
+                  <div className="mt-1 inline-flex items-center gap-1 px-2 py-0.2 rounded-full text-[9px] font-extrabold bg-emerald-100 dark:bg-emerald-950/80 text-emerald-700 dark:text-emerald-300">
+                    <Check size={10} /> Validated
+                  </div>
+                </div>
+                <div className="space-y-1 pt-1 text-[11px] border-t border-dashed border-slate-200 dark:border-white/10">
+                  {detailModal.savingsRefId && (
+                    <div className="flex justify-between items-center py-0.5">
+                      <span className="text-slate-500 dark:text-slate-400 font-medium">Reference No.</span>
+                      <span className="font-mono font-bold text-slate-900 dark:text-white">{detailModal.savingsRefId}</span>
+                    </div>
+                  )}
+                  <div className="flex justify-between items-center py-0.5 border-t border-slate-100 dark:border-white/5">
+                    <span className="text-slate-500 dark:text-slate-400 font-medium">Goal</span>
+                    <span className="font-bold text-slate-900 dark:text-white">{detailModal.goalName || 'General Savings'}</span>
+                  </div>
+                  <div className="flex justify-between items-center py-0.5 border-t border-slate-100 dark:border-white/5">
+                    <span className="text-slate-500 dark:text-slate-400 font-medium">Date</span>
+                    <span className="font-bold text-slate-900 dark:text-white">{new Date(detailModal.timestamp).toLocaleDateString('en-PH', { month: 'long', day: 'numeric', year: 'numeric' })}</span>
+                  </div>
+                </div>
+                <p className="text-xs text-slate-600 dark:text-slate-300 leading-relaxed">{detailModal.message}</p>
+                <button
+                  className="w-full h-9 bg-blue-600 hover:bg-blue-700 text-white font-bold rounded-xl shadow-md transition-all text-xs cursor-pointer border-none mt-1.5"
+                  onClick={() => window.location.href = '/savings'}
+                >
+                  View Savings →
+                </button>
+              </div>
+            )}
+
+            {/* DONATION NOTIFICATION CONTENT */}
+            {detailModal.type === 'donation' && (
+              <div className="space-y-2.5 pt-0.5">
+                <div className="p-2.5 rounded-xl bg-slate-50 dark:bg-slate-800/50 border border-slate-200/70 dark:border-white/5 text-center">
+                  <span className="text-[9px] font-bold text-slate-400 dark:text-slate-500 uppercase tracking-widest block mb-0.5">Donation Amount</span>
+                  <div className="text-2xl font-extrabold font-dm text-slate-900 dark:text-white tracking-tight">
+                    ₱{Number(detailModal.amount || 0).toLocaleString('en-PH', { minimumFractionDigits: 2 })}
+                  </div>
+                  <div className="mt-1 inline-flex items-center gap-1 px-2 py-0.2 rounded-full text-[9px] font-extrabold bg-pink-100 dark:bg-pink-950/80 text-pink-700 dark:text-pink-300">
+                    <Heart size={10} /> {detailModal.title?.includes('Rejected') ? 'Action Required' : 'Confirmed'}
+                  </div>
+                </div>
+                <div className="space-y-1 pt-1 text-[11px] border-t border-dashed border-slate-200 dark:border-white/10">
+                  {detailModal.donationId && (
+                    <div className="flex justify-between items-center py-0.5">
+                      <span className="text-slate-500 dark:text-slate-400 font-medium">Reference No.</span>
+                      <span className="font-mono font-bold text-slate-900 dark:text-white">{detailModal.donationId}</span>
+                    </div>
+                  )}
+                  <div className="flex justify-between items-center py-0.5 border-t border-slate-100 dark:border-white/5">
+                    <span className="text-slate-500 dark:text-slate-400 font-medium">Category</span>
+                    <span className="font-bold text-slate-900 dark:text-white">{detailModal.category || 'Tithe'}</span>
+                  </div>
+                  <div className="flex justify-between items-center py-0.5 border-t border-slate-100 dark:border-white/5">
+                    <span className="text-slate-500 dark:text-slate-400 font-medium">Date</span>
+                    <span className="font-bold text-slate-900 dark:text-white">{new Date(detailModal.timestamp).toLocaleDateString('en-PH', { month: 'long', day: 'numeric', year: 'numeric' })}</span>
+                  </div>
+                </div>
+                <p className="text-xs text-slate-600 dark:text-slate-300 leading-relaxed">{detailModal.message}</p>
+                <button
+                  className="w-full h-9 bg-blue-600 hover:bg-blue-700 text-white font-bold rounded-xl shadow-md transition-all text-xs cursor-pointer border-none mt-1.5"
+                  onClick={() => window.location.href = '/donation'}
+                >
+                  View Donations →
+                </button>
+              </div>
+            )}
+
+            {/* ATTENDANCE NOTIFICATION CONTENT */}
+            {detailModal.type === 'attendance' && (
+              <div className="space-y-2.5 pt-0.5">
+                <div className="space-y-1 pt-1 text-[11px]">
+                  <div className="grid grid-cols-2 gap-2 p-2.5 bg-slate-50 dark:bg-slate-800/50 rounded-xl border border-slate-200/60 dark:border-white/5 text-xs">
+                    <div><label className="text-slate-400 block text-[9px] uppercase font-bold tracking-wider mb-0.5">Service</label><span className="font-bold text-slate-900 dark:text-white">{detailModal.service || 'Sunday Service'}</span></div>
+                    <div><label className="text-slate-400 block text-[9px] uppercase font-bold tracking-wider mb-0.5">Community</label><span className="font-bold text-slate-900 dark:text-white">{detailModal.branch || 'Unknown'}</span></div>
+                    <div><label className="text-slate-400 block text-[9px] uppercase font-bold tracking-wider mb-0.5">Date</label><span className="font-bold text-slate-900 dark:text-white">{new Date(detailModal.timestamp).toLocaleDateString('en-PH', { month: 'long', day: 'numeric', year: 'numeric' })}</span></div>
+                    {detailModal.recordedBy && <div><label className="text-slate-400 block text-[9px] uppercase font-bold tracking-wider mb-0.5">Recorded By</label><span className="font-bold text-slate-900 dark:text-white">{detailModal.recordedBy}</span></div>}
+                  </div>
+                </div>
+                <p className="text-xs text-slate-600 dark:text-slate-300 leading-relaxed">{detailModal.message}</p>
+                <button
+                  className="w-full h-9 bg-blue-600 hover:bg-blue-700 text-white font-bold rounded-xl shadow-md transition-all text-xs cursor-pointer border-none mt-1.5"
+                  onClick={() => window.location.href = '/attendance'}
+                >
+                  View Attendance →
                 </button>
               </div>
             )}

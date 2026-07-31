@@ -1,7 +1,7 @@
 import { Router } from 'express';
 import { ObjectId } from 'mongodb';
 
-import { users, savingsGoals, savingsTransactions, loans } from '../config/db.js';
+import { users, savingsGoals, savingsTransactions, loans, counters } from '../config/db.js';
 import { authenticateUser } from '../middleware/auth.js';
 import { generatePaymentLink } from '../utils/paymongo.js';
 
@@ -256,6 +256,15 @@ router.post('/savings/deposit', authenticateUser, async (req, res) => {
     const user = await users.findOne({ email });
 
     const txnId = new ObjectId();
+
+    // Generate human-readable reference number (atomic to prevent duplicates)
+    const year = new Date().getFullYear();
+    const counterDoc = await counters.findOneAndUpdate(
+      { _id: `savings-${year}` },
+      { $inc: { seq: 1 } },
+      { upsert: true, returnDocument: 'after' }
+    );
+    const savingsRefId = `SV-${year}-${String(counterDoc.seq).padStart(3, '0')}`;
     
     const { settings } = await import('../config/db.js');
     const config = await settings.findOne({ _id: 'global' });
@@ -269,6 +278,7 @@ router.post('/savings/deposit', authenticateUser, async (req, res) => {
 
       const txn = {
         _id: txnId,
+        savingsRefId,
         email,
         memberName: user?.fullName || 'Unknown Member',
         goalId: new ObjectId(goalId),
@@ -309,6 +319,7 @@ router.post('/savings/deposit', authenticateUser, async (req, res) => {
     // Create transaction record
     const txn = {
       _id: txnId,
+      savingsRefId,
       email,
       memberName: user?.fullName || 'Unknown Member',
       goalId: new ObjectId(goalId),

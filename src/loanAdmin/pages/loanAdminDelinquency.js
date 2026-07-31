@@ -1,6 +1,7 @@
 import { useState, useEffect } from 'react';
 import useSWR from 'swr';
 import LoanAdminSidebar from './loanAdminSidebar';
+import PageHeader from '../components/PageHeader';
 
 
 import API from '../../utils/api';
@@ -72,30 +73,77 @@ export default function LoanAdminDelinquency() {
     recovery: loans.length > 0 ? Math.round(((loans.length - flagged.length) / loans.length) * 100) : 100,
   };
 
+  if (loading) {
+    return (
+      <div className="flex h-screen overflow-hidden bg-slate-100 dark:bg-[#161922]">
+        <LoanAdminSidebar />
+        <div className="flex-1 overflow-y-auto p-6 pb-16 w-full animate-pulse flex flex-col gap-6">
+          {/* Header Skeleton */}
+          <div className="flex flex-col gap-2">
+            <div className="h-8 w-56 bg-slate-200 dark:bg-slate-700/80 rounded-lg"></div>
+            <div className="h-4 w-96 bg-slate-200 dark:bg-slate-700/80 rounded-md"></div>
+          </div>
+
+          {/* 4 Cards Skeleton */}
+          <div className="bg-white dark:bg-[#1E2130] border border-slate-200 dark:border-white/10 rounded-2xl shadow-sm overflow-hidden mb-6">
+            <div className="grid grid-cols-2 md:grid-cols-4 divide-y md:divide-y-0 md:divide-x divide-slate-200 dark:divide-white/10">
+              {[1, 2, 3, 4].map((i) => (
+                <div key={i} className="p-4 min-h-[90px] flex flex-col justify-between">
+                  <div className="h-3 w-20 bg-slate-200 dark:bg-slate-700/80 rounded"></div>
+                  <div className="h-6 w-16 bg-slate-200 dark:bg-slate-700/80 rounded mt-2"></div>
+                </div>
+              ))}
+            </div>
+          </div>
+
+          {/* Policy Table Skeleton */}
+          <div className="bg-white dark:bg-[#1E2130] border border-slate-200 dark:border-white/10 rounded-xl p-5 shadow-sm flex flex-col gap-4">
+            <div className="h-5 w-40 bg-slate-200 dark:bg-slate-700/80 rounded"></div>
+            <div className="h-32 bg-slate-100 dark:bg-slate-800/50 rounded-lg"></div>
+          </div>
+
+          {/* Table Skeleton */}
+          <div className="w-full bg-white dark:bg-[#1E2130] border border-slate-200 dark:border-white/10 rounded-xl shadow-sm p-4 flex flex-col gap-4">
+            <div className="h-10 w-64 bg-slate-100 dark:bg-slate-800/50 rounded-lg"></div>
+            <div className="flex flex-col gap-3">
+              {[1, 2, 3, 4].map((i) => (
+                <div key={i} className="h-12 bg-slate-100 dark:bg-slate-800/50 rounded-lg"></div>
+              ))}
+            </div>
+          </div>
+        </div>
+      </div>
+    );
+  }
+
   return (
     <div className="flex h-screen overflow-hidden bg-slate-100 dark:bg-[#161922]">
       <LoanAdminSidebar />
-      <div className="flex-1 overflow-y-auto p-6 flex flex-col gap-6">
-        <div className="flex items-center justify-between">
-          <h1 className="font-inter text-xl font-bold text-slate-800 dark:text-white m-0">Delinquency Reports</h1>
-        </div>
+      <div className="flex-1 overflow-y-auto p-6 pb-16 w-full">
+        <PageHeader 
+          title="Delinquency Reports" 
+          subtitle="Monitor overdue accounts, delinquency policies, and collection status." 
+        />
 
-        <div className="grid grid-cols-2 md:grid-cols-4 gap-4">
-          <div className="bg-white dark:bg-[#1E2130] border border-slate-200 dark:border-white/10 rounded-xl p-5 shadow-sm flex flex-col gap-2">
-            <p className="font-inter font-semibold text-[11px] tracking-wider uppercase text-slate-500 dark:text-slate-400 m-0">Total Flagged</p>
-            <p className="font-inter font-bold text-3xl text-amber-500 m-0">{counts.total}</p>
-          </div>
-          <div className="bg-white dark:bg-[#1E2130] border border-slate-200 dark:border-white/10 rounded-xl p-5 shadow-sm flex flex-col gap-2">
-            <p className="font-inter font-semibold text-[11px] tracking-wider uppercase text-slate-500 dark:text-slate-400 m-0">Suspended</p>
-            <p className="font-inter font-bold text-3xl text-orange-500 m-0">{counts.suspended}</p>
-          </div>
-          <div className="bg-white dark:bg-[#1E2130] border border-slate-200 dark:border-white/10 rounded-xl p-5 shadow-sm flex flex-col gap-2">
-            <p className="font-inter font-semibold text-[11px] tracking-wider uppercase text-slate-500 dark:text-slate-400 m-0">For Collection</p>
-            <p className="font-inter font-bold text-3xl text-rose-500 m-0">{counts.collection}</p>
-          </div>
-          <div className="bg-white dark:bg-[#1E2130] border border-slate-200 dark:border-white/10 rounded-xl p-5 shadow-sm flex flex-col gap-2">
-            <p className="font-inter font-semibold text-[11px] tracking-wider uppercase text-slate-500 dark:text-slate-400 m-0">Recovery Rate</p>
-            <p className="font-inter font-bold text-3xl text-emerald-500 m-0">{counts.recovery}%</p>
+        {/* Unified Metric Bar */}
+        <div className="bg-white dark:bg-[#1E2130] border border-slate-200/80 dark:border-white/10 rounded-2xl shadow-[0_2px_12px_-4px_rgba(0,0,0,0.05)] overflow-hidden mb-6">
+          <div className="grid grid-cols-2 md:grid-cols-4 divide-y md:divide-y-0 md:divide-x divide-slate-200/80 dark:divide-white/10">
+            <div className="group relative p-4 transition-all duration-200 hover:bg-slate-50/80 dark:hover:bg-white/[0.02] flex flex-col justify-between min-h-[90px]">
+              <span className="font-inter font-bold text-[10px] tracking-wider uppercase text-slate-500 dark:text-slate-400 mt-0.5">Total Flagged</span>
+              <p className="font-inter font-extrabold text-2xl text-amber-500 dark:text-amber-400 m-0 mt-2">{counts.total}</p>
+            </div>
+            <div className="group relative p-4 transition-all duration-200 hover:bg-slate-50/80 dark:hover:bg-white/[0.02] flex flex-col justify-between min-h-[90px]">
+              <span className="font-inter font-bold text-[10px] tracking-wider uppercase text-slate-500 dark:text-slate-400 mt-0.5">Suspended</span>
+              <p className="font-inter font-extrabold text-2xl text-orange-500 dark:text-orange-400 m-0 mt-2">{counts.suspended}</p>
+            </div>
+            <div className="group relative p-4 transition-all duration-200 hover:bg-slate-50/80 dark:hover:bg-white/[0.02] flex flex-col justify-between min-h-[90px]">
+              <span className="font-inter font-bold text-[10px] tracking-wider uppercase text-slate-500 dark:text-slate-400 mt-0.5">For Collection</span>
+              <p className="font-inter font-extrabold text-2xl text-rose-500 dark:text-rose-400 m-0 mt-2">{counts.collection}</p>
+            </div>
+            <div className="group relative p-4 transition-all duration-200 hover:bg-slate-50/80 dark:hover:bg-white/[0.02] flex flex-col justify-between min-h-[90px]">
+              <span className="font-inter font-bold text-[10px] tracking-wider uppercase text-slate-500 dark:text-slate-400 mt-0.5">Recovery Rate</span>
+              <p className="font-inter font-extrabold text-2xl text-emerald-500 dark:text-emerald-400 m-0 mt-2">{counts.recovery}%</p>
+            </div>
           </div>
         </div>
 

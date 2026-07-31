@@ -2,7 +2,7 @@ import { useState, useMemo, useEffect, useRef, useCallback } from 'react';
 import { toast } from 'sonner';
 
 import API from '../../utils/api';
-import { Banknote, CheckCircle, X, Pencil, ChevronDown, ChevronUp, Camera, RotateCcw, AlertTriangle, Upload } from 'lucide-react';
+import { Banknote, CheckCircle, X, Pencil, Camera, RotateCcw, AlertTriangle, Upload, Trash2, Search, ChevronDown, Check, ShieldCheck, Send } from 'lucide-react';
 
 /* ── Loan-type config ── */
 const LOAN_TYPES = [
@@ -50,6 +50,28 @@ const LOAN_TYPES = [
   },
 ];
 
+const PHILIPPINE_BANKS = [
+  'BDO Unibank (BDO)',
+  'Bank of the Philippine Islands (BPI)',
+  'Metropolitan Bank & Trust Company (Metrobank)',
+  'Land Bank of the Philippines (Landbank)',
+  'Union Bank of the Philippines (UnionBank)',
+  'Rizal Commercial Banking Corporation (RCBC)',
+  'Security Bank Corporation',
+  'Philippine National Bank (PNB)',
+  'China Banking Corporation (China Bank)',
+  'Development Bank of the Philippines (DBP)',
+  'EastWest Banking Corporation',
+  'GoTyme Bank',
+  'Maya Bank',
+  'SeaBank Philippines',
+  'CIMB Bank Philippines',
+  'Philippine Savings Bank (PSBank)',
+  'Asia United Bank (AUB)',
+  'Robinsons Bank',
+  'Other Bank'
+];
+
 const fmt = (n) =>
   n != null ? `₱${Number(n).toLocaleString('en-PH', { minimumFractionDigits: 2 })}` : '₱0.00';
 
@@ -64,6 +86,7 @@ const XIcon = () => (
 export default function LoanApplicationModal({
   isOpen,
   onClose,
+  onSuccess,
   totalSavings = 0,
   existingLoanBalance = 0,
   hasOverdueLoans = false,
@@ -80,7 +103,6 @@ export default function LoanApplicationModal({
   const [savedAccounts, setSavedAccounts] = useState([]);
   const [selectedAccountIdx, setSelectedAccountIdx] = useState(-1);
   const [editingAccountIdx, setEditingAccountIdx] = useState(null);
-  const [expandedInfoId, setExpandedInfoId] = useState(null);
 
   const [coeData, setCoeData] = useState(null);
   const [coeFileName, setCoeFileName] = useState('');
@@ -91,6 +113,18 @@ export default function LoanApplicationModal({
   const [hasActiveLoan, setHasActiveLoan] = useState(null);
   const [activeLoanScreenshotData, setActiveLoanScreenshotData] = useState(null);
   const [activeLoanScreenshotFileName, setActiveLoanScreenshotFileName] = useState('');
+  const [confirmModal, setConfirmModal] = useState({
+    isOpen: false,
+    type: '',
+    title: '',
+    message: '',
+    actionText: '',
+    actionVariant: 'primary'
+  });
+
+  const [showReviewModal, setShowReviewModal] = useState(false);
+  const [reviewData, setReviewData] = useState(null);
+  const [showFinalSubmitConfirm, setShowFinalSubmitConfirm] = useState(false);
 
   const handleFileUpload = (e, setFileData, setFileName) => {
     const file = e.target.files[0];
@@ -105,8 +139,21 @@ export default function LoanApplicationModal({
   const [newEwalletAccountName, setNewEwalletAccountName] = useState('');
   const [newEwalletNumber, setNewEwalletNumber] = useState('');
   const [newBankName, setNewBankName] = useState('');
+  const [isCustomBank, setIsCustomBank] = useState(false);
   const [newBankAccountName, setNewBankAccountName] = useState('');
   const [newBankAccountNumber, setNewBankAccountNumber] = useState('');
+  const [isBankDropdownOpen, setIsBankDropdownOpen] = useState(false);
+  const bankDropdownRef = useRef(null);
+
+  useEffect(() => {
+    const handleClickOutside = (e) => {
+      if (bankDropdownRef.current && !bankDropdownRef.current.contains(e.target)) {
+        setIsBankDropdownOpen(false);
+      }
+    };
+    document.addEventListener('mousedown', handleClickOutside);
+    return () => document.removeEventListener('mousedown', handleClickOutside);
+  }, []);
 
   /* ── Camera state ── */
   const [cameraOpen, setCameraOpen] = useState(false);       // is camera modal visible
@@ -117,6 +164,7 @@ export default function LoanApplicationModal({
   const [idDetected, setIdDetected] = useState(false);       // Gemini detected ID
   const [idChecking, setIdChecking] = useState(false);       // currently verifying frame
   const [idDetectionMsg, setIdDetectionMsg] = useState('');  // detection message
+  const [capturedIdPreview, setCapturedIdPreview] = useState(null); // preview of captured ID photo
   const videoRef = useRef(null);
   const canvasRef = useRef(null);
   const streamRef = useRef(null);
@@ -162,7 +210,68 @@ export default function LoanApplicationModal({
     fetchAccounts();
   }, [isOpen]);
 
-  const filteredAccounts = savedAccounts.filter(a => a.method === disbursementMethod);
+  const filteredAccounts = useMemo(() => {
+    return savedAccounts
+      .filter(a => a.method === disbursementMethod)
+      .map(a => {
+        let label = a.label || '';
+        if (a.method === 'e-wallet') {
+          if (!label.startsWith('GCash') && !label.startsWith('Maya')) {
+            label = `GCash - ${label}`;
+          }
+        } else if (a.method === 'bank') {
+          if (!label.includes(' - ')) {
+            label = `Bank - ${label}`;
+          }
+        }
+        return { ...a, displayLabel: label };
+      });
+  }, [savedAccounts, disbursementMethod]);
+
+  const parseAccountBadge = (acc) => {
+    const full = acc.displayLabel || acc.label || '';
+    const parts = full.split(' - ');
+    if (parts.length >= 2) {
+      const provider = parts[0];
+      const details = parts.slice(1).join(' - ');
+      let badgeColor = 'bg-indigo-100 text-indigo-700 dark:bg-indigo-950/80 dark:text-indigo-300 border border-indigo-200 dark:border-indigo-800/40';
+      if (provider.toLowerCase().includes('gcash')) {
+        badgeColor = 'bg-blue-100 text-blue-700 dark:bg-blue-950/80 dark:text-blue-300 border border-blue-200 dark:border-blue-800/40';
+      } else if (provider.toLowerCase().includes('maya')) {
+        badgeColor = 'bg-emerald-100 text-emerald-700 dark:bg-emerald-950/80 dark:text-emerald-300 border border-emerald-200 dark:border-emerald-800/40';
+      }
+      return { provider, details, badgeColor };
+    }
+    return { 
+      provider: acc.method === 'e-wallet' ? 'E-Wallet' : 'Bank', 
+      details: full, 
+      badgeColor: 'bg-slate-100 text-slate-700 dark:bg-slate-800 dark:text-slate-300 border border-slate-200 dark:border-slate-700' 
+    };
+  };
+
+  const handleDeleteAccount = async (acc) => {
+    try {
+      const token = localStorage.getItem('token');
+      const res = await fetch(`${API}/api/saved-accounts`, {
+        method: 'DELETE',
+        headers: { 'Content-Type': 'application/json', Authorization: `Bearer ${token}` },
+        body: JSON.stringify({ method: acc.method, accountNumber: acc.accountNumber }),
+      });
+      const data = await res.json();
+      if (data.success) {
+        toast.success('Saved account removed');
+        setSavedAccounts(prev => prev.filter(a => !(a.method === acc.method && a.accountNumber === acc.accountNumber)));
+        if (disbursementAccount === acc.label) {
+          setSelectedAccountIdx(-1);
+          setDisbursementAccount('');
+        }
+      } else {
+        toast.error(data.message || 'Failed to delete account');
+      }
+    } catch {
+      toast.error('Network error. Failed to delete account.');
+    }
+  };
 
   /* ── Camera helpers ── */
   const stopCamera = useCallback(() => {
@@ -234,6 +343,7 @@ export default function LoanApplicationModal({
     setIdDetected(false);
     setIdChecking(false);
     setIdDetectionMsg('');
+    setCapturedIdPreview(null);
 
     try {
       const facingMode = target === 'selfie' ? 'user' : 'environment';
@@ -281,7 +391,7 @@ export default function LoanApplicationModal({
     }
   }, []);
 
-  const capturePhoto = useCallback(() => {
+  const capturePhoto = useCallback(async () => {
     if (!videoRef.current || !canvasRef.current) return;
     const video = videoRef.current;
     const canvas = canvasRef.current;
@@ -301,19 +411,68 @@ export default function LoanApplicationModal({
 
     if (cameraTarget === 'selfie') {
       setSelfieImage(dataUrl);
-    } else {
-      setIdImage(dataUrl);
+      stopCamera();
+      setCameraOpen(false);
+      toast.success('Selfie captured!');
+      return;
     }
 
-    stopCamera();
-    setCameraOpen(false);
-    toast.success(cameraTarget === 'selfie' ? 'Selfie captured!' : 'ID photo captured!');
+    // ── Target: ID ──
+    // Capture photo first, then verify with AI ONCE
+    setCapturedIdPreview(dataUrl);
+    setIdChecking(true);
+    setIdDetectionMsg('');
+
+    try {
+      const token = localStorage.getItem('token');
+      const res = await fetch(`${API}/api/loans/verify-id-frame`, {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json', Authorization: `Bearer ${token}` },
+        body: JSON.stringify({ imageData: dataUrl }),
+      });
+      const data = await res.json();
+
+      if (data.rateLimited) {
+        setIdDetectionMsg('API busy — please wait a moment and try again.');
+        return;
+      }
+
+      if (data.detected && (data.confidence === 'high' || data.confidence === 'medium')) {
+        setIdImage(dataUrl);
+        stopCamera();
+        setCameraOpen(false);
+        setCapturedIdPreview(null);
+        toast.success('✓ Government ID verified & captured successfully!');
+      } else {
+        setIdDetectionMsg(data.reason || 'No valid Government ID detected in photo. Please ensure all text and details are clear.');
+      }
+    } catch (err) {
+      console.error('ID verification error:', err);
+      setIdDetectionMsg('Verification system unavailable — please try again.');
+    } finally {
+      setIdChecking(false);
+    }
   }, [cameraTarget, stopCamera]);
 
   const closeCamera = useCallback(() => {
     stopCamera();
     setCameraOpen(false);
   }, [stopCamera]);
+
+  const requestClose = useCallback(() => {
+    if (loanType || amount || selfieImage || idImage || coeData || itrData || payslipData) {
+      setConfirmModal({
+        isOpen: true,
+        type: 'close_modal',
+        title: 'Discard Application?',
+        message: 'Are you sure you want to exit? Any progress and uploaded documents will be lost.',
+        actionText: 'Discard & Exit',
+        actionVariant: 'danger'
+      });
+    } else {
+      onClose();
+    }
+  }, [loanType, amount, selfieImage, idImage, coeData, itrData, payslipData, onClose]);
 
   // Cleanup camera on modal close
   useEffect(() => {
@@ -354,12 +513,34 @@ export default function LoanApplicationModal({
     let finalDisbursementAccount = disbursementAccount;
     if (selectedAccountIdx === -1 && (disbursementMethod === 'e-wallet' || disbursementMethod === 'bank')) {
       if (disbursementMethod === 'e-wallet') {
-        if (!newEwalletProvider || !newEwalletAccountName || !newEwalletNumber) { toast.error('Please fill in all E-Wallet details.'); return; }
-        if (newEwalletNumber.length !== 11) { toast.error('E-Wallet account number must be exactly 11 digits.'); return; }
-        finalDisbursementAccount = `${newEwalletProvider} - ${newEwalletAccountName} - ${newEwalletNumber}`;
+        if (!newEwalletProvider) { toast.error('Please select an E-Wallet provider (GCash or Maya).'); return; }
+        if (!newEwalletAccountName || newEwalletAccountName.trim().length < 2) { toast.error('Please enter a valid E-Wallet account name (min 2 characters).'); return; }
+        
+        if (newEwalletProvider === 'GCash') {
+          if (!newEwalletNumber.startsWith('09')) { toast.error('GCash account number must start with 09 (e.g. 09123456789).'); return; }
+          if (newEwalletNumber.length !== 11) { toast.error('GCash account number must be exactly 11 digits.'); return; }
+        } else if (newEwalletProvider === 'Maya') {
+          const isValidMobile = newEwalletNumber.length === 11 && newEwalletNumber.startsWith('09');
+          const isValidAccount = newEwalletNumber.length >= 12 && newEwalletNumber.length <= 16;
+          if (!isValidMobile && !isValidAccount) {
+            if (newEwalletNumber.length === 11 && !newEwalletNumber.startsWith('09')) {
+              toast.error('11-digit Maya mobile number must start with 09.');
+            } else {
+              toast.error('Maya account number must be 11 digits starting with 09 or 12-16 digits.');
+            }
+            return;
+          }
+        }
+        finalDisbursementAccount = `${newEwalletProvider} - ${newEwalletAccountName.trim()} - ${newEwalletNumber}`;
       } else if (disbursementMethod === 'bank') {
-        if (!newBankName || !newBankAccountName || !newBankAccountNumber) { toast.error('Please fill in all Bank details.'); return; }
-        finalDisbursementAccount = `${newBankName} - ${newBankAccountName} - ${newBankAccountNumber}`;
+        if (!newBankName || newBankName.trim().length === 0) { toast.error('Please select or specify a bank name.'); return; }
+        if (!newBankAccountName || newBankAccountName.trim().length < 2) { toast.error('Please enter a valid bank account name (min 2 characters).'); return; }
+        const bankNumDigits = newBankAccountNumber.replace(/\D/g, '');
+        if (bankNumDigits.length < 10 || bankNumDigits.length > 16) {
+          toast.error('Bank account number must be between 10 and 16 digits.');
+          return;
+        }
+        finalDisbursementAccount = `${newBankName} - ${newBankAccountName.trim()} - ${newBankAccountNumber.trim()}`;
       }
     } else {
       if ((disbursementMethod === 'e-wallet' || disbursementMethod === 'bank') && !finalDisbursementAccount) {
@@ -369,6 +550,56 @@ export default function LoanApplicationModal({
     }
     if (!agreedToTerms) { toast.error('You must accept the Loan Terms and Conditions to continue.'); return; }
 
+    // Save summary data for review modal
+    setReviewData({
+      loanTypeObj: selectedType,
+      amount: calc.principal,
+      termMonths: calc.months,
+      monthlyPayment: calc.monthly,
+      totalInterest: calc.totalInterest,
+      totalRepayment: calc.totalRepayment,
+      disbursementMethod,
+      disbursementAccount: finalDisbursementAccount,
+      selfieImage,
+      idImage,
+      coeFileName,
+      itrFileName,
+      payslipFileName,
+      hasActiveLoan,
+      activeLoanScreenshotFileName,
+      payload: {
+        amount: calc.principal,
+        loanType: selectedType.key,
+        purpose: selectedType.name,
+        termMonths: calc.months,
+        interestRate: selectedType.rate,
+        totalInterest: calc.totalInterest,
+        totalRepayment: calc.totalRepayment,
+        monthlyPayment: calc.monthly,
+        disbursementMethod,
+        disbursementAccount: finalDisbursementAccount,
+        selfieFileName: 'camera-selfie.jpg',
+        idFileName: 'camera-id.jpg',
+        selfieData: selfieImage,
+        idData: idImage,
+        coeData,
+        coeFileName,
+        itrData,
+        itrFileName,
+        payslipData,
+        payslipFileName,
+        hasActiveLoan,
+        activeLoanScreenshotData: hasActiveLoan ? activeLoanScreenshotData : null,
+        activeLoanScreenshotFileName: hasActiveLoan ? activeLoanScreenshotFileName : null
+      }
+    });
+
+    setShowReviewModal(true);
+  };
+
+  /* ── execute final submission ── */
+  const executeFinalSubmission = async () => {
+    if (!reviewData || !reviewData.payload) return;
     setLoading(true);
     try {
       const token = localStorage.getItem('token');
@@ -379,31 +610,7 @@ export default function LoanApplicationModal({
           'Content-Type': 'application/json',
           Authorization: `Bearer ${token}`,
         },
-        body: JSON.stringify({
-          amount: calc.principal,
-          loanType: selectedType.key,
-          purpose: selectedType.name,
-          termMonths: calc.months,
-          interestRate: selectedType.rate,
-          totalInterest: calc.totalInterest,
-          totalRepayment: calc.totalRepayment,
-          monthlyPayment: calc.monthly,
-          disbursementMethod,
-          disbursementAccount: finalDisbursementAccount,
-          selfieFileName: 'camera-selfie.jpg',
-          idFileName: 'camera-id.jpg',
-          selfieData: selfieImage,
-          idData: idImage,
-          coeData,
-          coeFileName,
-          itrData,
-          itrFileName,
-          payslipData,
-          payslipFileName,
-          hasActiveLoan,
-          activeLoanScreenshotData: hasActiveLoan ? activeLoanScreenshotData : null,
-          activeLoanScreenshotFileName: hasActiveLoan ? activeLoanScreenshotFileName : null
-        }),
+        body: JSON.stringify(reviewData.payload),
       });
 
       const data = await res.json();
@@ -411,20 +618,19 @@ export default function LoanApplicationModal({
 
       toast.success('Loan application submitted successfully!');
 
-      // Save or update account for future use
-      if ((disbursementMethod === 'e-wallet' || disbursementMethod === 'bank') && finalDisbursementAccount) {
+      if ((disbursementMethod === 'e-wallet' || disbursementMethod === 'bank') && reviewData.disbursementAccount) {
         try {
           await fetch(`${API}/api/saved-accounts`, {
             method: 'POST',
             headers: { 'Content-Type': 'application/json', Authorization: `Bearer ${token}` },
             body: JSON.stringify({
               method: disbursementMethod,
-              accountNumber: finalDisbursementAccount,
+              accountNumber: reviewData.disbursementAccount,
               accountName: '',
-              label: finalDisbursementAccount,
+              label: reviewData.disbursementAccount,
             }),
           });
-        } catch { /* silent — don't block the success flow */ }
+        } catch { /* silent */ }
       }
 
       setLoanType('');
@@ -432,7 +638,9 @@ export default function LoanApplicationModal({
       setTermMonths('');
       setSelfieImage(null);
       setIdImage(null);
+      setShowReviewModal(false);
       onClose();
+      if (onSuccess) onSuccess();
     } catch (err) {
       toast.error(err.message || 'Network error. Please try again.');
     } finally {
@@ -441,7 +649,7 @@ export default function LoanApplicationModal({
   };
 
   return (
-    <div className="fixed inset-0 z-[1000] bg-black/60 backdrop-blur-xs flex items-end sm:items-center justify-center p-0 sm:p-4 overflow-hidden sm:overflow-y-auto transition-all duration-300" onClick={onClose}>
+    <div className="fixed inset-0 z-[1000] bg-black/60 backdrop-blur-xs flex items-end sm:items-center justify-center p-0 sm:p-4 overflow-hidden sm:overflow-y-auto transition-all duration-300" onClick={requestClose}>
       <div className="relative w-full max-w-none sm:max-w-3xl bg-white dark:bg-[#1E2130] rounded-t-3xl sm:rounded-3xl overflow-hidden shadow-2xl border-t sm:border border-slate-200 dark:border-white/10 my-0 sm:my-auto text-left font-inter h-auto max-h-[92dvh] sm:max-h-[90vh] flex flex-col mobile-slide-up-modal" onClick={(e) => e.stopPropagation()}>
 
         {/* Simple Clean Header */}
@@ -452,7 +660,7 @@ export default function LoanApplicationModal({
           </div>
           <button 
             className="w-9 h-9 rounded-full flex items-center justify-center text-slate-400 hover:text-slate-700 dark:hover:text-white bg-slate-100 dark:bg-slate-800 hover:bg-slate-200 dark:hover:bg-slate-700 transition-all cursor-pointer shrink-0" 
-            onClick={(e) => { e.stopPropagation(); onClose(); }} 
+            onClick={(e) => { e.stopPropagation(); requestClose(); }} 
             type="button"
           >
             <X size={18} />
@@ -467,12 +675,12 @@ export default function LoanApplicationModal({
           {/* ── Savings Context Card ── */}
           <div className="p-4 rounded-2xl bg-slate-50 dark:bg-slate-800/40 border border-slate-200/80 dark:border-white/10 flex flex-col sm:flex-row items-center justify-between gap-3 text-xs">
             <div className="flex items-center gap-3">
-              <div className="w-9 h-9 rounded-xl bg-blue-100 dark:bg-blue-950/60 text-blue-600 dark:text-blue-400 flex items-center justify-center font-bold">
+              <div className="w-10 h-10 rounded-xl bg-blue-100 dark:bg-blue-950/60 text-blue-600 dark:text-blue-400 flex items-center justify-center font-bold text-sm">
                 ₱
               </div>
               <div>
-                <span className="text-slate-400 block text-[11px]">Your Total Savings</span>
-                <span className={`text-base font-extrabold font-dm ${totalSavings < 1000 ? 'text-amber-600 dark:text-amber-400' : 'text-slate-900 dark:text-white'}`}>
+                <span className="text-slate-700 dark:text-slate-200 font-bold text-xs block">Your Total Savings</span>
+                <span className={`text-lg font-extrabold ${totalSavings < 1000 ? 'text-amber-600 dark:text-amber-400' : 'text-slate-900 dark:text-white'}`}>
                   {fmt(totalSavings)}
                 </span>
               </div>
@@ -480,8 +688,8 @@ export default function LoanApplicationModal({
 
             {existingLoanBalance > 0 && (
               <div className="text-right">
-                <span className="text-slate-400 block text-[11px]">Existing Loan Balance</span>
-                <span className="text-sm font-bold text-red-600 dark:text-red-400">
+                <span className="text-slate-700 dark:text-slate-200 font-bold text-xs block">Existing Loan Balance</span>
+                <span className="text-base font-bold text-red-600 dark:text-red-400">
                   −{fmt(existingLoanBalance)}
                 </span>
               </div>
@@ -490,14 +698,17 @@ export default function LoanApplicationModal({
 
           {/* ── STEP 1: Loan Type & Terms ── */}
           <div className="bg-slate-50/70 dark:bg-slate-800/40 border border-slate-200/80 dark:border-white/10 rounded-2xl p-4 sm:p-5 space-y-4">
-            <div className="flex items-center gap-2 pb-2 border-b border-slate-200/60 dark:border-white/10">
-              <div className="w-6 h-6 rounded-full bg-[#1E3A8A] text-white font-bold text-xs flex items-center justify-center shrink-0">1</div>
-              <h3 className="text-xs font-bold text-slate-900 dark:text-white uppercase tracking-wider font-inter">Loan Details &amp; Amount</h3>
+            <div className="flex items-center justify-between pb-2 border-b border-slate-200/60 dark:border-white/10">
+              <div className="flex items-center gap-2">
+                <div className="w-6 h-6 rounded-full bg-[#1E3A8A] text-white font-bold text-xs flex items-center justify-center shrink-0">1</div>
+                <h3 className="text-xs font-bold text-slate-900 dark:text-white uppercase tracking-wider font-inter">Loan Details &amp; Amount</h3>
+              </div>
+              <span className="text-xs font-bold text-slate-600 dark:text-slate-300">Step 1 of 4</span>
             </div>
 
             {/* ── Loan Type selector ── */}
             <div className="user-loan-application-form-group">
-              <label className="user-loan-application-label">Select Loan Type</label>
+              <label className="user-loan-application-label text-xs sm:text-sm font-bold text-slate-800 dark:text-slate-200 block mb-2">Select Loan Type</label>
               <div className="ula-type-cards">
                 {LOAN_TYPES.map((lt) => {
                   const isSelected = loanType === lt.key;
@@ -505,43 +716,43 @@ export default function LoanApplicationModal({
                   return (
                     <div 
                       key={lt.key} 
-                      className={`ula-type-card-wrapper ${expandedInfoId === lt.key ? 'expanded' : ''}`}
+                      className="ula-type-card-wrapper h-full"
                     >
                       <div
-                        className={`ula-type-card ula-type-card--${lt.color} ${isSelected ? 'ula-type-card--active' : ''}`}
+                        className={`ula-type-card h-full flex flex-col justify-between ula-type-card--${lt.color} ${isSelected ? 'ula-type-card--active' : ''}`}
                         onClick={() => { 
                           setLoanType(lt.key); 
                           setTermMonths(''); 
                           setAmount(ltMax > 0 ? Number(ltMax).toLocaleString('en-US') : ''); 
                         }}
                       >
-                        <div className="ula-type-header">
-                          <div className={`ula-type-icon ula-type-icon--${lt.color}`}>{lt.icon}</div>
-                          <div className="ula-type-header-text">
-                            <div className="ula-type-name">{lt.name}</div>
-                            <div className="ula-type-mult">{lt.multiplier}× savings</div>
-                          </div>
-                        </div>
-                        
-                        <button 
-                          type="button" 
-                          className="ula-type-expand-btn" 
-                          onClick={(e) => {
-                            e.stopPropagation();
-                            setExpandedInfoId(expandedInfoId === lt.key ? null : lt.key);
-                          }}
-                        >
-                          {expandedInfoId === lt.key ? <ChevronUp size={14} /> : <ChevronDown size={14} />} {expandedInfoId === lt.key ? 'Less Info' : 'More Info'}
-                        </button>
-
-                        <div className={`ula-type-expanded-info-wrapper ${expandedInfoId === lt.key ? 'expanded' : ''}`}>
-                          <div className="ula-type-expanded-info">
-                            <div className="ula-type-desc">{lt.desc}</div>
-                            <div className="ula-type-meta">
-                              <span>{lt.rateLabel}</span>
-                              <span>{lt.minTerm}–{lt.maxTerm} mo</span>
+                        <div>
+                          <div className="ula-type-header pb-2.5 border-b border-slate-200/60 dark:border-white/10">
+                            <div className={`ula-type-icon ula-type-icon--${lt.color}`}>{lt.icon}</div>
+                            <div className="ula-type-header-text">
+                              <div className="ula-type-name">{lt.name}</div>
+                              <div className="ula-type-mult">{lt.multiplier}× savings</div>
                             </div>
-                            <div className="ula-type-max">Max: {fmt(ltMax)}</div>
+                          </div>
+                          
+                          <p className="text-xs text-slate-500 dark:text-slate-400 font-medium leading-relaxed mt-2.5">
+                            {lt.desc}
+                          </p>
+                        </div>
+
+                        <div className="space-y-2.5 mt-3 pt-2.5 border-t border-slate-200/60 dark:border-white/10">
+                          <div className="flex items-center justify-between gap-1.5 text-[11px] font-medium">
+                            <span className="px-2 py-1 rounded-md bg-slate-100 dark:bg-slate-700/60 text-slate-700 dark:text-slate-300 font-semibold border border-slate-200/60 dark:border-white/5">
+                              {lt.rateLabel}
+                            </span>
+                            <span className="px-2 py-1 rounded-md bg-slate-100 dark:bg-slate-700/60 text-slate-700 dark:text-slate-300 font-semibold border border-slate-200/60 dark:border-white/5">
+                              {lt.minTerm}–{lt.maxTerm} mo
+                            </span>
+                          </div>
+
+                          <div className="flex items-center justify-between text-xs pt-0.5">
+                            <span className="text-[10px] font-bold text-slate-400 dark:text-slate-500 uppercase tracking-wider">Max Limit</span>
+                            <span className="font-bold text-blue-600 dark:text-blue-400 font-dm text-xs sm:text-sm">{fmt(ltMax)}</span>
                           </div>
                         </div>
                       </div>
@@ -679,7 +890,7 @@ export default function LoanApplicationModal({
                 <div className="w-6 h-6 rounded-full bg-[#1E3A8A] text-white font-bold text-xs flex items-center justify-center shrink-0">2</div>
                 <h3 className="text-xs font-bold text-slate-900 dark:text-white uppercase tracking-wider font-inter">Identity Verification &amp; Supporting Documents</h3>
               </div>
-              <span className="text-[10px] font-semibold text-slate-400 dark:text-slate-500">Step 2 of 3</span>
+              <span className="text-xs font-bold text-slate-600 dark:text-slate-300">Step 2 of 4</span>
             </div>
 
             {/* ── Group A: Live Camera Verification ── */}
@@ -708,13 +919,36 @@ export default function LoanApplicationModal({
                   {selfieImage ? (
                     <div className="relative group rounded-lg overflow-hidden border border-slate-200 dark:border-white/10">
                       <img src={selfieImage} alt="Selfie preview" className="w-full h-24 object-cover" />
-                      <button
-                        type="button"
-                        className="absolute inset-0 bg-black/60 opacity-0 group-hover:opacity-100 transition-opacity flex items-center justify-center gap-1.5 text-white text-xs font-semibold"
-                        onClick={() => { setSelfieImage(null); openCamera('selfie'); }}
-                      >
-                        <RotateCcw size={14} /> Retake Photo
-                      </button>
+                      <div className="absolute inset-0 bg-black/60 opacity-0 group-hover:opacity-100 transition-opacity flex items-center justify-center gap-2 p-2">
+                        <button
+                          type="button"
+                          className="px-2.5 py-1.5 rounded-lg bg-blue-600 hover:bg-blue-700 text-white text-[11px] font-bold flex items-center gap-1 transition-all shadow-md active:scale-95 cursor-pointer"
+                          onClick={() => setConfirmModal({
+                            isOpen: true,
+                            type: 'retake_selfie',
+                            title: 'Retake Selfie Photo?',
+                            message: 'Your current selfie photo will be replaced when you take a new photo.',
+                            actionText: 'Retake Photo',
+                            actionVariant: 'primary'
+                          })}
+                        >
+                          <RotateCcw size={12} /> Retake
+                        </button>
+                        <button
+                          type="button"
+                          className="px-2.5 py-1.5 rounded-lg bg-rose-600 hover:bg-rose-700 text-white text-[11px] font-bold flex items-center gap-1 transition-all shadow-md active:scale-95 cursor-pointer"
+                          onClick={() => setConfirmModal({
+                            isOpen: true,
+                            type: 'remove_selfie',
+                            title: 'Remove Selfie Photo?',
+                            message: 'Are you sure you want to remove your captured selfie photo?',
+                            actionText: 'Remove Photo',
+                            actionVariant: 'danger'
+                          })}
+                        >
+                          <Trash2 size={12} /> Remove
+                        </button>
+                      </div>
                     </div>
                   ) : (
                     <button
@@ -743,13 +977,36 @@ export default function LoanApplicationModal({
                   {idImage ? (
                     <div className="relative group rounded-lg overflow-hidden border border-slate-200 dark:border-white/10">
                       <img src={idImage} alt="ID preview" className="w-full h-24 object-cover" />
-                      <button
-                        type="button"
-                        className="absolute inset-0 bg-black/60 opacity-0 group-hover:opacity-100 transition-opacity flex items-center justify-center gap-1.5 text-white text-xs font-semibold"
-                        onClick={() => { setIdImage(null); openCamera('id'); }}
-                      >
-                        <RotateCcw size={14} /> Retake Photo
-                      </button>
+                      <div className="absolute inset-0 bg-black/60 opacity-0 group-hover:opacity-100 transition-opacity flex items-center justify-center gap-2 p-2">
+                        <button
+                          type="button"
+                          className="px-2.5 py-1.5 rounded-lg bg-blue-600 hover:bg-blue-700 text-white text-[11px] font-bold flex items-center gap-1 transition-all shadow-md active:scale-95 cursor-pointer"
+                          onClick={() => setConfirmModal({
+                            isOpen: true,
+                            type: 'retake_id',
+                            title: 'Retake ID Photo?',
+                            message: 'Your current ID photo will be replaced when you take a new photo.',
+                            actionText: 'Retake Photo',
+                            actionVariant: 'primary'
+                          })}
+                        >
+                          <RotateCcw size={12} /> Retake
+                        </button>
+                        <button
+                          type="button"
+                          className="px-2.5 py-1.5 rounded-lg bg-rose-600 hover:bg-rose-700 text-white text-[11px] font-bold flex items-center gap-1 transition-all shadow-md active:scale-95 cursor-pointer"
+                          onClick={() => setConfirmModal({
+                            isOpen: true,
+                            type: 'remove_id',
+                            title: 'Remove ID Photo?',
+                            message: 'Are you sure you want to remove your captured ID photo?',
+                            actionText: 'Remove Photo',
+                            actionVariant: 'danger'
+                          })}
+                        >
+                          <Trash2 size={12} /> Remove
+                        </button>
+                      </div>
                     </div>
                   ) : (
                     <button
@@ -888,11 +1145,14 @@ export default function LoanApplicationModal({
             </div>
           </div>
 
-          {/* ── STEP 3: Disbursement & Terms ── */}
+          {/* ── STEP 3: Disbursement Method ── */}
           <div className="bg-slate-50/70 dark:bg-slate-800/40 border border-slate-200/80 dark:border-white/10 rounded-2xl p-4 sm:p-5 space-y-4">
-            <div className="flex items-center gap-2 pb-2 border-b border-slate-200/60 dark:border-white/10">
-              <div className="w-6 h-6 rounded-full bg-[#1E3A8A] text-white font-bold text-xs flex items-center justify-center shrink-0">3</div>
-              <h3 className="text-xs font-bold text-slate-900 dark:text-white uppercase tracking-wider font-inter">Disbursement Method &amp; Terms Agreement</h3>
+            <div className="flex items-center justify-between pb-2 border-b border-slate-200/60 dark:border-white/10">
+              <div className="flex items-center gap-2">
+                <div className="w-6 h-6 rounded-full bg-[#1E3A8A] text-white font-bold text-xs flex items-center justify-center shrink-0">3</div>
+                <h3 className="text-xs font-bold text-slate-900 dark:text-white uppercase tracking-wider font-inter">Disbursement Method</h3>
+              </div>
+              <span className="text-xs font-bold text-slate-600 dark:text-slate-300">Step 3 of 4</span>
             </div>
 
             {/* ── Disbursement Method ── */}
@@ -922,57 +1182,92 @@ export default function LoanApplicationModal({
                     <>
                       <label className="user-loan-application-label">Select a saved account</label>
                       <div className="ula-saved-accounts">
-                        {filteredAccounts.map((acc, idx) => (
-                          <div key={idx} className={`ula-saved-account-btn ${selectedAccountIdx === idx ? 'ula-saved-account-btn--active' : ''}`}>
-                            {editingAccountIdx === idx ? (
-                              <>
-                                <div className={`ula-disbursement-radio ${selectedAccountIdx === idx ? 'active' : ''}`} />
-                                <input
-                                  type="text"
-                                  className="ula-saved-account-edit-input"
-                                  value={disbursementAccount}
-                                  onChange={(e) => setDisbursementAccount(e.target.value)}
-                                  onBlur={() => setEditingAccountIdx(null)}
-                                  onKeyDown={(e) => { if (e.key === 'Enter') setEditingAccountIdx(null); }}
-                                  autoFocus
-                                />
-                              </>
-                            ) : (
-                              <>
-                                <div
-                                  className="ula-saved-account-select-area"
-                                  onClick={() => {
-                                    setSelectedAccountIdx(idx);
-                                    setDisbursementAccount(acc.label);
-                                    setEditingAccountIdx(null);
-                                  }}
-                                >
+                        {filteredAccounts.map((acc, idx) => {
+                          const badgeInfo = parseAccountBadge(acc);
+                          const fullAccountText = acc.displayLabel || acc.label;
+
+                          return (
+                            <div key={idx} className={`ula-saved-account-btn ${selectedAccountIdx === idx ? 'ula-saved-account-btn--active' : ''}`}>
+                              {editingAccountIdx === idx ? (
+                                <div className="flex items-center gap-2.5 w-full min-w-0">
                                   <div className={`ula-disbursement-radio ${selectedAccountIdx === idx ? 'active' : ''}`} />
-                                  <div className="ula-saved-account-info">
-                                    <span className="ula-saved-account-label">{acc.label}</span>
-                                    <span className="ula-saved-account-source">{acc.source}</span>
-                                  </div>
+                                  <input
+                                    type="text"
+                                    className="ula-saved-account-edit-input"
+                                    value={disbursementAccount}
+                                    onChange={(e) => setDisbursementAccount(e.target.value)}
+                                    onBlur={() => setEditingAccountIdx(null)}
+                                    onKeyDown={(e) => { if (e.key === 'Enter') setEditingAccountIdx(null); }}
+                                    autoFocus
+                                  />
                                 </div>
-                                <button
-                                  type="button"
-                                  className="ula-saved-account-edit-btn"
-                                  onClick={(e) => {
-                                    e.stopPropagation();
-                                    setSelectedAccountIdx(idx);
-                                    setDisbursementAccount(acc.label);
-                                    setEditingAccountIdx(idx);
-                                  }}
-                                  title="Edit account info"
-                                >
-                                  <Pencil size={14} />
-                                </button>
-                              </>
-                            )}
-                          </div>
-                        ))}
+                              ) : (
+                                <>
+                                  <div
+                                    className="ula-saved-account-select-area flex items-center gap-3 min-w-0 flex-1 cursor-pointer"
+                                    onClick={() => {
+                                      setSelectedAccountIdx(idx);
+                                      setDisbursementAccount(fullAccountText);
+                                      setEditingAccountIdx(null);
+                                    }}
+                                  >
+                                    <div className={`ula-disbursement-radio ${selectedAccountIdx === idx ? 'active' : ''}`} />
+                                    <div className="ula-saved-account-info min-w-0 flex-1">
+                                      <div className="flex items-center gap-2 flex-wrap">
+                                        <span className={`px-2 py-0.5 rounded-md text-[10px] font-black uppercase tracking-wider shrink-0 shadow-2xs ${badgeInfo.badgeColor}`}>
+                                          {badgeInfo.provider}
+                                        </span>
+                                        <span className="ula-saved-account-label font-bold text-xs sm:text-sm text-slate-800 dark:text-slate-100 truncate">
+                                          {badgeInfo.details}
+                                        </span>
+                                      </div>
+                                      <span className="ula-saved-account-source text-[11px] text-slate-400 dark:text-slate-500 mt-0.5 block font-medium">
+                                        {acc.source}
+                                      </span>
+                                    </div>
+                                  </div>
+                                  <div className="flex items-center gap-1 shrink-0">
+                                    <button
+                                      type="button"
+                                      className="ula-saved-account-edit-btn"
+                                      onClick={(e) => {
+                                        e.stopPropagation();
+                                        setSelectedAccountIdx(idx);
+                                        setDisbursementAccount(fullAccountText);
+                                        setEditingAccountIdx(idx);
+                                      }}
+                                      title="Edit account info"
+                                    >
+                                      <Pencil size={14} />
+                                    </button>
+                                    <button
+                                      type="button"
+                                      className="ula-saved-account-edit-btn text-rose-500 hover:bg-rose-500/10 hover:text-rose-600"
+                                      onClick={(e) => {
+                                        e.stopPropagation();
+                                        setConfirmModal({
+                                          isOpen: true,
+                                          type: 'delete_account',
+                                          title: 'Delete Saved Account?',
+                                          message: `Are you sure you want to remove "${fullAccountText}" from your saved accounts?`,
+                                          actionText: 'Delete Account',
+                                          actionVariant: 'danger',
+                                          accountToDelete: acc
+                                        });
+                                      }}
+                                      title="Delete account"
+                                    >
+                                      <Trash2 size={14} />
+                                    </button>
+                                  </div>
+                                </>
+                              )}
+                            </div>
+                          );
+                        })}
                         <button
                           type="button"
-                          className={`ula-saved-account-btn ${selectedAccountIdx === -1 ? 'ula-saved-account-btn--active' : ''}`}
+                          className={`ula-saved-account-btn !justify-start ${selectedAccountIdx === -1 ? 'ula-saved-account-btn--active' : ''}`}
                           onClick={() => { setSelectedAccountIdx(-1); setDisbursementAccount(''); setEditingAccountIdx(null); }}
                         >
                           <div className={`ula-disbursement-radio ${selectedAccountIdx === -1 ? 'active' : ''}`} />
@@ -987,66 +1282,234 @@ export default function LoanApplicationModal({
                         <>
                           <div>
                             <label className="user-loan-application-label">E-Wallet Provider</label>
-                            <div style={{ display: 'flex', gap: '12px', marginTop: '6px', marginBottom: '8px' }}>
-                              <label style={{ 
-                                display: 'flex', alignItems: 'center', gap: '8px', fontSize: '14px', color: 'var(--foreground)', cursor: 'pointer',
-                                padding: '12px 16px', borderRadius: '10px', flex: 1,
-                                border: newEwalletProvider === 'GCash' ? '1px solid #1E3A8A' : '1px solid var(--border)',
-                                background: newEwalletProvider === 'GCash' ? 'rgba(30, 58, 138, 0.03)' : 'var(--card)',
-                                transition: 'all 0.2s'
-                              }}>
-                                <input type="radio" name="ewalletProvider" value="GCash" checked={newEwalletProvider === 'GCash'} onChange={(e) => setNewEwalletProvider(e.target.value)} style={{ display: 'none' }} />
-                                <div className={`ula-disbursement-radio ${newEwalletProvider === 'GCash' ? 'active' : ''}`} />
-                                GCash
+                            <div className="grid grid-cols-2 gap-3 mt-1.5 mb-2">
+                              <label className={`ula-saved-account-btn cursor-pointer ${newEwalletProvider === 'GCash' ? 'ula-saved-account-btn--active' : ''}`}>
+                                <input type="radio" name="ewalletProvider" value="GCash" checked={newEwalletProvider === 'GCash'} onChange={(e) => setNewEwalletProvider(e.target.value)} className="hidden" />
+                                <div className="flex items-center gap-2">
+                                  <div className={`ula-disbursement-radio ${newEwalletProvider === 'GCash' ? 'active' : ''}`} />
+                                  <span className="font-bold text-xs sm:text-sm text-slate-800 dark:text-slate-200 font-inter">GCash</span>
+                                </div>
                               </label>
-                              <label style={{ 
-                                display: 'flex', alignItems: 'center', gap: '8px', fontSize: '14px', color: 'var(--foreground)', cursor: 'pointer',
-                                padding: '12px 16px', borderRadius: '10px', flex: 1,
-                                border: newEwalletProvider === 'Maya' ? '1px solid #1E3A8A' : '1px solid var(--border)',
-                                background: newEwalletProvider === 'Maya' ? 'rgba(30, 58, 138, 0.03)' : 'var(--card)',
-                                transition: 'all 0.2s'
-                              }}>
-                                <input type="radio" name="ewalletProvider" value="Maya" checked={newEwalletProvider === 'Maya'} onChange={(e) => setNewEwalletProvider(e.target.value)} style={{ display: 'none' }} />
-                                <div className={`ula-disbursement-radio ${newEwalletProvider === 'Maya' ? 'active' : ''}`} />
-                                Maya
+                              <label className={`ula-saved-account-btn cursor-pointer ${newEwalletProvider === 'Maya' ? 'ula-saved-account-btn--active' : ''}`}>
+                                <input type="radio" name="ewalletProvider" value="Maya" checked={newEwalletProvider === 'Maya'} onChange={(e) => setNewEwalletProvider(e.target.value)} className="hidden" />
+                                <div className="flex items-center gap-2">
+                                  <div className={`ula-disbursement-radio ${newEwalletProvider === 'Maya' ? 'active' : ''}`} />
+                                  <span className="font-bold text-xs sm:text-sm text-slate-800 dark:text-slate-200 font-inter">Maya</span>
+                                </div>
                               </label>
                             </div>
                           </div>
                           <div>
-                            <label className="user-loan-application-label">Account Name</label>
-                            <input type="text" className="user-loan-application-input" style={{ paddingLeft: '16px' }} placeholder="e.g. Juan Dela Cruz" value={newEwalletAccountName} onChange={(e) => setNewEwalletAccountName(e.target.value)} maxLength={50} required />
+                            <div className="flex items-center justify-between mb-1">
+                              <label className="user-loan-application-label">Account Name</label>
+                              {newEwalletAccountName.length > 0 && (
+                                <span className={`text-[11px] font-bold ${newEwalletAccountName.trim().length >= 2 ? 'text-emerald-600 dark:text-emerald-400' : 'text-rose-500'}`}>
+                                  {newEwalletAccountName.trim().length >= 2 ? '✓ Valid Name' : 'Min 2 characters'}
+                                </span>
+                              )}
+                            </div>
+                            <input
+                              type="text"
+                              className={`user-loan-application-input ${
+                                newEwalletAccountName.length > 0
+                                  ? (newEwalletAccountName.trim().length >= 2 ? '!border-emerald-500/60 focus:!ring-emerald-500/30' : '!border-rose-500/60 focus:!ring-rose-500/30')
+                                  : ''
+                              }`}
+                              style={{ paddingLeft: '16px' }}
+                              placeholder="e.g. Juan Dela Cruz"
+                              value={newEwalletAccountName}
+                              onChange={(e) => setNewEwalletAccountName(e.target.value)}
+                              maxLength={50}
+                              required
+                            />
                           </div>
                           <div>
-                            <label className="user-loan-application-label">Account Number</label>
+                            <div className="flex items-center justify-between mb-1">
+                              <label className="user-loan-application-label">Account Number</label>
+                              {newEwalletNumber.length > 0 && (
+                                <span className={`text-[11px] font-bold ${
+                                  newEwalletProvider === 'GCash'
+                                    ? (newEwalletNumber.startsWith('09') && newEwalletNumber.length === 11 ? 'text-emerald-600 dark:text-emerald-400' : 'text-rose-500')
+                                    : (
+                                      (newEwalletNumber.length === 11 && newEwalletNumber.startsWith('09')) || (newEwalletNumber.length >= 12 && newEwalletNumber.length <= 16)
+                                        ? 'text-emerald-600 dark:text-emerald-400'
+                                        : 'text-rose-500'
+                                    )
+                                }`}>
+                                  {newEwalletProvider === 'GCash'
+                                    ? (!newEwalletNumber.startsWith('09')
+                                        ? 'Must start with 09'
+                                        : newEwalletNumber.length !== 11
+                                        ? `${newEwalletNumber.length}/11 digits`
+                                        : '✓ Valid GCash Number')
+                                    : (newEwalletNumber.length === 11 && !newEwalletNumber.startsWith('09')
+                                        ? '11-digit mobile must start with 09'
+                                        : newEwalletNumber.length < 11
+                                        ? `${newEwalletNumber.length}/11 digits`
+                                        : (newEwalletNumber.length >= 12 && newEwalletNumber.length <= 16)
+                                        ? '✓ Valid Maya Account'
+                                        : newEwalletNumber.length === 11 && newEwalletNumber.startsWith('09')
+                                        ? '✓ Valid Maya Number'
+                                        : 'Max 16 digits')}
+                                </span>
+                              )}
+                            </div>
                             <input 
                               type="text" 
-                              className="user-loan-application-input" 
+                              className={`user-loan-application-input ${
+                                newEwalletNumber.length > 0 ? (
+                                  (newEwalletProvider === 'GCash' && newEwalletNumber.startsWith('09') && newEwalletNumber.length === 11) ||
+                                  (newEwalletProvider === 'Maya' && ((newEwalletNumber.length === 11 && newEwalletNumber.startsWith('09')) || (newEwalletNumber.length >= 12 && newEwalletNumber.length <= 16)))
+                                    ? '!border-emerald-500/60 focus:!ring-emerald-500/30'
+                                    : '!border-rose-500/60 focus:!ring-rose-500/30'
+                                ) : ''
+                              }`}
                               style={{ paddingLeft: '16px' }} 
-                              placeholder="e.g. 09123456789" 
+                              placeholder={newEwalletProvider === 'GCash' ? 'e.g. 09123456789 (11 digits)' : 'e.g. 09123456789 or Account No.'} 
                               value={newEwalletNumber} 
                               onChange={(e) => setNewEwalletNumber(e.target.value.replace(/[^0-9]/g, ''))} 
-                              maxLength={11}
+                              maxLength={newEwalletProvider === 'GCash' ? 11 : 16}
                               required 
                             />
+                            <p className="text-[11px] text-slate-500 dark:text-slate-400 mt-1">
+                              {newEwalletProvider === 'GCash'
+                                ? 'GCash numbers must be exactly 11 digits starting with 09 (e.g. 09123456789).'
+                                : 'Maya accounts must be an 11-digit mobile number starting with 09 or a 12–16 digit account number.'}
+                            </p>
                           </div>
                         </>
                       ) : disbursementMethod === 'bank' ? (
                         <>
                           <div>
-                            <label className="user-loan-application-label">Bank Name</label>
-                            <input type="text" className="user-loan-application-input" style={{ paddingLeft: '16px' }} placeholder="e.g. BDO, BPI" value={newBankName} onChange={(e) => setNewBankName(e.target.value)} maxLength={50} required />
+                            <div className="flex items-center justify-between mb-1">
+                              <label className="user-loan-application-label">Bank Name</label>
+                              {newBankName.length > 0 && (
+                                <span className="text-[11px] font-bold text-emerald-600 dark:text-emerald-400">
+                                  ✓ {isCustomBank ? 'Custom Bank' : 'Selected'}
+                                </span>
+                              )}
+                            </div>
+                            <div className="relative" ref={bankDropdownRef}>
+                              <div className="relative flex items-center">
+                                <input
+                                  type="text"
+                                  className={`user-loan-application-input !pr-10 ${
+                                    newBankName.length > 0 ? '!border-emerald-500/60 focus:!ring-emerald-500/30' : ''
+                                  }`}
+                                  style={{ paddingLeft: '16px' }}
+                                  placeholder="Type or select a Bank (e.g. BDO, BPI, Metrobank)"
+                                  value={newBankName}
+                                  onFocus={() => setIsBankDropdownOpen(true)}
+                                  onChange={(e) => {
+                                    const val = e.target.value;
+                                    setNewBankName(val);
+                                    setIsBankDropdownOpen(true);
+                                    const exactMatch = PHILIPPINE_BANKS.find(b => b.toLowerCase() === val.toLowerCase());
+                                    setIsCustomBank(!exactMatch);
+                                  }}
+                                  required
+                                />
+                                <button
+                                  type="button"
+                                  className="absolute right-3 text-slate-400 hover:text-slate-600 dark:hover:text-slate-200 cursor-pointer p-1"
+                                  onClick={() => setIsBankDropdownOpen(prev => !prev)}
+                                >
+                                  <ChevronDown size={16} className={`transition-transform ${isBankDropdownOpen ? 'rotate-180 text-blue-600' : ''}`} />
+                                </button>
+                              </div>
+
+                              {isBankDropdownOpen && (
+                                <div className="absolute left-0 right-0 top-full mt-1.5 z-50 bg-white dark:bg-slate-900 border border-slate-200 dark:border-slate-800 rounded-2xl shadow-xl p-1.5 max-h-56 overflow-y-auto space-y-0.5 custom-scrollbar">
+                                  {PHILIPPINE_BANKS
+                                    .filter((b) => b !== 'Other Bank' && (!newBankName || b.toLowerCase().includes(newBankName.toLowerCase())))
+                                    .map((b) => {
+                                      const isSelected = newBankName === b;
+                                      return (
+                                        <button
+                                          key={b}
+                                          type="button"
+                                          className={`w-full text-left px-3 py-2 rounded-xl text-xs font-medium transition-colors flex items-center justify-between ${
+                                            isSelected
+                                              ? 'bg-blue-50 dark:bg-blue-950/60 text-blue-600 dark:text-blue-400 font-bold'
+                                              : 'text-slate-700 dark:text-slate-300 hover:bg-slate-100 dark:hover:bg-slate-800/80'
+                                          }`}
+                                          onMouseDown={(e) => {
+                                            e.preventDefault();
+                                            setNewBankName(b);
+                                            setIsCustomBank(false);
+                                            setIsBankDropdownOpen(false);
+                                          }}
+                                        >
+                                          <span>{b}</span>
+                                          {isSelected && <Check size={14} className="text-blue-600 dark:text-blue-400 shrink-0" />}
+                                        </button>
+                                      );
+                                    })}
+
+                                  {PHILIPPINE_BANKS.filter((b) => b !== 'Other Bank' && (!newBankName || b.toLowerCase().includes(newBankName.toLowerCase()))).length === 0 && (
+                                    <div className="p-3 text-center text-xs text-slate-400">
+                                      <p>No matching preset bank.</p>
+                                      <p className="text-[11px] text-blue-600 dark:text-blue-400 font-semibold mt-1">
+                                        "{newBankName}" will be saved as a Custom Bank
+                                      </p>
+                                    </div>
+                                  )}
+                                </div>
+                              )}
+                            </div>
                           </div>
                           <div>
-                            <label className="user-loan-application-label">Account Name</label>
-                            <input type="text" className="user-loan-application-input" style={{ paddingLeft: '16px' }} placeholder="e.g. Juan Dela Cruz" value={newBankAccountName} onChange={(e) => setNewBankAccountName(e.target.value)} maxLength={50} required />
+                            <div className="flex items-center justify-between mb-1">
+                              <label className="user-loan-application-label">Account Name</label>
+                              {newBankAccountName.length > 0 && (
+                                <span className={`text-[11px] font-bold ${newBankAccountName.trim().length >= 2 ? 'text-emerald-600 dark:text-emerald-400' : 'text-rose-500'}`}>
+                                  {newBankAccountName.trim().length >= 2 ? '✓ Valid Name' : 'Min 2 characters'}
+                                </span>
+                              )}
+                            </div>
+                            <input
+                              type="text"
+                              className={`user-loan-application-input ${
+                                newBankAccountName.length > 0
+                                  ? (newBankAccountName.trim().length >= 2 ? '!border-emerald-500/60 focus:!ring-emerald-500/30' : '!border-rose-500/60 focus:!ring-rose-500/30')
+                                  : ''
+                              }`}
+                              style={{ paddingLeft: '16px' }}
+                              placeholder="e.g. Juan Dela Cruz"
+                              value={newBankAccountName}
+                              onChange={(e) => setNewBankAccountName(e.target.value)}
+                              maxLength={50}
+                              required
+                            />
                           </div>
                           <div>
-                            <label className="user-loan-application-label">Account Number</label>
+                            <div className="flex items-center justify-between mb-1">
+                              <label className="user-loan-application-label">Account Number</label>
+                              {newBankAccountNumber.length > 0 && (
+                                <span className={`text-[11px] font-bold ${
+                                  newBankAccountNumber.replace(/\D/g, '').length >= 10 && newBankAccountNumber.replace(/\D/g, '').length <= 16
+                                    ? 'text-emerald-600 dark:text-emerald-400'
+                                    : 'text-rose-500'
+                                }`}>
+                                  {newBankAccountNumber.replace(/\D/g, '').length < 10
+                                    ? `${newBankAccountNumber.replace(/\D/g, '').length}/10-16 digits`
+                                    : newBankAccountNumber.replace(/\D/g, '').length <= 16
+                                    ? '✓ Valid Bank Account'
+                                    : 'Max 16 digits'}
+                                </span>
+                              )}
+                            </div>
                             <input 
                               type="text" 
-                              className="user-loan-application-input" 
+                              className={`user-loan-application-input ${
+                                newBankAccountNumber.length > 0 ? (
+                                  newBankAccountNumber.replace(/\D/g, '').length >= 10 && newBankAccountNumber.replace(/\D/g, '').length <= 16
+                                    ? '!border-emerald-500/60 focus:!ring-emerald-500/30'
+                                    : '!border-rose-500/60 focus:!ring-rose-500/30'
+                                ) : ''
+                              }`}
                               style={{ paddingLeft: '16px' }} 
-                              placeholder="e.g. 1234 5678 90" 
+                              placeholder="e.g. 1234 5678 90 (10-16 digits)" 
                               value={newBankAccountNumber} 
                               onChange={(e) => {
                                 const raw = e.target.value.replace(/\D/g, '');
@@ -1055,6 +1518,9 @@ export default function LoanApplicationModal({
                               maxLength={20} 
                               required 
                             />
+                            <p className="text-[11px] text-slate-500 dark:text-slate-400 mt-1">
+                              Bank account numbers must contain 10 to 16 digits.
+                            </p>
                           </div>
                         </>
                       ) : null}
@@ -1063,9 +1529,19 @@ export default function LoanApplicationModal({
                 </div>
               )}
             </div>
+          </div>
 
-            {/* ── Terms & Conditions ── */}
-            <div className="ula-terms-section pt-2">
+          {/* ── STEP 4: Terms & Conditions Agreement ── */}
+          <div className="bg-slate-50/70 dark:bg-slate-800/40 border border-slate-200/80 dark:border-white/10 rounded-2xl p-4 sm:p-5 space-y-4">
+            <div className="flex items-center justify-between pb-2 border-b border-slate-200/60 dark:border-white/10">
+              <div className="flex items-center gap-2">
+                <div className="w-6 h-6 rounded-full bg-[#1E3A8A] text-white font-bold text-xs flex items-center justify-center shrink-0">4</div>
+                <h3 className="text-xs font-bold text-slate-900 dark:text-white uppercase tracking-wider font-inter">Terms &amp; Conditions Agreement</h3>
+              </div>
+              <span className="text-xs font-bold text-slate-600 dark:text-slate-300">Step 4 of 4</span>
+            </div>
+
+            <div className="ula-terms-section">
               <h4 className="text-xs font-bold text-slate-800 dark:text-slate-200 mb-2 font-inter">Loan Terms &amp; Conditions</h4>
               <div className="ula-terms-box">
                 <div className="ula-terms-group">
@@ -1126,7 +1602,7 @@ export default function LoanApplicationModal({
             <button 
               type="button" 
               className="w-full sm:w-auto px-5 py-2.5 rounded-xl border border-slate-200 dark:border-white/10 hover:bg-slate-100 dark:hover:bg-slate-800 text-slate-700 dark:text-slate-300 font-semibold text-xs transition-all cursor-pointer" 
-              onClick={onClose} 
+              onClick={requestClose} 
               disabled={loading}
             >
               Cancel
@@ -1150,7 +1626,6 @@ export default function LoanApplicationModal({
           <div className="ula-camera-modal" onClick={(e) => e.stopPropagation()}>
             <div className="ula-camera-header">
               <h3 className="ula-camera-title">
-                <Camera size={20} />
                 {cameraTarget === 'selfie' ? 'Capture Selfie with ID & Date' : 'Capture Government ID'}
               </h3>
               <button type="button" className="ula-camera-close" onClick={closeCamera}>
@@ -1169,35 +1644,54 @@ export default function LoanApplicationModal({
                 </div>
               ) : (
                 <>
-                  <div className={`ula-camera-video-container ${cameraTarget === 'selfie' ? 'ula-camera-mirror' : ''} ${cameraTarget === 'id' && idDetected ? 'ula-id-detected' : ''}`}>
-                    <video
-                      ref={videoRef}
-                      autoPlay
-                      playsInline
-                      muted
-                      className="ula-camera-video"
-                    />
-                    {!cameraReady && (
+                  <div className={`ula-camera-video-container ${cameraTarget === 'selfie' ? 'ula-camera-mirror' : ''}`}>
+                    {capturedIdPreview ? (
+                      <img src={capturedIdPreview} alt="Captured ID Preview" className="w-full h-full object-cover" />
+                    ) : (
+                      <video
+                        ref={videoRef}
+                        autoPlay
+                        playsInline
+                        muted
+                        className="ula-camera-video"
+                      />
+                    )}
+                    {!cameraReady && !capturedIdPreview && (
                       <div className="ula-camera-loading">
-                        <span className="btn-spinner" />
-                        <p>Starting camera...</p>
+                        <span className="btn-spinner text-blue-500" style={{ width: 28, height: 28 }} />
+                        <p className="text-xs font-bold font-inter tracking-wide text-slate-200">Starting camera...</p>
+                      </div>
+                    )}
+                    {idChecking && (
+                      <div className="absolute inset-0 bg-black/80 flex flex-col items-center justify-center gap-2.5 text-white p-4 text-center">
+                        <span className="btn-spinner text-blue-500" style={{ width: 28, height: 28 }} />
+                        <p className="text-xs font-bold font-inter tracking-wide">Verifying ID with AI...</p>
+                        <p className="text-[11px] text-slate-300">Checking document readability &amp; validity</p>
                       </div>
                     )}
                     {/* Guide overlay */}
-                    {cameraReady && cameraTarget === 'selfie' && (
+                    {cameraReady && !capturedIdPreview && cameraTarget === 'selfie' && (
                       <div className="ula-camera-guide-selfie">
                         <div className="ula-camera-face-outline" />
                       </div>
                     )}
-                    {cameraReady && cameraTarget === 'id' && (
+                    {cameraReady && !capturedIdPreview && cameraTarget === 'id' && (
                       <div className="ula-camera-guide-id">
                         <div className="ula-camera-id-outline" />
                       </div>
                     )}
                   </div>
 
+                  {/* ID Detection Error Message */}
+                  {idDetectionMsg && (
+                    <div className="p-3 rounded-xl bg-rose-500/20 border border-rose-500/40 text-rose-300 text-xs flex items-center gap-2">
+                      <AlertTriangle size={16} className="shrink-0 text-rose-400" />
+                      <span>{idDetectionMsg}</span>
+                    </div>
+                  )}
+
                   {/* Hint bar */}
-                  {cameraReady && cameraHint && (
+                  {cameraReady && !capturedIdPreview && cameraHint && !idDetectionMsg && (
                     <div className="ula-camera-hint">
                       <AlertTriangle size={14} />
                       <span>{cameraHint}</span>
@@ -1205,71 +1699,58 @@ export default function LoanApplicationModal({
                   )}
 
                   {/* Instructions */}
-                  <div className="ula-camera-instructions">
-                    {cameraTarget === 'selfie' ? (
-                      <ul>
-                        <li>Hold your government ID beside your face</li>
-                        <li>Your face must be clearly visible and close to the camera</li>
-                        <li>Include today's date (handwritten on paper)</li>
-                      </ul>
-                    ) : (
-                      <ul>
-                        <li>Capture a clear photo of the front of your valid government ID</li>
-                        <li>All text and photo on the ID must be readable</li>
-                        <li>Avoid glare, shadows, and blurriness</li>
-                      </ul>
-                    )}
-                  </div>
+                  {!capturedIdPreview && (
+                    <div className="ula-camera-instructions">
+                      {cameraTarget === 'selfie' ? (
+                        <ul>
+                          <li>Hold your government ID beside your face</li>
+                          <li>Your face must be clearly visible and close to the camera</li>
+                          <li>Include today's date (handwritten on paper)</li>
+                        </ul>
+                      ) : (
+                        <ul>
+                          <li>Capture a clear photo of the front of your valid government ID</li>
+                          <li>All text and photo on the ID must be readable</li>
+                          <li>Avoid glare, shadows, and blurriness</li>
+                        </ul>
+                      )}
+                    </div>
+                  )}
                 </>
               )}
             </div>
 
-            {/* Capture button */}
+            {/* Capture / Action button */}
             {!cameraError && (
               <div className="ula-camera-actions">
-                {/* ID verification section */}
-                {cameraTarget === 'id' && cameraReady && (
+                {capturedIdPreview ? (
+                  !idChecking && idDetectionMsg && (
+                    <button
+                      type="button"
+                      className="px-5 py-2.5 rounded-xl bg-blue-600 hover:bg-blue-700 text-white font-bold text-xs flex items-center gap-2 transition-all shadow-md active:scale-95 cursor-pointer"
+                      onClick={() => {
+                        setCapturedIdPreview(null);
+                        setIdDetectionMsg('');
+                      }}
+                    >
+                      <RotateCcw size={14} /> Retake Photo
+                    </button>
+                  )
+                ) : (
                   <>
-                    {/* Status message */}
-                    {idDetectionMsg && (
-                      <div className={`ula-id-detection-status ${idDetected ? 'detected' : 'scanning'}`}>
-                        {idDetected ? (
-                          <><span style={{ color: '#16a34a', fontWeight: 600 }}>✓ ID Detected</span> — Ready to capture</>
-                        ) : (
-                          <><span style={{ color: '#dc2626' }}>⚠</span> {idDetectionMsg}</>
-                        )}
+                    <button
+                      type="button"
+                      className="ula-camera-capture-btn"
+                      onClick={capturePhoto}
+                      disabled={!cameraReady || idChecking}
+                    >
+                      <div className="ula-camera-capture-ring">
+                        <div className="ula-camera-capture-dot" />
                       </div>
-                    )}
-                    {/* Manual verify button */}
-                    {!idDetected && (
-                      <button
-                        type="button"
-                        className="ula-verify-id-btn"
-                        onClick={checkIdFrame}
-                        disabled={idChecking}
-                      >
-                        {idChecking ? (
-                          <><span className="btn-spinner" style={{ width: 14, height: 14 }} /> Verifying...</>
-                        ) : (
-                          '🔍 Verify ID'
-                        )}
-                      </button>
-                    )}
+                    </button>
+                    <span className="ula-camera-capture-label">Tap to capture</span>
                   </>
                 )}
-                <button
-                  type="button"
-                  className={`ula-camera-capture-btn ${cameraTarget === 'id' && idDetected ? 'ula-capture-ready' : ''}`}
-                  onClick={capturePhoto}
-                  disabled={!cameraReady || (cameraTarget === 'id' && !idDetected)}
-                >
-                  <div className="ula-camera-capture-ring">
-                    <div className="ula-camera-capture-dot" />
-                  </div>
-                </button>
-                <span className="ula-camera-capture-label">
-                  {cameraTarget === 'id' && !idDetected ? 'Verify your ID first, then capture' : 'Tap to capture'}
-                </span>
               </div>
             )}
           </div>
@@ -1278,6 +1759,287 @@ export default function LoanApplicationModal({
 
       {/* Hidden canvas for capturing frames */}
       <canvas ref={canvasRef} style={{ display: 'none' }} />
+
+      {/* ── Confirmation Modal (Retake / Remove) ── */}
+      {confirmModal.isOpen && (
+        <div 
+          className="fixed inset-0 z-[100005] bg-black/70 backdrop-blur-sm flex items-center justify-center p-4"
+          onClick={() => setConfirmModal(prev => ({ ...prev, isOpen: false }))}
+        >
+          <div 
+            className="relative w-full max-w-sm bg-white dark:bg-slate-900 rounded-2xl p-5 sm:p-6 shadow-2xl border border-slate-200 dark:border-white/10 flex flex-col gap-4 text-left font-inter"
+            onClick={e => e.stopPropagation()}
+          >
+            <div className="flex items-start gap-3.5">
+              <div className={`w-10 h-10 rounded-xl flex items-center justify-center shrink-0 ${confirmModal.actionVariant === 'danger' ? 'bg-rose-100 dark:bg-rose-950/60 text-rose-600 dark:text-rose-400' : 'bg-blue-100 dark:bg-blue-950/60 text-blue-600 dark:text-blue-400'}`}>
+                {confirmModal.actionVariant === 'danger' ? <Trash2 size={20} /> : <RotateCcw size={20} />}
+              </div>
+              <div className="flex-1 min-w-0">
+                <h4 className="text-sm font-extrabold text-slate-900 dark:text-white">
+                  {confirmModal.title}
+                </h4>
+                <p className="text-xs text-slate-500 dark:text-slate-400 mt-1 leading-relaxed">
+                  {confirmModal.message}
+                </p>
+              </div>
+            </div>
+
+            <div className="flex items-center justify-end gap-2.5 pt-3 border-t border-slate-100 dark:border-white/10">
+              <button
+                type="button"
+                className="px-4 py-2 rounded-xl border border-slate-300 dark:border-white/10 text-xs font-semibold text-slate-700 dark:text-slate-300 hover:bg-slate-100 dark:hover:bg-slate-800 transition-colors cursor-pointer"
+                onClick={() => setConfirmModal(prev => ({ ...prev, isOpen: false }))}
+              >
+                Cancel
+              </button>
+              <button
+                type="button"
+                className={`px-4 py-2 rounded-xl text-xs font-bold text-white shadow-md transition-all active:scale-95 cursor-pointer ${confirmModal.actionVariant === 'danger' ? 'bg-rose-600 hover:bg-rose-700' : 'bg-blue-600 hover:bg-blue-700'}`}
+                onClick={() => {
+                  if (confirmModal.type === 'delete_account' && confirmModal.accountToDelete) {
+                    handleDeleteAccount(confirmModal.accountToDelete);
+                  } else if (confirmModal.type === 'close_modal') {
+                    onClose();
+                  } else if (confirmModal.type === 'retake_selfie') {
+                    openCamera('selfie');
+                  } else if (confirmModal.type === 'remove_selfie') {
+                    setSelfieImage(null);
+                  } else if (confirmModal.type === 'retake_id') {
+                    openCamera('id');
+                  } else if (confirmModal.type === 'remove_id') {
+                    setIdImage(null);
+                  }
+                  setConfirmModal(prev => ({ ...prev, isOpen: false }));
+                }}
+              >
+                {confirmModal.actionText}
+              </button>
+            </div>
+          </div>
+        </div>
+      )}
+
+      {/* ── Review & Confirm Modal ── */}
+      {showReviewModal && reviewData && (
+        <div 
+          className="fixed inset-0 z-[100010] bg-black/70 backdrop-blur-sm flex items-center justify-center p-4"
+          onClick={() => setShowReviewModal(false)}
+        >
+          <div 
+            className="relative w-full max-w-lg bg-white dark:bg-slate-900 text-slate-900 dark:text-white rounded-3xl overflow-hidden shadow-2xl border border-slate-200 dark:border-white/10 flex flex-col max-h-[90vh] font-inter animate-in fade-in zoom-in-95 duration-200"
+            onClick={(e) => e.stopPropagation()}
+          >
+            
+            {/* Header */}
+            <div className="p-5 sm:p-6 border-b border-slate-100 dark:border-white/10 flex items-center justify-between bg-slate-50/50 dark:bg-slate-800/30">
+              <div className="flex items-center gap-3">
+                <div className="w-10 h-10 rounded-2xl bg-blue-100 dark:bg-blue-950/60 text-blue-600 dark:text-blue-400 flex items-center justify-center shrink-0">
+                  <ShieldCheck size={22} />
+                </div>
+                <div>
+                  <h3 className="text-base font-extrabold text-slate-900 dark:text-white leading-tight">
+                    Review Your Application
+                  </h3>
+                  <p className="text-xs text-slate-500 dark:text-slate-400 mt-0.5">
+                    Double-check your inputs before submitting.
+                  </p>
+                </div>
+              </div>
+              <button
+                type="button"
+                className="p-2 rounded-xl text-slate-400 hover:text-slate-600 dark:hover:text-slate-200 hover:bg-slate-100 dark:hover:bg-slate-800 transition-colors cursor-pointer"
+                onClick={() => setShowReviewModal(false)}
+              >
+                <X size={18} />
+              </button>
+            </div>
+
+            {/* Body */}
+            <div className="p-5 sm:p-6 space-y-4 overflow-y-auto custom-scrollbar flex-1">
+              
+              {/* Loan Details Breakdown Card */}
+              <div className="p-4 rounded-2xl bg-blue-50/50 dark:bg-blue-950/30 border border-blue-100 dark:border-blue-900/40 space-y-3">
+                <div className="flex items-center justify-between">
+                  <span className="text-xs font-bold text-blue-600 dark:text-blue-400 uppercase tracking-wider">Loan Summary</span>
+                  <span className="px-2.5 py-0.5 rounded-full text-[11px] font-extrabold bg-blue-100 dark:bg-blue-900/60 text-blue-700 dark:text-blue-300">
+                    {reviewData.loanTypeObj?.name}
+                  </span>
+                </div>
+
+                <div className="grid grid-cols-2 gap-3 pt-1">
+                  <div>
+                    <span className="text-[11px] text-slate-500 dark:text-slate-400 block font-medium">Principal Amount</span>
+                    <span className="text-base font-extrabold text-slate-900 dark:text-white font-dm">{fmt(reviewData.amount)}</span>
+                  </div>
+                  <div>
+                    <span className="text-[11px] text-slate-500 dark:text-slate-400 block font-medium">Repayment Term</span>
+                    <span className="text-base font-extrabold text-slate-900 dark:text-white">{reviewData.termMonths} Months</span>
+                  </div>
+                  <div>
+                    <span className="text-[11px] text-slate-500 dark:text-slate-400 block font-medium">Monthly Installment</span>
+                    <span className="text-sm font-bold text-blue-600 dark:text-blue-400 font-dm">{fmt(reviewData.monthlyPayment)} / mo</span>
+                  </div>
+                  <div>
+                    <span className="text-[11px] text-slate-500 dark:text-slate-400 block font-medium">Total Repayment</span>
+                    <span className="text-sm font-bold text-slate-900 dark:text-white font-dm">{fmt(reviewData.totalRepayment)}</span>
+                  </div>
+                </div>
+              </div>
+
+              {/* Verification Photos Card */}
+              <div className="p-4 rounded-2xl bg-slate-50 dark:bg-slate-800/40 border border-slate-200 dark:border-white/10 space-y-3">
+                <span className="text-xs font-bold text-slate-800 dark:text-slate-200 uppercase tracking-wider block">Identity Verification</span>
+                <div className="grid grid-cols-2 gap-3">
+                  <div>
+                    <span className="text-[11px] font-semibold text-slate-600 dark:text-slate-400 block mb-1.5">Selfie with ID</span>
+                    {reviewData.selfieImage ? (
+                      <div className="relative rounded-xl overflow-hidden border border-slate-200 dark:border-white/10 h-24 bg-black">
+                        <img src={reviewData.selfieImage} alt="Selfie Preview" className="w-full h-full object-cover" />
+                      </div>
+                    ) : (
+                      <span className="text-xs text-rose-500">Not provided</span>
+                    )}
+                  </div>
+                  <div>
+                    <span className="text-[11px] font-semibold text-slate-600 dark:text-slate-400 block mb-1.5">Government ID</span>
+                    {reviewData.idImage ? (
+                      <div className="relative rounded-xl overflow-hidden border border-slate-200 dark:border-white/10 h-24 bg-black">
+                        <img src={reviewData.idImage} alt="Government ID Preview" className="w-full h-full object-cover" />
+                      </div>
+                    ) : (
+                      <span className="text-xs text-rose-500">Not provided</span>
+                    )}
+                  </div>
+                </div>
+              </div>
+
+              {/* Uploaded Documents List */}
+              <div className="p-4 rounded-2xl bg-slate-50 dark:bg-slate-800/40 border border-slate-200 dark:border-white/10 space-y-2.5">
+                <span className="text-xs font-bold text-slate-800 dark:text-slate-200 uppercase tracking-wider block">Attached Documents</span>
+                <div className="space-y-1.5 text-xs">
+                  <div className="flex items-center justify-between p-2 rounded-xl bg-white dark:bg-slate-900/60 border border-slate-200/60 dark:border-white/10">
+                    <span className="text-slate-600 dark:text-slate-400 font-medium">Certificate of Employment</span>
+                    <span className="font-bold text-emerald-600 dark:text-emerald-400 flex items-center gap-1">
+                      <CheckCircle size={13} /> {reviewData.coeFileName || 'Attached'}
+                    </span>
+                  </div>
+                  <div className="flex items-center justify-between p-2 rounded-xl bg-white dark:bg-slate-900/60 border border-slate-200/60 dark:border-white/10">
+                    <span className="text-slate-600 dark:text-slate-400 font-medium">Income Tax Return (ITR)</span>
+                    <span className="font-bold text-emerald-600 dark:text-emerald-400 flex items-center gap-1">
+                      <CheckCircle size={13} /> {reviewData.itrFileName || 'Attached'}
+                    </span>
+                  </div>
+                  <div className="flex items-center justify-between p-2 rounded-xl bg-white dark:bg-slate-900/60 border border-slate-200/60 dark:border-white/10">
+                    <span className="text-slate-600 dark:text-slate-400 font-medium">Payslip</span>
+                    <span className="font-bold text-emerald-600 dark:text-emerald-400 flex items-center gap-1">
+                      <CheckCircle size={13} /> {reviewData.payslipFileName || 'Attached'}
+                    </span>
+                  </div>
+                  {reviewData.hasActiveLoan && (
+                    <div className="flex items-center justify-between p-2 rounded-xl bg-white dark:bg-slate-900/60 border border-slate-200/60 dark:border-white/10">
+                      <span className="text-slate-600 dark:text-slate-400 font-medium">Active Loan Proof</span>
+                      <span className="font-bold text-emerald-600 dark:text-emerald-400 flex items-center gap-1">
+                        <CheckCircle size={13} /> {reviewData.activeLoanScreenshotFileName || 'Attached'}
+                      </span>
+                    </div>
+                  )}
+                </div>
+              </div>
+
+              {/* Disbursement Account Details */}
+              <div className="p-4 rounded-2xl bg-slate-50 dark:bg-slate-800/40 border border-slate-200 dark:border-white/10 space-y-2">
+                <span className="text-xs font-bold text-slate-800 dark:text-slate-200 uppercase tracking-wider block">Disbursement Account</span>
+                <div className="p-3 rounded-xl bg-white dark:bg-slate-900/60 border border-slate-200/60 dark:border-white/10">
+                  <span className="text-xs font-bold text-slate-900 dark:text-white block">
+                    {reviewData.disbursementMethod === 'cash' ? 'Cash Pickup at Office' : reviewData.disbursementAccount}
+                  </span>
+                  <span className="text-[11px] text-slate-500 dark:text-slate-400 capitalize">
+                    Method: {reviewData.disbursementMethod}
+                  </span>
+                </div>
+              </div>
+
+            </div>
+
+            {/* Footer Actions */}
+            <div className="p-4 sm:p-5 border-t border-slate-100 dark:border-white/10 bg-slate-50/50 dark:bg-slate-800/30 flex items-center justify-between gap-3">
+              <button
+                type="button"
+                className="px-4 py-2.5 rounded-xl border border-slate-300 dark:border-white/10 text-xs font-bold text-slate-700 dark:text-slate-300 hover:bg-slate-100 dark:hover:bg-slate-800 transition-colors flex items-center gap-2 cursor-pointer"
+                onClick={() => setShowReviewModal(false)}
+                disabled={loading}
+              >
+                <Pencil size={14} />
+                Edit Details
+              </button>
+
+              <button
+                type="button"
+                className="px-6 py-2.5 rounded-xl bg-gradient-to-r from-emerald-600 to-teal-600 hover:from-emerald-700 hover:to-teal-700 text-white font-bold text-xs shadow-md transition-all active:scale-95 flex items-center gap-2 cursor-pointer disabled:opacity-50"
+                onClick={() => setShowFinalSubmitConfirm(true)}
+                disabled={loading}
+              >
+                {loading ? <span className="btn-spinner" /> : (
+                  <>
+                    <Send size={14} />
+                    Confirm & Submit Application
+                  </>
+                )}
+              </button>
+            </div>
+
+          </div>
+        </div>
+      )}
+
+      {/* ── Final Action Confirmation Dialog ── */}
+      {showFinalSubmitConfirm && (
+        <div 
+          className="fixed inset-0 z-[100020] bg-black/75 backdrop-blur-sm flex items-center justify-center p-4"
+          onClick={() => setShowFinalSubmitConfirm(false)}
+        >
+          <div 
+            className="relative w-full max-w-sm bg-white dark:bg-slate-900 text-slate-900 dark:text-white rounded-3xl p-5 sm:p-6 shadow-2xl border border-slate-200 dark:border-white/10 flex flex-col gap-4 text-left font-inter animate-in fade-in zoom-in-95 duration-200"
+            onClick={e => e.stopPropagation()}
+          >
+            <div className="flex items-start gap-3.5">
+              <div className="w-11 h-11 rounded-2xl bg-emerald-100 dark:bg-emerald-950/80 text-emerald-600 dark:text-emerald-400 flex items-center justify-center shrink-0 border border-emerald-200 dark:border-emerald-800/50">
+                <ShieldCheck size={22} />
+              </div>
+              <div className="flex-1 min-w-0">
+                <h4 className="text-base font-extrabold text-slate-900 dark:text-white leading-tight">
+                  Submit Loan Application?
+                </h4>
+                <p className="text-xs text-slate-500 dark:text-slate-400 mt-1.5 leading-relaxed">
+                  Are you sure all details are accurate? Once submitted, your application will be forwarded to credit officers for review and processing.
+                </p>
+              </div>
+            </div>
+
+            <div className="flex items-center justify-end gap-2.5 pt-3 border-t border-slate-100 dark:border-white/10">
+              <button
+                type="button"
+                className="px-4 py-2.5 rounded-xl border border-slate-300 dark:border-white/10 text-xs font-semibold text-slate-700 dark:text-slate-300 hover:bg-slate-100 dark:hover:bg-slate-800 transition-colors cursor-pointer"
+                onClick={() => setShowFinalSubmitConfirm(false)}
+                disabled={loading}
+              >
+                Cancel
+              </button>
+              <button
+                type="button"
+                className="px-5 py-2.5 rounded-xl bg-gradient-to-r from-emerald-600 to-teal-600 hover:from-emerald-700 hover:to-teal-700 text-white font-bold text-xs shadow-md transition-all active:scale-95 flex items-center gap-2 cursor-pointer disabled:opacity-50"
+                onClick={async () => {
+                  setShowFinalSubmitConfirm(false);
+                  await executeFinalSubmission();
+                }}
+                disabled={loading}
+              >
+                {loading ? <span className="btn-spinner" /> : 'Yes, Submit Application'}
+              </button>
+            </div>
+          </div>
+        </div>
+      )}
 
     </div>
   );

@@ -19,6 +19,7 @@ export default function Home() {
 
   const [donationStats, setDonationStats] = useState({ totalDonated: 0 });
   const [monthlyDonationCount, setMonthlyDonationCount] = useState(0);
+  const [attendanceCount, setAttendanceCount] = useState(0);
 
   const [recentActivity, setRecentActivity] = useState([]);
   const [savingsStats, setSavingsStats] = useState({ totalSavings: 0, thisMonth: 0 });
@@ -36,6 +37,30 @@ export default function Home() {
   const [prayers, setPrayers] = useState([]);
   const [newPrayer, setNewPrayer] = useState("");
   const [calendarDate, setCalendarDate] = useState(new Date());
+  const [apiVerse, setApiVerse] = useState(null);
+
+  useEffect(() => {
+    let isMounted = true;
+    fetch('https://beta.ourmanna.com/api/v1/get?format=json')
+      .then((res) => {
+        if (!res.ok) throw new Error('Daily verse API request failed');
+        return res.json();
+      })
+      .then((data) => {
+        if (isMounted && data?.verse?.details?.text && data?.verse?.details?.reference) {
+          setApiVerse({
+            text: data.verse.details.text.trim(),
+            ref: data.verse.details.reference.trim(),
+          });
+        }
+      })
+      .catch((err) => {
+        console.warn('Daily verse API offline or unreachable, using rotation fallback:', err);
+      });
+    return () => {
+      isMounted = false;
+    };
+  }, []);
 
   const token = localStorage.getItem('token');
   const branch = profile?.branch || '';
@@ -187,8 +212,10 @@ export default function Home() {
           });
       }
 
-      if (attendanceData.success && attendanceData.attendance?.length) {
-        attendanceData.attendance.slice(0, 3).forEach(record => {
+      if (attendanceData && attendanceData.success) {
+        const records = attendanceData.attendance || [];
+        setAttendanceCount(records.length);
+        records.slice(0, 3).forEach(record => {
           activities.push({
             type: 'attendance',
             title: 'Service Attended',
@@ -320,7 +347,15 @@ export default function Home() {
         action: () => navigate('/loans'),
         icon: <FileText size={18} />
       }
-    ] : [])
+    ] : [
+      {
+        title: 'Prayer Request',
+        description: 'Share a prayer request',
+        iconBg: 'bg-purple-50 dark:bg-purple-950/40 text-purple-600 dark:text-purple-400',
+        action: () => setShowPrayerModal(true),
+        icon: <Sparkles size={18} />
+      }
+    ])
   ];
 
   const formatCurrency = (val) =>
@@ -361,11 +396,12 @@ export default function Home() {
   ], []);
 
   const dailyVerse = useMemo(() => {
+    if (apiVerse) return apiVerse;
     const now = new Date();
     const start = new Date(now.getFullYear(), 0, 0);
     const dayOfYear = Math.floor((now - start) / 86400000);
     return DAILY_VERSES[dayOfYear % DAILY_VERSES.length];
-  }, [DAILY_VERSES]);
+  }, [apiVerse, DAILY_VERSES]);
 
   const nextPaymentInfo = useMemo(() => {
     if (!isOfficer || processedLoans.length === 0) return null;
@@ -435,6 +471,121 @@ export default function Home() {
 
 
 
+  if (loading) {
+    return (
+      <div className="space-y-5 w-full pb-8 animate-pulse font-inter">
+        {/* Page Header Skeleton */}
+        <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-3 pb-2.5 border-b border-slate-200/80 dark:border-white/10">
+          <div className="space-y-2">
+            <div className="h-3 w-28 bg-slate-200 dark:bg-slate-700/80 rounded-md" />
+            <div className="h-7 w-56 bg-slate-200 dark:bg-slate-700/80 rounded-lg" />
+            <div className="h-3.5 w-72 sm:w-96 bg-slate-200 dark:bg-slate-700/80 rounded-md" />
+          </div>
+          <div className="flex flex-wrap items-center gap-2 shrink-0">
+            <div className="h-8 w-36 bg-slate-200 dark:bg-slate-700/80 rounded-xl" />
+            <div className="h-8 w-36 bg-slate-200 dark:bg-slate-700/80 rounded-xl" />
+          </div>
+        </div>
+
+        {/* Stats Grid Skeleton (4 Cards) */}
+        <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-4">
+          {[1, 2, 3, 4].map((i) => (
+            <div key={i} className="bg-white dark:bg-[#1E2130] border border-slate-200/80 dark:border-white/10 rounded-2xl p-4 shadow-sm flex flex-col gap-3">
+              <div className="flex items-center justify-between">
+                <div className="h-3.5 w-24 bg-slate-200 dark:bg-slate-700/80 rounded" />
+                <div className="w-8 h-8 rounded-lg bg-slate-200 dark:bg-slate-700/80 shrink-0" />
+              </div>
+              <div className="h-7 w-32 bg-slate-200 dark:bg-slate-700/80 rounded-md" />
+              <div className="h-3 w-28 bg-slate-200 dark:bg-slate-700/80 rounded" />
+            </div>
+          ))}
+        </div>
+
+        {/* Main Content Grid Skeleton */}
+        <div className="grid grid-cols-1 lg:grid-cols-[0.85fr_1.5fr] gap-6">
+          {/* Left Column Skeleton */}
+          <div className="flex flex-col gap-6">
+            {/* Quick Actions Skeleton */}
+            <div className="bg-white dark:bg-[#1E2130] border border-slate-200/80 dark:border-white/10 rounded-2xl p-4 shadow-sm space-y-3">
+              <div className="flex items-center justify-between pb-2.5 border-b border-slate-100 dark:border-white/5">
+                <div className="h-4 w-28 bg-slate-200 dark:bg-slate-700/80 rounded" />
+                <div className="h-4 w-16 bg-slate-200 dark:bg-slate-700/80 rounded-full" />
+              </div>
+              <div className="grid grid-cols-2 gap-2">
+                {[1, 2, 3, 4].map((j) => (
+                  <div key={j} className="h-12 bg-slate-100 dark:bg-slate-800/60 rounded-xl" />
+                ))}
+              </div>
+            </div>
+
+            {/* My Overview Skeleton */}
+            <div className="bg-white dark:bg-[#1E2130] border border-slate-200/80 dark:border-white/10 rounded-2xl p-5 shadow-sm space-y-4">
+              <div className="flex items-center justify-between pb-3 border-b border-slate-100 dark:border-white/5">
+                <div className="h-4 w-24 bg-slate-200 dark:bg-slate-700/80 rounded" />
+                <div className="h-4 w-20 bg-slate-200 dark:bg-slate-700/80 rounded-full" />
+              </div>
+              <div className="h-28 bg-slate-100 dark:bg-slate-800/60 rounded-xl" />
+              <div className="h-11 bg-slate-100 dark:bg-slate-800/60 rounded-xl" />
+            </div>
+          </div>
+
+          {/* Right Column Skeleton: Announcements Carousel */}
+          <div className="bg-white dark:bg-[#1E2130] border border-slate-200/80 dark:border-white/10 rounded-2xl p-5 shadow-sm space-y-3 flex flex-col justify-between">
+            <div className="flex items-center justify-between pb-3 border-b border-slate-100 dark:border-white/5">
+              <div className="h-4 w-44 bg-slate-200 dark:bg-slate-700/80 rounded" />
+              <div className="h-4 w-16 bg-slate-200 dark:bg-slate-700/80 rounded" />
+            </div>
+            <div className="h-[280px] sm:h-[310px] w-full bg-slate-200 dark:bg-slate-700/60 rounded-2xl" />
+            <div className="flex items-center justify-between pt-2">
+              <div className="h-2 w-16 bg-slate-200 dark:bg-slate-700/80 rounded-full" />
+              <div className="flex gap-1">
+                <div className="w-7 h-7 bg-slate-200 dark:bg-slate-700/80 rounded-lg" />
+                <div className="w-7 h-7 bg-slate-200 dark:bg-slate-700/80 rounded-lg" />
+              </div>
+            </div>
+          </div>
+        </div>
+
+        {/* Bottom Grid Skeleton */}
+        <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
+          {/* Recent Activity Skeleton */}
+          <div className="bg-white dark:bg-[#1E2130] border border-slate-200/80 dark:border-white/10 rounded-2xl p-5 shadow-sm space-y-3">
+            <div className="flex items-center justify-between pb-3 border-b border-slate-100 dark:border-white/5">
+              <div className="h-4 w-32 bg-slate-200 dark:bg-slate-700/80 rounded" />
+              <div className="h-4 w-20 bg-slate-200 dark:bg-slate-700/80 rounded-full" />
+            </div>
+            {[1, 2, 3, 4].map((k) => (
+              <div key={k} className="h-12 bg-slate-100 dark:bg-slate-800/60 rounded-xl" />
+            ))}
+          </div>
+
+          {/* Calendar Skeleton */}
+          <div className="bg-white dark:bg-[#1E2130] border border-slate-200/80 dark:border-white/10 rounded-2xl overflow-hidden shadow-sm flex flex-col justify-between">
+            <div className="bg-slate-900 dark:bg-[#0f172a] p-4 space-y-3">
+              <div className="flex justify-between items-center">
+                <div className="h-5 w-28 bg-slate-700 rounded" />
+                <div className="flex gap-1">
+                  <div className="w-7 h-7 bg-slate-700 rounded-lg" />
+                  <div className="w-7 h-7 bg-slate-700 rounded-lg" />
+                </div>
+              </div>
+              <div className="grid grid-cols-7 gap-2">
+                {[...Array(28)].map((_, idx) => (
+                  <div key={idx} className="h-4 bg-slate-700/60 rounded-full" />
+                ))}
+              </div>
+            </div>
+            <div className="p-4 space-y-2">
+              <div className="h-3.5 w-32 bg-slate-200 dark:bg-slate-700/80 rounded" />
+              <div className="h-10 bg-slate-100 dark:bg-slate-800/60 rounded-xl" />
+              <div className="h-10 bg-slate-100 dark:bg-slate-800/60 rounded-xl" />
+            </div>
+          </div>
+        </div>
+      </div>
+    );
+  }
+
   return (
     <div className="space-y-5 w-full pb-8">
 
@@ -477,19 +628,13 @@ export default function Home() {
               <PiggyBank size={16} />
             </div>
           </div>
-          {loading ? (
-            <div className="h-7 w-32 bg-slate-200 dark:bg-slate-700 animate-pulse rounded-md" />
-          ) : (
-            <div className="text-xl sm:text-2xl font-extrabold font-dm text-slate-900 dark:text-white tracking-tight leading-tight">
-              {formatCurrency(savingsStats.totalSavings)}
-            </div>
-          )}
-          {!loading && (
-            <p className="text-xs text-slate-500 dark:text-slate-400 font-inter">+{formatCurrency(savingsStats.thisMonth)} this month</p>
-          )}
+          <div className="text-xl sm:text-2xl font-extrabold font-dm text-slate-900 dark:text-white tracking-tight leading-tight">
+            {formatCurrency(savingsStats.totalSavings)}
+          </div>
+          <p className="text-xs text-slate-500 dark:text-slate-400 font-inter">+{formatCurrency(savingsStats.thisMonth)} this month</p>
         </div>
 
-        {/* Active Loans Stat Card (Officers only) */}
+        {/* Active Loans Stat Card (Officers) OR Services Attended Stat Card (Regular Members) */}
         {isOfficer ? (
           <div 
             onClick={() => navigate('/loans')}
@@ -501,24 +646,34 @@ export default function Home() {
                 <Banknote size={16} />
               </div>
             </div>
-            {loading ? (
-              <div className="h-7 w-20 bg-slate-200 dark:bg-slate-700 animate-pulse rounded-md" />
-            ) : (
-              <div className="text-xl sm:text-2xl font-extrabold font-dm text-slate-900 dark:text-white tracking-tight leading-tight">
-                {loanStats.activeCount}
-              </div>
-            )}
-            {!loading && (
-              <p className={`text-xs font-inter ${
-                lateLoansCount > 0 
-                  ? 'text-rose-600 dark:text-rose-400' 
-                  : 'text-slate-500 dark:text-slate-400'
-              }`}>
-                {lateLoansCount > 0 ? `${lateLoansCount} late payment${lateLoansCount > 1 ? 's' : ''}` : rejectedLoansCount > 0 ? `${rejectedLoansCount} rejected` : 'No overdue loans'}
-              </p>
-            )}
+            <div className="text-xl sm:text-2xl font-extrabold font-dm text-slate-900 dark:text-white tracking-tight leading-tight">
+              {loanStats.activeCount}
+            </div>
+            <p className={`text-xs font-inter ${
+              lateLoansCount > 0 
+                ? 'text-rose-600 dark:text-rose-400' 
+                : 'text-slate-500 dark:text-slate-400'
+            }`}>
+              {lateLoansCount > 0 ? `${lateLoansCount} late payment${lateLoansCount > 1 ? 's' : ''}` : rejectedLoansCount > 0 ? `${rejectedLoansCount} rejected` : 'No overdue loans'}
+            </p>
           </div>
-        ) : null}
+        ) : (
+          <div 
+            onClick={() => navigate('/attendance')}
+            className="group relative bg-white dark:bg-[#1E2130] border border-slate-200/80 dark:border-white/10 rounded-2xl p-4 shadow-sm hover:shadow-md transition-all duration-300 cursor-pointer overflow-hidden flex flex-col gap-2.5"
+          >
+            <div className="flex items-center justify-between">
+              <span className="text-xs font-semibold text-slate-500 dark:text-slate-400 font-inter">Services Attended</span>
+              <div className="w-8 h-8 rounded-lg bg-blue-50 dark:bg-blue-950/50 text-blue-600 dark:text-blue-400 flex items-center justify-center border border-blue-100/60 dark:border-blue-900/30 shrink-0 group-hover:scale-105 transition-transform">
+                <CalendarDays size={16} />
+              </div>
+            </div>
+            <div className="text-xl sm:text-2xl font-extrabold font-dm text-slate-900 dark:text-white tracking-tight leading-tight">
+              {attendanceCount} {attendanceCount === 1 ? 'Service' : 'Services'}
+            </div>
+            <p className="text-xs text-slate-500 dark:text-slate-400 font-inter">Active Community Member</p>
+          </div>
+        )}
 
         {/* Total Donated Stat Card */}
         <div 
@@ -531,16 +686,10 @@ export default function Home() {
               <Heart size={16} />
             </div>
           </div>
-          {loading ? (
-            <div className="h-7 w-32 bg-slate-200 dark:bg-slate-700 animate-pulse rounded-md" />
-          ) : (
-            <div className="text-xl sm:text-2xl font-extrabold font-dm text-slate-900 dark:text-white tracking-tight leading-tight">
-              {formatCurrency(donationStats.totalDonated)}
-            </div>
-          )}
-          {!loading && (
-            <p className="text-xs text-slate-500 dark:text-slate-400 font-inter">{monthlyDonationCount} contribution{monthlyDonationCount !== 1 ? 's' : ''} this month</p>
-          )}
+          <div className="text-xl sm:text-2xl font-extrabold font-dm text-slate-900 dark:text-white tracking-tight leading-tight">
+            {formatCurrency(donationStats.totalDonated)}
+          </div>
+          <p className="text-xs text-slate-500 dark:text-slate-400 font-inter">{monthlyDonationCount} contribution{monthlyDonationCount !== 1 ? 's' : ''} this month</p>
         </div>
 
         {/* Today's Verse Mini Stat Card */}
@@ -1072,29 +1221,30 @@ export default function Home() {
 
       {/* Event Detail Modal */}
       {selectedEvent && (
-        <div className="fixed inset-0 bg-black/40 backdrop-blur-xs z-[1000] flex items-center justify-center p-4 sm:p-6" onClick={() => setSelectedEvent(null)}>
-          <div className="bg-white dark:bg-[#1E2130] rounded-3xl w-full max-w-4xl overflow-hidden border border-slate-200 dark:border-white/10 flex flex-col md:flex-row max-h-[90vh]" onClick={e => e.stopPropagation()}>
+        <div className="fixed inset-0 bg-black/50 backdrop-blur-xs z-[1000] flex items-center justify-center p-3 sm:p-6" onClick={() => setSelectedEvent(null)}>
+          <div className="bg-white dark:bg-[#1E2130] rounded-2xl sm:rounded-3xl w-full max-w-4xl overflow-hidden border border-slate-200 dark:border-white/10 flex flex-col md:flex-row max-h-[85vh] sm:max-h-[90vh] shadow-2xl" onClick={e => e.stopPropagation()}>
             
             {/* Left Media Column */}
-            <div className="w-full md:w-1/2 h-64 md:h-auto min-h-[280px] bg-slate-100 dark:bg-slate-900 relative flex flex-col justify-between overflow-hidden group shrink-0">
+            <div className="w-full md:w-1/2 h-44 sm:h-56 md:h-auto min-h-[160px] sm:min-h-[240px] bg-slate-900 relative flex flex-col justify-between overflow-hidden group shrink-0">
               <img 
                 src={selectedEvent.images?.[modalImageIndex] || selectedEvent.image || ''} 
                 alt={selectedEvent.title} 
                 className="w-full h-full object-cover absolute inset-0 transition-transform duration-700 group-hover:scale-105" 
               />
-              <div className="absolute inset-0 bg-gradient-to-t from-black/30 via-transparent to-transparent pointer-events-none" />
+              <div className="absolute inset-0 bg-gradient-to-t from-black/60 via-black/20 to-black/30 pointer-events-none" />
 
               {/* Mobile Close Button */}
               <button 
                 onClick={() => setSelectedEvent(null)} 
-                className="md:hidden absolute top-3.5 right-3.5 bg-black/50 hover:bg-black text-white p-2 rounded-full backdrop-blur-md border border-white/20 z-10 transition-colors cursor-pointer"
+                className="md:hidden absolute top-3 right-3 bg-black/60 hover:bg-black text-white p-2 rounded-full backdrop-blur-md border border-white/20 z-20 transition-all cursor-pointer active:scale-95"
+                aria-label="Close modal"
               >
                 <X size={16} />
               </button>
 
               {/* Category overlay badge */}
-              <div className="relative z-10 p-4 sm:p-5">
-                <span className="inline-flex items-center gap-1.5 px-3 py-1 rounded-full text-[11px] font-extrabold uppercase tracking-wider bg-white/90 dark:bg-slate-900/90 text-blue-700 dark:text-blue-400 backdrop-blur-md border border-slate-200/50 dark:border-white/10 shadow-xs">
+              <div className="relative z-10 p-3 sm:p-5">
+                <span className="inline-flex items-center gap-1.5 px-2.5 py-1 rounded-full text-[10px] sm:text-[11px] font-extrabold uppercase tracking-wider bg-white/90 dark:bg-slate-900/90 text-blue-700 dark:text-blue-400 backdrop-blur-md border border-slate-200/50 dark:border-white/10 shadow-xs">
                   <Sparkles size={12} className="text-[#F5C800]" />
                   {selectedEvent.category || 'Event'}
                 </span>
@@ -1102,13 +1252,13 @@ export default function Home() {
 
               {/* Bottom Image Navigation dots if multiple images exist */}
               {selectedEvent.images && selectedEvent.images.length > 1 && (
-                <div className="relative z-10 p-4 flex items-center justify-center gap-2">
+                <div className="relative z-10 p-3 flex items-center justify-center gap-1.5">
                   {selectedEvent.images.map((_, idx) => (
                     <button
                       key={idx}
                       onClick={() => setModalImageIndex(idx)}
-                      className={`h-2 rounded-full transition-all duration-300 border-none cursor-pointer ${
-                        idx === modalImageIndex ? 'w-6 bg-white' : 'w-2 bg-white/50'
+                      className={`h-1.5 rounded-full transition-all duration-300 border-none cursor-pointer ${
+                        idx === modalImageIndex ? 'w-5 bg-white' : 'w-1.5 bg-white/50'
                       }`}
                     />
                   ))}
@@ -1117,16 +1267,16 @@ export default function Home() {
             </div>
 
             {/* Right Details Column */}
-            <div className="p-6 sm:p-8 w-full md:w-1/2 flex flex-col justify-between overflow-y-auto">
-              <div className="space-y-5">
+            <div className="p-4 sm:p-6 md:p-8 w-full md:w-1/2 flex flex-col justify-between overflow-y-auto">
+              <div className="space-y-3.5 sm:space-y-5">
                 
                 {/* Header Row */}
-                <div className="flex justify-between items-start gap-4">
+                <div className="flex justify-between items-start gap-3">
                   <div>
-                    <span className="text-[11px] font-bold text-blue-600 dark:text-blue-400 uppercase tracking-widest block font-inter mb-1">
+                    <span className="text-[10px] sm:text-[11px] font-bold text-blue-600 dark:text-blue-400 uppercase tracking-widest block font-inter mb-0.5 sm:mb-1">
                       Official Announcement
                     </span>
-                    <h2 className="text-xl sm:text-2xl font-extrabold font-inter text-slate-900 dark:text-white leading-snug">
+                    <h2 className="text-lg sm:text-2xl font-extrabold font-inter text-slate-900 dark:text-white leading-snug">
                       {selectedEvent.title}
                     </h2>
                   </div>
@@ -1138,41 +1288,41 @@ export default function Home() {
                   </button>
                 </div>
 
-                {/* Event Schedule & Location Grid */}
-                <div className="grid grid-cols-1 sm:grid-cols-3 gap-2.5 font-inter">
-                  <div className="p-3 rounded-2xl bg-blue-50/70 dark:bg-blue-950/40 border border-blue-100 dark:border-blue-900/40 flex flex-col gap-1">
-                    <div className="flex items-center gap-1.5 text-blue-600 dark:text-blue-400 text-xs font-bold">
-                      <CalendarDays size={14} />
+                {/* Event Schedule & Location Grid (Compact 3-column on mobile) */}
+                <div className="grid grid-cols-3 gap-2 font-inter">
+                  <div className="p-2 sm:p-3 rounded-xl sm:rounded-2xl bg-blue-50/70 dark:bg-blue-950/40 border border-blue-100 dark:border-blue-900/40 flex flex-col gap-0.5">
+                    <div className="flex items-center gap-1 text-blue-600 dark:text-blue-400 text-[10px] sm:text-xs font-bold">
+                      <CalendarDays size={12} className="shrink-0" />
                       <span>Date</span>
                     </div>
-                    <span className="text-xs font-semibold text-slate-800 dark:text-slate-200 truncate">
+                    <span className="text-[11px] sm:text-xs font-semibold text-slate-800 dark:text-slate-200 truncate">
                       {selectedEvent.dateObj?.toLocaleDateString('en-US', { month: 'short', day: 'numeric', year: 'numeric' }) || 'Scheduled'}
                     </span>
                   </div>
 
-                  <div className="p-3 rounded-2xl bg-amber-50/70 dark:bg-amber-950/40 border border-amber-100 dark:border-amber-900/40 flex flex-col gap-1">
-                    <div className="flex items-center gap-1.5 text-amber-600 dark:text-amber-400 text-xs font-bold">
-                      <Clock size={14} />
+                  <div className="p-2 sm:p-3 rounded-xl sm:rounded-2xl bg-amber-50/70 dark:bg-amber-950/40 border border-amber-100 dark:border-amber-900/40 flex flex-col gap-0.5">
+                    <div className="flex items-center gap-1 text-amber-600 dark:text-amber-400 text-[10px] sm:text-xs font-bold">
+                      <Clock size={12} className="shrink-0" />
                       <span>Time</span>
                     </div>
-                    <span className="text-xs font-semibold text-slate-800 dark:text-slate-200 truncate">
+                    <span className="text-[11px] sm:text-xs font-semibold text-slate-800 dark:text-slate-200 truncate">
                       {selectedEvent.time || 'All Day'}
                     </span>
                   </div>
 
-                  <div className="p-3 rounded-2xl bg-emerald-50/70 dark:bg-emerald-950/40 border border-emerald-100 dark:border-emerald-900/40 flex flex-col gap-1">
-                    <div className="flex items-center gap-1.5 text-emerald-600 dark:text-emerald-400 text-xs font-bold">
-                      <MapPin size={14} />
+                  <div className="p-2 sm:p-3 rounded-xl sm:rounded-2xl bg-emerald-50/70 dark:bg-emerald-950/40 border border-emerald-100 dark:border-emerald-900/40 flex flex-col gap-0.5">
+                    <div className="flex items-center gap-1 text-emerald-600 dark:text-emerald-400 text-[10px] sm:text-xs font-bold">
+                      <MapPin size={12} className="shrink-0" />
                       <span>Venue</span>
                     </div>
-                    <span className="text-xs font-semibold text-slate-800 dark:text-slate-200 truncate">
+                    <span className="text-[11px] sm:text-xs font-semibold text-slate-800 dark:text-slate-200 truncate">
                       {selectedEvent.branch || 'All Branches'}
                     </span>
                   </div>
                 </div>
 
                 {/* Announcement Content Block */}
-                <div className="p-4 sm:p-5 rounded-2xl bg-slate-50/90 dark:bg-slate-800/40 border border-slate-200/60 dark:border-white/10 relative overflow-hidden">
+                <div className="p-3.5 sm:p-5 rounded-xl sm:rounded-2xl bg-slate-50/90 dark:bg-slate-800/40 border border-slate-200/60 dark:border-white/10 relative overflow-hidden">
                   <div className="absolute left-0 top-0 bottom-0 w-1 bg-gradient-to-b from-blue-600 to-indigo-600" />
                   <p className="text-xs sm:text-sm text-slate-700 dark:text-slate-200 font-inter leading-relaxed whitespace-pre-line">
                     "{selectedEvent.fullBody || selectedEvent.body}"
@@ -1182,9 +1332,9 @@ export default function Home() {
               </div>
 
               {/* Modal Footer */}
-              <div className="pt-4 mt-4 border-t border-slate-100 dark:border-white/5 flex items-center justify-between text-xs text-slate-400 font-inter">
+              <div className="pt-3 sm:pt-4 mt-3 sm:mt-4 border-t border-slate-100 dark:border-white/5 flex items-center justify-between text-[11px] sm:text-xs text-slate-400 font-inter">
                 <span>IsangDiwa Community Event</span>
-                <span className="text-[11px] font-semibold text-slate-400">Official Notice</span>
+                <span className="font-semibold text-slate-400">Official Notice</span>
               </div>
 
             </div>
@@ -1194,27 +1344,27 @@ export default function Home() {
 
       {/* All Events / Announcements Modal */}
       {showAllEvents && (
-        <div className="fixed inset-0 bg-black/40 backdrop-blur-xs z-[1000] flex items-center justify-center p-4 sm:p-6" onClick={() => setShowAllEvents(false)}>
-          <div className="bg-white dark:bg-[#1E2130] rounded-2xl sm:rounded-3xl w-full max-w-4xl overflow-hidden border border-slate-200 dark:border-white/10 shadow-lg flex flex-col max-h-[90vh] font-inter" onClick={e => e.stopPropagation()}>
+        <div className="fixed inset-0 bg-black/50 backdrop-blur-xs z-[1000] flex items-center justify-center p-3 sm:p-6" onClick={() => setShowAllEvents(false)}>
+          <div className="bg-white dark:bg-[#1E2130] rounded-2xl sm:rounded-3xl w-full max-w-4xl overflow-hidden border border-slate-200 dark:border-white/10 shadow-2xl flex flex-col max-h-[85vh] sm:max-h-[90vh] font-inter" onClick={e => e.stopPropagation()}>
             
             {/* Modal Header */}
-            <div className="p-5 sm:p-6 border-b border-slate-100 dark:border-white/10 flex items-center justify-between bg-slate-50/50 dark:bg-white/5">
+            <div className="p-4 sm:p-6 border-b border-slate-100 dark:border-white/10 flex items-center justify-between bg-slate-50/50 dark:bg-white/5">
               <div>
-                <div className="flex items-center gap-2.5">
-                  <h2 className="text-lg sm:text-xl font-bold text-slate-900 dark:text-white font-dm">All Announcements & Events</h2>
-                  <span className="px-2.5 py-0.5 rounded-full text-xs font-bold bg-blue-100 dark:bg-blue-950/60 text-blue-700 dark:text-blue-300">
+                <div className="flex items-center gap-2">
+                  <h2 className="text-base sm:text-xl font-bold text-slate-900 dark:text-white font-dm">All Announcements & Events</h2>
+                  <span className="px-2 py-0.5 rounded-full text-[11px] font-bold bg-blue-100 dark:bg-blue-950/60 text-blue-700 dark:text-blue-300">
                     {allAnnouncements.length} Total
                   </span>
                 </div>
-                <p className="text-xs sm:text-sm text-slate-500 dark:text-slate-400 mt-1">Stay updated with official community news and service schedules</p>
+                <p className="text-xs text-slate-500 dark:text-slate-400 mt-0.5">Stay updated with official community news and service schedules</p>
               </div>
-              <button onClick={() => setShowAllEvents(false)} className="w-9 h-9 rounded-full flex items-center justify-center text-slate-400 hover:text-slate-600 dark:hover:text-white bg-slate-100 dark:bg-white/10 border-none cursor-pointer transition-colors">
+              <button onClick={() => setShowAllEvents(false)} className="w-8 h-8 sm:w-9 sm:h-9 rounded-full flex items-center justify-center text-slate-400 hover:text-slate-600 dark:hover:text-white bg-slate-100 dark:bg-white/10 border-none cursor-pointer transition-colors shrink-0">
                 <X size={18} />
               </button>
             </div>
 
             {/* List Body */}
-            <div className="p-5 sm:p-6 overflow-y-auto space-y-4 flex-1">
+            <div className="p-3.5 sm:p-6 overflow-y-auto space-y-3.5 sm:space-y-4 flex-1">
               {allAnnouncements.length === 0 ? (
                 <div className="py-16 text-center text-xs text-slate-400 font-medium">No announcements found</div>
               ) : (

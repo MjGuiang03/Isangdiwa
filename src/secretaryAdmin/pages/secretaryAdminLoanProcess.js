@@ -2,6 +2,7 @@ import { useState, useEffect } from 'react';
 import useSWR from 'swr';
 import { toast } from 'sonner';
 import SecretaryAdminSidebar from '../components/secretaryAdminSidebar';
+import PageHeader from '../components/PageHeader';
 import SecApprovedLoanDetailsModal from '../components/secApprovedLoanDetailsModal';
 import SecProcessLoanModal from '../components/secProcessLoanModal';
 import SecLoanReceiptModal from '../components/SecLoanReceiptModal';
@@ -187,17 +188,51 @@ export default function SecretaryLoanProcess() {
         (loan.loanId || '').toLowerCase().includes(searchQuery.toLowerCase())
     );
 
+    if (loading) {
+        return (
+            <div className="flex h-screen bg-slate-100 dark:bg-[#161922] overflow-hidden font-inter">
+                <SecretaryAdminSidebar />
+                <div className="flex-1 overflow-y-auto p-6 pb-16 w-full animate-pulse flex flex-col gap-6">
+                    {/* Header Skeleton */}
+                    <div className="flex flex-col gap-2">
+                        <div className="h-8 w-48 bg-slate-200 dark:bg-slate-700/80 rounded-lg"></div>
+                        <div className="h-4 w-96 bg-slate-200 dark:bg-slate-700/80 rounded-md"></div>
+                    </div>
+
+                    {/* Stat Cards Skeleton */}
+                    <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+                        {[1, 2].map((i) => (
+                            <div key={i} className="bg-white dark:bg-[#1E2130] border border-slate-200 dark:border-white/10 rounded-xl p-4 shadow-sm h-20 flex flex-col justify-between">
+                                <div className="h-3 w-28 bg-slate-200 dark:bg-slate-700/80 rounded"></div>
+                                <div className="h-7 w-16 bg-slate-200 dark:bg-slate-700/80 rounded"></div>
+                            </div>
+                        ))}
+                    </div>
+
+                    {/* Table Skeleton */}
+                    <div className="w-full bg-white dark:bg-[#1E2130] border border-slate-200 dark:border-white/10 rounded-xl shadow-sm p-4 flex flex-col gap-4">
+                        <div className="h-10 w-64 bg-slate-100 dark:bg-slate-800/50 rounded-lg"></div>
+                        <div className="flex flex-col gap-3">
+                            {[1, 2, 3, 4, 5].map((i) => (
+                                <div key={i} className="h-14 bg-slate-100 dark:bg-slate-800/50 rounded-lg"></div>
+                            ))}
+                        </div>
+                    </div>
+                </div>
+            </div>
+        );
+    }
+
     return (
-        <div className="flex h-screen bg-slate-50 dark:bg-[#0b0f19] overflow-hidden font-inter">
+        <div className="flex h-screen bg-slate-100 dark:bg-[#161922] overflow-hidden font-inter">
             <SecretaryAdminSidebar />
 
-            <div className="flex-1 flex flex-col h-screen overflow-hidden">
-                <div className="flex-1 overflow-y-auto p-4 md:p-6 lg:p-8">
+            <div className="flex-1 overflow-y-auto p-6 pb-16 w-full">
                     {/* Header */}
-                    <div className="flex flex-col gap-1 mb-6">
-                        <h1 className="font-inter text-2xl font-bold text-slate-900 dark:text-white m-0">Loan Processing</h1>
-                        <p className="font-inter text-sm text-slate-500 dark:text-slate-400 m-0">Process approved loans and handle disbursements</p>
-                    </div>
+                    <PageHeader 
+                        title="Loan Processing" 
+                        subtitle="Process approved loans and handle disbursements." 
+                    />
 
                     {/* Stats Cards */}
                     <div className="grid grid-cols-1 md:grid-cols-2 gap-4 mb-6">
@@ -302,7 +337,6 @@ export default function SecretaryLoanProcess() {
                         )}
                     </div>
                 </div>
-            </div>
 
             {/* Modals */}
             {showDetailsModal && selectedLoan && (

@@ -2,6 +2,7 @@ import { useState, useEffect, useMemo } from 'react';
 import useSWR from 'swr';
 import { useAuth } from '../../context/AuthContext';
 import { Banknote, CalendarDays, ChevronDown, Download, Heart, Receipt, Share2, X, UploadCloud, FileCheck2 } from 'lucide-react';
+import useSwipeToClose, { DragHandle } from '../hooks/useSwipeToClose';
 
 import { branchData, REGION_ORDER } from '../components/branchData';
 import ewalletLogo from '../../assets/gcashlogo.png';
@@ -239,76 +240,129 @@ export default function Donation() {
     <>
       <div className="space-y-4 w-full pb-8 font-inter">
 
-        {/* Page Header */}
-        <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-3 pb-2.5 border-b border-slate-200/80 dark:border-white/10">
-          <div>
-            <p className="text-[11px] font-bold text-blue-600 dark:text-blue-400 uppercase tracking-widest font-inter mb-0.5">Community Giving &amp; Impact</p>
-            <h1 className="text-2xl sm:text-[26px] font-extrabold text-slate-900 dark:text-white font-dm leading-none tracking-tight">Donations</h1>
-            <p className="text-xs text-slate-500 dark:text-slate-400 font-inter mt-1">Support church ministries, causes &amp; track your contributions</p>
-          </div>
+        {loading ? (
+          <div className="space-y-4 w-full pb-8 animate-pulse font-inter">
+            {/* Page Header Skeleton */}
+            <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-3 pb-2.5 border-b border-slate-200/80 dark:border-white/10">
+              <div className="space-y-2">
+                <div className="h-3 w-36 bg-slate-200 dark:bg-slate-700/80 rounded-md" />
+                <div className="h-7 w-40 bg-slate-200 dark:bg-slate-700/80 rounded-lg" />
+                <div className="h-3.5 w-64 bg-slate-200 dark:bg-slate-700/80 rounded-md" />
+              </div>
+              <div className="h-10 w-36 bg-slate-200 dark:bg-slate-700/80 rounded-xl shrink-0" />
+            </div>
 
-          {/* Right Action Buttons */}
-          <div className="flex items-center gap-2.5 shrink-0">
-            <button 
-              className="h-10 px-4 rounded-xl bg-white dark:bg-[#1E2130] border border-slate-200/90 dark:border-white/10 text-slate-800 dark:text-white hover:bg-slate-50 dark:hover:bg-white/5 text-xs font-bold font-inter flex items-center gap-2 shadow-sm transition-all cursor-pointer"
-              onClick={handleOpenHistory}
-            >
-              <Receipt size={16} className="text-blue-600 dark:text-blue-400" />
-              <span>Donation History</span>
-            </button>
-          </div>
-        </div>
+            {/* 3 Stat Cards Skeleton */}
+            <div className="grid grid-cols-1 sm:grid-cols-3 gap-4">
+              {[1, 2, 3].map((i) => (
+                <div key={i} className="bg-white dark:bg-[#1E2130] border border-slate-200/80 dark:border-white/10 rounded-2xl p-4 shadow-sm flex flex-col gap-3">
+                  <div className="flex justify-between items-center">
+                    <div className="h-3.5 w-24 bg-slate-200 dark:bg-slate-700/80 rounded" />
+                    <div className="w-8 h-8 rounded-lg bg-slate-200 dark:bg-slate-700/80 shrink-0" />
+                  </div>
+                  <div className="h-7 w-28 bg-slate-200 dark:bg-slate-700/80 rounded-md" />
+                  <div className="h-3 w-28 bg-slate-200 dark:bg-slate-700/80 rounded" />
+                </div>
+              ))}
+            </div>
 
-        {/* Stats Grid matching Loans & Savings */}
-        <div className="grid grid-cols-1 sm:grid-cols-3 gap-4">
-          {/* Total Donated */}
-          <div className="bg-white dark:bg-[#1E2130] border border-slate-200/80 dark:border-white/10 rounded-2xl p-4 shadow-md shadow-slate-200/50 dark:shadow-none flex flex-col gap-1 group hover:shadow-lg hover:-translate-y-0.5 transition-all duration-200 font-inter">
-            <div className="flex justify-between items-center">
-              <span className="text-xs font-semibold text-slate-500 dark:text-slate-400 font-inter">Total Donated</span>
-              <div className="w-8 h-8 rounded-lg bg-blue-50 dark:bg-blue-950/50 text-blue-600 dark:text-blue-400 flex items-center justify-center border border-blue-100/60 dark:border-blue-900/30 shrink-0 group-hover:scale-105 transition-transform">
-                <Banknote size={16} />
+            {/* Main Grid Skeleton */}
+            <div className="grid grid-cols-1 lg:grid-cols-12 gap-6 items-start pt-1">
+              {/* Form Skeleton */}
+              <div className="lg:col-span-7 p-6 bg-white dark:bg-[#1E2130] border border-slate-200/80 dark:border-white/10 rounded-2xl shadow-sm space-y-5">
+                <div className="h-4 w-36 bg-slate-200 dark:bg-slate-700/80 rounded pb-3 border-b border-slate-100 dark:border-white/5" />
+                <div className="space-y-4">
+                  <div className="h-12 bg-slate-100 dark:bg-slate-800/60 rounded-xl" />
+                  <div className="h-10 bg-slate-100 dark:bg-slate-800/60 rounded-xl" />
+                  <div className="h-10 bg-slate-100 dark:bg-slate-800/60 rounded-xl" />
+                  <div className="h-12 bg-slate-100 dark:bg-slate-800/60 rounded-xl" />
+                  <div className="h-11 bg-slate-200 dark:bg-slate-700/80 rounded-xl" />
+                </div>
+              </div>
+
+              {/* Categories Skeleton */}
+              <div className="lg:col-span-5 p-5 bg-white dark:bg-[#1E2130] border border-slate-200/80 dark:border-white/10 rounded-2xl shadow-sm space-y-4">
+                <div className="h-4 w-44 bg-slate-200 dark:bg-slate-700/80 rounded pb-3 border-b border-slate-100 dark:border-white/5" />
+                <div className="space-y-3">
+                  {[1, 2, 3, 4, 5, 6].map((j) => (
+                    <div key={j} className="h-14 bg-slate-100 dark:bg-slate-800/60 rounded-xl" />
+                  ))}
+                </div>
               </div>
             </div>
-            <div className="text-xl sm:text-2xl font-extrabold font-dm text-slate-900 dark:text-white tracking-tight leading-none">
-              {loading ? <div className="h-7 w-24 bg-slate-200 dark:bg-slate-800 animate-pulse rounded-lg" /> : fmt(stats.totalDonated)}
-            </div>
-            <p className="text-[11px] text-slate-500 dark:text-slate-400 font-inter mt-0.5">
-              Lifetime contributions
-            </p>
           </div>
+        ) : (
+          <>
+            {/* Page Header */}
+            <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-3 pb-2.5 border-b border-slate-200/80 dark:border-white/10">
+              <div>
+                <p className="text-[11px] font-bold text-blue-600 dark:text-blue-400 uppercase tracking-widest font-inter mb-0.5">Community Giving &amp; Impact</p>
+                <h1 className="text-2xl sm:text-[26px] font-extrabold text-slate-900 dark:text-white font-dm leading-none tracking-tight">Donations</h1>
+                <p className="text-xs text-slate-500 dark:text-slate-400 font-inter mt-1">Support church ministries, causes &amp; track your contributions</p>
+              </div>
 
-          {/* This Year */}
-          <div className="bg-white dark:bg-[#1E2130] border border-slate-200/80 dark:border-white/10 rounded-2xl p-4 shadow-md shadow-slate-200/50 dark:shadow-none flex flex-col gap-1 group hover:shadow-lg hover:-translate-y-0.5 transition-all duration-200 font-inter">
-            <div className="flex justify-between items-center">
-              <span className="text-xs font-semibold text-slate-500 dark:text-slate-400 font-inter">This Year</span>
-              <div className="w-8 h-8 rounded-lg bg-emerald-50 dark:bg-emerald-950/50 text-emerald-600 dark:text-emerald-400 flex items-center justify-center border border-emerald-100/60 dark:border-emerald-900/30 shrink-0 group-hover:scale-105 transition-transform">
-                <CalendarDays size={16} />
+              {/* Right Action Buttons */}
+              <div className="flex items-center gap-2.5 shrink-0">
+                <button 
+                  className="h-10 px-4 rounded-xl bg-white dark:bg-[#1E2130] border border-slate-200/90 dark:border-white/10 text-slate-800 dark:text-white hover:bg-slate-50 dark:hover:bg-white/5 text-xs font-bold font-inter flex items-center gap-2 shadow-sm transition-all cursor-pointer"
+                  onClick={handleOpenHistory}
+                >
+                  <Receipt size={16} className="text-blue-600 dark:text-blue-400" />
+                  <span>Donation History</span>
+                </button>
               </div>
             </div>
-            <div className="text-xl sm:text-2xl font-extrabold font-dm text-slate-900 dark:text-white tracking-tight leading-none">
-              {loading ? <div className="h-7 w-24 bg-slate-200 dark:bg-slate-800 animate-pulse rounded-lg" /> : fmt(stats.thisYearTotal)}
-            </div>
-            <p className="text-[11px] text-slate-500 dark:text-slate-400 font-inter mt-0.5">
-              Current year total
-            </p>
-          </div>
 
-          {/* Total Contributions */}
-          <div className="bg-white dark:bg-[#1E2130] border border-slate-200/80 dark:border-white/10 rounded-2xl p-4 shadow-md shadow-slate-200/50 dark:shadow-none flex flex-col gap-1 group hover:shadow-lg hover:-translate-y-0.5 transition-all duration-200 font-inter">
-            <div className="flex justify-between items-center">
-              <span className="text-xs font-semibold text-slate-500 dark:text-slate-400 font-inter">Total Contributions</span>
-              <div className="w-8 h-8 rounded-lg bg-rose-50 dark:bg-rose-950/50 text-rose-600 dark:text-rose-400 flex items-center justify-center border border-rose-100/60 dark:border-rose-900/30 shrink-0 group-hover:scale-105 transition-transform">
-                <Heart size={16} />
+            {/* Stats Grid matching Loans & Savings */}
+            <div className="grid grid-cols-1 sm:grid-cols-3 gap-4">
+              {/* Total Donated */}
+              <div className="bg-white dark:bg-[#1E2130] border border-slate-200/80 dark:border-white/10 rounded-2xl p-4 shadow-md shadow-slate-200/50 dark:shadow-none flex flex-col gap-1 group hover:shadow-lg hover:-translate-y-0.5 transition-all duration-200 font-inter">
+                <div className="flex justify-between items-center">
+                  <span className="text-xs font-semibold text-slate-500 dark:text-slate-400 font-inter">Total Donated</span>
+                  <div className="w-8 h-8 rounded-lg bg-blue-50 dark:bg-blue-950/50 text-blue-600 dark:text-blue-400 flex items-center justify-center border border-blue-100/60 dark:border-blue-900/30 shrink-0 group-hover:scale-105 transition-transform">
+                    <Banknote size={16} />
+                  </div>
+                </div>
+                <div className="text-xl sm:text-2xl font-extrabold font-dm text-slate-900 dark:text-white tracking-tight leading-none">
+                  {fmt(stats.totalDonated)}
+                </div>
+                <p className="text-[11px] text-slate-500 dark:text-slate-400 font-inter mt-0.5">
+                  Lifetime contributions
+                </p>
+              </div>
+
+              {/* This Year */}
+              <div className="bg-white dark:bg-[#1E2130] border border-slate-200/80 dark:border-white/10 rounded-2xl p-4 shadow-md shadow-slate-200/50 dark:shadow-none flex flex-col gap-1 group hover:shadow-lg hover:-translate-y-0.5 transition-all duration-200 font-inter">
+                <div className="flex justify-between items-center">
+                  <span className="text-xs font-semibold text-slate-500 dark:text-slate-400 font-inter">This Year</span>
+                  <div className="w-8 h-8 rounded-lg bg-emerald-50 dark:bg-emerald-950/50 text-emerald-600 dark:text-emerald-400 flex items-center justify-center border border-emerald-100/60 dark:border-emerald-900/30 shrink-0 group-hover:scale-105 transition-transform">
+                    <CalendarDays size={16} />
+                  </div>
+                </div>
+                <div className="text-xl sm:text-2xl font-extrabold font-dm text-slate-900 dark:text-white tracking-tight leading-none">
+                  {fmt(stats.thisYearTotal)}
+                </div>
+                <p className="text-[11px] text-slate-500 dark:text-slate-400 font-inter mt-0.5">
+                  Current year total
+                </p>
+              </div>
+
+              {/* Total Contributions */}
+              <div className="bg-white dark:bg-[#1E2130] border border-slate-200/80 dark:border-white/10 rounded-2xl p-4 shadow-md shadow-slate-200/50 dark:shadow-none flex flex-col gap-1 group hover:shadow-lg hover:-translate-y-0.5 transition-all duration-200 font-inter">
+                <div className="flex justify-between items-center">
+                  <span className="text-xs font-semibold text-slate-500 dark:text-slate-400 font-inter">Total Contributions</span>
+                  <div className="w-8 h-8 rounded-lg bg-rose-50 dark:bg-rose-950/50 text-rose-600 dark:text-rose-400 flex items-center justify-center border border-rose-100/60 dark:border-rose-900/30 shrink-0 group-hover:scale-105 transition-transform">
+                    <Heart size={16} />
+                  </div>
+                </div>
+                <div className="text-xl sm:text-2xl font-extrabold font-dm text-slate-900 dark:text-white tracking-tight leading-none">
+                  {stats.totalCount}
+                </div>
+                <p className="text-[11px] text-slate-500 dark:text-slate-400 font-inter mt-0.5">
+                  {stats.totalCount > 0 ? `${stats.totalCount} donation record(s)` : 'No donations recorded'}
+                </p>
               </div>
             </div>
-            <div className="text-xl sm:text-2xl font-extrabold font-dm text-slate-900 dark:text-white tracking-tight leading-none">
-              {loading ? <div className="h-7 w-12 bg-slate-200 dark:bg-slate-800 animate-pulse rounded-lg" /> : stats.totalCount}
-            </div>
-            <p className="text-[11px] text-slate-500 dark:text-slate-400 font-inter mt-0.5">
-              {stats.totalCount > 0 ? `${stats.totalCount} donation record(s)` : 'No donations recorded'}
-            </p>
-          </div>
-        </div>
 
         {/* Two-column grid */}
         <div className="grid grid-cols-1 lg:grid-cols-12 gap-6 items-start pt-1">
@@ -570,188 +624,34 @@ export default function Donation() {
             </div>
           </div>
         </div>
-      </div>
+      </>
+    )}
+  </div>
 
 
       {/* ── Donation History Modal ── */}
-      {isHistoryModalOpen && (
-        <div className="fixed inset-0 z-[9999] bg-black/60 backdrop-blur-sm flex items-center justify-center p-4 overflow-y-auto" onClick={() => setIsHistoryModalOpen(false)}>
-          <div className="relative w-full max-w-xl bg-white dark:bg-[#1E2130] rounded-2xl p-5 sm:p-6 shadow-2xl border border-slate-200 dark:border-white/10 flex flex-col my-auto text-left font-inter" onClick={e => e.stopPropagation()}>
-            {/* Header */}
-            <div className="flex items-center justify-between pb-3 border-b border-slate-100 dark:border-white/10">
-              <h2 className="text-base font-bold text-slate-900 dark:text-white uppercase tracking-wider font-inter">Donation History</h2>
-              <button className="text-slate-400 hover:text-slate-600 dark:hover:text-white p-1 rounded-lg transition-colors cursor-pointer border-none bg-transparent" onClick={() => setIsHistoryModalOpen(false)}>
-                <X size={18} />
-              </button>
-            </div>
+      <DonationHistoryModal
+        isOpen={isHistoryModalOpen}
+        onClose={() => setIsHistoryModalOpen(false)}
+        modalCategory={modalCategory}
+        setModalCategory={setModalCategory}
+        modalPaymentMethod={modalPaymentMethod}
+        setModalPaymentMethod={setModalPaymentMethod}
+        setModalPage={setModalPage}
+        modalLoading={modalLoading}
+        modalHistory={modalHistory}
+        handleOpenReceipt={handleOpenReceipt}
+        modalTotalPages={modalTotalPages}
+        modalPage={modalPage}
+      />
 
-            {/* Filters */}
-            <div className="grid grid-cols-1 sm:grid-cols-2 gap-3 py-3 border-b border-slate-100 dark:border-white/10">
-              <div className="space-y-1">
-                <label className="block text-xs font-semibold text-slate-600 dark:text-slate-400">Category</label>
-                <div className="relative flex items-center">
-                  <select
-                    className="w-full px-3 py-1.5 bg-slate-50 dark:bg-slate-800/60 border border-slate-200/80 dark:border-white/10 rounded-xl text-xs text-slate-900 dark:text-white outline-none appearance-none pr-8 cursor-pointer"
-                    value={modalCategory}
-                    onChange={(e) => {
-                      setModalCategory(e.target.value);
-                      setModalPage(1);
-                    }}
-                  >
-                    <option value="">All Categories</option>
-                    {CATEGORIES.map(c => (
-                      <option key={c.name} value={c.name}>{c.name}</option>
-                    ))}
-                  </select>
-                  <ChevronDown className="absolute right-2.5 text-slate-400 pointer-events-none" size={14} />
-                </div>
-              </div>
-              <div className="space-y-1">
-                <label className="block text-xs font-semibold text-slate-600 dark:text-slate-400">Payment Method</label>
-                <div className="relative flex items-center">
-                  <select
-                    className="w-full px-3 py-1.5 bg-slate-50 dark:bg-slate-800/60 border border-slate-200/80 dark:border-white/10 rounded-xl text-xs text-slate-900 dark:text-white outline-none appearance-none pr-8 cursor-pointer"
-                    value={modalPaymentMethod}
-                    onChange={(e) => {
-                      setModalPaymentMethod(e.target.value);
-                      setModalPage(1);
-                    }}
-                  >
-                    <option value="">All Methods</option>
-                    <option value="E-Wallet">E-Wallet</option>
-                    <option value="Bank">Bank Transfer</option>
-                  </select>
-                  <ChevronDown className="absolute right-2.5 text-slate-400 pointer-events-none" size={14} />
-                </div>
-              </div>
-            </div>
-
-            {/* List */}
-            <div className="py-3 space-y-2">
-              {modalLoading ? (
-                <p className="text-center text-xs text-slate-400 py-6">Loading history...</p>
-              ) : modalHistory.length === 0 ? (
-                <p className="text-center text-xs text-slate-400 py-6">No donations found for this filter.</p>
-              ) : (
-                <div className="space-y-2">
-                  {modalHistory.map((d) => (
-                    <div
-                      key={d._id || d.donationId}
-                      className="flex items-center justify-between p-3 bg-slate-50/70 dark:bg-slate-800/40 hover:bg-slate-100 dark:hover:bg-slate-800/70 rounded-xl border border-slate-200/60 dark:border-white/5 cursor-pointer transition-all"
-                      onClick={() => handleOpenReceipt(d)}
-                    >
-                      <div className="flex items-center gap-3 min-w-0">
-                        <div className="w-9 h-9 rounded-xl bg-blue-50 dark:bg-blue-950/40 border border-blue-100 dark:border-blue-900/30 flex items-center justify-center text-blue-600 dark:text-blue-400 shrink-0">
-                          <Receipt size={16} />
-                        </div>
-                        <div className="min-w-0">
-                          <h3 className="text-xs font-bold text-slate-900 dark:text-white truncate">{d.category}</h3>
-                          <p className="text-[11px] text-slate-400 leading-tight mt-0.5">{d.donationId} · {fmtDate(d.createdAt || d.date)}</p>
-                        </div>
-                      </div>
-                      <div className="text-right shrink-0">
-                        <p className="text-xs font-extrabold font-dm text-slate-900 dark:text-white">{fmt(d.amount)}</p>
-                        <span className={`inline-block px-2 py-0.5 text-[9px] font-extrabold uppercase tracking-wider rounded-full mt-0.5 ${
-                          d.status === 'confirmed' ? 'text-emerald-600 bg-emerald-50 dark:bg-emerald-950/50 border border-emerald-100 dark:border-emerald-900/30' : d.status === 'rejected' ? 'text-red-600 bg-red-50 dark:bg-red-950/50 border border-red-100 dark:border-red-900/30' : 'text-amber-600 bg-amber-50 dark:bg-amber-950/50 border border-amber-100 dark:border-amber-900/30'
-                        }`}>
-                          {d.status === 'confirmed' ? 'Successful' : d.status === 'rejected' ? 'Failed' : 'Pending'}
-                        </span>
-                      </div>
-                    </div>
-                  ))}
-                </div>
-              )}
-            </div>
-
-            {/* Pagination Footer */}
-            {modalTotalPages > 1 && (
-              <div className="flex items-center justify-between pt-2.5 border-t border-slate-100 dark:border-white/10 text-xs">
-                <button
-                  className="px-3 py-1 bg-slate-100 dark:bg-slate-800 text-slate-700 dark:text-slate-300 rounded-lg hover:bg-slate-200 dark:hover:bg-slate-700 disabled:opacity-40 transition-colors text-xs font-bold cursor-pointer border-none"
-                  onClick={() => setModalPage(p => Math.max(1, p - 1))}
-                  disabled={modalPage === 1 || modalLoading}
-                >‹ Prev</button>
-                <span className="text-xs font-semibold text-slate-500 dark:text-slate-400">Page {modalPage} of {modalTotalPages}</span>
-                <button
-                  className="px-3 py-1 bg-slate-100 dark:bg-slate-800 text-slate-700 dark:text-slate-300 rounded-lg hover:bg-slate-200 dark:hover:bg-slate-700 disabled:opacity-40 transition-colors text-xs font-bold cursor-pointer border-none"
-                  onClick={() => setModalPage(p => Math.min(modalTotalPages, p + 1))}
-                  disabled={modalPage === modalTotalPages || modalLoading}
-                >Next ›</button>
-              </div>
-            )}
-          </div>
-        </div>
-      )}
       {/* ── Receipt Modal ── */}
-      {isReceiptModalOpen && selectedDonation && (
-        <div className="fixed inset-0 z-[9999] bg-black/60 backdrop-blur-sm flex items-center justify-center p-4 overflow-y-auto" onClick={() => setIsReceiptModalOpen(false)}>
-          <div className="relative w-full max-w-md bg-white dark:bg-[#1E2130] rounded-2xl overflow-hidden shadow-2xl border border-slate-200 dark:border-white/10 my-auto text-left" onClick={e => e.stopPropagation()}>
-            <div className="bg-gradient-to-r from-blue-600 to-indigo-600 p-6 text-white text-center relative">
-              <button
-                className="absolute top-4 right-4 text-white/80 hover:text-white p-1.5 rounded-full transition-colors"
-                onClick={() => setIsReceiptModalOpen(false)}
-              >
-                <X size={20} />
-              </button>
-              <Receipt className="w-10 h-10 mx-auto mb-2 text-white/90" />
-              <h2 className="text-xl font-bold">Donation Receipt</h2>
-              <p className="text-xs text-white/80">IsangDiwa Official Record</p>
-            </div>
-
-            <div className="p-6 space-y-6">
-              <div className="text-center pb-4 border-b border-slate-100 dark:border-white/5">
-                <p className="text-xs text-slate-400">Amount Contributed</p>
-                <h1 className="text-3xl font-extrabold text-slate-900 dark:text-white mt-1">{fmt(selectedDonation.amount)}</h1>
-                <div className={`inline-block px-3 py-1 text-xs font-bold rounded-full mt-2 ${selectedDonation.status === 'confirmed' ? 'bg-emerald-100 text-emerald-700 dark:bg-emerald-950/60 dark:text-emerald-400' : selectedDonation.status === 'rejected' ? 'bg-red-100 text-red-700 dark:bg-red-950/60 dark:text-red-400' : 'bg-amber-100 text-amber-700 dark:bg-amber-950/60 dark:text-amber-400'}`}>
-                  {selectedDonation.status === 'confirmed' ? 'Successful' : selectedDonation.status === 'rejected' ? 'Failed' : 'Incomplete'}
-                </div>
-              </div>
-
-              <div className="space-y-2.5 text-xs">
-                <div className="flex items-center justify-between py-1 border-b border-slate-100 dark:border-white/5">
-                  <span className="text-slate-400 font-medium">Donor Name</span>
-                  <span className="text-slate-900 dark:text-white font-bold">{user?.fullName || 'Valued Member'}</span>
-                </div>
-                <div className="flex items-center justify-between py-1 border-b border-slate-100 dark:border-white/5">
-                  <span className="text-slate-400 font-medium">Fund Category</span>
-                  <span className="text-slate-900 dark:text-white font-bold">{selectedDonation.category}</span>
-                </div>
-                <div className="flex items-center justify-between py-1 border-b border-slate-100 dark:border-white/5">
-                  <span className="text-slate-400 font-medium">Transaction ID</span>
-                  <span className="text-slate-900 dark:text-white font-bold">{selectedDonation.donationId}</span>
-                </div>
-                <div className="flex items-center justify-between py-1 border-b border-slate-100 dark:border-white/5">
-                  <span className="text-slate-400 font-medium">Date & Time</span>
-                  <span className="text-slate-900 dark:text-white font-bold">{fmtDate(selectedDonation.createdAt || selectedDonation.date)}</span>
-                </div>
-                <div className="flex items-center justify-between py-1 border-b border-slate-100 dark:border-white/5">
-                  <span className="text-slate-400 font-medium">Payment Method</span>
-                  <span className="text-slate-900 dark:text-white font-bold">{selectedDonation.method || selectedDonation.paymentMethod}</span>
-                </div>
-                <div className="flex items-center justify-between py-1">
-                  <span className="text-slate-400 font-medium">Reference No.</span>
-                  <span className="text-slate-900 dark:text-white font-bold">{selectedDonation.referenceNumber || selectedDonation.donationId}</span>
-                </div>
-              </div>
-
-              <div className="p-3 bg-blue-50/60 dark:bg-blue-950/30 border border-blue-100 dark:border-blue-900/40 rounded-xl text-center">
-                <p className="text-[11px] text-slate-500 dark:text-slate-400">Thank you for your generous support of God's work. Your contribution makes a difference in our community.</p>
-              </div>
-
-              <div className="flex items-center gap-3">
-                <button className="flex-1 py-2.5 bg-slate-100 dark:bg-slate-800 hover:bg-slate-200 dark:hover:bg-slate-700 text-slate-700 dark:text-slate-300 font-semibold rounded-xl transition-all flex items-center justify-center gap-2 text-xs">
-                  <Share2 size={16} />
-                  <span>Share</span>
-                </button>
-                <button className="flex-1 py-2.5 bg-blue-600 hover:bg-blue-700 text-white font-semibold rounded-xl shadow-md transition-all flex items-center justify-center gap-2 text-xs">
-                  <Download size={16} />
-                  <span>Download</span>
-                </button>
-              </div>
-            </div>
-          </div>
-        </div>
-      )}
+      <DonationReceiptModal
+        isOpen={isReceiptModalOpen}
+        onClose={() => setIsReceiptModalOpen(false)}
+        selectedDonation={selectedDonation}
+        user={user}
+      />
 
       {/* ── Donation Success Modal ── */}
       {successData && (
@@ -783,5 +683,209 @@ export default function Donation() {
         </div>
       )}
     </>
+  );
+}
+
+function DonationHistoryModal({
+  isOpen,
+  onClose,
+  modalCategory,
+  setModalCategory,
+  modalPaymentMethod,
+  setModalPaymentMethod,
+  setModalPage,
+  modalLoading,
+  modalHistory,
+  handleOpenReceipt,
+  modalTotalPages,
+  modalPage
+}) {
+  const { modalStyle, touchHandlers } = useSwipeToClose(onClose);
+  if (!isOpen) return null;
+
+  return (
+    <div className="dim-overlay" onClick={onClose}>
+      <div className="dim-modal sm:max-w-xl p-5 sm:p-6 font-inter" style={modalStyle} {...touchHandlers} onClick={e => e.stopPropagation()}>
+        <DragHandle />
+        {/* Header */}
+        <div className="flex items-center justify-between pb-3 border-b border-slate-100 dark:border-white/10">
+          <h2 className="text-base font-bold text-slate-900 dark:text-white uppercase tracking-wider font-inter">Donation History</h2>
+          <button className="text-slate-400 hover:text-slate-600 dark:hover:text-white p-1 rounded-lg transition-colors cursor-pointer border-none bg-transparent" onClick={onClose}>
+            <X size={18} />
+          </button>
+        </div>
+
+        {/* Filters */}
+        <div className="grid grid-cols-1 sm:grid-cols-2 gap-3 py-3 border-b border-slate-100 dark:border-white/10">
+          <div className="space-y-1">
+            <label className="block text-xs font-semibold text-slate-600 dark:text-slate-400">Category</label>
+            <div className="relative flex items-center">
+              <select
+                className="w-full px-3 py-1.5 bg-slate-50 dark:bg-slate-800/60 border border-slate-200/80 dark:border-white/10 rounded-xl text-xs text-slate-900 dark:text-white outline-none appearance-none pr-8 cursor-pointer"
+                value={modalCategory}
+                onChange={(e) => {
+                  setModalCategory(e.target.value);
+                  setModalPage(1);
+                }}
+              >
+                <option value="">All Categories</option>
+                {CATEGORIES.map(c => (
+                  <option key={c.name} value={c.name}>{c.name}</option>
+                ))}
+              </select>
+              <ChevronDown className="absolute right-2.5 text-slate-400 pointer-events-none" size={14} />
+            </div>
+          </div>
+          <div className="space-y-1">
+            <label className="block text-xs font-semibold text-slate-600 dark:text-slate-400">Payment Method</label>
+            <div className="relative flex items-center">
+              <select
+                className="w-full px-3 py-1.5 bg-slate-50 dark:bg-slate-800/60 border border-slate-200/80 dark:border-white/10 rounded-xl text-xs text-slate-900 dark:text-white outline-none appearance-none pr-8 cursor-pointer"
+                value={modalPaymentMethod}
+                onChange={(e) => {
+                  setModalPaymentMethod(e.target.value);
+                  setModalPage(1);
+                }}
+              >
+                <option value="">All Methods</option>
+                <option value="E-Wallet">E-Wallet</option>
+                <option value="Bank">Bank Transfer</option>
+              </select>
+              <ChevronDown className="absolute right-2.5 text-slate-400 pointer-events-none" size={14} />
+            </div>
+          </div>
+        </div>
+
+        {/* List */}
+        <div className="py-3 space-y-2">
+          {modalLoading ? (
+            <p className="text-center text-xs text-slate-400 py-6">Loading history...</p>
+          ) : modalHistory.length === 0 ? (
+            <p className="text-center text-xs text-slate-400 py-6">No donations found for this filter.</p>
+          ) : (
+            <div className="space-y-2">
+              {modalHistory.map((d) => (
+                <div
+                  key={d._id || d.donationId}
+                  className="flex items-center justify-between p-3 bg-slate-50/70 dark:bg-slate-800/40 hover:bg-slate-100 dark:hover:bg-slate-800/70 rounded-xl border border-slate-200/60 dark:border-white/5 cursor-pointer transition-all"
+                  onClick={() => handleOpenReceipt(d)}
+                >
+                  <div className="flex items-center gap-3 min-w-0">
+                    <div className="w-9 h-9 rounded-xl bg-blue-50 dark:bg-blue-950/40 border border-blue-100 dark:border-blue-900/30 flex items-center justify-center text-blue-600 dark:text-blue-400 shrink-0">
+                      <Receipt size={16} />
+                    </div>
+                    <div className="min-w-0">
+                      <h3 className="text-xs font-bold text-slate-900 dark:text-white truncate">{d.category}</h3>
+                      <p className="text-[11px] text-slate-400 leading-tight mt-0.5">{d.donationId} · {fmtDate(d.createdAt || d.date)}</p>
+                    </div>
+                  </div>
+                  <div className="text-right shrink-0">
+                    <p className="text-xs font-extrabold font-dm text-slate-900 dark:text-white">{fmt(d.amount)}</p>
+                    <span className={`inline-block px-2 py-0.5 text-[9px] font-extrabold uppercase tracking-wider rounded-full mt-0.5 ${
+                      d.status === 'confirmed' ? 'text-emerald-600 bg-emerald-50 dark:bg-emerald-950/50 border border-emerald-100 dark:border-emerald-900/30' : d.status === 'rejected' ? 'text-red-600 bg-red-50 dark:bg-red-950/50 border border-red-100 dark:border-red-900/30' : 'text-amber-600 bg-amber-50 dark:bg-amber-950/50 border border-amber-100 dark:border-amber-900/30'
+                    }`}>
+                      {d.status === 'confirmed' ? 'Successful' : d.status === 'rejected' ? 'Failed' : 'Pending'}
+                    </span>
+                  </div>
+                </div>
+              ))}
+            </div>
+          )}
+        </div>
+
+        {/* Pagination Footer */}
+        {modalTotalPages > 1 && (
+          <div className="flex items-center justify-between pt-2.5 border-t border-slate-100 dark:border-white/10 text-xs">
+            <button
+              className="px-3 py-1 bg-slate-100 dark:bg-slate-800 text-slate-700 dark:text-slate-300 rounded-lg hover:bg-slate-200 dark:hover:bg-slate-700 disabled:opacity-40 transition-colors text-xs font-bold cursor-pointer border-none"
+              onClick={() => setModalPage(p => Math.max(1, p - 1))}
+              disabled={modalPage === 1 || modalLoading}
+            >‹ Prev</button>
+            <span className="text-xs font-semibold text-slate-500 dark:text-slate-400">Page {modalPage} of {modalTotalPages}</span>
+            <button
+              className="px-3 py-1 bg-slate-100 dark:bg-slate-800 text-slate-700 dark:text-slate-300 rounded-lg hover:bg-slate-200 dark:hover:bg-slate-700 disabled:opacity-40 transition-colors text-xs font-bold cursor-pointer border-none"
+              onClick={() => setModalPage(p => Math.min(modalTotalPages, p + 1))}
+              disabled={modalPage === modalTotalPages || modalLoading}
+            >Next ›</button>
+          </div>
+        )}
+      </div>
+    </div>
+  );
+}
+
+function DonationReceiptModal({ isOpen, onClose, selectedDonation, user }) {
+  const { modalStyle, touchHandlers } = useSwipeToClose(onClose);
+  if (!isOpen || !selectedDonation) return null;
+
+  return (
+    <div className="dim-overlay" onClick={onClose}>
+      <div className="dim-modal sm:max-w-md p-0 overflow-hidden font-inter" style={modalStyle} {...touchHandlers} onClick={e => e.stopPropagation()}>
+        <DragHandle />
+        <div className="bg-gradient-to-r from-blue-600 to-indigo-600 p-6 text-white text-center relative">
+          <button
+            className="absolute top-4 right-4 text-white/80 hover:text-white p-1.5 rounded-full transition-colors"
+            onClick={onClose}
+          >
+            <X size={20} />
+          </button>
+          <Receipt className="w-10 h-10 mx-auto mb-2 text-white/90" />
+          <h2 className="text-xl font-bold">Donation Receipt</h2>
+          <p className="text-xs text-white/80">IsangDiwa Official Record</p>
+        </div>
+
+        <div className="p-6 space-y-6">
+          <div className="text-center pb-4 border-b border-slate-100 dark:border-white/5">
+            <p className="text-xs text-slate-400">Amount Contributed</p>
+            <h1 className="text-3xl font-extrabold text-slate-900 dark:text-white mt-1">{fmt(selectedDonation.amount)}</h1>
+            <div className={`inline-block px-3 py-1 text-xs font-bold rounded-full mt-2 ${selectedDonation.status === 'confirmed' ? 'bg-emerald-100 text-emerald-700 dark:bg-emerald-950/60 dark:text-emerald-400' : selectedDonation.status === 'rejected' ? 'bg-red-100 text-red-700 dark:bg-red-950/60 dark:text-red-400' : 'bg-amber-100 text-amber-700 dark:bg-amber-950/60 dark:text-amber-400'}`}>
+              {selectedDonation.status === 'confirmed' ? 'Successful' : selectedDonation.status === 'rejected' ? 'Failed' : 'Incomplete'}
+            </div>
+          </div>
+
+          <div className="space-y-2.5 text-xs">
+            <div className="flex items-center justify-between py-1 border-b border-slate-100 dark:border-white/5">
+              <span className="text-slate-400 font-medium">Donor Name</span>
+              <span className="text-slate-900 dark:text-white font-bold">{user?.fullName || 'Valued Member'}</span>
+            </div>
+            <div className="flex items-center justify-between py-1 border-b border-slate-100 dark:border-white/5">
+              <span className="text-slate-400 font-medium">Fund Category</span>
+              <span className="text-slate-900 dark:text-white font-bold">{selectedDonation.category}</span>
+            </div>
+            <div className="flex items-center justify-between py-1 border-b border-slate-100 dark:border-white/5">
+              <span className="text-slate-400 font-medium">Transaction ID</span>
+              <span className="text-slate-900 dark:text-white font-bold">{selectedDonation.donationId}</span>
+            </div>
+            <div className="flex items-center justify-between py-1 border-b border-slate-100 dark:border-white/5">
+              <span className="text-slate-400 font-medium">Date & Time</span>
+              <span className="text-slate-900 dark:text-white font-bold">{fmtDate(selectedDonation.createdAt || selectedDonation.date)}</span>
+            </div>
+            <div className="flex items-center justify-between py-1 border-b border-slate-100 dark:border-white/5">
+              <span className="text-slate-400 font-medium">Payment Method</span>
+              <span className="text-slate-900 dark:text-white font-bold">{selectedDonation.method || selectedDonation.paymentMethod}</span>
+            </div>
+            <div className="flex items-center justify-between py-1">
+              <span className="text-slate-400 font-medium">Reference No.</span>
+              <span className="text-slate-900 dark:text-white font-bold">{selectedDonation.referenceNumber || selectedDonation.donationId}</span>
+            </div>
+          </div>
+
+          <div className="p-3 bg-blue-50/60 dark:bg-blue-950/30 border border-blue-100 dark:border-blue-900/40 rounded-xl text-center">
+            <p className="text-[11px] text-slate-500 dark:text-slate-400">Thank you for your generous support of God's work. Your contribution makes a difference in our community.</p>
+          </div>
+
+          <div className="flex items-center gap-3">
+            <button className="flex-1 py-2.5 bg-slate-100 dark:bg-slate-800 hover:bg-slate-200 dark:hover:bg-slate-700 text-slate-700 dark:text-slate-300 font-semibold rounded-xl transition-all flex items-center justify-center gap-2 text-xs">
+              <Share2 size={16} />
+              <span>Share</span>
+            </button>
+            <button className="flex-1 py-2.5 bg-blue-600 hover:bg-blue-700 text-white font-semibold rounded-xl shadow-md transition-all flex items-center justify-center gap-2 text-xs">
+              <Download size={16} />
+              <span>Download</span>
+            </button>
+          </div>
+        </div>
+      </div>
+    </div>
   );
 }

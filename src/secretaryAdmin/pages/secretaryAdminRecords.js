@@ -2,6 +2,7 @@ import { useState, useEffect, useMemo } from 'react';
 import useSWR from 'swr';
 import useDebounce from '../../hooks/useDebounce';
 import SecretaryAdminSidebar from '../components/secretaryAdminSidebar';
+import PageHeader from '../components/PageHeader';
 
 import API from '../../utils/api';
 import { Banknote, CalendarDays, Search } from 'lucide-react';
@@ -73,17 +74,51 @@ export default function SecretaryLoanRecords() {
 
     const filteredRecords = records;
 
+    if (!recordsData && loadingRecords) {
+        return (
+            <div className="flex h-screen bg-slate-100 dark:bg-[#161922] overflow-hidden font-inter">
+                <SecretaryAdminSidebar />
+                <div className="flex-1 overflow-y-auto p-6 pb-16 w-full animate-pulse flex flex-col gap-6">
+                    {/* Header Skeleton */}
+                    <div className="flex flex-col gap-2">
+                        <div className="h-8 w-48 bg-slate-200 dark:bg-slate-700/80 rounded-lg"></div>
+                        <div className="h-4 w-96 bg-slate-200 dark:bg-slate-700/80 rounded-md"></div>
+                    </div>
+
+                    {/* Stat Cards Skeleton */}
+                    <div className="grid grid-cols-2 md:grid-cols-4 gap-4 mb-6">
+                        {[1, 2, 3, 4].map((i) => (
+                            <div key={i} className="bg-white dark:bg-[#1E2130] border border-slate-200 dark:border-white/10 rounded-xl p-4 shadow-sm h-20 flex flex-col justify-between">
+                                <div className="h-3 w-24 bg-slate-200 dark:bg-slate-700/80 rounded"></div>
+                                <div className="h-7 w-16 bg-slate-200 dark:bg-slate-700/80 rounded"></div>
+                            </div>
+                        ))}
+                    </div>
+
+                    {/* Table Skeleton */}
+                    <div className="w-full bg-white dark:bg-[#1E2130] border border-slate-200 dark:border-white/10 rounded-xl shadow-sm p-4 flex flex-col gap-4">
+                        <div className="h-10 w-64 bg-slate-100 dark:bg-slate-800/50 rounded-lg"></div>
+                        <div className="flex flex-col gap-3">
+                            {[1, 2, 3, 4, 5].map((i) => (
+                                <div key={i} className="h-14 bg-slate-100 dark:bg-slate-800/50 rounded-lg"></div>
+                            ))}
+                        </div>
+                    </div>
+                </div>
+            </div>
+        );
+    }
+
     return (
-        <div className="flex h-screen bg-slate-50 dark:bg-[#0b0f19] overflow-hidden font-inter">
+        <div className="flex h-screen bg-slate-100 dark:bg-[#161922] overflow-hidden font-inter">
             <SecretaryAdminSidebar />
 
-            <div className="flex-1 flex flex-col h-screen overflow-hidden">
-                <div className="flex-1 overflow-y-auto p-4 md:p-6 lg:p-8">
+            <div className="flex-1 overflow-y-auto p-6 pb-16 w-full">
                     {/* Header */}
-                    <div className="flex flex-col gap-1 mb-6">
-                        <h1 className="font-inter text-2xl font-bold text-slate-900 dark:text-white m-0">Processing Records</h1>
-                        <p className="font-inter text-sm text-slate-500 dark:text-slate-400 m-0">View all processed loan disbursements with date and time stamps</p>
-                    </div>
+                    <PageHeader 
+                        title="Processing Records" 
+                        subtitle="View all processed loan disbursements with date and time stamps." 
+                    />
 
                     {/* Status Cards */}
                     <div className="grid grid-cols-2 md:grid-cols-4 gap-4 mb-6">
@@ -147,7 +182,7 @@ export default function SecretaryLoanRecords() {
                     </div>
 
                     {/* Records Table */}
-                    <div className="bg-white dark:bg-[#1E2130] border border-slate-200 dark:border-white/10 rounded-xl overflow-x-auto shadow-sm">
+                    <div className="bg-white dark:bg-[#1E2130] border border-slate-200 dark:border-white/10 rounded-xl overflow-x-auto overflow-y-hidden shadow-sm">
                         {loading ? (
                             <div className="p-10 text-center text-slate-500 font-inter text-sm">Loading records...</div>
                         ) : (
@@ -231,7 +266,6 @@ export default function SecretaryLoanRecords() {
                         </div>
                     )}
                 </div>
-            </div>
         </div>
     );
 }

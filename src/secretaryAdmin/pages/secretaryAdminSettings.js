@@ -2,6 +2,7 @@ import { useState, useEffect } from 'react';
 import { useNavigate } from 'react-router';
 import { toast } from 'sonner';
 import SecretaryAdminSidebar from '../components/secretaryAdminSidebar';
+import PageHeader from '../components/PageHeader';
 import { useTheme } from '../../context/ThemeContext';
 import { User, Lock, Bell, Moon, LogOut, Eye, EyeOff, Save, CheckCircle2 } from 'lucide-react';
 import API from '../../utils/api';
@@ -92,6 +93,8 @@ export default function SecretaryLoanSettings() {
         }
     });
 
+    const [loadingProfile, setLoadingProfile] = useState(true);
+
     /* ── Load profile from API ─────────────────────────────────────────── */
     useEffect(() => {
         if (!token) { navigate('/'); return; }
@@ -108,6 +111,9 @@ export default function SecretaryLoanSettings() {
             .catch(() => {
                 setSecName(localStorage.getItem('adminName') || '');
                 setSecEmail(localStorage.getItem('adminEmail') || '');
+            })
+            .finally(() => {
+                setLoadingProfile(false);
             });
     }, [token, navigate]);
 
@@ -193,19 +199,44 @@ export default function SecretaryLoanSettings() {
         navigate('/');
     };
 
+    if (loadingProfile) {
+        return (
+            <div className="flex h-screen overflow-hidden bg-slate-100 dark:bg-[#161922]">
+                <SecretaryAdminSidebar />
+                <div className="flex-1 min-h-0 overflow-y-auto p-6 bg-slate-100 dark:bg-[#161922]">
+                    <div className="flex flex-col gap-6 max-w-[1000px] mx-auto w-full animate-pulse">
+                        <div className="flex flex-col gap-2">
+                            <div className="h-8 w-48 bg-slate-200 dark:bg-slate-700/80 rounded-lg"></div>
+                            <div className="h-4 w-96 bg-slate-200 dark:bg-slate-700/80 rounded-md"></div>
+                        </div>
+                        <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
+                            {[1, 2, 3, 4].map((i) => (
+                                <div key={i} className="h-56 bg-white dark:bg-[#1E2130] border border-slate-200 dark:border-white/10 rounded-2xl p-6 shadow-sm flex flex-col justify-between">
+                                    <div className="h-6 w-36 bg-slate-200 dark:bg-slate-700/80 rounded"></div>
+                                    <div className="h-10 bg-slate-100 dark:bg-slate-800/50 rounded-xl"></div>
+                                    <div className="h-10 bg-slate-100 dark:bg-slate-800/50 rounded-xl"></div>
+                                </div>
+                            ))}
+                        </div>
+                    </div>
+                </div>
+            </div>
+        );
+    }
+
     /* ── Render ────────────────────────────────────────────────────────── */
     return (
         <div className="flex h-screen overflow-hidden bg-slate-100 dark:bg-[#161922]">
             <SecretaryAdminSidebar />
 
-            <div className="flex-1 overflow-y-auto p-6 bg-slate-100 dark:bg-[#161922]">
+            <div className="flex-1 min-h-0 overflow-y-auto p-6 bg-slate-100 dark:bg-[#161922]">
                 <div className="flex flex-col gap-6 max-w-[1000px] mx-auto w-full min-h-screen">
 
                     {/* Header */}
-                    <div className="flex flex-col gap-1">
-                        <h1 className="m-0 font-inter text-2xl font-bold text-slate-800 dark:text-white">Secretary Settings</h1>
-                        <p className="m-0 font-inter text-sm text-slate-500 dark:text-slate-400">Manage your profile, security credentials, appearance, and notification preferences</p>
-                    </div>
+                    <PageHeader 
+                        title="Secretary Settings" 
+                        subtitle="Manage your profile, security credentials, appearance, and notification preferences." 
+                    />
 
                     {/* ── 1. Personal Profile ──────────────────────────────── */}
                     <div className="bg-white dark:bg-[#1E2130] border border-slate-200 dark:border-white/10 rounded-2xl p-6 shadow-sm flex flex-col gap-6 relative">

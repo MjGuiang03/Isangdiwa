@@ -101,6 +101,54 @@ const getStatusColor = (status) => {
   return LOAN_STATUS_COLORS[(status || '').toLowerCase()] || PIE_COLORS[0];
 };
 
+const renderFormattedSummary = (text) => {
+  if (!text) return null;
+  const lines = text.split('\n').map(l => l.trim()).filter(Boolean);
+
+  return (
+    <div className="space-y-2.5 font-inter text-sm sm:text-base text-slate-700 dark:text-slate-200 leading-relaxed">
+      {lines.map((line, i) => {
+        let isBullet = false;
+        let content = line;
+
+        if (content.startsWith('* ') || content.startsWith('- ') || content.startsWith('• ') || /^\d+\.\s+/.test(content)) {
+          isBullet = true;
+          content = content.replace(/^([*•-]|^\d+\.)\s+/, '');
+        }
+
+        const parts = content.split(/(\*\*.*?\*\*)/g);
+        const formattedContent = parts.map((part, index) => {
+          if (part.startsWith('**') && part.endsWith('**')) {
+            return (
+              <strong key={index} className="font-extrabold text-slate-900 dark:text-white">
+                {part.slice(2, -2)}
+              </strong>
+            );
+          }
+          return part;
+        });
+
+        if (isBullet) {
+          return (
+            <div key={i} className="flex items-start gap-2.5 pl-1 sm:pl-3">
+              <span className="w-1.5 h-1.5 rounded-full bg-blue-500 mt-2 shrink-0" />
+              <div className="flex-1 text-slate-700 dark:text-slate-300 font-medium">
+                {formattedContent}
+              </div>
+            </div>
+          );
+        }
+
+        return (
+          <p key={i} className="m-0 font-medium text-slate-800 dark:text-slate-200">
+            {formattedContent}
+          </p>
+        );
+      })}
+    </div>
+  );
+};
+
 const SESSION_KEY = 'faithly_financial_report';
 
 export default function AdminFinancialReport() {
@@ -365,18 +413,13 @@ export default function AdminFinancialReport() {
   const filteredProvinces = availableProvinces.filter(p => p.toLowerCase().includes(provinceSearch.toLowerCase()));
 
   return (
-    <div className="flex flex-col p-6 max-w-[1200px] mx-auto w-full min-h-screen bg-slate-50 dark:bg-[#161922] font-inter text-slate-800 dark:text-slate-200">
+    <div className="flex flex-col p-6 max-w-[1400px] mx-auto w-full min-h-screen bg-slate-100 dark:bg-[#161922] font-inter text-slate-800 dark:text-slate-200 gap-6">
 
       {/* ── Header ── */}
-      <div className="flex flex-col md:flex-row justify-between items-start md:items-center gap-4 mb-6 shrink-0">
-        <div className="flex items-center gap-4">
-          <div className="w-12 h-12 bg-blue-600 text-white rounded-xl flex items-center justify-center shadow-md">
-            <FileText size={20} />
-          </div>
-          <div>
-            <h1 className="m-0 font-inter text-2xl font-bold text-slate-900 dark:text-white leading-tight">Automated Report</h1>
-            <p className="m-0 font-inter text-sm text-slate-500 dark:text-slate-400 mt-1">AI-generated operational analysis with detailed breakdowns</p>
-          </div>
+      <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-4 shrink-0">
+        <div>
+          <h1 className="m-0 font-inter text-2xl font-bold text-slate-800 dark:text-white">Automated Report</h1>
+          <p className="m-0 font-inter text-sm text-slate-500 dark:text-slate-400 mt-1">AI-generated operational analysis with detailed breakdowns</p>
         </div>
         <div className="flex items-center gap-2 no-print">
           {report && (
@@ -574,12 +617,34 @@ export default function AdminFinancialReport() {
         </div>
       )}
 
-      {/* ── Loading ── */}
+      {/* ── Skeleton Loading State ── */}
       {loading && (
-        <div className="flex flex-col items-center justify-center py-24 px-4 text-center">
-          <div className="w-12 h-12 border-4 border-slate-200 border-t-blue-600 rounded-full animate-spin mb-6 dark:border-white/10 dark:border-t-blue-500" />
-          <p className="m-0 font-inter text-lg font-bold text-slate-800 dark:text-white">Analyzing financial data with AI...</p>
-          <p className="m-0 font-inter text-sm text-slate-500 dark:text-slate-400 mt-2">This may take 10-15 seconds</p>
+        <div className="flex flex-col gap-6 animate-pulse">
+          {/* Executive Summary Skeleton */}
+          <div className="bg-white dark:bg-[#1E2130] rounded-xl border border-slate-200 dark:border-white/10 shadow-sm p-6 flex flex-col gap-4">
+            <div className="flex items-center justify-between pb-4 border-b border-slate-200 dark:border-white/10">
+              <div className="h-6 w-48 bg-slate-200 dark:bg-slate-700/80 rounded-md"></div>
+              <div className="h-4 w-28 bg-slate-200 dark:bg-slate-700/80 rounded"></div>
+            </div>
+            <div className="space-y-3">
+              <div className="h-4 w-full bg-slate-200 dark:bg-slate-700/80 rounded"></div>
+              <div className="h-4 w-5/6 bg-slate-200 dark:bg-slate-700/80 rounded"></div>
+              <div className="h-4 w-4/5 bg-slate-200 dark:bg-slate-700/80 rounded"></div>
+              <div className="h-4 w-2/3 bg-slate-200 dark:bg-slate-700/80 rounded"></div>
+            </div>
+          </div>
+
+          {/* Charts Grid Skeleton */}
+          <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
+            <div className="bg-white dark:bg-[#1E2130] rounded-xl border border-slate-200 dark:border-white/10 p-5 h-[340px] flex flex-col justify-between">
+              <div className="h-5 w-48 bg-slate-200 dark:bg-slate-700/80 rounded"></div>
+              <div className="flex-1 bg-slate-100 dark:bg-slate-800/50 rounded-xl my-4"></div>
+            </div>
+            <div className="bg-white dark:bg-[#1E2130] rounded-xl border border-slate-200 dark:border-white/10 p-5 h-[340px] flex flex-col justify-between">
+              <div className="h-5 w-48 bg-slate-200 dark:bg-slate-700/80 rounded"></div>
+              <div className="flex-1 bg-slate-100 dark:bg-slate-800/50 rounded-xl my-4"></div>
+            </div>
+          </div>
         </div>
       )}
 
@@ -604,37 +669,28 @@ export default function AdminFinancialReport() {
           </div>
 
           {/* Executive Summary */}
-          <div className="bg-white dark:bg-[#1E2130] rounded-xl border border-slate-200 dark:border-white/10 shadow-sm overflow-hidden">
-            <div className="p-5 border-b border-slate-200 dark:border-white/10 bg-slate-50 dark:bg-black/20 flex items-center gap-3">
-              <div className="px-2 py-0.5 bg-blue-100 text-blue-700 dark:bg-blue-500/20 dark:text-blue-400 rounded text-[10px] font-bold uppercase tracking-wide">
+          <div className="bg-white dark:bg-[#1E2130] rounded-xl border border-slate-200 dark:border-white/10 shadow-sm overflow-hidden p-6 flex flex-col gap-5">
+            <div className="px-6 py-4 border-b border-slate-200 dark:border-white/10 bg-slate-50 dark:bg-black/20 flex items-center justify-between -mx-6 -mt-6">
+              <div className="px-2.5 py-1 bg-blue-100 text-blue-700 dark:bg-blue-500/20 dark:text-blue-400 rounded-md text-[11px] font-bold uppercase tracking-wider flex items-center gap-1.5">
                 <Sparkles size={14} />
                 AI Executive Summary
               </div>
-              <span className="font-inter text-[13px] font-medium text-slate-500 dark:text-slate-400">{report.period}</span>
+              <span className="font-inter text-xs font-semibold text-slate-500 dark:text-slate-400">{report.period}</span>
             </div>
-            <div className="p-6">
-              {report.executiveSummary?.split('\n').filter(Boolean).map((line, i) => {
-                const isBullet = line.trim().startsWith('-') || line.trim().startsWith('•') || /^\d+\./.test(line.trim());
-                return (
-                  <p 
-                    key={i} 
-                    className={`fin-report-executive-para ${isBullet ? 'bullet' : ''}`}
-                    style={isBullet ? { paddingLeft: '1.5rem', textIndent: '-1.2rem' } : {}}
-                  >
-                    {line}
-                  </p>
-                );
-              })}
+            <div>
+              {renderFormattedSummary(report.executiveSummary)}
             </div>
           </div>
 
           {/* === Year-over-Year Comparative Analysis === */}
           {report.comparison && (
-            <div className="bg-white dark:bg-[#1E2130] rounded-xl border border-slate-200 dark:border-white/10 shadow-sm overflow-hidden">
-              <div className="p-5 border-b border-slate-200 dark:border-white/10 bg-slate-50 dark:bg-black/20 flex items-center gap-3">
+            <div className="bg-white dark:bg-[#1E2130] rounded-xl border border-slate-200 dark:border-white/10 shadow-sm overflow-hidden p-6 flex flex-col gap-6">
+              <div className="px-6 py-4 border-b border-slate-200 dark:border-white/10 bg-slate-50 dark:bg-black/20 flex items-center justify-between -mx-6 -mt-6">
                 <h2 className="m-0 font-inter text-[15px] font-bold text-slate-800 dark:text-white flex items-center gap-2">📊 Year-over-Year Comparison</h2>
+                <span className="font-inter text-xs font-semibold text-slate-500 dark:text-slate-400">
+                  <strong>{report.comparison.currentPeriod}</strong> vs <strong>{report.comparison.prevPeriod}</strong>
+                </span>
               </div>
-              <p className="font-inter text-[13px] text-slate-500 dark:text-slate-400 mt-1"><strong>{report.comparison.currentPeriod}</strong> vs <strong>{report.comparison.prevPeriod}</strong></p>
 
               <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
                 {/* Donations Comparison */}
@@ -645,13 +701,13 @@ export default function AdminFinancialReport() {
                     { label: 'Transactions', current: d.currentCount, previous: d.previousCount },
                   ];
                   return (
-                    <div className="bg-white dark:bg-[#1E2130] rounded-xl border border-slate-200 dark:border-white/10 shadow-sm p-6 flex flex-col h-[400px]">
+                    <div className="bg-white dark:bg-[#1E2130] rounded-xl border border-slate-200 dark:border-white/10 shadow-sm p-5 flex flex-col justify-between gap-3 min-h-[320px] h-auto">
                       <h3 className="m-0 font-inter text-[15px] font-bold text-slate-800 dark:text-white">Donations — Period Over Period</h3>
                       <p className="font-inter text-[13px] text-slate-500 dark:text-slate-400 mt-1">
                         Current: <strong>{fmt(d.current)}</strong> · Previous: <strong>{fmt(d.previous)}</strong>
                         {d.change !== null && <> · Change: <strong className={d.change >= 0 ? 'fin-change-positive' : 'fin-change-negative'}>{d.change >= 0 ? '+' : ''}{d.change}%</strong></>}
                       </p>
-                      <ResponsiveContainer width="100%" height={220}>
+                      <ResponsiveContainer width="100%" height={240}>
                         <BarChart data={barData} margin={{ top: 15, right: 10, left: -10, bottom: 0 }}>
                           <CartesianGrid strokeDasharray="3 3" stroke="#f1f5f9" vertical={false} />
                           <XAxis dataKey="label" tick={{ fontSize: 10 }} />
@@ -665,7 +721,7 @@ export default function AdminFinancialReport() {
                           </Bar>
                         </BarChart>
                       </ResponsiveContainer>
-                      <div className="flex flex-wrap items-center justify-center gap-4 mt-6 pt-4 border-t border-slate-100 dark:border-white/5">
+                      <div className="flex flex-wrap items-center justify-center gap-4 mt-3 pt-3 border-t border-slate-100 dark:border-white/5">
                         <div className="flex items-center gap-1.5 font-inter text-[11px] font-medium text-slate-600 dark:text-slate-400">
                           <span className="w-2.5 h-2.5 rounded-full" style={{ background: '#0D1F45' }} />
                           <span className="font-inter text-[11px] font-medium text-slate-600 dark:text-slate-400">{report.comparison.currentPeriod}</span>
@@ -687,13 +743,13 @@ export default function AdminFinancialReport() {
                   const a = report.comparison.attendance;
                   const barData = [{ label: 'Total Attendance', current: a.current, previous: a.previous }];
                   return (
-                    <div className="bg-white dark:bg-[#1E2130] rounded-xl border border-slate-200 dark:border-white/10 shadow-sm p-6 flex flex-col h-[400px]">
+                    <div className="bg-white dark:bg-[#1E2130] rounded-xl border border-slate-200 dark:border-white/10 shadow-sm p-5 flex flex-col justify-between gap-3 min-h-[320px] h-auto">
                       <h3 className="m-0 font-inter text-[15px] font-bold text-slate-800 dark:text-white">Attendance — Period Over Period</h3>
                       <p className="font-inter text-[13px] text-slate-500 dark:text-slate-400 mt-1">
                         Current: <strong>{a.current} attendees</strong> · Previous: <strong>{a.previous} attendees</strong>
                         {a.change !== null && <> · Change: <strong className={a.change >= 0 ? 'fin-change-positive' : 'fin-change-negative'}>{a.change >= 0 ? '+' : ''}{a.change}%</strong></>}
                       </p>
-                      <ResponsiveContainer width="100%" height={180}>
+                      <ResponsiveContainer width="100%" height={240}>
                         <BarChart data={barData} margin={{ top: 15, right: 10, left: -10, bottom: 0 }}>
                           <CartesianGrid strokeDasharray="3 3" stroke="#f1f5f9" vertical={false} />
                           <XAxis dataKey="label" tick={{ fontSize: 10 }} />
@@ -707,7 +763,7 @@ export default function AdminFinancialReport() {
                           </Bar>
                         </BarChart>
                       </ResponsiveContainer>
-                      <div className="flex flex-wrap items-center justify-center gap-4 mt-6 pt-4 border-t border-slate-100 dark:border-white/5">
+                      <div className="flex flex-wrap items-center justify-center gap-4 mt-3 pt-3 border-t border-slate-100 dark:border-white/5">
                         <div className="flex items-center gap-1.5 font-inter text-[11px] font-medium text-slate-600 dark:text-slate-400">
                           <span className="w-2.5 h-2.5 rounded-full" style={{ background: '#2563eb' }} />
                           <span className="font-inter text-[11px] font-medium text-slate-600 dark:text-slate-400">{report.comparison.currentPeriod}</span>
@@ -728,13 +784,13 @@ export default function AdminFinancialReport() {
               {/* Loans Comparison */}
               {report.comparison.loans && (
                 <div className="grid grid-cols-1 lg:grid-cols-2 gap-6" style={{marginTop: '16px'}}>
-                  <div className="bg-white dark:bg-[#1E2130] rounded-xl border border-slate-200 dark:border-white/10 shadow-sm p-6 flex flex-col h-[400px]">
+                  <div className="bg-white dark:bg-[#1E2130] rounded-xl border border-slate-200 dark:border-white/10 shadow-sm p-5 flex flex-col justify-between gap-3 min-h-[320px] h-auto">
                     <h3 className="m-0 font-inter text-[15px] font-bold text-slate-800 dark:text-white">Loans — Period Over Period</h3>
                     <p className="font-inter text-[13px] text-slate-500 dark:text-slate-400 mt-1">
                       Applications: <strong>{report.comparison.loans.currentApps}</strong> vs <strong>{report.comparison.loans.previousApps}</strong>
                       {report.comparison.loans.changeApps !== null && <> (<strong className={report.comparison.loans.changeApps >= 0 ? 'fin-change-positive' : 'fin-change-negative'}>{report.comparison.loans.changeApps >= 0 ? '+' : ''}{report.comparison.loans.changeApps}%</strong>)</>}
                     </p>
-                    <ResponsiveContainer width="100%" height={220}>
+                    <ResponsiveContainer width="100%" height={240}>
                       <BarChart data={[
                         { label: 'Applications', current: report.comparison.loans.currentApps, previous: report.comparison.loans.previousApps },
                         { label: 'Disbursed', current: report.comparison.loans.currentDisbursed, previous: report.comparison.loans.previousDisbursed },
@@ -752,7 +808,7 @@ export default function AdminFinancialReport() {
                         </Bar>
                       </BarChart>
                     </ResponsiveContainer>
-                    <div className="flex flex-wrap items-center justify-center gap-4 mt-6 pt-4 border-t border-slate-100 dark:border-white/5">
+                    <div className="flex flex-wrap items-center justify-center gap-4 mt-3 pt-3 border-t border-slate-100 dark:border-white/5">
                       <div className="flex items-center gap-1.5 font-inter text-[11px] font-medium text-slate-600 dark:text-slate-400">
                         <span className="w-2.5 h-2.5 rounded-full" style={{ background: '#0D1F45' }} />
                         <span className="font-inter text-[11px] font-medium text-slate-600 dark:text-slate-400">{report.comparison.currentPeriod}</span>
@@ -770,13 +826,13 @@ export default function AdminFinancialReport() {
               {/* Disbursements Comparison */}
               {report.comparison.disbursements && (
                 <div className="grid grid-cols-1 lg:grid-cols-2 gap-6" style={{marginTop: '16px'}}>
-                  <div className="bg-white dark:bg-[#1E2130] rounded-xl border border-slate-200 dark:border-white/10 shadow-sm p-6 flex flex-col h-[400px]">
+                  <div className="bg-white dark:bg-[#1E2130] rounded-xl border border-slate-200 dark:border-white/10 shadow-sm p-5 flex flex-col justify-between gap-3 min-h-[320px] h-auto">
                     <h3 className="m-0 font-inter text-[15px] font-bold text-slate-800 dark:text-white">Disbursements — Period Over Period</h3>
                     <p className="font-inter text-[13px] text-slate-500 dark:text-slate-400 mt-1">
                       Current: <strong>{fmt(report.comparison.disbursements.current)}</strong> · Previous: <strong>{fmt(report.comparison.disbursements.previous)}</strong>
                       {report.comparison.disbursements.change !== null && <> · Change: <strong className={report.comparison.disbursements.change >= 0 ? 'fin-change-positive' : 'fin-change-negative'}>{report.comparison.disbursements.change >= 0 ? '+' : ''}{report.comparison.disbursements.change}%</strong></>}
                     </p>
-                    <ResponsiveContainer width="100%" height={180}>
+                    <ResponsiveContainer width="100%" height={240}>
                       <BarChart data={[
                         { label: 'Amount', current: report.comparison.disbursements.current, previous: report.comparison.disbursements.previous },
                         { label: 'Count', current: report.comparison.disbursements.currentCount, previous: report.comparison.disbursements.previousCount },
@@ -793,7 +849,7 @@ export default function AdminFinancialReport() {
                         </Bar>
                       </BarChart>
                     </ResponsiveContainer>
-                    <div className="flex flex-wrap items-center justify-center gap-4 mt-6 pt-4 border-t border-slate-100 dark:border-white/5">
+                    <div className="flex flex-wrap items-center justify-center gap-4 mt-3 pt-3 border-t border-slate-100 dark:border-white/5">
                       <div className="flex items-center gap-1.5 font-inter text-[11px] font-medium text-slate-600 dark:text-slate-400">
                         <span className="w-2.5 h-2.5 rounded-full" style={{ background: '#0D1F45' }} />
                         <span className="font-inter text-[11px] font-medium text-slate-600 dark:text-slate-400">{report.comparison.currentPeriod}</span>
@@ -814,24 +870,24 @@ export default function AdminFinancialReport() {
 
           {/* Donations Section - Only for Super Admin */}
           {report.donations && adminRole === 'admin' && (report.reportType === 'all' || report.reportType === 'donations') && (
-            <div className="bg-white dark:bg-[#1E2130] rounded-xl border border-slate-200 dark:border-white/10 shadow-sm overflow-hidden">
-              <div className="p-5 border-b border-slate-200 dark:border-white/10 bg-slate-50 dark:bg-black/20 flex items-center gap-3">
+            <div className="bg-white dark:bg-[#1E2130] rounded-xl border border-slate-200 dark:border-white/10 shadow-sm overflow-hidden p-6 flex flex-col gap-6">
+              <div className="px-6 py-4 border-b border-slate-200 dark:border-white/10 bg-slate-50 dark:bg-black/20 flex items-center gap-3 -mx-6 -mt-6">
                 <h2 className="m-0 font-inter text-[15px] font-bold text-slate-800 dark:text-white flex items-center gap-2">💝 Donations Overview</h2>
               </div>
 
               {/* Donation Stats */}
-              <div className="grid grid-cols-1 sm:grid-cols-3 gap-6">
+              <div className="grid grid-cols-1 sm:grid-cols-3 gap-6 bg-slate-50/60 dark:bg-black/20 p-5 rounded-xl border border-slate-100 dark:border-white/5">
                 <div className="flex flex-col">
-                  <span className="font-inter text-[13px] font-semibold text-slate-500 dark:text-slate-400 uppercase tracking-wide">Total Donations</span>
-                  <span className="font-inter font-bold text-[32px] text-blue-600 dark:text-blue-400 mt-1">{fmt(report.donations.total)}</span>
+                  <span className="font-inter text-xs font-bold text-slate-500 dark:text-slate-400 uppercase tracking-wider">Total Donations</span>
+                  <span className="font-inter font-extrabold text-[28px] sm:text-[32px] text-blue-600 dark:text-blue-400 mt-1">{fmt(report.donations.total)}</span>
                 </div>
                 <div className="flex flex-col">
-                  <span className="font-inter text-[13px] font-semibold text-slate-500 dark:text-slate-400 uppercase tracking-wide">Transaction Count</span>
-                  <span className="font-inter font-bold text-[32px] text-slate-900 dark:text-white mt-1">{report.donations.count}</span>
+                  <span className="font-inter text-xs font-bold text-slate-500 dark:text-slate-400 uppercase tracking-wider">Transaction Count</span>
+                  <span className="font-inter font-extrabold text-[28px] sm:text-[32px] text-slate-900 dark:text-white mt-1">{report.donations.count}</span>
                 </div>
                 <div className="flex flex-col">
-                  <span className="font-inter text-[13px] font-semibold text-slate-500 dark:text-slate-400 uppercase tracking-wide">Avg per Transaction</span>
-                  <span className="font-inter font-bold text-[32px] text-emerald-600 dark:text-emerald-400 mt-1">
+                  <span className="font-inter text-xs font-bold text-slate-500 dark:text-slate-400 uppercase tracking-wider">Avg per Transaction</span>
+                  <span className="font-inter font-extrabold text-[28px] sm:text-[32px] text-emerald-600 dark:text-emerald-400 mt-1">
                     {fmt(report.donations.count > 0 ? report.donations.total / report.donations.count : 0)}
                   </span>
                 </div>
@@ -841,12 +897,12 @@ export default function AdminFinancialReport() {
               <div className="grid grid-cols-1 lg:grid-cols-2 gap-6" style={{ gridTemplateColumns: report.donations.byCategory?.length > 0 ? '4fr 6fr' : '1fr' }}>
                 {/* By Category */}
                 {report.donations.byCategory?.length > 0 && (
-                  <div className="bg-white dark:bg-[#1E2130] rounded-xl border border-slate-200 dark:border-white/10 shadow-sm p-6 flex flex-col h-[400px]">
+                  <div className="bg-white dark:bg-[#1E2130] rounded-xl border border-slate-200 dark:border-white/10 shadow-sm p-5 flex flex-col justify-between gap-3 min-h-[320px] h-auto">
                     <h3 className="m-0 font-inter text-[15px] font-bold text-slate-800 dark:text-white">Donations By Category</h3>
                     <p className="font-inter text-[13px] text-slate-500 dark:text-slate-400 mt-1">Total: <strong>{fmt(report.donations.total)}</strong> · {report.donations.byCategory.length} categories</p>
-                    <ResponsiveContainer width="100%" height={200}>
+                    <ResponsiveContainer width="100%" height={220}>
                       <PieChart>
-                        <Pie data={report.donations.byCategory} cx="50%" cy="42%" innerRadius={35} outerRadius={75} paddingAngle={2} dataKey="value" nameKey="name" label={renderSliceLabel} labelLine={false}>
+                        <Pie data={report.donations.byCategory} cx="50%" cy="45%" innerRadius={38} outerRadius={82} paddingAngle={2} dataKey="value" nameKey="name" label={renderSliceLabel} labelLine={false}>
                           {report.donations.byCategory.map((_, i) => (
                             <Cell key={i} fill={PIE_COLORS[i % PIE_COLORS.length]} />
                           ))}
@@ -854,7 +910,7 @@ export default function AdminFinancialReport() {
                         <Tooltip formatter={(v, name) => [fmt(v), name === 'value' ? 'Amount' : name]} />
                       </PieChart>
                     </ResponsiveContainer>
-                    <div className="flex flex-wrap items-center gap-4 mt-6 pt-4 border-t border-slate-100 dark:border-white/5">
+                    <div className="flex flex-wrap items-center gap-3 mt-3 pt-3 border-t border-slate-100 dark:border-white/5">
                       {report.donations.byCategory.map((cat, i) => (
                         <div key={i} className="flex items-center gap-1.5 font-inter text-[11px] font-medium text-slate-600 dark:text-slate-400">
                           <span className="w-2.5 h-2.5 rounded-full" style={{ background: PIE_COLORS[i % PIE_COLORS.length] }} />
@@ -909,10 +965,10 @@ export default function AdminFinancialReport() {
                   const highestMon = fullMonthData.reduce((a, b) => b.value > a.value ? b : a, fullMonthData[0]);
                   
                   return (
-                    <div className="bg-white dark:bg-[#1E2130] rounded-xl border border-slate-200 dark:border-white/10 shadow-sm p-6 flex flex-col h-[400px]">
+                    <div className="bg-white dark:bg-[#1E2130] rounded-xl border border-slate-200 dark:border-white/10 shadow-sm p-5 flex flex-col justify-between gap-3 min-h-[320px] h-auto">
                       <h3 className="m-0 font-inter text-[15px] font-bold text-slate-800 dark:text-white">{chartTitle}</h3>
                       <p className="font-inter text-[13px] text-slate-500 dark:text-slate-400 mt-1">Total: <strong>{fmt(totalDon)}</strong> · Highest: <strong>{highestMon?.month}</strong> ({fmt(highestMon?.value)})</p>
-                      <ResponsiveContainer width="100%" height={isMulti ? 280 : 220}>
+                      <ResponsiveContainer width="100%" height={isMulti ? 280 : 265}>
                         {isMulti ? (
                           <BarChart data={fullMonthData} margin={{ top: 15, right: 10, left: -10, bottom: 0 }}>
                             <CartesianGrid strokeDasharray="3 3" stroke="#f1f5f9" />
@@ -1023,7 +1079,7 @@ export default function AdminFinancialReport() {
 
                 return (
                   <div className="grid grid-cols-1 lg:grid-cols-2 gap-6" style={{ gridTemplateColumns: '1fr', marginTop: '16px' }}>
-                    <div className="bg-white dark:bg-[#1E2130] rounded-xl border border-slate-200 dark:border-white/10 shadow-sm p-6 flex flex-col h-[400px]" style={{ width: '100%' }}>
+                    <div className="bg-white dark:bg-[#1E2130] rounded-xl border border-slate-200 dark:border-white/10 shadow-sm p-6 flex flex-col min-h-[400px] h-auto justify-between" style={{ width: '100%' }}>
                       <h3 className="m-0 font-inter text-[15px] font-bold text-slate-800 dark:text-white">Monthly Donation Trend (By Community)</h3>
                       <p className="font-inter text-[13px] text-slate-500 dark:text-slate-400 mt-1">
                         Detailed Community Breakdown · Total: <strong>{fmt(totalDon)}</strong> · Highest: <strong>{highestMon?.month}</strong>
@@ -1110,13 +1166,13 @@ export default function AdminFinancialReport() {
               <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
                 {/* Top Donor Communities Bar Chart */}
                 {report.donations.byBranch?.length > 0 && (
-                  <div className="bg-white dark:bg-[#1E2130] rounded-xl border border-slate-200 dark:border-white/10 shadow-sm p-6 flex flex-col h-[400px]">
+                  <div className="bg-white dark:bg-[#1E2130] rounded-xl border border-slate-200 dark:border-white/10 shadow-sm p-5 flex flex-col justify-between gap-3 min-h-[320px] h-auto">
                     <h3 className="m-0 font-inter text-[15px] font-bold text-slate-800 dark:text-white">Top Donor Communities</h3>
                     <p className="font-inter text-[13px] text-slate-500 dark:text-slate-400 mt-1">Top: <strong>{report.donations.byBranch[0]?.branch}</strong> · {fmt(report.donations.byBranch[0]?.value)} ({report.donations.total > 0 ? ((report.donations.byBranch[0]?.value / report.donations.total) * 100).toFixed(1) : 0}%)</p>
-                    <ResponsiveContainer width="100%" height={280}>
+                    <ResponsiveContainer width="100%" height={265}>
                       <BarChart data={report.donations.byBranch.slice(0, 8)} margin={{ top: 15, right: 10, left: -10, bottom: 40 }}>
                         <CartesianGrid strokeDasharray="3 3" stroke="#f1f5f9" vertical={false} />
-                        <XAxis dataKey="branch" tick={{ fontSize: 9, angle: -35, textAnchor: 'end' }} interval={0} height={60} />
+                        <XAxis dataKey="branch" tick={{ fontSize: 9, angle: -35, textAnchor: 'end' }} interval={0} height={50} />
                         <YAxis tick={{ fontSize: 10 }} tickFormatter={v => `₱${(v/1000).toFixed(0)}k`} allowDecimals={false}>
                           <Label value="Amount (₱)" angle={-90} position="insideLeft" offset={20} style={{ fontSize: 9, fill: '#9CA3AF' }} />
                         </YAxis>
@@ -1137,16 +1193,16 @@ export default function AdminFinancialReport() {
                 {report.donations?.byDonor?.length > 0 && (() => {
                   const topDonors = report.donations.byDonor.slice(0, 8);
                   return (
-                  <div className="bg-white dark:bg-[#1E2130] rounded-xl border border-slate-200 dark:border-white/10 shadow-sm p-6 flex flex-col h-[400px]">
+                  <div className="bg-white dark:bg-[#1E2130] rounded-xl border border-slate-200 dark:border-white/10 shadow-sm p-5 flex flex-col justify-between gap-3 min-h-[320px] h-auto">
                     <h3 className="m-0 font-inter text-[15px] font-bold text-slate-800 dark:text-white">Top {topDonors.length} Donators</h3>
                     <p className="font-inter text-[13px] text-slate-500 dark:text-slate-400 mt-1">#1: <strong>{topDonors[0]?.donor}</strong> · {fmt(topDonors[0]?.value)} ({report.donations.total > 0 ? ((topDonors[0]?.value / report.donations.total) * 100).toFixed(0) : 0}%)</p>
-                    <ResponsiveContainer width="100%" height={Math.max(220, topDonors.length * 32)}>
+                    <ResponsiveContainer width="100%" height={Math.max(220, topDonors.length * 30)}>
                       <BarChart data={topDonors} layout="vertical" margin={{ top: 5, right: 30, left: 10, bottom: 0 }}>
                         <CartesianGrid strokeDasharray="3 3" stroke="#f1f5f9" horizontal={false} />
                         <XAxis type="number" tick={{ fontSize: 10 }} tickFormatter={v => `₱${(v/1000).toFixed(0)}k`}>
                           <Label value="Amount (₱)" position="bottom" offset={-5} style={{ fontSize: 9, fill: '#9CA3AF' }} />
                         </XAxis>
-                        <YAxis type="category" dataKey="donor" tick={{ fontSize: 10 }} width={120} />
+                        <YAxis type="category" dataKey="donor" tick={{ fontSize: 10 }} width={140} />
                         <Tooltip formatter={(v, name) => [fmt(v), name === 'value' ? 'Amount' : name]} />
                         <Bar dataKey="value" radius={[0, 4, 4, 0]} barSize={18}>
                           {topDonors.map((_, i) => (
@@ -1156,7 +1212,7 @@ export default function AdminFinancialReport() {
                         </Bar>
                       </BarChart>
                     </ResponsiveContainer>
-                    <div className="flex flex-wrap items-center gap-4 mt-6 pt-4 border-t border-slate-100 dark:border-white/5">
+                    <div className="flex flex-wrap items-center gap-3 mt-3 pt-2 border-t border-slate-100 dark:border-white/5">
                       {topDonors.slice(0, 5).map((d, i) => (
                         <div key={i} className="flex items-center gap-1.5 font-inter text-[11px] font-medium text-slate-600 dark:text-slate-400">
                           <span className="w-2.5 h-2.5 rounded-full" style={{ background: i === 0 ? '#2563eb' : '#0D1F45' }} />
@@ -1230,7 +1286,7 @@ export default function AdminFinancialReport() {
 
                 return fullMonthData.some(d => topSeries.some(k => d[k] > 0)) ? (
                   <div className="grid grid-cols-1 lg:grid-cols-2 gap-6" style={{ gridTemplateColumns: '1fr', marginTop: '16px' }}>
-                    <div className="bg-white dark:bg-[#1E2130] rounded-xl border border-slate-200 dark:border-white/10 shadow-sm p-6 flex flex-col h-[400px]" style={{ width: '100%' }}>
+                    <div className="bg-white dark:bg-[#1E2130] rounded-xl border border-slate-200 dark:border-white/10 shadow-sm p-6 flex flex-col min-h-[400px] h-auto justify-between" style={{ width: '100%' }}>
                       <h3 className="m-0 font-inter text-[15px] font-bold text-slate-800 dark:text-white">Monthly Attendance Trend (By Community)</h3>
                       <p className="font-inter text-[13px] text-slate-500 dark:text-slate-400 mt-1">
                         Detailed Community Breakdown · Total: <strong>{totalAtt} attendees</strong> · Highest: <strong>{highestMon?.month}</strong>
@@ -1314,31 +1370,31 @@ export default function AdminFinancialReport() {
 
           {/* Loans Section - Only for Loan Admin */}
           {report.loans && adminRole === 'loanAdmin' && (
-            <div className="bg-white dark:bg-[#1E2130] rounded-xl border border-slate-200 dark:border-white/10 shadow-sm overflow-hidden">
-              <div className="p-5 border-b border-slate-200 dark:border-white/10 bg-slate-50 dark:bg-black/20 flex items-center gap-3">
+            <div className="bg-white dark:bg-[#1E2130] rounded-xl border border-slate-200 dark:border-white/10 shadow-sm overflow-hidden p-6 flex flex-col gap-6">
+              <div className="px-6 py-4 border-b border-slate-200 dark:border-white/10 bg-slate-50 dark:bg-black/20 flex items-center gap-3 -mx-6 -mt-6">
                 <h2 className="m-0 font-inter text-[15px] font-bold text-slate-800 dark:text-white flex items-center gap-2">💳 Loans Portfolio</h2>
               </div>
 
-              <div className="grid grid-cols-1 sm:grid-cols-3 gap-6">
+              <div className="grid grid-cols-1 sm:grid-cols-3 lg:grid-cols-5 gap-6 bg-slate-50/60 dark:bg-black/20 p-5 rounded-xl border border-slate-100 dark:border-white/5">
                 <div className="flex flex-col">
-                  <span className="font-inter text-[13px] font-semibold text-slate-500 dark:text-slate-400 uppercase tracking-wide">Total Applications</span>
-                  <span className="font-inter font-bold text-[32px] text-slate-900 dark:text-white mt-1">{report.loans.totalApplications}</span>
+                  <span className="font-inter text-xs font-bold text-slate-500 dark:text-slate-400 uppercase tracking-wider">Total Applications</span>
+                  <span className="font-inter font-extrabold text-[28px] sm:text-[32px] text-slate-900 dark:text-white mt-1">{report.loans.totalApplications}</span>
                 </div>
                 <div className="flex flex-col">
-                  <span className="font-inter text-[13px] font-semibold text-slate-500 dark:text-slate-400 uppercase tracking-wide">Amount Applied</span>
-                  <span className="font-inter font-bold text-[32px] text-blue-600 dark:text-blue-400 mt-1">{fmt(report.loans.totalAmountApplied)}</span>
+                  <span className="font-inter text-xs font-bold text-slate-500 dark:text-slate-400 uppercase tracking-wider">Amount Applied</span>
+                  <span className="font-inter font-extrabold text-[28px] sm:text-[32px] text-blue-600 dark:text-blue-400 mt-1">{fmt(report.loans.totalAmountApplied)}</span>
                 </div>
                 <div className="flex flex-col">
-                  <span className="font-inter text-[13px] font-semibold text-slate-500 dark:text-slate-400 uppercase tracking-wide">Total Disbursed</span>
-                  <span className="font-inter font-bold text-[32px] text-slate-900 dark:text-white mt-1">{fmt(report.loans.totalDisbursed)}</span>
+                  <span className="font-inter text-xs font-bold text-slate-500 dark:text-slate-400 uppercase tracking-wider">Total Disbursed</span>
+                  <span className="font-inter font-extrabold text-[28px] sm:text-[32px] text-slate-900 dark:text-white mt-1">{fmt(report.loans.totalDisbursed)}</span>
                 </div>
                 <div className="flex flex-col">
-                  <span className="font-inter text-[13px] font-semibold text-slate-500 dark:text-slate-400 uppercase tracking-wide">Payments Received</span>
-                  <span className="font-inter font-bold text-[32px] text-emerald-600 dark:text-emerald-400 mt-1">{fmt(report.loans.totalPaymentsReceived)}</span>
+                  <span className="font-inter text-xs font-bold text-slate-500 dark:text-slate-400 uppercase tracking-wider">Payments Received</span>
+                  <span className="font-inter font-extrabold text-[28px] sm:text-[32px] text-emerald-600 dark:text-emerald-400 mt-1">{fmt(report.loans.totalPaymentsReceived)}</span>
                 </div>
                 <div className="flex flex-col">
-                  <span className="font-inter text-[13px] font-semibold text-slate-500 dark:text-slate-400 uppercase tracking-wide">Interest Earned</span>
-                  <span className="font-inter font-bold text-[32px] text-purple-600 dark:text-purple-400 mt-1">{fmt(report.loans.totalInterestEarned)}</span>
+                  <span className="font-inter text-xs font-bold text-slate-500 dark:text-slate-400 uppercase tracking-wider">Interest Earned</span>
+                  <span className="font-inter font-extrabold text-[28px] sm:text-[32px] text-purple-600 dark:text-purple-400 mt-1">{fmt(report.loans.totalInterestEarned)}</span>
                 </div>
               </div>
 
@@ -1346,15 +1402,15 @@ export default function AdminFinancialReport() {
               <div className="grid grid-cols-1 lg:grid-cols-2 gap-6" style={{ gridTemplateColumns: '3fr 7fr' }}>
                 {/* Loan Status Donut */}
                 {report.loans.byStatus?.length > 0 && (
-                  <div className="bg-white dark:bg-[#1E2130] rounded-xl border border-slate-200 dark:border-white/10 shadow-sm p-6 flex flex-col h-[400px]">
+                  <div className="bg-white dark:bg-[#1E2130] rounded-xl border border-slate-200 dark:border-white/10 shadow-sm p-5 flex flex-col justify-between gap-3 min-h-[320px] h-auto">
                     <h3 className="m-0 font-inter text-[15px] font-bold text-slate-800 dark:text-white">Loan Status Distribution</h3>
                     <p className="font-inter text-[13px] text-slate-500 dark:text-slate-400 mt-1">Total: <strong>{report.loans.totalApplications} applications</strong> · {report.loans.byStatus.length} statuses</p>
                     <ResponsiveContainer width="100%" height={220}>
                       <PieChart>
                         <Pie
                           data={report.loans.byStatus.map(s => ({ name: s.status, value: s.count }))}
-                          cx="50%" cy="42%"
-                          innerRadius={35} outerRadius={75}
+                          cx="50%" cy="45%"
+                          innerRadius={38} outerRadius={82}
                           paddingAngle={2}
                           dataKey="value"
                           label={renderSliceLabel}
@@ -1369,7 +1425,7 @@ export default function AdminFinancialReport() {
                         <Tooltip formatter={(v, name) => [v + ' loans', name]} />
                       </PieChart>
                     </ResponsiveContainer>
-                    <div className="flex flex-wrap items-center gap-4 mt-6 pt-4 border-t border-slate-100 dark:border-white/5">
+                    <div className="flex flex-wrap items-center gap-3 mt-3 pt-2 border-t border-slate-100 dark:border-white/5">
                       {report.loans.byStatus.map((s, i) => {
                         const total = report.loans.totalApplications || 1;
                         const pct = ((s.count / total) * 100).toFixed(0);
@@ -1424,10 +1480,10 @@ export default function AdminFinancialReport() {
                   });
 
                   return trendData.length > 0 ? (
-                    <div className="bg-white dark:bg-[#1E2130] rounded-xl border border-slate-200 dark:border-white/10 shadow-sm p-6 flex flex-col h-[400px]" style={{ width: '100%' }}>
+                    <div className="bg-white dark:bg-[#1E2130] rounded-xl border border-slate-200 dark:border-white/10 shadow-sm p-5 flex flex-col justify-between gap-3 min-h-[320px] h-auto" style={{ width: '100%' }}>
                       <h3 className="m-0 font-inter text-[15px] font-bold text-slate-800 dark:text-white">{chartTitle}</h3>
                       <p className="font-inter text-[13px] text-slate-500 dark:text-slate-400 mt-1">Disbursed: <strong>{fmt(trendData.reduce((s, d) => s + d.disbursed, 0))}</strong> · Collected: <strong>{fmt(trendData.reduce((s, d) => s + d.received, 0))}</strong></p>
-                      <ResponsiveContainer width="100%" height={isMulti ? 300 : 250}>
+                      <ResponsiveContainer width="100%" height={isMulti ? 300 : 265}>
                         {isMulti ? (
                           <BarChart data={trendData} margin={{ top: 15, right: 10, left: -10, bottom: 0 }}>
                             <CartesianGrid strokeDasharray="3 3" stroke="#f1f5f9" />
@@ -1561,7 +1617,7 @@ export default function AdminFinancialReport() {
                     });
 
                     return trendData.length > 0 ? (
-                      <div className="bg-white dark:bg-[#1E2130] rounded-xl border border-slate-200 dark:border-white/10 shadow-sm p-6 flex flex-col h-[400px]" style={{ width: '100%' }}>
+                      <div className="bg-white dark:bg-[#1E2130] rounded-xl border border-slate-200 dark:border-white/10 shadow-sm p-6 flex flex-col min-h-[400px] h-auto justify-between" style={{ width: '100%' }}>
                         <h3 className="m-0 font-inter text-[15px] font-bold text-slate-800 dark:text-white">{chartTitle}</h3>
                         <p className="font-inter text-[13px] text-slate-500 dark:text-slate-400 mt-1">Detailed Community Breakdown · Disbursed: <strong>{fmt(trendData.reduce((s, d) => s + d.disbursed, 0))}</strong> · Collected: <strong>{fmt(trendData.reduce((s, d) => s + d.received, 0))}</strong></p>
                         <ResponsiveContainer width="100%" height={isMulti ? 300 : 250}>
@@ -1685,7 +1741,7 @@ export default function AdminFinancialReport() {
                   const totalApps = trendData.reduce((s, d) => s + d.applications, 0);
                   const peakIdx = trendData.reduce((maxI, d, i, arr) => d.applications > arr[maxI].applications ? i : maxI, 0);
                   return trendData.length > 0 ? (
-                    <div className="bg-white dark:bg-[#1E2130] rounded-xl border border-slate-200 dark:border-white/10 shadow-sm p-6 flex flex-col h-[400px]" style={{ width: '100%' }}>
+                    <div className="bg-white dark:bg-[#1E2130] rounded-xl border border-slate-200 dark:border-white/10 shadow-sm p-6 flex flex-col min-h-[400px] h-auto justify-between" style={{ width: '100%' }}>
                       <h3 className="m-0 font-inter text-[15px] font-bold text-slate-800 dark:text-white">{chartTitle}</h3>
                       <p className="font-inter text-[13px] text-slate-500 dark:text-slate-400 mt-1">Total: <strong>{totalApps} applications</strong> · Peak: <strong>{trendData[peakIdx]?.label}</strong> ({trendData[peakIdx]?.applications})</p>
                       <ResponsiveContainer width="100%" height={isMulti ? 300 : 250}>
@@ -1788,7 +1844,7 @@ export default function AdminFinancialReport() {
                     const peakIdx = trendData.reduce((maxI, d, i, arr) => d.applications > arr[maxI].applications ? i : maxI, 0);
 
                     return trendData.length > 0 ? (
-                      <div className="bg-white dark:bg-[#1E2130] rounded-xl border border-slate-200 dark:border-white/10 shadow-sm p-6 flex flex-col h-[400px]" style={{ width: '100%' }}>
+                      <div className="bg-white dark:bg-[#1E2130] rounded-xl border border-slate-200 dark:border-white/10 shadow-sm p-6 flex flex-col min-h-[400px] h-auto justify-between" style={{ width: '100%' }}>
                         <h3 className="m-0 font-inter text-[15px] font-bold text-slate-800 dark:text-white">{chartTitle}</h3>
                         <p className="font-inter text-[13px] text-slate-500 dark:text-slate-400 mt-1">Detailed Community Breakdown · Total: <strong>{totalApps} applications</strong> · Peak: <strong>{trendData[peakIdx]?.label}</strong> ({trendData[peakIdx]?.applications})</p>
                         <ResponsiveContainer width="100%" height={isMulti ? 300 : 250}>
@@ -1889,7 +1945,7 @@ export default function AdminFinancialReport() {
                   const totalLoans = rateData.reduce((s, d) => s + d.total, 0);
                   const avgApproval = totalLoans > 0 ? Math.round(rateData.reduce((s, d) => s + d.approvalRate * d.total, 0) / totalLoans) : 0;
                   return (
-                    <div className="bg-white dark:bg-[#1E2130] rounded-xl border border-slate-200 dark:border-white/10 shadow-sm p-6 flex flex-col h-[400px]">
+                    <div className="bg-white dark:bg-[#1E2130] rounded-xl border border-slate-200 dark:border-white/10 shadow-sm p-6 flex flex-col min-h-[400px] h-auto justify-between">
                       <h3 className="m-0 font-inter text-[15px] font-bold text-slate-800 dark:text-white">Approval Rate Per Month (%)</h3>
                       <p className="font-inter text-[13px] text-slate-500 dark:text-slate-400 mt-1">Avg: <strong style={{color: '#10B981'}}>{avgApproval}%</strong> approval · <strong style={{color: '#EF4444'}}>{100 - avgApproval}%</strong> rejection</p>
                       <ResponsiveContainer width="100%" height={220}>
@@ -1969,7 +2025,7 @@ export default function AdminFinancialReport() {
               <div className="grid grid-cols-1 lg:grid-cols-2 gap-6" style={{ gridTemplateColumns: '3fr 7fr' }}>
                 {/* Savings Goals Donut */}
                 {(report.savings.activeGoals > 0 || report.savings.completedGoals > 0) && (
-                  <div className="bg-white dark:bg-[#1E2130] rounded-xl border border-slate-200 dark:border-white/10 shadow-sm p-6 flex flex-col h-[400px]">
+                  <div className="bg-white dark:bg-[#1E2130] rounded-xl border border-slate-200 dark:border-white/10 shadow-sm p-6 flex flex-col min-h-[400px] h-auto justify-between">
                     <h3 className="m-0 font-inter text-[15px] font-bold text-slate-800 dark:text-white">Savings Goals Status</h3>
                     <p className="font-inter text-[13px] text-slate-500 dark:text-slate-400 mt-1">Total: <strong>{report.savings.activeGoals + report.savings.completedGoals} goals</strong> · Progress: <strong>{report.savings.overallProgress}%</strong></p>
                     <ResponsiveContainer width="100%" height={200}>
@@ -2028,7 +2084,7 @@ export default function AdminFinancialReport() {
                   });
                   
                   return (
-                    <div className="bg-white dark:bg-[#1E2130] rounded-xl border border-slate-200 dark:border-white/10 shadow-sm p-6 flex flex-col h-[400px]">
+                    <div className="bg-white dark:bg-[#1E2130] rounded-xl border border-slate-200 dark:border-white/10 shadow-sm p-6 flex flex-col min-h-[400px] h-auto justify-between">
                       <h3 className="m-0 font-inter text-[15px] font-bold text-slate-800 dark:text-white">Savings Trend (Deposits vs Withdrawals)</h3>
                       <p className="font-inter text-[13px] text-slate-500 dark:text-slate-400 mt-1">Total Saved: <strong>{fmt(report.savings.totalSaved)}</strong> · Deposits: <strong style={{color: '#10B981'}}>{fmt(report.savings.periodDeposits)}</strong> · Withdrawals: <strong style={{color: '#EF4444'}}>{fmt(report.savings.periodWithdrawals)}</strong></p>
                       <ResponsiveContainer width="100%" height={220}>
@@ -2088,27 +2144,27 @@ export default function AdminFinancialReport() {
 
           {/* Member Growth & Attendance - Only for Super Admin */}
           {(report.memberGrowth || report.attendance) && adminRole === 'admin' && (report.reportType === 'all' || report.reportType === 'attendance') && (
-            <div className="bg-white dark:bg-[#1E2130] rounded-xl border border-slate-200 dark:border-white/10 shadow-sm overflow-hidden">
-              <div className="p-5 border-b border-slate-200 dark:border-white/10 bg-slate-50 dark:bg-black/20 flex items-center gap-3">
+            <div className="bg-white dark:bg-[#1E2130] rounded-xl border border-slate-200 dark:border-white/10 shadow-sm overflow-hidden p-6 flex flex-col gap-6">
+              <div className="px-6 py-4 border-b border-slate-200 dark:border-white/10 bg-slate-50 dark:bg-black/20 flex items-center gap-3 -mx-6 -mt-6">
                 <h2 className="m-0 font-inter text-[15px] font-bold text-slate-800 dark:text-white flex items-center gap-2">👥 Membership & Engagement</h2>
               </div>
-              <div className="grid grid-cols-1 sm:grid-cols-3 gap-6">
+              <div className="grid grid-cols-1 sm:grid-cols-3 gap-6 bg-slate-50/60 dark:bg-black/20 p-5 rounded-xl border border-slate-100 dark:border-white/5">
                 {report.memberGrowth && (
                   <>
                     <div className="flex flex-col">
-                      <span className="font-inter text-[13px] font-semibold text-slate-500 dark:text-slate-400 uppercase tracking-wide">New Members</span>
-                      <span className="font-inter font-bold text-[32px] text-blue-600 dark:text-blue-400 mt-1">{report.memberGrowth.newMembers}</span>
+                      <span className="font-inter text-xs font-bold text-slate-500 dark:text-slate-400 uppercase tracking-wider">New Members</span>
+                      <span className="font-inter font-extrabold text-[28px] sm:text-[32px] text-blue-600 dark:text-blue-400 mt-1">{report.memberGrowth.newMembers}</span>
                     </div>
                     <div className="flex flex-col">
-                      <span className="font-inter text-[13px] font-semibold text-slate-500 dark:text-slate-400 uppercase tracking-wide">Total Members</span>
-                      <span className="font-inter font-bold text-[32px] text-slate-900 dark:text-white mt-1">{report.memberGrowth.totalMembers}</span>
+                      <span className="font-inter text-xs font-bold text-slate-500 dark:text-slate-400 uppercase tracking-wider">Total Members</span>
+                      <span className="font-inter font-extrabold text-[28px] sm:text-[32px] text-slate-900 dark:text-white mt-1">{report.memberGrowth.totalMembers}</span>
                     </div>
                   </>
                 )}
                 {report.attendance && (
                   <div className="flex flex-col">
-                    <span className="font-inter text-[13px] font-semibold text-slate-500 dark:text-slate-400 uppercase tracking-wide">Attendance Records</span>
-                    <span className="font-inter font-bold text-[32px] text-emerald-600 dark:text-emerald-400 mt-1">{report.attendance.totalRecords}</span>
+                    <span className="font-inter text-xs font-bold text-slate-500 dark:text-slate-400 uppercase tracking-wider">Attendance Records</span>
+                    <span className="font-inter font-extrabold text-[28px] sm:text-[32px] text-emerald-600 dark:text-emerald-400 mt-1">{report.attendance.totalRecords}</span>
                   </div>
                 )}
               </div>
@@ -2117,10 +2173,10 @@ export default function AdminFinancialReport() {
               <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
                 {/* Attendance By Community Chart */}
                 {report.attendance?.byBranch?.length > 0 && (
-                  <div className="bg-white dark:bg-[#1E2130] rounded-xl border border-slate-200 dark:border-white/10 shadow-sm p-6 flex flex-col h-[400px]">
+                  <div className="bg-white dark:bg-[#1E2130] rounded-xl border border-slate-200 dark:border-white/10 shadow-sm p-5 flex flex-col justify-between gap-3 min-h-[320px] h-auto">
                     <h3 className="m-0 font-inter text-[15px] font-bold text-slate-800 dark:text-white">Attendance By Community</h3>
                     <p className="font-inter text-[13px] text-slate-500 dark:text-slate-400 mt-1">Top: <strong>{report.attendance.byBranch[0]?.name}</strong> · {report.attendance.byBranch[0]?.value} attendees</p>
-                    <ResponsiveContainer width="100%" height={200}>
+                    <ResponsiveContainer width="100%" height={265}>
                       <BarChart data={report.attendance.byBranch.slice(0, 8)} margin={{ top: 15, right: 10, left: -10, bottom: 40 }}>
                         <CartesianGrid strokeDasharray="3 3" stroke="#f1f5f9" />
                         <XAxis dataKey="name" tick={{ fontSize: 9, angle: -35, textAnchor: 'end' }} interval={0} height={50} />
@@ -2128,7 +2184,7 @@ export default function AdminFinancialReport() {
                           <Label value="Attendance Count" angle={-90} position="insideLeft" offset={20} style={{ fontSize: 9, fill: '#9CA3AF' }} />
                         </YAxis>
                         <Tooltip />
-                        <Bar dataKey="value" fill="#0D1F45" radius={[4, 4, 0, 0]}>
+                        <Bar dataKey="value" fill="#0D1F45" radius={[4, 4, 0, 0]} barSize={28}>
                           <LabelList dataKey="value" position="top" style={{ fontSize: 10, fill: '#6B7280' }} />
                         </Bar>
                       </BarChart>
@@ -2150,18 +2206,18 @@ export default function AdminFinancialReport() {
                     .slice(0, 5); // Top 5
                   
                   return serviceData.length > 0 ? (
-                    <div className="bg-white dark:bg-[#1E2130] rounded-xl border border-slate-200 dark:border-white/10 shadow-sm p-6 flex flex-col h-[400px]">
+                    <div className="bg-white dark:bg-[#1E2130] rounded-xl border border-slate-200 dark:border-white/10 shadow-sm p-5 flex flex-col justify-between gap-3 min-h-[320px] h-auto">
                       <h3 className="m-0 font-inter text-[15px] font-bold text-slate-800 dark:text-white">Top Services By Attendance</h3>
                       <p className="font-inter text-[13px] text-slate-500 dark:text-slate-400 mt-1">
                         Top: <strong>{serviceData[0].service}</strong> · {serviceData[0].count} attendees
                       </p>
-                      <ResponsiveContainer width="100%" height={200}>
+                      <ResponsiveContainer width="100%" height={250}>
                         <BarChart data={serviceData} layout="vertical" margin={{ top: 15, right: 30, left: 10, bottom: 0 }}>
                           <CartesianGrid strokeDasharray="3 3" stroke="#f1f5f9" horizontal={false} />
                           <XAxis type="number" hide />
                           <YAxis type="category" dataKey="service" tick={{ fontSize: 10 }} width={90} />
                           <Tooltip formatter={v => [v, 'Attendees']} />
-                          <Bar dataKey="count" radius={[0, 4, 4, 0]} barSize={20}>
+                          <Bar dataKey="count" radius={[0, 4, 4, 0]} barSize={24}>
                             {serviceData.map((_, i) => (
                               <Cell key={i} fill={i === 0 ? '#2563eb' : '#0D1F45'} />
                             ))}
@@ -2219,10 +2275,10 @@ export default function AdminFinancialReport() {
                   const highestMon = fullMonthData.reduce((a, b) => b.value > a.value ? b : a, fullMonthData[0]);
 
                   return fullMonthData.some(d => d.value > 0) ? (
-                    <div className="bg-white dark:bg-[#1E2130] rounded-xl border border-slate-200 dark:border-white/10 shadow-sm p-6 flex flex-col h-[400px]" style={{ width: '100%' }}>
+                    <div className="bg-white dark:bg-[#1E2130] rounded-xl border border-slate-200 dark:border-white/10 shadow-sm p-5 flex flex-col justify-between gap-3 min-h-[320px] h-auto" style={{ width: '100%' }}>
                       <h3 className="m-0 font-inter text-[15px] font-bold text-slate-800 dark:text-white">{chartTitle}</h3>
                       <p className="font-inter text-[13px] text-slate-500 dark:text-slate-400 mt-1">Total: <strong>{totalAtt}</strong> attendees · Highest: <strong>{highestMon?.month}</strong> ({highestMon?.value})</p>
-                      <ResponsiveContainer width="100%" height={isMulti ? 300 : 250}>
+                      <ResponsiveContainer width="100%" height={isMulti ? 300 : 265}>
                         {isMulti ? (
                           <BarChart data={fullMonthData} margin={{ top: 15, right: 10, left: -10, bottom: 0 }}>
                             <CartesianGrid strokeDasharray="3 3" stroke="#f1f5f9" />
@@ -2314,7 +2370,7 @@ export default function AdminFinancialReport() {
                     const highestMon = fullMonthData.reduce((a, b) => b.value > a.value ? b : a, fullMonthData[0]);
 
                     return fullMonthData.some(d => d.value > 0) ? (
-                      <div className="bg-white dark:bg-[#1E2130] rounded-xl border border-slate-200 dark:border-white/10 shadow-sm p-6 flex flex-col h-[400px]" style={{ width: '100%' }}>
+                      <div className="bg-white dark:bg-[#1E2130] rounded-xl border border-slate-200 dark:border-white/10 shadow-sm p-6 flex flex-col min-h-[400px] h-auto justify-between" style={{ width: '100%' }}>
                         <h3 className="m-0 font-inter text-[15px] font-bold text-slate-800 dark:text-white">Monthly Attendance Trend {isMulti ? '(By Community)' : ''}</h3>
                         <p className="font-inter text-[13px] text-slate-500 dark:text-slate-400 mt-1">Detailed Community Breakdown · Total: <strong>{totalAtt}</strong> attendees · Highest: <strong>{highestMon?.month}</strong></p>
                         <ResponsiveContainer width="100%" height={isMulti ? 300 : 250}>
@@ -2401,9 +2457,15 @@ export default function AdminFinancialReport() {
 
               {/* Attendee Names Table */}
               {report.attendance?.attendees?.length > 0 && (
-                <div className="overflow-hidden">
-                  <h3 className="m-0 font-inter text-[15px] font-bold text-slate-800 dark:text-white">Attendee List ({report.attendance.attendees.length} records)</h3>
-                  <table className="w-full text-left border-collapse min-w-[700px]">
+                <div className="bg-white dark:bg-[#1E2130] rounded-xl border border-slate-200 dark:border-white/10 shadow-sm overflow-hidden p-6 flex flex-col gap-4 mt-6">
+                  <div className="px-6 py-4 border-b border-slate-200 dark:border-white/10 bg-slate-50 dark:bg-black/20 flex items-center justify-between -mx-6 -mt-6">
+                    <h3 className="m-0 font-inter text-[15px] font-bold text-slate-800 dark:text-white flex items-center gap-2">
+                      📋 Attendee List ({report.attendance.attendees.length} records)
+                    </h3>
+                    <span className="font-inter text-xs text-slate-500 dark:text-slate-400 font-medium">Source: IsangDiwa</span>
+                  </div>
+                  <div className="w-full overflow-x-auto custom-scrollbar">
+                    <table className="w-full text-left border-collapse min-w-[700px]">
                     <thead>
                       <tr>
                         <th className="px-4 py-3 bg-slate-50 dark:bg-black/20 border-b border-slate-200 dark:border-white/10 font-semibold text-[11px] tracking-wider uppercase text-slate-500 dark:text-slate-400 whitespace-nowrap sticky top-0 z-10">#</th>
@@ -2434,22 +2496,23 @@ export default function AdminFinancialReport() {
                     </tbody>
                   </table>
                 </div>
-              )}
-            </div>
-          )}
+              </div>
+            )}
+          </div>
+        )}
 
           {/* Secretary Section - Only for Super Admin and Secretary Admin */}
           {report.secretary && (adminRole === 'admin' || adminRole === 'secretaryAdmin') && (
-            <div className="bg-white dark:bg-[#1E2130] rounded-xl border border-slate-200 dark:border-white/10 shadow-sm overflow-hidden">
-              <div className="p-5 border-b border-slate-200 dark:border-white/10 bg-slate-50 dark:bg-black/20 flex items-center gap-3">
+            <div className="bg-white dark:bg-[#1E2130] rounded-xl border border-slate-200 dark:border-white/10 shadow-sm overflow-hidden p-6 flex flex-col gap-6">
+              <div className="px-6 py-4 border-b border-slate-200 dark:border-white/10 bg-slate-50 dark:bg-black/20 flex items-center gap-3 -mx-6 -mt-6">
                 <h2 className="m-0 font-inter text-[15px] font-bold text-slate-800 dark:text-white flex items-center gap-2">📋 Disbursement Report</h2>
               </div>
               
-              <div className="grid grid-cols-1 sm:grid-cols-3 gap-6">
+              <div className="grid grid-cols-1 sm:grid-cols-3 gap-6 bg-slate-50/60 dark:bg-black/20 p-5 rounded-xl border border-slate-100 dark:border-white/5">
                 <div className="flex flex-col">
-                  <span className="font-inter text-[13px] font-semibold text-slate-500 dark:text-slate-400 uppercase tracking-wide">Total Amount Disbursed</span>
-                  <span className="font-inter font-bold text-[32px] text-purple-600 dark:text-purple-400 mt-1">{fmt(report.secretary.disbursements.totalAmount)}</span>
-                  <span className="font-inter text-sm text-slate-500 dark:text-slate-400 mt-1">{report.secretary.disbursements.count} releases processed</span>
+                  <span className="font-inter text-xs font-bold text-slate-500 dark:text-slate-400 uppercase tracking-wider">Total Amount Disbursed</span>
+                  <span className="font-inter font-extrabold text-[28px] sm:text-[32px] text-purple-600 dark:text-purple-400 mt-1">{fmt(report.secretary.disbursements.totalAmount)}</span>
+                  <span className="font-inter text-xs font-medium text-slate-500 dark:text-slate-400 mt-1">{report.secretary.disbursements.count} releases processed</span>
                 </div>
               </div>
 
@@ -2486,10 +2549,10 @@ export default function AdminFinancialReport() {
                   const totalDisb = trendData.reduce((s, d) => s + d.value, 0);
                   const highestMon = trendData.reduce((a, b) => b.value > a.value ? b : a, trendData[0]);
                   return trendData.length > 0 ? (
-                    <div className="bg-white dark:bg-[#1E2130] rounded-xl border border-slate-200 dark:border-white/10 shadow-sm p-6 flex flex-col h-[400px]" style={{ width: '100%' }}>
+                    <div className="bg-white dark:bg-[#1E2130] rounded-xl border border-slate-200 dark:border-white/10 shadow-sm p-5 flex flex-col justify-between gap-3 min-h-[320px] h-auto" style={{ width: '100%' }}>
                       <h3 className="m-0 font-inter text-[15px] font-bold text-slate-800 dark:text-white">{chartTitle}</h3>
                       <p className="font-inter text-[13px] text-slate-500 dark:text-slate-400 mt-1">Total: <strong>{fmt(totalDisb)}</strong> · {report.secretary.disbursements.count} releases · Highest: <strong>{highestMon?.label}</strong></p>
-                      <ResponsiveContainer width="100%" height={isMulti ? 300 : 250}>
+                      <ResponsiveContainer width="100%" height={isMulti ? 300 : 265}>
                         {isMulti ? (
                           <BarChart data={trendData} margin={{ top: 15, right: 10, left: -10, bottom: 0 }}>
                             <CartesianGrid strokeDasharray="3 3" stroke="#f1f5f9" />
@@ -2605,10 +2668,10 @@ export default function AdminFinancialReport() {
                     const highestMon = trendData.reduce((a, b) => b.value > a.value ? b : a, trendData[0]);
 
                     return trendData.length > 0 ? (
-                      <div className="bg-white dark:bg-[#1E2130] rounded-xl border border-slate-200 dark:border-white/10 shadow-sm p-6 flex flex-col h-[400px]" style={{ width: '100%' }}>
+                      <div className="bg-white dark:bg-[#1E2130] rounded-xl border border-slate-200 dark:border-white/10 shadow-sm p-5 flex flex-col justify-between gap-3 min-h-[320px] h-auto" style={{ width: '100%' }}>
                         <h3 className="m-0 font-inter text-[15px] font-bold text-slate-800 dark:text-white">{chartTitle}</h3>
                         <p className="font-inter text-[13px] text-slate-500 dark:text-slate-400 mt-1">Detailed Community Breakdown · Total: <strong>{fmt(totalDisb)}</strong> · Highest: <strong>{highestMon?.label}</strong></p>
-                        <ResponsiveContainer width="100%" height={isMulti ? 300 : 250}>
+                        <ResponsiveContainer width="100%" height={isMulti ? 300 : 265}>
                           {isMulti ? (
                             <BarChart data={trendData} margin={{ top: 15, right: 10, left: -10, bottom: 0 }}>
                               <CartesianGrid strokeDasharray="3 3" stroke="#f1f5f9" />
@@ -2694,10 +2757,10 @@ export default function AdminFinancialReport() {
               <div className="grid grid-cols-1 lg:grid-cols-2 gap-6" style={{ gridTemplateColumns: '1fr' }}>
                 {/* Top 5 Communities by Disbursement */}
                 {report.secretary.disbursements.byCommunity?.length > 0 && (
-                  <div className="bg-white dark:bg-[#1E2130] rounded-xl border border-slate-200 dark:border-white/10 shadow-sm p-6 flex flex-col h-[400px]">
+                  <div className="bg-white dark:bg-[#1E2130] rounded-xl border border-slate-200 dark:border-white/10 shadow-sm p-5 flex flex-col justify-between gap-3 min-h-[320px] h-auto">
                     <h3 className="m-0 font-inter text-[15px] font-bold text-slate-800 dark:text-white">Top Communities By Disbursement</h3>
                     <p className="font-inter text-[13px] text-slate-500 dark:text-slate-400 mt-1">Top: <strong>{report.secretary.disbursements.byCommunity[0]?.community}</strong> · {fmt(report.secretary.disbursements.byCommunity[0]?.value)} ({report.secretary.disbursements.totalAmount > 0 ? ((report.secretary.disbursements.byCommunity[0]?.value / report.secretary.disbursements.totalAmount) * 100).toFixed(1) : 0}%)</p>
-                    <ResponsiveContainer width="100%" height={250}>
+                    <ResponsiveContainer width="100%" height={265}>
                       <BarChart data={report.secretary.disbursements.byCommunity} margin={{ top: 15, right: 10, left: -10, bottom: 0 }}>
                         <CartesianGrid strokeDasharray="3 3" stroke="#f1f5f9" vertical={false} />
                         <XAxis dataKey="community" tick={{ fontSize: 10 }} />
@@ -2705,7 +2768,7 @@ export default function AdminFinancialReport() {
                           <Label value="Amount (₱)" angle={-90} position="insideLeft" offset={20} style={{ fontSize: 9, fill: '#9CA3AF' }} />
                         </YAxis>
                         <Tooltip formatter={(v, name) => [fmt(v), name === 'value' ? 'Amount' : name]} />
-                        <Bar dataKey="value" fill="#0D1F45" radius={[4, 4, 0, 0]} barSize={40}>
+                        <Bar dataKey="value" fill="#0D1F45" radius={[4, 4, 0, 0]} barSize={36}>
                           {report.secretary.disbursements.byCommunity.map((_, i) => (
                             <Cell key={i} fill={i === 0 ? '#2563eb' : '#0D1F45'} />
                           ))}
@@ -2713,7 +2776,7 @@ export default function AdminFinancialReport() {
                         </Bar>
                       </BarChart>
                     </ResponsiveContainer>
-                    <div className="flex flex-wrap items-center gap-4 mt-6 pt-4 border-t border-slate-100 dark:border-white/5">
+                    <div className="flex flex-wrap items-center gap-3 mt-3 pt-2 border-t border-slate-100 dark:border-white/5">
                       {report.secretary.disbursements.byCommunity.map((c, i) => (
                         <div key={i} className="flex items-center gap-1.5 font-inter text-[11px] font-medium text-slate-600 dark:text-slate-400">
                           <span className="w-2.5 h-2.5 rounded-full" style={{ background: i === 0 ? '#2563eb' : '#0D1F45' }} />
@@ -2738,15 +2801,15 @@ export default function AdminFinancialReport() {
                   });
                   const methodData = Object.entries(normalizedMethods).map(([method, value]) => ({ method, value })).sort((a, b) => b.value - a.value);
                   return (
-                  <div className="bg-white dark:bg-[#1E2130] rounded-xl border border-slate-200 dark:border-white/10 shadow-sm p-6 flex flex-col h-[400px]">
+                  <div className="bg-white dark:bg-[#1E2130] rounded-xl border border-slate-200 dark:border-white/10 shadow-sm p-5 flex flex-col justify-between gap-3 min-h-[320px] h-auto">
                     <h3 className="m-0 font-inter text-[15px] font-bold text-slate-800 dark:text-white">Disbursement By Payment Method</h3>
                     <p className="font-inter text-[13px] text-slate-500 dark:text-slate-400 mt-1">Total: <strong>{fmt(report.secretary.disbursements.totalAmount)}</strong> · {methodData.length} methods</p>
-                    <ResponsiveContainer width="100%" height={180}>
+                    <ResponsiveContainer width="100%" height={220}>
                       <PieChart>
                         <Pie
                           data={methodData.map(m => ({ name: m.method, value: m.value }))}
                           cx="50%" cy="45%"
-                          innerRadius={35} outerRadius={68}
+                          innerRadius={38} outerRadius={82}
                           paddingAngle={2}
                           dataKey="value"
                           label={renderSliceLabel}
@@ -2759,8 +2822,7 @@ export default function AdminFinancialReport() {
                         <Tooltip formatter={(v, name) => [fmt(v), name === 'value' ? 'Amount' : name]} />
                       </PieChart>
                     </ResponsiveContainer>
-                    <p className="font-inter text-[28px] font-bold text-blue-600 dark:text-blue-400 block mt-1">{fmt(report.secretary.disbursements.totalAmount)} Total</p>
-                    <div className="flex flex-wrap items-center gap-4 mt-6 pt-4 border-t border-slate-100 dark:border-white/5">
+                    <div className="flex flex-wrap items-center gap-3 mt-3 pt-2 border-t border-slate-100 dark:border-white/5">
                       {methodData.map((m, i) => (
                         <div key={i} className="flex items-center gap-1.5 font-inter text-[11px] font-medium text-slate-600 dark:text-slate-400">
                           <span className="w-2.5 h-2.5 rounded-full" style={{ background: PIE_COLORS[i % PIE_COLORS.length] }} />
@@ -2776,10 +2838,10 @@ export default function AdminFinancialReport() {
 
                 {/* Top 5 Recipients */}
                 {report.secretary.disbursements.byUser?.length > 0 && (
-                  <div className="bg-white dark:bg-[#1E2130] rounded-xl border border-slate-200 dark:border-white/10 shadow-sm p-6 flex flex-col h-[400px]">
+                  <div className="bg-white dark:bg-[#1E2130] rounded-xl border border-slate-200 dark:border-white/10 shadow-sm p-5 flex flex-col justify-between gap-3 min-h-[320px] h-auto">
                     <h3 className="m-0 font-inter text-[15px] font-bold text-slate-800 dark:text-white">Top Recipients By Disbursement</h3>
                     <p className="font-inter text-[13px] text-slate-500 dark:text-slate-400 mt-1">#1: <strong>{report.secretary.disbursements.byUser[0]?.user}</strong> · {fmt(report.secretary.disbursements.byUser[0]?.value)} ({report.secretary.disbursements.totalAmount > 0 ? ((report.secretary.disbursements.byUser[0]?.value / report.secretary.disbursements.totalAmount) * 100).toFixed(1) : 0}%)</p>
-                    <ResponsiveContainer width="100%" height={220}>
+                    <ResponsiveContainer width="100%" height={240}>
                       <BarChart data={report.secretary.disbursements.byUser} layout="vertical" margin={{ top: 5, right: 30, left: 10, bottom: 0 }}>
                         <CartesianGrid strokeDasharray="3 3" stroke="#f1f5f9" horizontal={false} />
                         <XAxis type="number" tick={{ fontSize: 10 }} tickFormatter={v => `₱${(v/1000).toFixed(0)}k`}>
@@ -2787,7 +2849,7 @@ export default function AdminFinancialReport() {
                         </XAxis>
                         <YAxis type="category" dataKey="user" tick={{ fontSize: 10 }} width={120} />
                         <Tooltip formatter={(v, name) => [fmt(v), name === 'value' ? 'Amount' : name]} />
-                        <Bar dataKey="value" fill="#1e3a8a" radius={[0, 4, 4, 0]} barSize={18}>
+                        <Bar dataKey="value" fill="#1e3a8a" radius={[0, 4, 4, 0]} barSize={22}>
                           {report.secretary.disbursements.byUser.map((_, i) => (
                             <Cell key={i} fill={i === 0 ? '#2563eb' : '#1e3a8a'} />
                           ))}
@@ -2795,7 +2857,7 @@ export default function AdminFinancialReport() {
                         </Bar>
                       </BarChart>
                     </ResponsiveContainer>
-                    <div className="flex flex-wrap items-center gap-4 mt-6 pt-4 border-t border-slate-100 dark:border-white/5">
+                    <div className="flex flex-wrap items-center gap-3 mt-3 pt-2 border-t border-slate-100 dark:border-white/5">
                       {report.secretary.disbursements.byUser.map((u, i) => (
                         <div key={i} className="flex items-center gap-1.5 font-inter text-[11px] font-medium text-slate-600 dark:text-slate-400">
                           <span className="w-2.5 h-2.5 rounded-full" style={{ background: i === 0 ? '#2563eb' : '#1e3a8a' }} />
@@ -2846,14 +2908,21 @@ export default function AdminFinancialReport() {
         </div>
       )}
 
-      {/* Empty State */}
+      {/* ── Empty State ── */}
       {!report && !loading && !error && (
-        <div className="flex flex-col items-center justify-center py-20 px-4 text-center bg-white dark:bg-[#1E2130] rounded-xl border border-slate-200 dark:border-white/10 shadow-sm">
-          <div className="w-16 h-16 rounded-full bg-slate-100 dark:bg-white/5 text-slate-400 flex items-center justify-center mb-4">
-            <FileText size={40} />
+        <div className="flex flex-col items-center justify-center py-20 px-6 text-center bg-white dark:bg-[#1E2130] rounded-2xl border border-slate-200 dark:border-white/10 shadow-sm transition-all">
+          {/* Icon Container */}
+          <div className="w-16 h-16 rounded-2xl bg-blue-50 dark:bg-blue-500/10 border border-blue-100 dark:border-blue-500/20 text-blue-600 dark:text-blue-400 flex items-center justify-center mb-5 shadow-sm">
+            <FileText size={32} strokeWidth={1.75} />
           </div>
-          <h2>Generate an Automated Report</h2>
-          <p>Select a time period and click "Generate Report" to create an AI-powered operational analysis.</p>
+
+          {/* Heading & Description */}
+          <h2 className="font-inter text-lg sm:text-xl font-bold text-slate-900 dark:text-white m-0 tracking-tight">
+            Generate an Automated Report
+          </h2>
+          <p className="font-inter text-xs sm:text-sm text-slate-500 dark:text-slate-400 m-0 max-w-md leading-relaxed mt-2">
+            Select a time period and click <span className="font-semibold text-slate-700 dark:text-slate-200">"Generate Report"</span> to create an AI-powered operational analysis.
+          </p>
         </div>
       )}
 

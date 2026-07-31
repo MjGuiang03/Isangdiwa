@@ -251,12 +251,44 @@ export default function AdminSettings() {
     navigate('/');
   };
 
+  if (!settingsData) {
+    return (
+      <div className="flex flex-col gap-6 p-6 max-w-[1400px] mx-auto w-full min-h-screen bg-slate-100 dark:bg-[#161922] animate-pulse">
+        {/* Header Skeleton */}
+        <div className="flex flex-col gap-2">
+          <div className="h-8 w-48 bg-slate-200 dark:bg-slate-700/80 rounded-lg"></div>
+          <div className="h-4 w-96 bg-slate-200 dark:bg-slate-700/80 rounded-md"></div>
+        </div>
+
+        {/* 4 Card Skeletons */}
+        {[1, 2, 3, 4].map((i) => (
+          <div key={i} className="bg-white dark:bg-[#1E2130] border border-slate-200 dark:border-white/10 rounded-2xl p-6 shadow-sm flex flex-col gap-6">
+            <div className="flex items-center gap-4 pb-4 border-b border-slate-100 dark:border-white/5">
+              <div className="w-12 h-12 rounded-xl bg-slate-200 dark:bg-slate-700/80"></div>
+              <div className="flex flex-col gap-2">
+                <div className="h-5 w-44 bg-slate-200 dark:bg-slate-700/80 rounded"></div>
+                <div className="h-3.5 w-64 bg-slate-200 dark:bg-slate-700/80 rounded"></div>
+              </div>
+            </div>
+            <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+              <div className="h-10 bg-slate-100 dark:bg-slate-800/50 rounded-xl"></div>
+              <div className="h-10 bg-slate-100 dark:bg-slate-800/50 rounded-xl"></div>
+            </div>
+            <div className="h-10 w-32 bg-slate-200 dark:bg-slate-700/80 rounded-xl"></div>
+          </div>
+        ))}
+      </div>
+    );
+  }
+
   return (
-    <div className="flex flex-col gap-6 p-6 max-w-[1000px] mx-auto w-full min-h-screen bg-slate-100 dark:bg-[#161922]">
+    <div className="flex flex-col gap-6 p-6 max-w-[1400px] mx-auto w-full min-h-screen bg-slate-100 dark:bg-[#161922]">
       {/* Header */}
-      <div className="flex flex-col gap-1">
-        <h1 className="m-0 font-inter text-2xl font-bold text-slate-800 dark:text-white">Admin Settings</h1>
-        <p className="m-0 font-inter text-sm text-slate-500 dark:text-slate-400">Configure global organization preferences, security, and system defaults</p>
+      <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-4 shrink-0">
+        <div>
+          <h1 className="m-0 font-inter text-2xl font-bold text-slate-800 dark:text-white">Admin Settings</h1>
+          <p className="m-0 font-inter text-sm text-slate-500 dark:text-slate-400 mt-1">Configure global organization preferences, security, and system defaults</p>
+        </div>
       </div>
 
       {/* Organization Profile Section */}
@@ -521,7 +553,7 @@ export default function AdminSettings() {
               <span className="font-inter text-sm text-slate-600 dark:text-slate-300">
                 {savedApprovalMethod === 'manual' 
                   ? 'Admins manually review uploaded receipts.' 
-                  : 'Transactions are processed automatically via PayMongo.'}
+                  : 'Transactions are processed automatically via online payment gateway.'}
               </span>
             </div>
           ) : (

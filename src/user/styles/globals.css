@@ -431,8 +431,8 @@ h1[class*="-title"]:not(.fl-hero-title):not(.wpt-hero-title) {
   .svm-modal, .user-loan-application-content, .dim-modal {
     @apply relative w-full max-w-none sm:max-w-lg bg-white dark:bg-[#1E2130] text-slate-900 dark:text-white rounded-t-3xl sm:rounded-3xl shadow-2xl border-t sm:border border-slate-200 dark:border-white/10 overflow-hidden flex flex-col my-0 sm:my-auto h-auto max-h-[92dvh] sm:max-h-[90vh];
   }
-  .svm-modal--sm, .dim-modal {
-    @apply max-w-md;
+  .svm-modal--sm {
+    @apply w-full max-w-none sm:max-w-md;
   }
   .user-loan-application-content {
     @apply max-w-2xl;
@@ -494,7 +494,7 @@ h1[class*="-title"]:not(.fl-hero-title):not(.wpt-hero-title) {
 
   /* Form Inputs & Selects */
   .svm-input, .svm-select, .user-loan-application-input, .user-loan-application-select {
-    @apply w-full px-3.5 py-2.5 bg-slate-50 dark:bg-slate-800/60 border border-slate-300 dark:border-white/10 rounded-xl text-xs sm:text-sm text-slate-900 dark:text-white focus:ring-2 focus:ring-blue-500 focus:border-transparent outline-none transition-all;
+    @apply w-full h-11 px-3.5 bg-slate-50 dark:bg-slate-800/60 border border-slate-300 dark:border-white/10 rounded-xl text-xs sm:text-sm text-slate-900 dark:text-white focus:ring-2 focus:ring-blue-500 focus:border-transparent outline-none transition-all box-border leading-normal;
   }
   .svm-amount-wrap, .user-loan-application-input-wrapper {
     @apply relative flex items-center;
@@ -588,19 +588,19 @@ h1[class*="-title"]:not(.fl-hero-title):not(.wpt-hero-title) {
     @apply border-blue-600 dark:border-blue-500 bg-blue-50/60 dark:bg-blue-950/40 ring-2 ring-blue-600 dark:ring-blue-500;
   }
   .ula-type-header {
-    @apply flex items-start gap-2.5;
+    @apply flex items-center gap-2.5;
   }
   .ula-type-icon {
-    @apply w-9 h-9 rounded-xl flex items-center justify-center shrink-0 bg-blue-100 dark:bg-blue-900/60 text-blue-600 dark:text-blue-400;
+    @apply w-8 h-8 sm:w-9 sm:h-9 rounded-xl flex items-center justify-center shrink-0 bg-blue-100 dark:bg-blue-900/60 text-blue-600 dark:text-blue-400;
   }
   .ula-type-header-text {
-    @apply flex-1 min-w-0;
+    @apply flex-1 min-w-0 flex flex-col justify-center;
   }
   .ula-type-name {
-    @apply font-bold text-xs text-slate-900 dark:text-white truncate;
+    @apply font-bold text-xs sm:text-sm text-slate-900 dark:text-white leading-tight truncate;
   }
   .ula-type-mult {
-    @apply text-[10px] font-semibold text-blue-600 dark:text-blue-400;
+    @apply text-[11px] font-semibold text-blue-600 dark:text-blue-400 leading-tight mt-0.5;
   }
   .ula-type-expand-btn {
     @apply text-[10px] font-semibold text-slate-500 dark:text-slate-400 hover:text-blue-600 flex items-center gap-1 mt-1 cursor-pointer;
@@ -609,7 +609,7 @@ h1[class*="-title"]:not(.fl-hero-title):not(.wpt-hero-title) {
     @apply text-[11px] text-slate-500 dark:text-slate-400 pt-2 border-t border-slate-200 dark:border-white/10 space-y-1;
   }
   .ula-label-row {
-    @apply flex items-center justify-between text-xs;
+    @apply flex items-center justify-between min-h-[22px] text-xs mb-1.5;
   }
   .ula-max-pill {
     @apply px-2 py-0.5 rounded-md bg-emerald-100 dark:bg-emerald-950/60 text-emerald-700 dark:text-emerald-400 text-[10px] font-bold;
@@ -663,25 +663,28 @@ h1[class*="-title"]:not(.fl-hero-title):not(.wpt-hero-title) {
     @apply space-y-2 mt-2;
   }
   .ula-saved-account-btn {
-    @apply p-3 rounded-xl border border-slate-200 dark:border-white/10 bg-slate-50 dark:bg-slate-800/40 flex items-center justify-between text-xs transition-all;
+    @apply p-3 rounded-xl border border-slate-200 dark:border-white/10 bg-slate-50 dark:bg-slate-800/40 flex items-center justify-between gap-2.5 text-xs transition-all w-full;
   }
   .ula-saved-account-btn--active {
-    @apply border-blue-600 dark:border-blue-500 bg-blue-50/60 dark:bg-blue-950/40;
+    @apply border-blue-600 dark:border-blue-500 bg-blue-50/60 dark:bg-blue-950/40 ring-1 ring-blue-600 dark:ring-blue-500;
   }
   .ula-saved-account-select-area {
-    @apply flex items-center gap-2.5 flex-1 cursor-pointer;
+    @apply flex items-center gap-2.5 flex-1 min-w-0 cursor-pointer;
   }
   .ula-saved-account-info {
-    @apply flex flex-col;
+    @apply flex flex-col min-w-0 flex-1;
   }
   .ula-saved-account-label {
-    @apply font-bold text-slate-800 dark:text-slate-200;
+    @apply font-bold text-slate-800 dark:text-slate-200 break-words leading-snug;
   }
   .ula-saved-account-source {
-    @apply text-[10px] text-slate-400 dark:text-slate-500;
+    @apply text-[10px] text-slate-400 dark:text-slate-500 mt-0.5;
   }
   .ula-saved-account-edit-btn {
-    @apply p-1 rounded-lg text-slate-400 hover:text-blue-600 transition-colors cursor-pointer;
+    @apply p-1.5 rounded-lg text-slate-400 hover:text-blue-600 hover:bg-blue-100/60 dark:hover:bg-blue-950/60 transition-colors cursor-pointer shrink-0 ml-1;
+  }
+  .ula-saved-account-edit-input {
+    @apply flex-1 min-w-0 w-full px-3 py-1.5 bg-white dark:bg-slate-900 border border-blue-500 rounded-lg text-xs font-bold text-slate-900 dark:text-white outline-none focus:ring-2 focus:ring-blue-500/30 transition-all;
   }
   .ula-terms-section {
     @apply p-4 rounded-2xl bg-slate-50 dark:bg-slate-800/40 border border-slate-200 dark:border-white/10 space-y-3;
@@ -696,10 +699,10 @@ h1[class*="-title"]:not(.fl-hero-title):not(.wpt-hero-title) {
     @apply p-3.5 rounded-xl bg-amber-50 dark:bg-amber-950/40 border border-amber-200 dark:border-amber-800/50 text-amber-800 dark:text-amber-300 text-xs;
   }
   .ula-camera-overlay {
-    @apply fixed inset-0 z-[100000] bg-black/80 backdrop-blur-md flex items-center justify-center p-4;
+    @apply fixed inset-0 z-[100000] bg-black/90 backdrop-blur-md flex items-center justify-center p-0 sm:p-4;
   }
   .ula-camera-modal {
-    @apply relative w-full max-w-lg bg-slate-900 text-white rounded-3xl overflow-hidden shadow-2xl border border-white/10 flex flex-col p-6 space-y-4;
+    @apply relative w-full h-full sm:h-auto sm:max-w-lg bg-slate-900 text-white rounded-none sm:rounded-3xl overflow-y-auto shadow-2xl border-0 sm:border sm:border-white/10 flex flex-col p-4 sm:p-6 space-y-4 justify-between sm:justify-start;
   }
   .ula-camera-header {
     @apply flex items-center justify-between text-base font-bold pb-3 border-b border-white/10;
@@ -715,6 +718,9 @@ h1[class*="-title"]:not(.fl-hero-title):not(.wpt-hero-title) {
   }
   .ula-camera-mirror {
     @apply transform -scale-x-100;
+  }
+  .ula-camera-loading {
+    @apply absolute inset-0 bg-slate-950/90 z-20 flex flex-col items-center justify-center gap-3 text-white text-center p-4;
   }
   .ula-camera-hint {
     @apply p-2.5 rounded-xl bg-amber-500/20 border border-amber-500/40 text-amber-300 text-xs flex items-center gap-2;
@@ -1074,4 +1080,17 @@ h1[class*="-title"]:not(.fl-hero-title):not(.wpt-hero-title) {
   .up-info-input {
     @apply w-full px-3 py-2 bg-slate-50 dark:bg-slate-800/60 border border-slate-200 dark:border-white/10 rounded-xl text-xs text-slate-900 dark:text-white outline-none focus:ring-2 focus:ring-blue-600 transition-all;
   }
+}
+
+/* ── Sonner Toast Loading Contrast Polish ── */
+[data-sonner-toast] [data-icon] svg,
+[data-sonner-toast] [data-loading-spinner] svg,
+[data-sonner-toast] svg {
+  color: #ffffff !important;
+  fill: none !important;
+  stroke: #ffffff !important;
+}
+
+[data-sonner-toast] [data-icon] {
+  color: #ffffff !important;
 }

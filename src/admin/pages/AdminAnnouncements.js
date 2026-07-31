@@ -264,14 +264,59 @@ export default function AdminAnnouncements() {
     ? 'All Branches'
     : form.targetBranches.join(', ') || 'No branch selected';
 
-  return (
-    <div className="flex flex-col h-full bg-slate-100 dark:bg-[#161922] p-6 max-w-[1400px] mx-auto w-full gap-6">
-      <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-4 shrink-0">
-        <h1 className="m-0 font-inter text-2xl font-bold text-slate-800 dark:text-white">Announcements</h1>
+  if (!announcementsData && loadingAnnouncements) {
+    return (
+      <div className="flex flex-col min-h-full bg-slate-100 dark:bg-[#161922] p-6 max-w-[1400px] mx-auto w-full gap-6 animate-pulse">
+        {/* Header Skeleton */}
+        <div className="flex flex-col gap-2">
+          <div className="h-8 w-52 bg-slate-200 dark:bg-slate-700/80 rounded-lg"></div>
+          <div className="h-4 w-80 bg-slate-200 dark:bg-slate-700/80 rounded-md"></div>
+        </div>
 
+        {/* 2 Column Grid Skeleton */}
+        <div className="grid grid-cols-1 lg:grid-cols-2 gap-6 pb-6">
+          {/* Left Form Skeleton */}
+          <div className="bg-white dark:bg-[#1E2130] border border-slate-200 dark:border-white/10 rounded-xl p-6 shadow-sm flex flex-col gap-5">
+            <div className="h-6 w-44 bg-slate-200 dark:bg-slate-700/80 rounded-md"></div>
+            <div className="h-10 w-full bg-slate-200 dark:bg-slate-700/80 rounded-lg"></div>
+            <div className="h-28 w-full bg-slate-200 dark:bg-slate-700/80 rounded-lg"></div>
+            <div className="h-10 w-full bg-slate-200 dark:bg-slate-700/80 rounded-lg"></div>
+            <div className="h-10 w-36 bg-slate-200 dark:bg-slate-700/80 rounded-lg mt-2"></div>
+          </div>
+
+          {/* Right Preview & List Skeleton */}
+          <div className="flex flex-col gap-6">
+            <div className="bg-white dark:bg-[#1E2130] border border-slate-200 dark:border-white/10 rounded-xl p-5 h-44 shadow-sm">
+              <div className="h-5 w-32 bg-slate-200 dark:bg-slate-700/80 rounded mb-4"></div>
+              <div className="h-4 w-full bg-slate-200 dark:bg-slate-700/80 rounded mb-2"></div>
+              <div className="h-4 w-2/3 bg-slate-200 dark:bg-slate-700/80 rounded"></div>
+            </div>
+            <div className="grid grid-cols-3 gap-3 p-4 bg-white dark:bg-[#1E2130] border border-slate-200 dark:border-white/10 rounded-xl">
+              {[1, 2, 3].map((i) => (
+                <div key={i} className="h-14 bg-slate-200 dark:bg-slate-700/80 rounded-lg"></div>
+              ))}
+            </div>
+            <div className="bg-white dark:bg-[#1E2130] border border-slate-200 dark:border-white/10 rounded-xl p-5 shadow-sm flex flex-col gap-3">
+              {[1, 2, 3].map((i) => (
+                <div key={i} className="h-16 bg-slate-200 dark:bg-slate-700/80 rounded-xl"></div>
+              ))}
+            </div>
+          </div>
+        </div>
+      </div>
+    );
+  }
+
+  return (
+    <div className="flex flex-col min-h-full bg-slate-100 dark:bg-[#161922] p-6 max-w-[1400px] mx-auto w-full gap-6">
+      <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-4 shrink-0">
+        <div>
+          <h1 className="m-0 font-inter text-2xl font-bold text-slate-800 dark:text-white">Announcements</h1>
+          <p className="m-0 font-inter text-sm text-slate-500 dark:text-slate-400 mt-1">Create, manage, and broadcast church announcements and events</p>
+        </div>
       </div>
 
-      <div className="grid grid-cols-1 lg:grid-cols-2 gap-6 overflow-y-auto custom-scrollbar pb-6">
+      <div className="grid grid-cols-1 lg:grid-cols-2 gap-6 pb-6">
 
         {/* ── LEFT: Create / Edit Form ── */}
         <div className="bg-white dark:bg-[#1E2130] border border-slate-200 dark:border-white/10 rounded-xl shadow-sm overflow-hidden flex flex-col transition-all hover:shadow-md hover:-translate-y-1 relative">
@@ -463,168 +508,147 @@ export default function AdminAnnouncements() {
           </form>
         </div>
 
-        {/* ── RIGHT: Compact List ── */}
-        <div className="bg-white dark:bg-[#1E2130] border border-slate-200 dark:border-white/10 rounded-xl shadow-sm flex flex-col transition-all hover:shadow-md h-[calc(100vh-200px)]">
-
-          {/* Live Preview */}
-          <div className="p-4 flex justify-between items-center bg-slate-50 dark:bg-black/20 rounded-t-xl">
-            <p className="m-0 font-inter text-sm font-bold text-slate-800 dark:text-white line-clamp-1">Live Preview</p>
-          </div>
-          <div className="p-5 flex-1 overflow-y-auto custom-scrollbar">
-            <div className="flex flex-col gap-4">
+        {/* ── RIGHT: Preview & Announcements List ── */}
+        <div className="flex flex-col gap-6">
+          
+          {/* Live Preview Card */}
+          <div className="bg-white dark:bg-[#1E2130] border border-slate-200 dark:border-white/10 rounded-xl shadow-sm overflow-hidden flex flex-col">
+            <div className="p-4 border-b border-slate-200 dark:border-white/10 bg-slate-50 dark:bg-black/20 flex items-center justify-between">
+              <span className="font-inter text-sm font-bold text-slate-800 dark:text-white">Live Preview</span>
+              <span className="text-[11px] font-semibold text-slate-400 dark:text-slate-500 uppercase tracking-wider">How users will see this</span>
+            </div>
+            <div className="p-5 bg-slate-50/50 dark:bg-black/10">
               <div className="flex flex-col bg-white dark:bg-[#161922] border border-slate-200 dark:border-white/10 rounded-xl overflow-hidden shadow-sm">
                 {template === 'banner' && (
-                  <div className="w-full h-32 bg-slate-100 dark:bg-white/5 relative">
-                    {form.images.length > 0
-                      ? (
-                        <div className="w-full h-full flex overflow-x-auto snap-x snap-mandatory">
-                          {form.images.map((img, i) => (
-                            <img key={i} src={img} alt="" onClick={() => window.open(img, '_blank')} />
-                          ))}
-                        </div>
-                      )
-                      : <div className="w-full h-full flex items-center justify-center opacity-30"><Megaphone size={24} color="#1E3A8A" /></div>
-                    }
-                  </div>
-                )}
-                {template === 'side' && (
-                  <div className="hidden">
-                    {form.images.length > 0
-                      ? (
-                        <div className="w-full h-full flex overflow-x-auto snap-x snap-mandatory">
-                          {form.images.map((img, i) => (
-                            <img key={i} src={img} alt="" onClick={() => window.open(img, '_blank')} />
-                          ))}
-                        </div>
-                      )
-                      : <div className="w-full h-full flex items-center justify-center opacity-30"><Megaphone size={20} color="#1E3A8A" /></div>
-                    }
+                  <div className="w-full h-36 bg-slate-100 dark:bg-white/5 relative overflow-hidden">
+                    {form.images.length > 0 ? (
+                      <div className="w-full h-full flex overflow-x-auto snap-x snap-mandatory">
+                        {form.images.map((img, i) => (
+                          <img key={i} src={img} alt="Preview" className="w-full h-full object-cover shrink-0 snap-center" />
+                        ))}
+                      </div>
+                    ) : (
+                      <div className="w-full h-full flex items-center justify-center opacity-30 text-slate-400">
+                        <Megaphone size={28} />
+                      </div>
+                    )}
                   </div>
                 )}
                 <div className="p-4 flex flex-col gap-2">
-                  <span className="text-[10px] font-bold uppercase tracking-wider text-blue-600 dark:text-blue-400">{form.category === 'Other' ? (form.customCategory || 'Custom Category') : form.category}</span>
+                  <div className="flex items-center justify-between">
+                    <span className="text-[10px] font-bold uppercase tracking-wider px-2 py-0.5 rounded bg-blue-50 text-blue-600 dark:bg-blue-500/20 dark:text-blue-400 border border-blue-100 dark:border-blue-500/30">
+                      {form.category === 'Other' ? (form.customCategory || 'Custom Category') : form.category}
+                    </span>
+                  </div>
                   <p className="m-0 font-inter text-base font-bold text-slate-800 dark:text-white leading-tight">
-                    {form.title || <span className="italic opacity-70">Announcement title...</span>}
+                    {form.title || <span className="italic opacity-50">Announcement title...</span>}
                   </p>
-                  <p className="m-0 font-inter text-sm text-slate-600 dark:text-slate-400 leading-relaxed">
-                    {form.body || <span className="italic opacity-70">Your message will appear here.</span>}
+                  <p className="m-0 font-inter text-sm text-slate-600 dark:text-slate-400 leading-relaxed whitespace-pre-wrap">
+                    {form.body || <span className="italic opacity-50">Your message will appear here.</span>}
                   </p>
-                  <div className="mt-2 flex flex-wrap items-center gap-3 text-xs text-slate-500 dark:text-slate-400 font-medium">
-                    <span><Calendar size={10} /> {previewDate}</span>
-                    <span><Globe size={10} /> {previewAudience}</span>
+                  <div className="mt-3 pt-3 border-t border-slate-100 dark:border-white/10 flex flex-wrap items-center gap-4 text-xs text-slate-500 dark:text-slate-400 font-medium">
+                    <span className="flex items-center gap-1.5"><Calendar size={12} className="text-slate-400" /> {previewDate}</span>
+                    <span className="flex items-center gap-1.5"><Globe size={12} className="text-slate-400" /> {previewAudience}</span>
                   </div>
                 </div>
               </div>
             </div>
           </div>
 
-          <div className="h-[1px] bg-slate-200 dark:bg-white/10 mx-4" />
-
           {/* Stats Bar */}
-          <div className="flex items-center justify-between p-4 bg-slate-50 dark:bg-black/20 rounded-xl mb-4">
-            <div className="flex flex-col items-center flex-1">
-              <span className="font-inter font-bold text-xl text-slate-800 dark:text-white">{items.length}</span>
-              <span className="font-inter text-xs font-semibold text-slate-500 dark:text-slate-400 uppercase tracking-wide">Total</span>
+          <div className="grid grid-cols-3 gap-3 p-4 bg-white dark:bg-[#1E2130] border border-slate-200 dark:border-white/10 rounded-xl shadow-sm">
+            <div className="flex flex-col items-center p-2 rounded-lg bg-slate-50 dark:bg-black/20">
+              <span className="font-inter font-extrabold text-2xl text-slate-900 dark:text-white">{items.length}</span>
+              <span className="font-inter text-[11px] font-bold text-slate-500 dark:text-slate-400 uppercase tracking-wider">Total</span>
             </div>
-            <div className="w-[1px] h-8 bg-slate-200 dark:bg-white/10" />
-            <div className="flex flex-col items-center flex-1">
-              <span className="font-inter font-bold text-xl text-slate-800 dark:text-white">{items.filter(a => !isExpired(a.expiresAt)).length}</span>
-              <span className="font-inter text-xs font-semibold text-slate-500 dark:text-slate-400 uppercase tracking-wide">Active</span>
+            <div className="flex flex-col items-center p-2 rounded-lg bg-emerald-50 dark:bg-emerald-500/10">
+              <span className="font-inter font-extrabold text-2xl text-emerald-600 dark:text-emerald-400">{items.filter(a => !isExpired(a.expiresAt)).length}</span>
+              <span className="font-inter text-[11px] font-bold text-emerald-700 dark:text-emerald-400 uppercase tracking-wider">Active</span>
             </div>
-            <div className="w-[1px] h-8 bg-slate-200 dark:bg-white/10" />
-            <div className="flex flex-col items-center flex-1">
-              <span className="font-inter font-bold text-xl text-slate-800 dark:text-white">{items.filter(a => isExpired(a.expiresAt)).length}</span>
-              <span className="font-inter text-xs font-semibold text-slate-500 dark:text-slate-400 uppercase tracking-wide">Expired</span>
+            <div className="flex flex-col items-center p-2 rounded-lg bg-rose-50 dark:bg-rose-500/10">
+              <span className="font-inter font-extrabold text-2xl text-rose-600 dark:text-rose-400">{items.filter(a => isExpired(a.expiresAt)).length}</span>
+              <span className="font-inter text-[11px] font-bold text-rose-700 dark:text-rose-400 uppercase tracking-wider">Expired</span>
             </div>
           </div>
 
-          <div className="p-4 flex justify-between items-center bg-slate-50 dark:bg-black/20 rounded-t-xl border-b border-slate-200 dark:border-white/10" style={{ borderBottom: showPosted ? '' : 'none' }}>
-            <div>
-              <p className="m-0 font-inter text-[13px] font-bold text-slate-800 dark:text-white">Recent Announcements</p>
-              <p className="m-0 font-inter text-[11px] text-slate-500 dark:text-slate-400">Manage active and expired announcements</p>
-            </div>
-            <button 
-              type="button"
-              className="w-8 h-8 rounded-lg flex items-center justify-center bg-slate-100 dark:bg-white/5 hover:bg-slate-200 dark:hover:bg-white/10 transition-colors border-none cursor-pointer text-slate-600 dark:text-slate-400"
-              onClick={() => setShowPosted(!showPosted)}
-            >
-              {showPosted ? 'Hide List' : 'View List'}
-              <span className="inline-flex items-center px-2 py-0.5 rounded text-[10px] font-bold tracking-wide uppercase bg-blue-100 text-blue-700 dark:bg-blue-500/20 dark:text-blue-400">
-                {items.filter(a => !isExpired(a.expiresAt)).length} active
-              </span>
-            </button>
-          </div>
-
-          <div className={`transition-all duration-300 ease-in-out overflow-hidden flex flex-col ${showPosted ? 'h-full opacity-100' : 'h-0 opacity-0'}`}>
-            <div className="flex flex-col flex-1 overflow-hidden">
-              <div className="flex items-center gap-2 p-3 border-b border-slate-100 dark:border-white/5">
-                {['All', 'Divine Service', 'Bible Study', 'Youth Fellowship', 'Men’s Fellowship', 'Women’s Fellowship'].map(cat => (
-                  <button
-                    key={cat}
-                    className={`px-3 py-1.5 rounded-full text-xs font-semibold whitespace-nowrap transition-colors border-none cursor-pointer ${categoryFilter === cat ? 'bg-slate-800 text-white dark:bg-white dark:text-slate-900' : 'bg-slate-100 text-slate-600 dark:bg-white/10 dark:text-slate-300 hover:bg-slate-200 dark:hover:bg-white/20'}`}
-                    onClick={() => setCategoryFilter(cat)}
-                  >
-                    {cat}
-                  </button>
-                ))}
+          {/* Published Announcements List */}
+          <div className="bg-white dark:bg-[#1E2130] border border-slate-200 dark:border-white/10 rounded-xl shadow-sm overflow-hidden flex flex-col">
+            <div className="p-4 border-b border-slate-200 dark:border-white/10 bg-slate-50 dark:bg-black/20 flex flex-col sm:flex-row sm:items-center justify-between gap-2">
+              <div>
+                <p className="m-0 font-inter text-sm font-bold text-slate-800 dark:text-white">Recent Announcements</p>
+                <p className="m-0 font-inter text-[11px] text-slate-500 dark:text-slate-400">Manage active and expired announcements</p>
               </div>
+              <span className="inline-flex items-center px-2.5 py-1 rounded-full text-xs font-bold bg-blue-100 text-blue-700 dark:bg-blue-500/20 dark:text-blue-400 w-fit">
+                {items.filter(a => !isExpired(a.expiresAt)).length} Active
+              </span>
+            </div>
 
-              <div className="flex-1 overflow-y-auto custom-scrollbar p-3 flex flex-col gap-3">
-                {loading ? (
-                  [1, 2, 3].map(i => (
-                    <div key={i} className="flex flex-col p-4 bg-white dark:bg-[#161922] border border-slate-200 dark:border-white/10 rounded-xl hover:border-blue-300 dark:hover:border-white/20 transition-all group relative overflow-hidden">
-                      <div className="flex-1">
-                        <div className="h-4 bg-slate-200 dark:bg-white/10 rounded w-3/4 mb-2 animate-pulse" />
-                        <div className="h-3 bg-slate-200 dark:bg-white/10 rounded w-full mt-2 animate-pulse" />
+            {/* Category Filter Pills */}
+            <div className="flex items-center gap-1.5 p-3 overflow-x-auto custom-scrollbar border-b border-slate-100 dark:border-white/5 bg-slate-50/50 dark:bg-black/10">
+              {['All', 'Divine Service', 'Bible Study', 'Youth Fellowship', 'Men’s Fellowship', 'Women’s Fellowship'].map(cat => (
+                <button
+                  key={cat}
+                  type="button"
+                  className={`px-3 py-1 rounded-full text-xs font-semibold whitespace-nowrap transition-all border-none cursor-pointer ${categoryFilter === cat ? 'bg-blue-600 text-white shadow-xs' : 'bg-white dark:bg-white/10 text-slate-600 dark:text-slate-300 hover:bg-slate-200 dark:hover:bg-white/20'}`}
+                  onClick={() => setCategoryFilter(cat)}
+                >
+                  {cat}
+                </button>
+              ))}
+            </div>
+
+            {/* Items Container */}
+            <div className="p-4 flex flex-col gap-3 max-h-[460px] overflow-y-auto custom-scrollbar">
+              {loading ? (
+                [1, 2, 3].map(i => (
+                  <div key={i} className="p-4 bg-slate-50 dark:bg-white/5 rounded-xl animate-pulse flex flex-col gap-2">
+                    <div className="h-4 bg-slate-200 dark:bg-white/10 rounded w-2/3" />
+                    <div className="h-3 bg-slate-200 dark:bg-white/10 rounded w-full" />
+                  </div>
+                ))
+              ) : (filteredItems => filteredItems.length === 0 ? (
+                <div className="flex flex-col items-center justify-center py-10 text-center text-slate-400">
+                  <Megaphone size={32} className="mb-2 opacity-40" />
+                  <p className="m-0 font-inter text-sm font-medium text-slate-500 dark:text-slate-400">{items.length === 0 ? 'No announcements yet. Post one!' : `No ${categoryFilter} announcements.`}</p>
+                </div>
+              ) : (
+                filteredItems.map(a => (
+                  <div key={a._id} className={`flex flex-col p-4 bg-slate-50 dark:bg-[#161922] border border-slate-200 dark:border-white/10 rounded-xl transition-all group relative ${isExpired(a.expiresAt) ? 'opacity-65' : 'hover:border-blue-400 dark:hover:border-white/20'}`}>
+                    <div className="flex flex-col gap-1.5 pr-16">
+                      <div className="flex items-center gap-2 flex-wrap">
+                        <span className="inline-flex items-center px-2 py-0.5 rounded text-[10px] font-bold uppercase tracking-wider bg-white dark:bg-white/10 text-slate-700 dark:text-slate-300 border border-slate-200 dark:border-white/10">{a.category}</span>
+                        {a.expiresAt && (
+                          <span className={`inline-flex items-center gap-1 px-2 py-0.5 rounded text-[10px] font-bold uppercase ${isExpired(a.expiresAt) ? 'bg-rose-100 text-rose-700 dark:bg-rose-500/20 dark:text-rose-400' : 'bg-amber-100 text-amber-700 dark:bg-amber-500/20 dark:text-amber-400'}`}>
+                            <Clock size={10} /> {isExpired(a.expiresAt) ? 'Expired' : `Expires ${fmtDate(a.expiresAt)}`}
+                          </span>
+                        )}
+                      </div>
+                      <p className="m-0 font-inter text-sm font-bold text-slate-800 dark:text-white leading-snug">{a.title}</p>
+                      <p className="m-0 font-inter text-xs text-slate-600 dark:text-slate-400 line-clamp-2 leading-relaxed">{a.body}</p>
+                      
+                      <div className="flex flex-wrap items-center gap-2 mt-1 text-[11px] text-slate-500 dark:text-slate-400 font-medium">
+                        {a.eventDate && (
+                          <span className="flex items-center gap-1"><Calendar size={11} /> {fmtDateTime(a.eventDate)}</span>
+                        )}
+                        <span className="flex items-center gap-1"><Globe size={11} /> {getVisibilityLabel(a)}</span>
                       </div>
                     </div>
-                  ))
-                ) : (filteredItems => filteredItems.length === 0 ? (
-                  <div className="flex flex-col items-center justify-center p-8 text-center">
-                    <Megaphone size={28} color="#cbd5e1" className="mb-3 opacity-50" />
-                    <p>{items.length === 0 ? 'No announcements yet. Post one!' : `No ${categoryFilter} announcements.`}</p>
+
+                    {/* Action buttons */}
+                    <div className="absolute top-3 right-3 flex items-center gap-1 opacity-90 sm:opacity-0 group-hover:opacity-100 transition-opacity">
+                      <button className="w-8 h-8 rounded-lg bg-white dark:bg-[#1E2130] border border-slate-200 dark:border-white/10 flex items-center justify-center text-blue-600 hover:bg-blue-50 dark:hover:bg-blue-500/20 cursor-pointer shadow-xs transition-colors" onClick={() => handleEdit(a)} title="Edit">
+                        <Edit size={14} />
+                      </button>
+                      <button className="w-8 h-8 rounded-lg bg-white dark:bg-[#1E2130] border border-slate-200 dark:border-white/10 flex items-center justify-center text-rose-600 hover:bg-rose-50 dark:hover:bg-rose-500/20 cursor-pointer shadow-xs transition-colors" onClick={() => handleDelete(a._id)} title="Delete">
+                        <Trash2 size={14} />
+                      </button>
+                    </div>
                   </div>
-                ) : (
-                  filteredItems.map(a => (
-                      <div key={a._id} className={`flex flex-col p-4 bg-white dark:bg-[#161922] border border-slate-200 dark:border-white/10 rounded-xl transition-all group relative overflow-hidden ${isExpired(a.expiresAt) ? 'opacity-60' : 'hover:border-blue-300 dark:hover:border-white/20'}`}>
-                        <div className="flex flex-col gap-2 relative z-10">
-                          <p className="m-0 font-inter text-sm font-bold text-slate-800 dark:text-white pr-16 line-clamp-2">{a.title}</p>
-                          <p className="m-0 font-inter text-[13px] text-slate-600 dark:text-slate-400 line-clamp-2">{a.body}</p>
-                          <div className="flex flex-wrap items-center gap-2 mt-2">
-                            <span className="inline-flex items-center px-2 py-1 rounded text-[10px] font-bold tracking-wider uppercase bg-slate-100 text-slate-600 dark:bg-white/10 dark:text-slate-400">{a.category}</span>
-                            {a.eventDate && (
-                              <span className="inline-flex items-center gap-1 px-2 py-1 rounded text-[10px] font-bold tracking-wider uppercase bg-blue-50 text-blue-600 dark:bg-blue-500/20 dark:text-blue-400">
-                                <Calendar size={9} /> {fmtDateTime(a.eventDate)}
-                              </span>
-                            )}
-                            {a.expiresAt && (
-                              <span className={`inline-flex items-center gap-1 px-2 py-1 rounded text-[10px] font-bold tracking-wider uppercase ${isExpired(a.expiresAt) ? 'bg-rose-50 text-rose-600 dark:bg-rose-500/20 dark:text-rose-400' : 'bg-amber-50 text-amber-600 dark:bg-amber-500/20 dark:text-amber-400'}`}>
-                                <Clock size={9} /> {isExpired(a.expiresAt) ? 'Expired' : `Expires ${fmtDate(a.expiresAt)}`}
-                              </span>
-                            )}
-                            <span className="inline-flex items-center px-2 py-1 rounded text-[10px] font-bold tracking-wider uppercase bg-fuchsia-50 text-fuchsia-600 dark:bg-fuchsia-500/20 dark:text-fuchsia-400">
-                              <Globe size={9} /> {getVisibilityLabel(a)}
-                            </span>
-                          </div>
-                          <div className="mt-3 pt-3 border-t border-slate-100 dark:border-white/10 flex items-center justify-between text-[11px] font-inter font-semibold text-slate-400 tracking-wide">
-                            <span>{fmtDate(a.createdAt)}</span>
-                            {a.createdBy && <span>· by {a.createdBy}</span>}
-                          </div>
-                        </div>
-                        <div className="absolute top-3 right-3 flex items-center gap-1 opacity-0 group-hover:opacity-100 transition-opacity z-20">
-                          <button className="w-7 h-7 rounded bg-white dark:bg-[#1E2130] border border-slate-200 dark:border-white/10 flex items-center justify-center text-blue-600 hover:bg-blue-50 dark:hover:bg-blue-500/10 cursor-pointer shadow-sm transition-colors" onClick={() => handleEdit(a)} title="Edit">
-                            <Edit size={14} />
-                          </button>
-                          <button className="w-7 h-7 rounded bg-white dark:bg-[#1E2130] border border-slate-200 dark:border-white/10 flex items-center justify-center text-rose-600 hover:bg-rose-50 dark:hover:bg-rose-500/10 cursor-pointer shadow-sm transition-colors" onClick={() => handleDelete(a._id)} title="Delete">
-                            <Trash2 size={14} />
-                          </button>
-                        </div>
-                      </div>
-                    ))
-                ))(items.filter(a => categoryFilter === 'All' || a.category === categoryFilter))}
-              </div>
+                ))
+              ))(items.filter(a => categoryFilter === 'All' || a.category === categoryFilter))}
             </div>
           </div>
+
         </div>
 
       </div>

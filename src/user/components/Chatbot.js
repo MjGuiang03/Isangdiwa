@@ -16,12 +16,12 @@ const KB_SHARED = [
   },
   {
     patterns: ['savings', 'save', 'ipon', 'savings goal'],
-    responses: ["🏦 **Savings:**\n\nYou can set personal savings goals, track progress, and deposit via Gateway or Manual.\n\nGo to **Savings** to manage your goals."],
+    responses: ["🏦 **Savings:**\n\nYou can set personal savings goals, track progress, and deposit via Manual — upload proof and your admin will confirm.\n\nGo to **Savings** to manage your goals."],
     quickReplies: ['Donations', 'Attendance']
   },
   {
     patterns: ['donat', 'donation', 'donate', 'giving', 'tithe', 'offering', 'handog', 'ikapu'],
-    responses: ["❤️ **Donations** are open to all members!\n\n**Categories:** General Fund, Children's Dept, Men's Dept, Women's Dept, Youth Dept, Mission Fund\n\n**Methods:**\n- **Gateway:** GCash, Maya, Card, Bank (auto-confirmed)\n- **Manual:** Cash or Bank Transfer — upload proof; admin confirms\n\nGo to **Donations** → choose category → enter amount → select payment method."],
+    responses: ["❤️ **Donations** are open to all members!\n\n**Categories:** General Fund, Children's Dept, Men's Dept, Women's Dept, Youth Dept, Mission Fund\n\n**Payment method:** Manual — Cash or Bank Transfer. Upload proof of payment and your admin will confirm it.\n\nGo to **Donations** → choose category → enter amount → upload proof."],
     quickReplies: ['Attendance', 'Branches']
   },
   {
@@ -30,8 +30,8 @@ const KB_SHARED = [
     quickReplies: ['Branches', 'Donations']
   },
   {
-    patterns: ['branch', 'location', 'address', 'simbahan', 'church', 'community'],
-    responses: ["🏛️ IsangDiwa has multiple branches across the Philippines. Visit the **Branches** page to find locations, contact info, and service schedules."],
+    patterns: ['branch', 'location', 'address', 'simbahan', 'church', 'community', 'how many'],
+    responses: ["🏛️ PUAC has **68 branches** across the Philippines with over **3,400 members**. Visit the **Branches** page to find locations, contact info, and service schedules."],
     quickReplies: ['Attendance', 'Donations']
   },
   {
@@ -109,6 +109,7 @@ export default function Chatbot({ isOpen, onClose }) {
   const [isOfficer, setIsOfficer] = useState(false);
   // eslint-disable-next-line no-unused-vars
   const [isAI, setIsAI] = useState(true);
+  const [cooldownSeconds, setCooldownSeconds] = useState(0);
   const bottomRef = useRef(null);
   const inputRef = useRef(null);
 
@@ -121,6 +122,18 @@ export default function Chatbot({ isOpen, onClose }) {
       setTimeout(() => inputRef.current?.focus(), 300);
     }
   }, [isOpen]);
+
+  // Cooldown countdown timer
+  useEffect(() => {
+    if (cooldownSeconds <= 0) return;
+    const timer = setInterval(() => {
+      setCooldownSeconds(prev => {
+        if (prev <= 1) { clearInterval(timer); return 0; }
+        return prev - 1;
+      });
+    }, 1000);
+    return () => clearInterval(timer);
+  }, [cooldownSeconds]);
 
   const sendMessage = async (text) => {
     const userText = text || input.trim();
@@ -151,6 +164,22 @@ export default function Chatbot({ isOpen, onClose }) {
         },
         body: JSON.stringify({ message: userText, history }),
       });
+
+      if (res.status === 429) {
+        const errData = await res.json();
+        setCooldownSeconds(errData.retryAfterSeconds || 900);
+        const botMsg = {
+          id: Date.now() + 1,
+          sender: 'bot',
+          text: `⏳ You've reached the message limit (20 messages per 15 minutes). Please wait for the cooldown to expire before sending more messages.`,
+          quickReplies: [],
+          isAI: false,
+          timestamp: new Date(),
+        };
+        setIsTyping(false);
+        setMessages(prev => [...prev, botMsg]);
+        return;
+      }
 
       if (!res.ok) throw new Error('API failed');
 
@@ -277,28 +306,29 @@ export default function Chatbot({ isOpen, onClose }) {
         className="relative w-full sm:w-[400px] h-[100dvh] sm:h-[580px] max-h-[100dvh] sm:max-h-[85vh] bg-white dark:bg-[#1E2130] rounded-none sm:rounded-3xl shadow-2xl border-0 sm:border border-slate-200 dark:border-white/10 flex flex-col overflow-hidden text-left font-inter"
         onClick={e => e.stopPropagation()}
       >
-        {/* Header */}
-        <div className="px-5 py-4 bg-gradient-to-r from-blue-600 via-indigo-600 to-blue-700 text-white flex items-center justify-between shadow-md">
-          <div className="flex items-center gap-3">
-            <div className="relative w-10 h-10 rounded-2xl bg-white/20 backdrop-blur-md flex items-center justify-center text-white border border-white/30 shadow-inner shrink-0">
+        {/* Header — Navy + Gold */}
+        <div className="px-5 py-4 bg-gradient-to-r from-[#0D1F45] via-[#142E54] to-[#0E254A] text-white flex items-center justify-between shadow-md relative overflow-hidden">
+          <div className="absolute top-0 right-0 w-32 h-32 bg-[#F5C800]/10 rounded-full blur-2xl pointer-events-none" />
+          <div className="flex items-center gap-3 relative z-10">
+            <div className="relative w-10 h-10 rounded-2xl bg-white/15 backdrop-blur-md flex items-center justify-center text-[#F5C800] border border-white/20 shadow-inner shrink-0">
               <Bot size={22} />
-              <Sparkles size={11} className="absolute -top-1 -right-1 text-amber-300 animate-pulse" />
+              <Sparkles size={11} className="absolute -top-1 -right-1 text-[#F5C800] animate-pulse" />
             </div>
             <div>
               <div className="flex items-center gap-2">
-                <span className="text-sm font-bold text-white font-dm">IsangDiwa AI</span>
-                <span className="px-2 py-0.5 text-[9px] font-extrabold bg-white/20 backdrop-blur-xs rounded-full uppercase tracking-wider text-white">
+                <span className="text-sm font-bold text-white font-dm">IsangDiwa Chatbot</span>
+                <span className="px-2 py-0.5 text-[9px] font-extrabold bg-[#F5C800]/20 backdrop-blur-xs rounded-full uppercase tracking-wider text-[#F5C800]">
                   Assistant
                 </span>
               </div>
-              <span className="text-[11px] text-blue-100 flex items-center gap-1.5 mt-0.5">
+              <span className="text-[11px] text-white/60 flex items-center gap-1.5 mt-0.5">
                 <span className="w-2 h-2 rounded-full bg-emerald-400 animate-pulse inline-block" />
                 Online
               </span>
             </div>
           </div>
           <button 
-            className="w-8 h-8 rounded-full flex items-center justify-center bg-white/10 hover:bg-white/20 transition-all text-white border-none cursor-pointer active:scale-95" 
+            className="w-8 h-8 rounded-full flex items-center justify-center bg-white/10 hover:bg-white/20 transition-all text-white border-none cursor-pointer active:scale-95 relative z-10" 
             onClick={onClose} 
             aria-label="Close chat"
           >
@@ -311,13 +341,13 @@ export default function Chatbot({ isOpen, onClose }) {
           {messages.map(msg => (
             <div key={msg.id} className={`flex items-end gap-2.5 text-xs ${msg.sender === 'user' ? 'justify-end' : 'justify-start'}`}>
               {msg.sender === 'bot' && (
-                <div className="w-8 h-8 rounded-xl bg-gradient-to-tr from-blue-600 to-indigo-600 flex items-center justify-center text-white shrink-0 mb-1 shadow-md shadow-blue-500/20">
+                <div className="w-8 h-8 rounded-xl bg-gradient-to-tr from-[#0D1F45] to-[#1E3A8A] flex items-center justify-center text-[#F5C800] shrink-0 mb-1 shadow-md shadow-[#0D1F45]/30">
                   <Bot size={16} />
                 </div>
               )}
               <div className={`max-w-[85%] p-4 rounded-2xl shadow-xs space-y-2 leading-relaxed ${
                 msg.sender === 'user' 
-                  ? 'bg-gradient-to-r from-blue-600 to-indigo-600 text-white rounded-br-xs font-medium' 
+                  ? 'bg-gradient-to-r from-[#0D1F45] to-[#1E3A8A] text-white rounded-br-xs font-medium' 
                   : 'bg-white dark:bg-slate-800 text-slate-800 dark:text-slate-100 border border-slate-200/80 dark:border-white/10 rounded-bl-xs'
               }`}>
                 {msg.greeting ? (
@@ -331,9 +361,9 @@ export default function Chatbot({ isOpen, onClose }) {
                     {msg.text ? renderText(msg.text) : null}
                   </div>
                 )}
-                <div className={`flex items-center gap-1.5 text-[10px] ${msg.sender === 'user' ? 'justify-end text-blue-100' : 'justify-between text-slate-400 dark:text-slate-500'}`}>
+                <div className={`flex items-center gap-1.5 text-[10px] ${msg.sender === 'user' ? 'justify-end text-white/50' : 'justify-between text-slate-400 dark:text-slate-500'}`}>
                   {msg.sender === 'bot' && msg.isAI && (
-                    <span className="flex items-center gap-1 text-[9px] font-bold text-blue-600 dark:text-blue-400 bg-blue-50 dark:bg-blue-950/60 px-1.5 py-0.5 rounded-md border border-blue-200/50 dark:border-blue-800/40">
+                    <span className="flex items-center gap-1 text-[9px] font-bold text-[#0D1F45] dark:text-[#F5C800] bg-[#0D1F45]/5 dark:bg-[#F5C800]/10 px-1.5 py-0.5 rounded-md border border-[#0D1F45]/10 dark:border-[#F5C800]/20">
                       <Sparkles size={9} /> AI
                     </span>
                   )}
@@ -346,13 +376,13 @@ export default function Chatbot({ isOpen, onClose }) {
           {/* Typing indicator */}
           {isTyping && (
             <div className="flex items-end gap-2.5 text-xs justify-start">
-              <div className="w-8 h-8 rounded-xl bg-gradient-to-tr from-blue-600 to-indigo-600 flex items-center justify-center text-white shrink-0 mb-1 shadow-md shadow-blue-500/20">
+              <div className="w-8 h-8 rounded-xl bg-gradient-to-tr from-[#0D1F45] to-[#1E3A8A] flex items-center justify-center text-[#F5C800] shrink-0 mb-1 shadow-md shadow-[#0D1F45]/30">
                 <Bot size={16} />
               </div>
               <div className="px-4 py-3 rounded-2xl rounded-bl-xs bg-white dark:bg-slate-800 border border-slate-200/80 dark:border-white/10 flex items-center gap-1.5 shadow-xs">
-                <span className="w-2 h-2 rounded-full bg-blue-500 animate-bounce [animation-delay:-0.3s]" />
-                <span className="w-2 h-2 rounded-full bg-blue-500 animate-bounce [animation-delay:-0.15s]" />
-                <span className="w-2 h-2 rounded-full bg-blue-500 animate-bounce" />
+                <span className="w-2 h-2 rounded-full bg-[#F5C800] animate-bounce [animation-delay:-0.3s]" />
+                <span className="w-2 h-2 rounded-full bg-[#F5C800] animate-bounce [animation-delay:-0.15s]" />
+                <span className="w-2 h-2 rounded-full bg-[#F5C800] animate-bounce" />
               </div>
             </div>
           )}
@@ -366,7 +396,7 @@ export default function Chatbot({ isOpen, onClose }) {
                 {lastBot.quickReplies.map(qr => (
                   <button
                     key={qr}
-                    className="px-3.5 py-1.5 bg-blue-50/80 dark:bg-blue-950/50 hover:bg-blue-600 hover:text-white dark:hover:bg-blue-600 text-blue-600 dark:text-blue-400 font-semibold rounded-xl text-xs transition-all border border-blue-200/70 dark:border-blue-800/60 active:scale-95 shadow-2xs cursor-pointer"
+                    className="px-3.5 py-1.5 bg-[#0D1F45]/5 dark:bg-[#F5C800]/10 hover:bg-[#0D1F45] hover:text-white dark:hover:bg-[#F5C800] dark:hover:text-[#0D1F45] text-[#0D1F45] dark:text-[#F5C800] font-semibold rounded-xl text-xs transition-all border border-[#0D1F45]/15 dark:border-[#F5C800]/20 active:scale-95 shadow-2xs cursor-pointer"
                     onClick={() => sendMessage(qr)}
                   >
                     {qr}
@@ -379,27 +409,41 @@ export default function Chatbot({ isOpen, onClose }) {
           <div ref={bottomRef} />
         </div>
 
-        {/* Input */}
-        <div className="p-3 bg-white dark:bg-[#1E2130] border-t border-slate-100 dark:border-white/10 flex items-center gap-2">
-          <input
-            ref={inputRef}
-            className="flex-1 px-4 py-2.5 bg-slate-100 dark:bg-slate-800/80 border border-slate-200 dark:border-white/10 focus:border-blue-500 dark:focus:border-blue-500 rounded-xl text-xs text-slate-900 dark:text-white placeholder-slate-400 dark:placeholder-slate-500 outline-none transition-all"
-            placeholder="Ask me anything about IsangDiwa..."
-            value={input}
-            onChange={e => setInput(e.target.value)}
-            onKeyDown={handleKeyDown}
-            maxLength={500}
-            disabled={isTyping}
-          />
-          <button
-            className="w-10 h-10 rounded-xl bg-gradient-to-r from-blue-600 to-indigo-600 hover:from-blue-500 hover:to-indigo-500 active:scale-95 disabled:opacity-40 text-white flex items-center justify-center shadow-md shadow-blue-500/30 transition-all shrink-0 cursor-pointer border-none"
-            onClick={() => sendMessage()}
-            disabled={!input.trim() || isTyping}
-            aria-label="Send message"
-          >
-            <Send size={16} />
-          </button>
-        </div>
+        {/* Input / Cooldown */}
+        {cooldownSeconds > 0 ? (
+          <div className="p-3 bg-white dark:bg-[#1E2130] border-t border-slate-100 dark:border-white/10">
+            <div className="flex items-center gap-3 p-3 rounded-xl bg-amber-50/80 dark:bg-amber-950/30 border border-amber-200/60 dark:border-amber-800/40">
+              <div className="w-9 h-9 rounded-lg bg-[#F5C800]/20 text-[#F5C800] flex items-center justify-center shrink-0 font-dm text-sm font-extrabold">
+                {Math.floor(cooldownSeconds / 60)}:{String(cooldownSeconds % 60).padStart(2, '0')}
+              </div>
+              <div className="flex-1 min-w-0">
+                <p className="text-xs font-semibold text-slate-800 dark:text-slate-200 font-inter">Message limit reached</p>
+                <p className="text-[10px] text-slate-500 dark:text-slate-400 font-inter">Please wait before sending more messages</p>
+              </div>
+            </div>
+          </div>
+        ) : (
+          <div className="p-3 bg-white dark:bg-[#1E2130] border-t border-slate-100 dark:border-white/10 flex items-center gap-2">
+            <input
+              ref={inputRef}
+              className="flex-1 px-4 py-2.5 bg-slate-100 dark:bg-slate-800/80 border border-slate-200 dark:border-white/10 focus:border-[#0D1F45] dark:focus:border-[#F5C800] rounded-xl text-xs text-slate-900 dark:text-white placeholder-slate-400 dark:placeholder-slate-500 outline-none transition-all"
+              placeholder="Ask me anything about IsangDiwa..."
+              value={input}
+              onChange={e => setInput(e.target.value)}
+              onKeyDown={handleKeyDown}
+              maxLength={500}
+              disabled={isTyping}
+            />
+            <button
+              className="w-10 h-10 rounded-xl bg-gradient-to-r from-[#0D1F45] to-[#1E3A8A] hover:from-[#142E54] hover:to-[#2B4EAF] active:scale-95 disabled:opacity-40 text-[#F5C800] flex items-center justify-center shadow-md shadow-[#0D1F45]/30 transition-all shrink-0 cursor-pointer border-none"
+              onClick={() => sendMessage()}
+              disabled={!input.trim() || isTyping}
+              aria-label="Send message"
+            >
+              <Send size={16} />
+            </button>
+          </div>
+        )}
       </div>
     </div>
   );

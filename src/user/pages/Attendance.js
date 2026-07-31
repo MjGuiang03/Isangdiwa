@@ -200,76 +200,129 @@ export default function Attendance() {
     <>
       <div className="space-y-4 w-full pb-8 font-inter">
 
-        {/* Page Header matching Loans/Savings/Donation */}
-        <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-3 pb-2.5 border-b border-slate-200/80 dark:border-white/10">
-          <div>
-            <p className="text-[11px] font-bold text-blue-600 dark:text-blue-400 uppercase tracking-widest font-inter mb-0.5">Service &amp; Community Engagement</p>
-            <h1 className="text-2xl sm:text-[26px] font-extrabold text-slate-900 dark:text-white font-dm leading-none tracking-tight">Attendance Tracking</h1>
-            <p className="text-xs text-slate-500 dark:text-slate-400 font-inter mt-1">Check in to services, scan QR codes &amp; track your attendance records</p>
-          </div>
+        {loading ? (
+          <div className="space-y-4 w-full pb-8 animate-pulse font-inter">
+            {/* Header Skeleton */}
+            <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-3 pb-2.5 border-b border-slate-200/80 dark:border-white/10">
+              <div className="space-y-2">
+                <div className="h-3 w-36 bg-slate-200 dark:bg-slate-700/80 rounded-md" />
+                <div className="h-7 w-48 bg-slate-200 dark:bg-slate-700/80 rounded-lg" />
+                <div className="h-3.5 w-72 bg-slate-200 dark:bg-slate-700/80 rounded-md" />
+              </div>
+              <div className="h-10 w-36 bg-slate-200 dark:bg-slate-700/80 rounded-xl shrink-0" />
+            </div>
 
-          {/* Right Action Button */}
-          <div className="flex items-center gap-2.5 shrink-0">
-            <button 
-              className="h-10 px-4 rounded-xl bg-white dark:bg-[#1E2130] border border-slate-200/90 dark:border-white/10 text-slate-800 dark:text-white hover:bg-slate-50 dark:hover:bg-white/5 text-xs font-bold font-inter flex items-center gap-2 shadow-sm transition-all cursor-pointer"
-              onClick={handleOpenHistory}
-            >
-              <Receipt size={16} className="text-blue-600 dark:text-blue-400" />
-              <span>Attendance History</span>
-            </button>
-          </div>
-        </div>
+            {/* 3 Stat Cards Skeleton */}
+            <div className="grid grid-cols-1 sm:grid-cols-3 gap-4">
+              {[1, 2, 3].map((i) => (
+                <div key={i} className="bg-white dark:bg-[#1E2130] border border-slate-200/80 dark:border-white/10 rounded-2xl p-4 shadow-sm flex flex-col gap-3">
+                  <div className="flex justify-between items-center">
+                    <div className="h-3.5 w-24 bg-slate-200 dark:bg-slate-700/80 rounded" />
+                    <div className="w-8 h-8 rounded-lg bg-slate-200 dark:bg-slate-700/80 shrink-0" />
+                  </div>
+                  <div className="h-7 w-20 bg-slate-200 dark:bg-slate-700/80 rounded-md" />
+                  <div className="h-3 w-28 bg-slate-200 dark:bg-slate-700/80 rounded" />
+                </div>
+              ))}
+            </div>
 
-        {/* Stats Grid matching Loans, Savings & Donation */}
-        <div className="grid grid-cols-1 sm:grid-cols-3 gap-4">
-          {/* Total Attendance */}
-          <div className="bg-white dark:bg-[#1E2130] border border-slate-200/80 dark:border-white/10 rounded-2xl p-4 shadow-md shadow-slate-200/50 dark:shadow-none flex flex-col gap-1 group hover:shadow-lg hover:-translate-y-0.5 transition-all duration-200 font-inter">
-            <div className="flex justify-between items-center">
-              <span className="text-xs font-semibold text-slate-500 dark:text-slate-400 font-inter">Total Attendance</span>
-              <div className="w-8 h-8 rounded-lg bg-blue-50 dark:bg-blue-950/50 text-blue-600 dark:text-blue-400 flex items-center justify-center border border-blue-100/60 dark:border-blue-900/30 shrink-0 group-hover:scale-105 transition-transform">
-                <CheckCircle size={16} />
+            {/* Main Grid Skeleton */}
+            <div className="grid grid-cols-1 lg:grid-cols-12 gap-6 items-start pt-1">
+              {/* Check In Skeleton */}
+              <div className="lg:col-span-5 p-6 bg-white dark:bg-[#1E2130] border border-slate-200/80 dark:border-white/10 rounded-2xl shadow-sm space-y-4">
+                <div className="h-4 w-24 bg-slate-200 dark:bg-slate-700/80 rounded pb-3 border-b border-slate-100 dark:border-white/5" />
+                <div className="h-20 bg-slate-100 dark:bg-slate-800/60 rounded-2xl" />
+                <div className="h-16 bg-slate-100 dark:bg-slate-800/60 rounded-xl" />
+              </div>
+
+              {/* Recent Attendance Skeleton */}
+              <div className="lg:col-span-7 p-6 bg-white dark:bg-[#1E2130] border border-slate-200/80 dark:border-white/10 rounded-2xl shadow-sm space-y-4">
+                <div className="flex justify-between items-center pb-3 border-b border-slate-100 dark:border-white/5">
+                  <div className="h-4 w-36 bg-slate-200 dark:bg-slate-700/80 rounded" />
+                  <div className="h-4 w-20 bg-slate-200 dark:bg-slate-700/80 rounded" />
+                </div>
+                <div className="space-y-3">
+                  {[1, 2, 3].map((j) => (
+                    <div key={j} className="h-14 bg-slate-100 dark:bg-slate-800/60 rounded-xl" />
+                  ))}
+                </div>
               </div>
             </div>
-            <div className="text-xl sm:text-2xl font-extrabold font-dm text-slate-900 dark:text-white tracking-tight leading-none">
-              {loading ? <div className="h-7 w-16 bg-slate-200 dark:bg-slate-800 animate-pulse rounded-lg" /> : <CountUp end={stats.total} />}
-            </div>
-            <p className="text-[11px] text-slate-500 dark:text-slate-400 font-inter mt-0.5">
-              Lifetime check-ins
-            </p>
           </div>
+        ) : (
+          <>
+            {/* Page Header matching Loans/Savings/Donation */}
+            <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-3 pb-2.5 border-b border-slate-200/80 dark:border-white/10">
+              <div>
+                <p className="text-[11px] font-bold text-blue-600 dark:text-blue-400 uppercase tracking-widest font-inter mb-0.5">Service &amp; Community Engagement</p>
+                <h1 className="text-2xl sm:text-[26px] font-extrabold text-slate-900 dark:text-white font-dm leading-none tracking-tight">Attendance Tracking</h1>
+                <p className="text-xs text-slate-500 dark:text-slate-400 font-inter mt-1">Check in to services, scan QR codes &amp; track your attendance records</p>
+              </div>
 
-          {/* This Month */}
-          <div className="bg-white dark:bg-[#1E2130] border border-slate-200/80 dark:border-white/10 rounded-2xl p-4 shadow-md shadow-slate-200/50 dark:shadow-none flex flex-col gap-1 group hover:shadow-lg hover:-translate-y-0.5 transition-all duration-200 font-inter">
-            <div className="flex justify-between items-center">
-              <span className="text-xs font-semibold text-slate-500 dark:text-slate-400 font-inter">This Month</span>
-              <div className="w-8 h-8 rounded-lg bg-emerald-50 dark:bg-emerald-950/50 text-emerald-600 dark:text-emerald-400 flex items-center justify-center border border-emerald-100/60 dark:border-emerald-900/30 shrink-0 group-hover:scale-105 transition-transform">
-                <CalendarDays size={16} />
+              {/* Right Action Button */}
+              <div className="flex items-center gap-2.5 shrink-0">
+                <button 
+                  className="h-10 px-4 rounded-xl bg-white dark:bg-[#1E2130] border border-slate-200/90 dark:border-white/10 text-slate-800 dark:text-white hover:bg-slate-50 dark:hover:bg-white/5 text-xs font-bold font-inter flex items-center gap-2 shadow-sm transition-all cursor-pointer"
+                  onClick={handleOpenHistory}
+                >
+                  <Receipt size={16} className="text-blue-600 dark:text-blue-400" />
+                  <span>Attendance History</span>
+                </button>
               </div>
             </div>
-            <div className="text-xl sm:text-2xl font-extrabold font-dm text-slate-900 dark:text-white tracking-tight leading-none">
-              {loading ? <div className="h-7 w-16 bg-slate-200 dark:bg-slate-800 animate-pulse rounded-lg" /> : <CountUp end={stats.thisMonth} />}
-            </div>
-            <p className="text-[11px] text-slate-500 dark:text-slate-400 font-inter mt-0.5">
-              Current month check-ins
-            </p>
-          </div>
 
-          {/* Attendance Rate */}
-          <div className="bg-white dark:bg-[#1E2130] border border-slate-200/80 dark:border-white/10 rounded-2xl p-4 shadow-md shadow-slate-200/50 dark:shadow-none flex flex-col gap-1 group hover:shadow-lg hover:-translate-y-0.5 transition-all duration-200 font-inter">
-            <div className="flex justify-between items-center">
-              <span className="text-xs font-semibold text-slate-500 dark:text-slate-400 font-inter">Attendance Rate</span>
-              <div className="w-8 h-8 rounded-lg bg-rose-50 dark:bg-rose-950/50 text-rose-600 dark:text-rose-400 flex items-center justify-center border border-rose-100/60 dark:border-rose-900/30 shrink-0 group-hover:scale-105 transition-transform">
-                <Activity size={16} />
+            {/* Stats Grid matching Loans, Savings & Donation */}
+            <div className="grid grid-cols-1 sm:grid-cols-3 gap-4">
+              {/* Total Attendance */}
+              <div className="bg-white dark:bg-[#1E2130] border border-slate-200/80 dark:border-white/10 rounded-2xl p-4 shadow-md shadow-slate-200/50 dark:shadow-none flex flex-col gap-1 group hover:shadow-lg hover:-translate-y-0.5 transition-all duration-200 font-inter">
+                <div className="flex justify-between items-center">
+                  <span className="text-xs font-semibold text-slate-500 dark:text-slate-400 font-inter">Total Attendance</span>
+                  <div className="w-8 h-8 rounded-lg bg-blue-50 dark:bg-blue-950/50 text-blue-600 dark:text-blue-400 flex items-center justify-center border border-blue-100/60 dark:border-blue-900/30 shrink-0 group-hover:scale-105 transition-transform">
+                    <CheckCircle size={16} />
+                  </div>
+                </div>
+                <div className="text-xl sm:text-2xl font-extrabold font-dm text-slate-900 dark:text-white tracking-tight leading-none">
+                  <CountUp end={stats.total} />
+                </div>
+                <p className="text-[11px] text-slate-500 dark:text-slate-400 font-inter mt-0.5">
+                  Lifetime check-ins
+                </p>
+              </div>
+
+              {/* This Month */}
+              <div className="bg-white dark:bg-[#1E2130] border border-slate-200/80 dark:border-white/10 rounded-2xl p-4 shadow-md shadow-slate-200/50 dark:shadow-none flex flex-col gap-1 group hover:shadow-lg hover:-translate-y-0.5 transition-all duration-200 font-inter">
+                <div className="flex justify-between items-center">
+                  <span className="text-xs font-semibold text-slate-500 dark:text-slate-400 font-inter">This Month</span>
+                  <div className="w-8 h-8 rounded-lg bg-emerald-50 dark:bg-emerald-950/50 text-emerald-600 dark:text-emerald-400 flex items-center justify-center border border-emerald-100/60 dark:border-emerald-900/30 shrink-0 group-hover:scale-105 transition-transform">
+                    <CalendarDays size={16} />
+                  </div>
+                </div>
+                <div className="text-xl sm:text-2xl font-extrabold font-dm text-slate-900 dark:text-white tracking-tight leading-none">
+                  <CountUp end={stats.thisMonth} />
+                </div>
+                <p className="text-[11px] text-slate-500 dark:text-slate-400 font-inter mt-0.5">
+                  Current month check-ins
+                </p>
+              </div>
+
+              {/* Attendance Rate */}
+              <div className="bg-white dark:bg-[#1E2130] border border-slate-200/80 dark:border-white/10 rounded-2xl p-4 shadow-md shadow-slate-200/50 dark:shadow-none flex flex-col gap-1 group hover:shadow-lg hover:-translate-y-0.5 transition-all duration-200 font-inter">
+                <div className="flex justify-between items-center">
+                  <span className="text-xs font-semibold text-slate-500 dark:text-slate-400 font-inter">Attendance Rate</span>
+                  <div className="w-8 h-8 rounded-lg bg-rose-50 dark:bg-rose-950/50 text-rose-600 dark:text-rose-400 flex items-center justify-center border border-rose-100/60 dark:border-rose-900/30 shrink-0 group-hover:scale-105 transition-transform">
+                    <Activity size={16} />
+                  </div>
+                </div>
+                <div className="text-xl sm:text-2xl font-extrabold font-dm text-slate-900 dark:text-white tracking-tight leading-none">
+                  <CountUp end={attendanceRateNum} suffix="%" />
+                </div>
+                <p className="text-[11px] text-slate-500 dark:text-slate-400 font-inter mt-0.5">
+                  Monthly consistency
+                </p>
               </div>
             </div>
-            <div className="text-xl sm:text-2xl font-extrabold font-dm text-slate-900 dark:text-white tracking-tight leading-none">
-              {loading ? <div className="h-7 w-16 bg-slate-200 dark:bg-slate-800 animate-pulse rounded-lg" /> : <CountUp end={attendanceRateNum} suffix="%" />}
-            </div>
-            <p className="text-[11px] text-slate-500 dark:text-slate-400 font-inter mt-0.5">
-              Monthly consistency
-            </p>
-          </div>
-        </div>
+          </>
+        )}
 
         {/* Check In + Recent Attendance Grid */}
         <div className="grid grid-cols-1 lg:grid-cols-12 gap-6 items-start pt-1">

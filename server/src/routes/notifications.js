@@ -32,7 +32,7 @@ router.get('/notifications', authenticateAdmin, async (req, res) => {
           id:        `savings-${s._id}`,
           type:      'savings',
           title:     'Savings deposit received',
-          message:   `A deposit of ₱${Number(s.amount).toLocaleString()} was added to ${s.goalName}.`,
+          message:   `A deposit of ₱${Number(s.amount).toLocaleString()} was added to ${s.goalName || 'Savings Account'}.`,
           timestamp: s.date,
           isRead:    false,
           meta: {
@@ -143,6 +143,14 @@ router.get('/notifications', authenticateAdmin, async (req, res) => {
                 title   = 'Loan application processed';
                 message = `Loan ${l.loanId} for ${l.memberName} has been disbursed by the secretary.`;
                 notifications.push({ ...hBase, id: `loan-processed-${l._id}`, title, message });
+              } else if (history.status === 'member_agreed') {
+                title   = 'Proposed loan terms accepted';
+                message = `${l.memberName} has accepted the proposed terms for loan ${l.loanId} (₱${Number(l.amount).toLocaleString()}).`;
+                notifications.push({ ...hBase, id: `loan-agreed-${l._id}-${new Date(history.date).getTime()}`, title, message });
+              } else if (history.status === 'member_declined') {
+                title   = 'Proposed loan terms declined';
+                message = `${l.memberName} declined the proposed terms for loan ${l.loanId}.${history.reason ? ' Reason: "' + history.reason + '"' : ''}`;
+                notifications.push({ ...hBase, id: `loan-declined-${l._id}-${new Date(history.date).getTime()}`, title, message });
               }
             } else if (req.admin.role === 'secretaryAdmin') {
               if (history.status === 'approved') {

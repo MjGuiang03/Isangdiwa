@@ -2,7 +2,7 @@ import React, { useState, useEffect, useRef, useCallback } from 'react';
 import { useNavigate } from 'react-router-dom';
 import { toast } from 'sonner';
 import API from '../../utils/api';
-import { Play, Square, XCircle, ArrowLeft } from 'lucide-react';
+import { Play, Square, X, ArrowLeft, Radio, QrCode, CheckCircle2, MapPin, Sparkles, ShieldCheck, UserCheck, CalendarDays, Clock } from 'lucide-react';
 import QRCode from 'react-qr-code';
 
 function StartServiceModal({ onClose, onSave }) {
@@ -45,22 +45,38 @@ function StartServiceModal({ onClose, onSave }) {
   };
 
   return (
-    <div className="fixed inset-0 bg-black/50 backdrop-blur-sm z-[1000] flex items-center justify-center p-4" onClick={onClose}>
-      <div className="bg-white dark:bg-[#1E2130] rounded-2xl w-full max-w-[500px] shadow-2xl border border-slate-200 dark:border-white/10 flex flex-col overflow-hidden" onClick={e => e.stopPropagation()}>
-        <div className="flex flex-col items-center p-6 border-b border-slate-200 dark:border-white/10 shrink-0 relative">
-          <div className="w-14 h-14 rounded-2xl bg-emerald-100 text-emerald-600 dark:bg-emerald-500/20 dark:text-emerald-400 flex items-center justify-center shadow-sm mx-auto mb-4">
-            <Play size={20} />
+    <div className="fixed inset-0 bg-black/60 backdrop-blur-sm z-[1000] flex items-center justify-center p-4" onClick={onClose}>
+      <div className="bg-white dark:bg-[#1E2130] rounded-3xl w-full max-w-lg shadow-2xl border border-slate-200/80 dark:border-white/10 flex flex-col overflow-hidden font-inter space-y-0" onClick={e => e.stopPropagation()}>
+        
+        {/* Header */}
+        <div className="flex items-center justify-between p-6 border-b border-slate-100 dark:border-white/5 bg-slate-50/50 dark:bg-black/20">
+          <div className="flex items-center gap-3.5">
+            <div className="w-12 h-12 rounded-2xl bg-emerald-50 dark:bg-emerald-500/15 text-emerald-600 dark:text-emerald-400 border border-emerald-100 dark:border-emerald-500/20 flex items-center justify-center shrink-0 shadow-xs">
+              <Play size={22} />
+            </div>
+            <div>
+              <h2 className="m-0 font-extrabold text-lg text-slate-900 dark:text-white tracking-tight">Start Service Session</h2>
+              <p className="m-0 text-xs font-medium text-slate-400 dark:text-slate-500 mt-0.5">Initialize live RFID & QR check-in terminal</p>
+            </div>
           </div>
-          <div className="flex flex-col text-center">
-            <h2 className="m-0 font-inter text-lg font-bold text-slate-800 dark:text-white">Start Service Session</h2>
-            <p className="m-0 font-inter text-[13px] text-slate-500 dark:text-slate-400 mt-1">Initialize a new check-in period</p>
-          </div>
-          <button className="absolute top-4 right-4 w-8 h-8 flex items-center justify-center rounded-lg bg-transparent text-slate-400 hover:bg-slate-100 dark:hover:bg-white/5 transition-colors border-none cursor-pointer" onClick={onClose}><XCircle size={20} color="#6B7280" /></button>
+          <button 
+            className="w-8 h-8 rounded-full bg-slate-100 dark:bg-white/10 text-slate-400 hover:text-slate-700 dark:hover:text-white transition-colors flex items-center justify-center border-none cursor-pointer" 
+            onClick={onClose}
+          >
+            <X size={16} />
+          </button>
         </div>
-        <div className="p-6 flex flex-col gap-5">
-          <div className="flex flex-col gap-1.5">
-            <label className="font-inter text-[13px] font-semibold text-slate-700 dark:text-slate-300">Branch</label>
-            <select name="branch" value={form.branch} onChange={handleChange} className="h-10 px-3 pr-8 appearance-none bg-white dark:bg-[#161922] border border-slate-300 dark:border-white/10 rounded-lg text-sm font-inter text-slate-800 dark:text-white outline-none focus:border-blue-500 transition-colors bg-[url('data:image/svg+xml;charset=US-ASCII,%3Csvg%20xmlns%3D%22http%3A%2F%2Fwww.w3.org%2F2000%2Fsvg%22%20width%3D%2216%22%20height%3D%2216%22%20viewBox%3D%220%200%2024%2024%22%20fill%3D%22none%22%20stroke%3D%22%236B7280%22%20stroke-width%3D%222%22%20stroke-linecap%3D%22round%22%20stroke-linejoin%3D%22round%22%3E%3Cpolyline%20points%3D%226%209%2012%2015%2018%209%22%3E%3C%2Fpolyline%3E%3C%2Fsvg%3E')] bg-[length:16px] bg-[position:right_12px_center] bg-no-repeat w-full">
+
+        {/* Form Body */}
+        <div className="p-6 space-y-4">
+          <div className="space-y-1.5">
+            <label className="text-xs font-bold text-slate-700 dark:text-slate-300 block">Branch / Community</label>
+            <select 
+              name="branch" 
+              value={form.branch} 
+              onChange={handleChange} 
+              className="w-full h-11 px-3.5 rounded-xl border border-slate-200 dark:border-white/10 bg-slate-50 dark:bg-slate-900/50 text-sm font-medium text-slate-900 dark:text-white outline-none focus:ring-2 focus:ring-emerald-500/20 focus:border-emerald-500 transition-all cursor-pointer"
+            >
               <optgroup label="Kalinga">
                 <option>Tabuk</option><option>Zapote</option><option>Bliss</option>
                 <option>Libanon</option><option>Batong Buhay</option><option>Balatoc</option><option>Lat-nog</option>
@@ -85,7 +101,7 @@ function StartServiceModal({ onClose, onSave }) {
               <optgroup label="Tarlac">
                 <option>Pacpaco, San Manuel</option><option>Victoria</option>
               </optgroup>
-              <optgroup label="Nueva Ecija"><option>Bambanaba,  Cuyapo</option></optgroup>
+              <optgroup label="Nueva Ecija"><option>Bambanaba, Cuyapo</option></optgroup>
               <optgroup label="Pangasinan">
                 <option>Dagupan</option><option>Mangatarem</option><option>Laoak Langka</option>
                 <option>Orbiztondo</option><option>Malasiqui, Bolaoit</option><option>Taloyan</option>
@@ -106,26 +122,58 @@ function StartServiceModal({ onClose, onSave }) {
               <optgroup label="Surigao Del Sur"><option>Kinabigtasan, Tago</option></optgroup>
             </select>
           </div>
-          <div className="flex flex-col gap-1.5">
-            <label className="font-inter text-[13px] font-semibold text-slate-700 dark:text-slate-300">Service Type</label>
-            <select name="serviceType" value={form.serviceType} onChange={handleChange} className="h-10 px-3 pr-8 appearance-none bg-white dark:bg-[#161922] border border-slate-300 dark:border-white/10 rounded-lg text-sm font-inter text-slate-800 dark:text-white outline-none focus:border-blue-500 transition-colors bg-[url('data:image/svg+xml;charset=US-ASCII,%3Csvg%20xmlns%3D%22http%3A%2F%2Fwww.w3.org%2F2000%2Fsvg%22%20width%3D%2216%22%20height%3D%2216%22%20viewBox%3D%220%200%2024%2024%22%20fill%3D%22none%22%20stroke%3D%22%236B7280%22%20stroke-width%3D%222%22%20stroke-linecap%3D%22round%22%20stroke-linejoin%3D%22round%22%3E%3Cpolyline%20points%3D%226%209%2012%2015%2018%209%22%3E%3C%2Fpolyline%3E%3C%2Fsvg%3E')] bg-[length:16px] bg-[position:right_12px_center] bg-no-repeat w-full">
+
+          <div className="space-y-1.5">
+            <label className="text-xs font-bold text-slate-700 dark:text-slate-300 block">Service Type</label>
+            <select 
+              name="serviceType" 
+              value={form.serviceType} 
+              onChange={handleChange} 
+              className="w-full h-11 px-3.5 rounded-xl border border-slate-200 dark:border-white/10 bg-slate-50 dark:bg-slate-900/50 text-sm font-medium text-slate-900 dark:text-white outline-none focus:ring-2 focus:ring-emerald-500/20 focus:border-emerald-500 transition-all cursor-pointer"
+            >
               {serviceTypes.map(s => <option key={s} value={s}>{s}</option>)}
             </select>
           </div>
-          <div className="grid grid-cols-2 gap-4">
-            <div className="flex flex-col gap-1.5">
-              <label className="font-inter text-[13px] font-semibold text-slate-700 dark:text-slate-300">Date</label>
-              <input type="date" name="date" value={form.date} onChange={handleChange} min={new Date().toISOString().split('T')[0]} className="h-10 px-3 bg-white dark:bg-[#161922] border border-slate-300 dark:border-white/10 rounded-lg text-sm font-inter text-slate-800 dark:text-white outline-none focus:border-blue-500 transition-all w-full" />
+
+          <div className="grid grid-cols-2 gap-3">
+            <div className="space-y-1.5">
+              <label className="text-xs font-bold text-slate-700 dark:text-slate-300 block">Date</label>
+              <input 
+                type="date" 
+                name="date" 
+                value={form.date} 
+                onChange={handleChange} 
+                min={new Date().toISOString().split('T')[0]} 
+                className="w-full h-11 px-3 rounded-xl border border-slate-200 dark:border-white/10 bg-slate-50 dark:bg-slate-900/50 text-sm font-medium text-slate-900 dark:text-white outline-none focus:ring-2 focus:ring-emerald-500/20 focus:border-emerald-500 transition-all" 
+              />
             </div>
-            <div className="flex flex-col gap-1.5">
-              <label className="font-inter text-[13px] font-semibold text-slate-700 dark:text-slate-300">Time</label>
-              <input type="time" name="time" value={form.time} onChange={handleChange} className="h-10 px-3 bg-white dark:bg-[#161922] border border-slate-300 dark:border-white/10 rounded-lg text-sm font-inter text-slate-800 dark:text-white outline-none focus:border-blue-500 transition-all w-full" />
+            <div className="space-y-1.5">
+              <label className="text-xs font-bold text-slate-700 dark:text-slate-300 block">Time</label>
+              <input 
+                type="time" 
+                name="time" 
+                value={form.time} 
+                onChange={handleChange} 
+                className="w-full h-11 px-3 rounded-xl border border-slate-200 dark:border-white/10 bg-slate-50 dark:bg-slate-900/50 text-sm font-medium text-slate-900 dark:text-white outline-none focus:ring-2 focus:ring-emerald-500/20 focus:border-emerald-500 transition-all" 
+              />
             </div>
           </div>
         </div>
-        <div className="p-5 border-t border-slate-200 dark:border-white/10 bg-slate-50 dark:bg-black/20 flex items-center justify-end gap-3 shrink-0">
-          <button className="h-10 px-4 rounded-lg font-inter text-sm font-semibold transition-all border border-slate-300 dark:border-white/10 bg-white dark:bg-[#1E2130] text-slate-700 dark:text-slate-300 hover:bg-slate-50 dark:hover:bg-white/5 cursor-pointer min-w-[100px]" onClick={onClose} disabled={saving}>Cancel</button>
-          <button className="h-10 px-4 rounded-lg font-inter text-sm font-semibold transition-all border-none bg-emerald-600 text-white hover:bg-emerald-700 cursor-pointer flex items-center justify-center min-w-[100px] gap-2" onClick={handleSubmit} disabled={saving}>
+
+        {/* Footer */}
+        <div className="p-5 border-t border-slate-100 dark:border-white/5 bg-slate-50/80 dark:bg-black/20 flex items-center justify-end gap-3">
+          <button 
+            className="h-10 px-5 rounded-xl text-xs font-bold border border-slate-200 dark:border-white/10 bg-white dark:bg-slate-800 text-slate-700 dark:text-slate-300 hover:bg-slate-50 dark:hover:bg-slate-700 transition-all cursor-pointer" 
+            onClick={onClose} 
+            disabled={saving}
+          >
+            Cancel
+          </button>
+          <button 
+            className="h-10 px-5 rounded-xl text-xs font-bold border-none bg-emerald-600 hover:bg-emerald-700 text-white shadow-md transition-all cursor-pointer flex items-center gap-2" 
+            onClick={handleSubmit} 
+            disabled={saving}
+          >
             {saving ? 'Starting...' : 'Start Session'}
           </button>
         </div>
@@ -136,25 +184,49 @@ function StartServiceModal({ onClose, onSave }) {
 
 function EndSessionModal({ onClose, onConfirm }) {
   return (
-    <div className="fixed inset-0 bg-black/50 backdrop-blur-sm z-[1000] flex items-center justify-center p-4" onClick={onClose}>
-      <div className="bg-white dark:bg-[#1E2130] rounded-2xl w-full max-w-[500px] shadow-2xl border border-slate-200 dark:border-white/10 flex flex-col overflow-hidden" onClick={e => e.stopPropagation()}>
-        <div className="flex flex-col items-center p-6 border-b border-slate-200 dark:border-white/10 shrink-0 relative">
-          <div className="w-14 h-14 rounded-2xl bg-rose-100 text-rose-600 dark:bg-rose-500/20 dark:text-rose-400 flex items-center justify-center shadow-sm mx-auto mb-4">
-            <Square size={20} />
+    <div className="fixed inset-0 bg-black/60 backdrop-blur-sm z-[1000] flex items-center justify-center p-4" onClick={onClose}>
+      <div className="bg-white dark:bg-[#1E2130] rounded-3xl w-full max-w-md shadow-2xl border border-slate-200/80 dark:border-white/10 flex flex-col overflow-hidden font-inter space-y-0" onClick={e => e.stopPropagation()}>
+        
+        {/* Header */}
+        <div className="flex items-center justify-between p-6 border-b border-slate-100 dark:border-white/5 bg-slate-50/50 dark:bg-black/20">
+          <div className="flex items-center gap-3.5">
+            <div className="w-12 h-12 rounded-2xl bg-rose-50 dark:bg-rose-500/15 text-rose-600 dark:text-rose-400 border border-rose-100 dark:border-rose-500/20 flex items-center justify-center shrink-0 shadow-xs">
+              <Square size={22} />
+            </div>
+            <div>
+              <h2 className="m-0 font-extrabold text-lg text-slate-900 dark:text-white tracking-tight">End Service Session</h2>
+              <p className="m-0 text-xs font-medium text-slate-400 dark:text-slate-500 mt-0.5">Conclude check-ins & tally absences</p>
+            </div>
           </div>
-          <div className="flex flex-col text-center">
-            <h2 className="m-0 font-inter text-lg font-bold text-slate-800 dark:text-white">End Service Session</h2>
-            <p className="m-0 font-inter text-[13px] text-slate-500 dark:text-slate-400 mt-1">Are you sure you want to end this session?</p>
-          </div>
+          <button 
+            className="w-8 h-8 rounded-full bg-slate-100 dark:bg-white/10 text-slate-400 hover:text-slate-700 dark:hover:text-white transition-colors flex items-center justify-center border-none cursor-pointer" 
+            onClick={onClose}
+          >
+            <X size={16} />
+          </button>
         </div>
-        <div className="p-6 flex flex-col gap-5">
-          <p className="text-slate-600 dark:text-slate-400 text-sm font-inter text-center leading-relaxed">
+
+        {/* Message */}
+        <div className="p-6">
+          <div className="bg-rose-50/80 dark:bg-rose-950/20 border border-rose-200/60 dark:border-rose-900/30 rounded-2xl p-4 text-xs sm:text-sm text-rose-800 dark:text-rose-300 leading-relaxed">
             Ending this session will stop accepting new check-ins. All unregistered members from this branch will automatically be marked as <strong>Absent</strong>. This action cannot be undone.
-          </p>
+          </div>
         </div>
-        <div className="p-5 border-t border-slate-200 dark:border-white/10 bg-slate-50 dark:bg-black/20 flex items-center justify-end gap-3 shrink-0">
-          <button className="h-10 px-4 rounded-lg font-inter text-sm font-semibold transition-all border border-slate-300 dark:border-white/10 bg-white dark:bg-[#1E2130] text-slate-700 dark:text-slate-300 hover:bg-slate-50 dark:hover:bg-white/5 cursor-pointer min-w-[100px]" onClick={onClose}>Cancel</button>
-          <button className="h-10 px-4 rounded-lg font-inter text-sm font-semibold transition-all border-none bg-rose-600 text-white hover:bg-rose-700 cursor-pointer min-w-[100px]" onClick={onConfirm}>End Session</button>
+
+        {/* Footer */}
+        <div className="p-5 border-t border-slate-100 dark:border-white/5 bg-slate-50/80 dark:bg-black/20 flex items-center justify-end gap-3">
+          <button 
+            className="h-10 px-5 rounded-xl text-xs font-bold border border-slate-200 dark:border-white/10 bg-white dark:bg-slate-800 text-slate-700 dark:text-slate-300 hover:bg-slate-50 dark:hover:bg-slate-700 transition-all cursor-pointer" 
+            onClick={onClose}
+          >
+            Cancel
+          </button>
+          <button 
+            className="h-10 px-5 rounded-xl text-xs font-bold border-none bg-rose-600 hover:bg-rose-700 text-white shadow-md transition-all cursor-pointer" 
+            onClick={onConfirm}
+          >
+            End Session
+          </button>
         </div>
       </div>
     </div>
@@ -181,7 +253,6 @@ export default function AdminRFIDPreview() {
       const data = await res.json();
       if (data.success) {
         setActiveSessions(data.sessions);
-        // Auto-open start modal if no sessions are active
         if (data.sessions.length === 0) {
           setShowStartModal(true);
         }
@@ -208,7 +279,6 @@ export default function AdminRFIDPreview() {
             toast.error('No active service session. Start a service first to log attendance.');
             return;
           }
-          // Prevent overlapping API calls from rapid taps
           if (isProcessing.current) return;
           isProcessing.current = true;
           lastTapTime.current = Date.now();
@@ -227,7 +297,6 @@ export default function AdminRFIDPreview() {
             const data = await res.json();
             if (data.success) {
               toast.success(data.message);
-              // Mark the tap time again after response to protect the display
               lastTapTime.current = Date.now();
               setLastTappedUser({ ...data.user, recordId: data.record?.recordId, status: data.user?.status || 'Present', alreadyLogged: data.alreadyLogged });
             } else {
@@ -250,12 +319,11 @@ export default function AdminRFIDPreview() {
     return () => window.removeEventListener('keydown', handleKeyDown);
   }, [selectedSession]);
 
-  // Poll for remote QR scans (won't overwrite recent RFID taps)
+  // Poll for remote QR scans
   useEffect(() => {
     let interval;
     if (selectedSession) {
       interval = setInterval(async () => {
-        // Skip poll if an RFID tap happened in the last 4 seconds
         if (Date.now() - lastTapTime.current < 4000) return;
 
         try {
@@ -266,7 +334,6 @@ export default function AdminRFIDPreview() {
           });
           const data = await res.json();
           if (data.success && data.attendance && data.attendance.length > 0) {
-            // Only show actual check-ins, not auto-generated absent records
             const checkedIn = data.attendance.find(a => a.status === 'Present' || a.status === 'Late');
             if (checkedIn) {
               const latest = checkedIn;
@@ -325,86 +392,184 @@ export default function AdminRFIDPreview() {
   };
 
   return (
-    <div className="min-h-screen bg-slate-100 dark:bg-[#161922] flex flex-col items-center pt-[10vh] px-4">
+    <div className="min-h-screen bg-slate-50 dark:bg-[#0b0f19] flex flex-col items-center py-8 px-4 font-inter text-left">
       {showStartModal && <StartServiceModal onClose={() => setShowStartModal(false)} onSave={() => { setShowStartModal(false); fetchActiveSessions(); }} />}
       {showEndModal && <EndSessionModal onClose={() => setShowEndModal(false)} onConfirm={endSession} />}
 
-      <div className="flex flex-col items-center mb-8">
-        <h2>IsangDiwa RFID System</h2>
-        <button className="absolute top-6 right-6 h-10 px-4 rounded-lg font-inter text-sm font-semibold transition-all border border-slate-300 dark:border-white/10 bg-white dark:bg-[#1E2130] text-slate-700 dark:text-slate-300 hover:bg-slate-50 dark:hover:bg-white/5 cursor-pointer flex items-center gap-2" style={{ display: 'flex', alignItems: 'center' }} onClick={handleBack}>
-          <ArrowLeft size={16} style={{ marginRight: '6px' }} />
-          Back
+      {/* Top Header Navigation Bar */}
+      <div className="w-full max-w-3xl flex items-center justify-between mb-8">
+        <div className="flex items-center gap-3">
+          <div className="w-10 h-10 rounded-xl bg-blue-600 text-white flex items-center justify-center shadow-md shadow-blue-500/20">
+            <Radio size={20} className={selectedSession ? 'animate-pulse' : ''} />
+          </div>
+          <div>
+            <h1 className="text-xl sm:text-2xl font-extrabold text-slate-900 dark:text-white tracking-tight m-0">
+              IsangDiwa RFID Terminal
+            </h1>
+            <div className="flex items-center gap-2 mt-0.5">
+              <span className={`w-2 h-2 rounded-full ${selectedSession ? 'bg-emerald-500 animate-ping' : 'bg-slate-400'}`} />
+              <span className="text-xs font-semibold text-slate-500 dark:text-slate-400">
+                {selectedSession ? 'Scanner Active & Ready' : 'System Standby'}
+              </span>
+            </div>
+          </div>
+        </div>
+
+        <button 
+          className="h-10 px-4 rounded-xl border border-slate-200 dark:border-white/10 bg-white dark:bg-[#1E2130] text-slate-700 dark:text-slate-300 hover:bg-slate-100 dark:hover:bg-white/5 transition-all text-xs font-bold flex items-center gap-2 cursor-pointer shadow-xs"
+          onClick={handleBack}
+        >
+          <ArrowLeft size={16} />
+          <span>Back to Dashboard</span>
         </button>
       </div>
 
-      <div className="bg-white dark:bg-[#1E2130] w-full max-w-[500px] rounded-2xl shadow-xl border border-slate-200 dark:border-white/10 p-8 flex flex-col items-center text-center">
-        {selectedSession && (
-          <div style={{ display: 'flex', gap: '24px', alignItems: 'stretch', marginBottom: '24px' }}>
-            <div className="flex flex-col items-center animate-in fade-in zoom-in duration-300" style={{ flex: 1, margin: 0 }}>
-              {lastTappedUser ? (
-                <>
-                  <img
-                    src={lastTappedUser.profilePicture ? `${API}${lastTappedUser.profilePicture}` : `https://ui-avatars.com/api/?name=${encodeURIComponent(lastTappedUser.name)}&background=0D1F45&color=fff`}
-                    alt="User"
-                    className="w-24 h-24 rounded-full mb-4 object-cover border-4 border-white dark:border-[#1E2130] shadow-md"
-                    onError={(e) => { e.target.src = `https://ui-avatars.com/api/?name=${encodeURIComponent(lastTappedUser.name)}&background=0D1F45&color=fff` }}
-                  />
-                  <div className="flex flex-col items-center">
-                    <h3 className="m-0 font-inter text-2xl font-bold text-slate-800 dark:text-white">{lastTappedUser.name}</h3>
-                    <span className="m-0 font-inter text-sm text-slate-500 dark:text-slate-400 mt-1">{lastTappedUser.branch}</span>
-                    <span className={`inline-flex items-center px-2.5 py-1 rounded-full text-[11px] font-bold tracking-wide uppercase ${lastTappedUser.alreadyLogged ? 'bg-blue-100 text-blue-700 dark:bg-blue-500/20 dark:text-blue-400' : (lastTappedUser.status === 'Present' ? 'bg-emerald-100 text-emerald-700 dark:bg-emerald-500/20 dark:text-emerald-400' : 'bg-amber-100 text-amber-700 dark:bg-amber-500/20 dark:text-amber-400')}`}>
-                      {lastTappedUser.alreadyLogged ? 'Already Checked In' : `Checked in as ${lastTappedUser.status}`}
-                    </span>
-                  </div>
-                </>
-              ) : (
-                <div className="flex flex-col items-center text-center py-8">
-                  <div className="w-24 h-24 rounded-full mb-4 bg-blue-100 dark:bg-blue-500/20 text-blue-600 dark:text-blue-400 flex items-center justify-center text-3xl font-bold border-4 border-white dark:border-[#1E2130] shadow-md">
-                    <span className="w-20 h-20 bg-slate-50 dark:bg-white/5 rounded-full flex items-center justify-center text-slate-300 dark:text-slate-600 mb-6">?</span>
-                  </div>
-                  <span className="m-0 font-inter text-lg font-semibold text-slate-600 dark:text-slate-400">Waiting for next tap...</span>
-                </div>
-              )}
+      {/* Main Terminal Shell Card */}
+      <div className="w-full max-w-3xl bg-white dark:bg-[#1E2130] rounded-3xl shadow-2xl border border-slate-200/80 dark:border-white/10 p-6 sm:p-8 space-y-6">
+        
+        {/* IDLE SCANNER STATE */}
+        {!selectedSession && (
+          <div className="flex flex-col items-center text-center py-10 px-4 space-y-6">
+            
+            {/* Animated Pulse Scanner Target */}
+            <div className="relative">
+              <div className="w-24 h-24 rounded-3xl bg-emerald-50 dark:bg-emerald-500/10 border border-emerald-100 dark:border-emerald-500/20 text-emerald-600 dark:text-emerald-400 flex items-center justify-center mx-auto shadow-inner">
+                <Radio size={40} className="animate-pulse" />
+              </div>
+              <div className="absolute inset-0 rounded-3xl border-2 border-emerald-500/30 animate-ping pointer-events-none" />
             </div>
-            <div style={{ padding: '24px', background: 'white', borderRadius: '12px', boxShadow: '0 4px 6px rgba(0,0,0,0.05)', display: 'flex', flexDirection: 'column', alignItems: 'center', justifyContent: 'center', minWidth: '200px' }}>
-              <QRCode value={selectedSession.sessionId} size={140} />
-              <p style={{ textAlign: 'center', marginTop: '16px', fontSize: '14px', color: '#4B5563', fontWeight: '600' }}>Scan to Check In</p>
-              <span style={{ fontFamily: 'monospace', fontSize: '12px', color: '#9CA3AF', marginTop: '4px' }}>{selectedSession.sessionId}</span>
+
+            <div className="max-w-md space-y-2">
+              <h3 className="text-xl font-extrabold text-slate-900 dark:text-white tracking-tight m-0">
+                Scanner Idle
+              </h3>
+              <p className="text-sm text-slate-500 dark:text-slate-400 font-normal leading-relaxed m-0">
+                No active service session found. Start a service session to begin scanning member RFID cards & QR codes.
+              </p>
             </div>
+
+            {/* Start Button */}
+            <button
+              className="h-12 px-8 rounded-2xl bg-gradient-to-r from-emerald-600 to-teal-600 hover:from-emerald-500 hover:to-teal-500 text-white font-extrabold text-sm shadow-lg shadow-emerald-500/25 flex items-center justify-center gap-2 cursor-pointer border-none transition-all hover:scale-102 active:scale-98"
+              onClick={() => setShowStartModal(true)}
+            >
+              <Play size={18} fill="currentColor" />
+              <span>Start Service Session</span>
+            </button>
           </div>
         )}
 
-        <div className={`flex flex-col items-center justify-center p-10 bg-white dark:bg-[#1E2130] rounded-xl border border-slate-200 dark:border-white/10 shadow-lg w-full max-w-[600px] gap-6 transition-all ${selectedSession ? 'ring-2 ring-blue-500/50 shadow-blue-500/10' : 'opacity-80'}`}>
-          <div className="scanner-status">
-            <div className="pulse-indicator"></div>
-            <h3>{selectedSession ? 'Scanner Active. Ready for Taps.' : 'Scanner Idle. Start a service to scan cards.'}</h3>
-          </div>
-
-          {selectedSession && (
-            <div className="scanner-details">
-              <div className="detail-item">
-                <span className="label">Branch</span>
-                <span className="value">{selectedSession.branch}</span>
+        {/* ACTIVE SCANNER STATE */}
+        {selectedSession && (
+          <div className="space-y-6">
+            
+            {/* Top Active Session Info Bar */}
+            <div className="p-4 rounded-2xl bg-slate-50 dark:bg-black/20 border border-slate-100 dark:border-white/5 flex flex-wrap items-center justify-between gap-4">
+              <div className="flex items-center gap-3">
+                <div className="w-10 h-10 rounded-xl bg-emerald-100 dark:bg-emerald-950/60 text-emerald-700 dark:text-emerald-300 flex items-center justify-center font-bold">
+                  <ShieldCheck size={22} />
+                </div>
+                <div>
+                  <span className="text-[10px] font-bold uppercase tracking-wider text-slate-400 dark:text-slate-500 block">Active Service Session</span>
+                  <div className="flex items-center gap-2">
+                    <span className="font-extrabold text-slate-900 dark:text-white text-base">{selectedSession.serviceType}</span>
+                    <span className="text-xs font-semibold text-slate-500 dark:text-slate-400">· {selectedSession.branch}</span>
+                  </div>
+                </div>
               </div>
-              <div className="detail-item">
-                <span className="label">Service</span>
-                <span className="value">{selectedSession.serviceType}</span>
+
+              <div className="flex items-center gap-2 bg-white dark:bg-white/5 px-3 py-1.5 rounded-xl border border-slate-200/70 dark:border-white/10 text-xs font-mono font-bold text-slate-700 dark:text-slate-300">
+                <span className="text-slate-400">ID:</span>
+                <span>{selectedSession.sessionId}</span>
               </div>
             </div>
-          )}
-        </div>
 
-        <div className="mt-8 flex items-center gap-4">
-          {selectedSession ? (
-            <button className="h-12 px-6 rounded-xl font-inter text-base font-semibold transition-all border-none bg-rose-600 text-white hover:bg-rose-700 cursor-pointer shadow-sm w-full sm:w-auto" onClick={() => confirmEndSession(selectedSession.sessionId)}>
-              <Square size={20} /> End Session
-            </button>
-          ) : (
-            <button className="h-12 px-6 rounded-xl font-inter text-base font-semibold transition-all border-none bg-emerald-600 text-white hover:bg-emerald-700 cursor-pointer shadow-sm w-full sm:w-auto" onClick={() => setShowStartModal(true)}>
-              <Play size={20} /> Start Service
-            </button>
-          )}
-        </div>
+            {/* Split Screen: Live Tap Reader + Mobile QR Code */}
+            <div className="grid grid-cols-1 md:grid-cols-2 gap-6 items-stretch">
+              
+              {/* Left Column: Live Card Tap Target / Member Result */}
+              <div className="p-6 rounded-2xl bg-slate-50 dark:bg-black/20 border border-slate-100 dark:border-white/5 flex flex-col items-center justify-center text-center space-y-4 min-h-[260px]">
+                {lastTappedUser ? (
+                  <div className="flex flex-col items-center space-y-3 animate-in fade-in zoom-in duration-300">
+                    <div className="relative">
+                      <img
+                        src={lastTappedUser.profilePicture ? `${API}${lastTappedUser.profilePicture}` : `https://ui-avatars.com/api/?name=${encodeURIComponent(lastTappedUser.name)}&background=0D1F45&color=fff`}
+                        alt="User Avatar"
+                        className="w-24 h-24 rounded-full object-cover border-4 border-white dark:border-[#1E2130] shadow-lg"
+                        onError={(e) => { e.target.src = `https://ui-avatars.com/api/?name=${encodeURIComponent(lastTappedUser.name)}&background=0D1F45&color=fff` }}
+                      />
+                      <div className="absolute -bottom-1 -right-1 w-7 h-7 rounded-full bg-emerald-500 text-white flex items-center justify-center border-2 border-white dark:border-[#1E2130] shadow-xs">
+                        <CheckCircle2 size={16} />
+                      </div>
+                    </div>
+
+                    <div className="space-y-1">
+                      <h3 className="m-0 text-xl font-extrabold text-slate-900 dark:text-white tracking-tight">
+                        {lastTappedUser.name}
+                      </h3>
+                      <p className="m-0 text-xs font-medium text-slate-400 dark:text-slate-500">
+                        {lastTappedUser.branch}
+                      </p>
+                    </div>
+
+                    <span className={`inline-flex items-center gap-1.5 px-3 py-1 rounded-full text-xs font-extrabold tracking-wide uppercase ${
+                      lastTappedUser.alreadyLogged 
+                        ? 'bg-blue-100 text-blue-700 dark:bg-blue-950/80 dark:text-blue-300' 
+                        : (lastTappedUser.status === 'Present' 
+                            ? 'bg-emerald-100 text-emerald-700 dark:bg-emerald-950/80 dark:text-emerald-300' 
+                            : 'bg-amber-100 text-amber-700 dark:bg-amber-950/80 dark:text-amber-300')
+                    }`}>
+                      <UserCheck size={14} />
+                      {lastTappedUser.alreadyLogged ? 'Already Checked In' : `Checked in as ${lastTappedUser.status}`}
+                    </span>
+                  </div>
+                ) : (
+                  <div className="flex flex-col items-center justify-center space-y-3 text-slate-400 py-4">
+                    <div className="w-16 h-16 rounded-2xl bg-white dark:bg-white/5 border border-slate-200/80 dark:border-white/10 flex items-center justify-center text-blue-600 dark:text-blue-400 shadow-xs">
+                      <Radio size={32} className="animate-pulse" />
+                    </div>
+                    <div className="space-y-1">
+                      <span className="text-sm font-bold text-slate-700 dark:text-slate-300 block">
+                        Waiting for Card Tap...
+                      </span>
+                      <p className="text-xs text-slate-400 dark:text-slate-500 m-0">
+                        Tap an RFID card or scan a member QR code
+                      </p>
+                    </div>
+                  </div>
+                )}
+              </div>
+
+              {/* Right Column: QR Code Display Card */}
+              <div className="p-6 rounded-2xl bg-white dark:bg-white/5 border border-slate-200/80 dark:border-white/10 flex flex-col items-center justify-center text-center space-y-3 shadow-xs">
+                <div className="p-3 bg-white rounded-2xl border border-slate-200 shadow-sm">
+                  <QRCode value={selectedSession.sessionId} size={130} />
+                </div>
+                <div className="space-y-1">
+                  <span className="text-xs font-bold text-slate-800 dark:text-slate-200 block">
+                    Scan with Mobile App
+                  </span>
+                  <span className="font-mono text-[11px] text-slate-400 dark:text-slate-500 block">
+                    {selectedSession.sessionId}
+                  </span>
+                </div>
+              </div>
+
+            </div>
+
+            {/* Bottom Controls */}
+            <div className="pt-2 flex justify-end">
+              <button
+                className="h-11 px-6 rounded-xl bg-rose-600 hover:bg-rose-700 text-white font-extrabold text-xs shadow-md transition-all flex items-center gap-2 cursor-pointer border-none"
+                onClick={() => confirmEndSession(selectedSession.sessionId)}
+              >
+                <Square size={16} fill="currentColor" />
+                <span>End Service Session</span>
+              </button>
+            </div>
+
+          </div>
+        )}
 
       </div>
     </div>

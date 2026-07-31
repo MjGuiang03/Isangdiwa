@@ -27,7 +27,17 @@ const StatusBadge = ({ status }) => {
     pending:   { label: 'Pending Review',   cls: 'admin-don-status-pending'   },
   };
   const s = map[status] || map.pending;
-  return <span className={`inline-flex items-center px-2.5 py-1 rounded-full text-[11px] font-bold tracking-wide uppercase ${s.label === 'Successful' ? 'bg-emerald-100 text-emerald-700 dark:bg-emerald-500/20 dark:text-emerald-400' : s.label === 'Failed' ? 'bg-rose-100 text-rose-700 dark:bg-rose-500/20 dark:text-rose-400' : 'bg-amber-100 text-amber-700 dark:bg-amber-500/20 dark:text-amber-400'}`}>{s.label}</span>;
+  return (
+    <span className={`inline-flex items-center px-2.5 py-1 rounded-full text-[11px] font-bold tracking-wide uppercase whitespace-nowrap ${
+      s.label === 'Successful' 
+        ? 'bg-emerald-100 text-emerald-700 dark:bg-emerald-500/20 dark:text-emerald-400' 
+        : s.label === 'Failed' 
+        ? 'bg-rose-100 text-rose-700 dark:bg-rose-500/20 dark:text-rose-400' 
+        : 'bg-amber-100 text-amber-700 dark:bg-amber-500/20 dark:text-amber-400'
+    }`}>
+      {s.label}
+    </span>
+  );
 };
 
 export default function AdminDonationsNew() {
@@ -50,7 +60,7 @@ export default function AdminDonationsNew() {
   const rejectedLoading = false;
   const rejectedList = [];
   const debouncedSearch = useDebounce(search, 400);
-  const ITEMS_PER_PAGE = 10;
+  const ITEMS_PER_PAGE = 5;
 
   /* ── Detail modal ── */
   const [detailModal, setDetailModal] = useState(null);
@@ -111,14 +121,18 @@ export default function AdminDonationsNew() {
     }
   };
 
+  const getToken = () =>
+    localStorage.getItem('adminToken') ||
+    localStorage.getItem('admin_token') ||
+    localStorage.getItem('token');
+
   /* ── Auth guard ── */
   useEffect(() => {
-    const token = localStorage.getItem('adminToken');
-    if (!token) navigate('/');
+    if (!getToken()) navigate('/');
   }, [navigate]);
 
   /* ── Fetch ── */
-  const fetcherSingle = (url) => fetch(url, { headers: { Authorization: `Bearer ${localStorage.getItem('adminToken')}` } }).then(res => {
+  const fetcherSingle = (url) => fetch(url, { headers: { Authorization: `Bearer ${getToken()}` } }).then(res => {
     if (res.status === 401 || res.status === 403) { navigate('/'); return { success: false }; }
     return res.json();
   });
@@ -135,7 +149,7 @@ export default function AdminDonationsNew() {
   const { data, isValidating: loading, mutate: fetchDonations } = useSWR(
     `${API}/api/admin/donations?${queryParams}`,
     fetcherSingle,
-    { revalidateOnFocus: false, revalidateIfStale: true }
+    { revalidateOnFocus: false, revalidateIfStale: true, keepPreviousData: true }
   );
 
   useEffect(() => {
@@ -163,65 +177,161 @@ export default function AdminDonationsNew() {
   const totalPages = Math.max(1, Math.ceil(totalCount / ITEMS_PER_PAGE));
 
   /* ── Render ── */
+  if (!data && loading) {
+    return (
+      <div className="flex flex-col gap-6 p-6 max-w-[1400px] mx-auto w-full min-h-full bg-slate-100 dark:bg-[#161922] animate-pulse">
+        {/* Header Skeleton */}
+        <div className="flex flex-col gap-2">
+          <div className="h-8 w-44 bg-slate-200 dark:bg-slate-700/80 rounded-lg"></div>
+          <div className="h-4 w-80 bg-slate-200 dark:bg-slate-700/80 rounded-md"></div>
+        </div>
+
+        {/* 4 Stat Cards Skeleton */}
+        <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-5">
+          {[1, 2, 3, 4].map((i) => (
+            <div key={i} className="bg-white dark:bg-[#1E2130] border border-slate-200 dark:border-white/10 rounded-2xl p-6 shadow-sm flex flex-col justify-between h-[138px]">
+              <div className="flex items-start justify-between">
+                <div className="flex flex-col gap-2">
+                  <div className="h-3.5 w-24 bg-slate-200 dark:bg-slate-700/80 rounded"></div>
+                  <div className="h-8 w-24 bg-slate-200 dark:bg-slate-700/80 rounded-lg"></div>
+                </div>
+                <div className="w-12 h-12 rounded-[14px] bg-slate-200 dark:bg-slate-700/80"></div>
+              </div>
+              <div className="h-4 w-28 bg-slate-200 dark:bg-slate-700/80 rounded mt-2"></div>
+            </div>
+          ))}
+        </div>
+
+        {/* 2 Charts Grid Skeleton */}
+        <div className="grid grid-cols-1 lg:grid-cols-3 gap-6">
+          <div className="lg:col-span-2 bg-white dark:bg-[#1E2130] border border-slate-200 dark:border-white/10 rounded-2xl p-5 h-[320px] flex flex-col justify-between">
+            <div className="h-5 w-48 bg-slate-200 dark:bg-slate-700/80 rounded"></div>
+            <div className="flex-1 bg-slate-100 dark:bg-slate-800/50 rounded-xl my-3"></div>
+          </div>
+          <div className="lg:col-span-1 bg-white dark:bg-[#1E2130] border border-slate-200 dark:border-white/10 rounded-2xl p-5 h-[320px] flex flex-col justify-between">
+            <div className="h-5 w-36 bg-slate-200 dark:bg-slate-700/80 rounded"></div>
+            <div className="w-40 h-40 rounded-full bg-slate-200 dark:bg-slate-700/80 mx-auto my-auto"></div>
+          </div>
+        </div>
+
+        {/* Table Skeleton */}
+        <div className="w-full bg-white dark:bg-[#1E2130] border border-slate-200 dark:border-white/10 rounded-xl shadow-sm overflow-hidden flex flex-col">
+          <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-4 p-4 border-b border-slate-200 dark:border-white/10 bg-slate-50 dark:bg-black/20">
+            <div className="h-10 w-72 bg-slate-200 dark:bg-slate-700/80 rounded-lg"></div>
+            <div className="h-10 w-40 bg-slate-200 dark:bg-slate-700/80 rounded-lg"></div>
+          </div>
+          <div className="divide-y divide-slate-100 dark:divide-white/5 p-4">
+            {[1, 2, 3, 4, 5].map((i) => (
+              <div key={i} className="flex items-center justify-between py-3.5 gap-4">
+                <div className="h-4 w-20 bg-slate-200 dark:bg-slate-700/80 rounded"></div>
+                <div className="h-4 w-28 bg-slate-200 dark:bg-slate-700/80 rounded"></div>
+                <div className="h-4 w-24 bg-slate-200 dark:bg-slate-700/80 rounded"></div>
+                <div className="h-4 w-20 bg-slate-200 dark:bg-slate-700/80 rounded"></div>
+                <div className="h-4 w-24 bg-slate-200 dark:bg-slate-700/80 rounded"></div>
+                <div className="h-6 w-20 bg-slate-200 dark:bg-slate-700/80 rounded-full"></div>
+                <div className="h-7 w-12 bg-slate-200 dark:bg-slate-700/80 rounded"></div>
+              </div>
+            ))}
+          </div>
+        </div>
+      </div>
+    );
+  }
+
   return (
-    <div className="flex flex-col gap-6 p-6 max-w-[1400px] mx-auto w-full h-full bg-slate-100 dark:bg-[#161922]">
+    <div className="flex flex-col gap-6 p-6 max-w-[1400px] mx-auto w-full min-h-full bg-slate-100 dark:bg-[#161922]">
       {/* Header */}
       <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-4 shrink-0">
-        <h1 className="m-0 font-inter text-2xl font-bold text-slate-800 dark:text-white">Donations</h1>
-
+        <div>
+          <h1 className="m-0 font-inter text-2xl font-bold text-slate-800 dark:text-white">Donations</h1>
+          <p className="m-0 font-inter text-sm text-slate-500 dark:text-slate-400 mt-1">Track, verify, and manage financial contributions and offerings</p>
+        </div>
       </div>
 
 
 
       {/* Main Content Layout */}
-      <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-4 mb-2">
+      <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-5 mb-2">
         {/* Total This Month */}
-        <div className="group relative bg-white dark:bg-[#1E2130] border border-emerald-500/50 shadow-md ring-1 ring-emerald-500/20 rounded-2xl p-5 flex flex-col gap-1 overflow-hidden transition-all duration-300 hover:shadow-lg hover:-translate-y-1">
-          <div className="flex items-center justify-between relative z-10">
-            <span className="font-inter font-bold text-[11px] tracking-widest text-slate-500 dark:text-slate-400 uppercase">Total This Month</span>
-            <div className="w-10 h-10 rounded-xl flex items-center justify-center shrink-0 transition-transform duration-300 group-hover:scale-110 shadow-sm bg-emerald-600 text-white">
-              <Banknote size={20} strokeWidth={2.2} />
+        <div className="group relative bg-white dark:bg-[#1E2130] border border-slate-200 dark:border-white/10 rounded-2xl p-6 shadow-[0_2px_12px_-4px_rgba(0,0,0,0.05)] overflow-hidden transition-all duration-300 hover:shadow-[0_12px_32px_rgba(0,0,0,0.08)] dark:hover:shadow-[0_12px_32px_rgba(0,0,0,0.3)] hover:-translate-y-1">
+          <div className="absolute top-0 right-0 w-32 h-32 bg-emerald-500/10 rounded-full blur-3xl -mr-10 -mt-10 transition-transform duration-500 group-hover:scale-150"></div>
+          <div className="flex items-start justify-between relative z-10 mb-4">
+            <div className="flex flex-col">
+              <span className="font-inter font-semibold text-[13px] tracking-wider uppercase text-slate-500 dark:text-slate-400 mb-1">Total This Month</span>
+              <div className="font-inter font-extrabold text-[32px] text-slate-900 dark:text-white tracking-tight leading-none">{fmt(stats.totalThisMonth)}</div>
+            </div>
+            <div className="w-12 h-12 rounded-[14px] bg-gradient-to-br from-emerald-50 to-emerald-100/50 dark:from-emerald-500/20 dark:to-emerald-500/10 text-emerald-600 dark:text-emerald-400 flex items-center justify-center shrink-0 border border-emerald-200/60 dark:border-emerald-500/30 transition-transform duration-300 group-hover:scale-110 shadow-sm">
+              <Banknote size={24} strokeWidth={2.2} />
             </div>
           </div>
-          <p className="font-inter font-extrabold text-[28px] tracking-tight text-slate-900 dark:text-white m-0 mt-2 relative z-10">{fmt(stats.totalThisMonth)}</p>
-          <p className="text-[12px] font-medium text-emerald-600 dark:text-emerald-400 mt-1 relative z-10">{stats.percentageChange} from last month</p>
-          <div className="absolute -right-6 -bottom-6 w-32 h-32 bg-emerald-500/10 rounded-full blur-3xl pointer-events-none opacity-0 group-hover:opacity-100 transition-opacity duration-300"></div>
+          <div className="flex items-center gap-2 relative z-10 mt-1">
+            <div className="flex items-center gap-1 bg-emerald-50 dark:bg-emerald-500/10 text-emerald-600 dark:text-emerald-400 px-2 py-0.5 rounded-md text-xs font-bold border border-emerald-100 dark:border-emerald-500/20">
+              <span>{stats.percentageChange}</span>
+            </div>
+            <span className="font-inter text-xs font-medium text-slate-500 dark:text-slate-400">from last month</span>
+          </div>
         </div>
 
         {/* Total Donors */}
-        <div className="group relative bg-white dark:bg-[#1E2130] border border-slate-200 dark:border-white/10 rounded-2xl p-5 flex flex-col gap-1 overflow-hidden transition-all duration-300 hover:shadow-lg hover:-translate-y-1 hover:border-blue-500/30">
-          <div className="flex items-center justify-between relative z-10">
-            <span className="font-inter font-bold text-[11px] tracking-widest text-slate-500 dark:text-slate-400 uppercase">Total Donors</span>
-            <div className="w-10 h-10 rounded-xl flex items-center justify-center shrink-0 transition-transform duration-300 group-hover:scale-110 shadow-sm bg-gradient-to-br from-blue-50 to-blue-100/50 dark:from-blue-500/20 dark:to-blue-500/10 text-blue-600 dark:text-blue-400 border border-blue-200/60 dark:border-blue-500/30">
-              <Heart size={20} strokeWidth={2.2} />
+        <div className="group relative bg-white dark:bg-[#1E2130] border border-slate-200 dark:border-white/10 rounded-2xl p-6 shadow-[0_2px_12px_-4px_rgba(0,0,0,0.05)] overflow-hidden transition-all duration-300 hover:shadow-[0_12px_32px_rgba(0,0,0,0.08)] dark:hover:shadow-[0_12px_32px_rgba(0,0,0,0.3)] hover:-translate-y-1">
+          <div className="absolute top-0 right-0 w-32 h-32 bg-blue-500/10 rounded-full blur-3xl -mr-10 -mt-10 transition-transform duration-500 group-hover:scale-150"></div>
+          <div className="flex items-start justify-between relative z-10 mb-4">
+            <div className="flex flex-col">
+              <span className="font-inter font-semibold text-[13px] tracking-wider uppercase text-slate-500 dark:text-slate-400 mb-1">Total Donors</span>
+              <div className="font-inter font-extrabold text-[32px] text-slate-900 dark:text-white tracking-tight leading-none">{stats.totalDonors.toLocaleString()}</div>
+            </div>
+            <div className="w-12 h-12 rounded-[14px] bg-gradient-to-br from-blue-50 to-blue-100/50 dark:from-blue-500/20 dark:to-blue-500/10 text-blue-600 dark:text-blue-400 flex items-center justify-center shrink-0 border border-blue-200/60 dark:border-blue-500/30 transition-transform duration-300 group-hover:scale-110 shadow-sm">
+              <Heart size={24} strokeWidth={2.2} />
             </div>
           </div>
-          <p className="font-inter font-extrabold text-[28px] tracking-tight text-slate-900 dark:text-white m-0 mt-2 relative z-10">{stats.totalDonors.toLocaleString()}</p>
-          <div className="absolute -right-6 -bottom-6 w-32 h-32 bg-blue-500/10 rounded-full blur-3xl pointer-events-none opacity-0 group-hover:opacity-100 transition-opacity duration-300"></div>
+          <div className="flex items-center gap-2 relative z-10 mt-1">
+            <div className="flex items-center gap-1 bg-blue-50 dark:bg-blue-500/10 text-blue-600 dark:text-blue-400 px-2 py-0.5 rounded-md text-xs font-bold border border-blue-100 dark:border-blue-500/20">
+              <Heart size={14} strokeWidth={2.5} />
+              <span>All Time</span>
+            </div>
+            <span className="font-inter text-xs font-medium text-slate-500 dark:text-slate-400">unique donors</span>
+          </div>
         </div>
 
         {/* Average Donation */}
-        <div className="group relative bg-white dark:bg-[#1E2130] border border-slate-200 dark:border-white/10 rounded-2xl p-5 flex flex-col gap-1 overflow-hidden transition-all duration-300 hover:shadow-lg hover:-translate-y-1 hover:border-indigo-500/30">
-          <div className="flex items-center justify-between relative z-10">
-            <span className="font-inter font-bold text-[11px] tracking-widest text-slate-500 dark:text-slate-400 uppercase">Average Donation</span>
-            <div className="w-10 h-10 rounded-xl flex items-center justify-center shrink-0 transition-transform duration-300 group-hover:scale-110 shadow-sm bg-gradient-to-br from-indigo-50 to-indigo-100/50 dark:from-indigo-500/20 dark:to-indigo-500/10 text-indigo-600 dark:text-indigo-400 border border-indigo-200/60 dark:border-indigo-500/30">
-              <Banknote size={20} strokeWidth={2.2} />
+        <div className="group relative bg-white dark:bg-[#1E2130] border border-slate-200 dark:border-white/10 rounded-2xl p-6 shadow-[0_2px_12px_-4px_rgba(0,0,0,0.05)] overflow-hidden transition-all duration-300 hover:shadow-[0_12px_32px_rgba(0,0,0,0.08)] dark:hover:shadow-[0_12px_32px_rgba(0,0,0,0.3)] hover:-translate-y-1">
+          <div className="absolute top-0 right-0 w-32 h-32 bg-indigo-500/10 rounded-full blur-3xl -mr-10 -mt-10 transition-transform duration-500 group-hover:scale-150"></div>
+          <div className="flex items-start justify-between relative z-10 mb-4">
+            <div className="flex flex-col">
+              <span className="font-inter font-semibold text-[13px] tracking-wider uppercase text-slate-500 dark:text-slate-400 mb-1">Average Donation</span>
+              <div className="font-inter font-extrabold text-[32px] text-slate-900 dark:text-white tracking-tight leading-none">{fmt(stats.avgDonation)}</div>
+            </div>
+            <div className="w-12 h-12 rounded-[14px] bg-gradient-to-br from-indigo-50 to-indigo-100/50 dark:from-indigo-500/20 dark:to-indigo-500/10 text-indigo-600 dark:text-indigo-400 flex items-center justify-center shrink-0 border border-indigo-200/60 dark:border-indigo-500/30 transition-transform duration-300 group-hover:scale-110 shadow-sm">
+              <Banknote size={24} strokeWidth={2.2} />
             </div>
           </div>
-          <p className="font-inter font-extrabold text-[28px] tracking-tight text-slate-900 dark:text-white m-0 mt-2 relative z-10">{fmt(stats.avgDonation)}</p>
-          <div className="absolute -right-6 -bottom-6 w-32 h-32 bg-indigo-500/10 rounded-full blur-3xl pointer-events-none opacity-0 group-hover:opacity-100 transition-opacity duration-300"></div>
+          <div className="flex items-center gap-2 relative z-10 mt-1">
+            <div className="flex items-center gap-1 bg-slate-100 dark:bg-white/10 text-slate-700 dark:text-slate-300 px-2 py-0.5 rounded-md text-xs font-bold border border-slate-200 dark:border-white/10">
+              <span>Avg</span>
+            </div>
+            <span className="font-inter text-xs font-medium text-slate-500 dark:text-slate-400">per donation</span>
+          </div>
         </div>
 
         {/* Pending Review */}
-        <div className="group relative bg-white dark:bg-[#1E2130] border border-slate-200 dark:border-white/10 rounded-2xl p-5 flex flex-col gap-1 overflow-hidden transition-all duration-300 hover:shadow-lg hover:-translate-y-1 hover:border-amber-500/30">
-          <div className="flex items-center justify-between relative z-10">
-            <span className="font-inter font-bold text-[11px] tracking-widest text-slate-500 dark:text-slate-400 uppercase">Pending Review</span>
-            <div className="w-10 h-10 rounded-xl flex items-center justify-center shrink-0 transition-transform duration-300 group-hover:scale-110 shadow-sm bg-gradient-to-br from-amber-50 to-amber-100/50 dark:from-amber-500/20 dark:to-amber-500/10 text-amber-600 dark:text-amber-400 border border-amber-200/60 dark:border-amber-500/30">
-              <Search size={20} strokeWidth={2.2} />
+        <div className="group relative bg-white dark:bg-[#1E2130] border border-slate-200 dark:border-white/10 rounded-2xl p-6 shadow-[0_2px_12px_-4px_rgba(0,0,0,0.05)] overflow-hidden transition-all duration-300 hover:shadow-[0_12px_32px_rgba(0,0,0,0.08)] dark:hover:shadow-[0_12px_32px_rgba(0,0,0,0.3)] hover:-translate-y-1">
+          <div className="absolute top-0 right-0 w-32 h-32 bg-amber-500/10 rounded-full blur-3xl -mr-10 -mt-10 transition-transform duration-500 group-hover:scale-150"></div>
+          <div className="flex items-start justify-between relative z-10 mb-4">
+            <div className="flex flex-col">
+              <span className="font-inter font-semibold text-[13px] tracking-wider uppercase text-slate-500 dark:text-slate-400 mb-1">Pending Review</span>
+              <div className="font-inter font-extrabold text-[32px] text-slate-900 dark:text-white tracking-tight leading-none">{stats.pendingCount || stats.rejectedCount || 0}</div>
+            </div>
+            <div className="w-12 h-12 rounded-[14px] bg-gradient-to-br from-amber-50 to-amber-100/50 dark:from-amber-500/20 dark:to-amber-500/10 text-amber-600 dark:text-amber-400 flex items-center justify-center shrink-0 border border-amber-200/60 dark:border-amber-500/30 transition-transform duration-300 group-hover:scale-110 shadow-sm">
+              <Search size={24} strokeWidth={2.2} />
             </div>
           </div>
-          <p className="font-inter font-extrabold text-[28px] tracking-tight text-slate-900 dark:text-white m-0 mt-2 relative z-10">{stats.pendingCount || stats.rejectedCount || 0}</p>
-          <div className="absolute -right-6 -bottom-6 w-32 h-32 bg-amber-500/10 rounded-full blur-3xl pointer-events-none opacity-0 group-hover:opacity-100 transition-opacity duration-300"></div>
+          <div className="flex items-center gap-2 relative z-10 mt-1">
+            <div className="flex items-center gap-1 bg-amber-50 dark:bg-amber-500/10 text-amber-600 dark:text-amber-400 px-2 py-0.5 rounded-md text-xs font-bold border border-amber-100 dark:border-amber-500/20">
+              <Search size={14} strokeWidth={2.5} />
+              <span>Review</span>
+            </div>
+            <span className="font-inter text-xs font-medium text-slate-500 dark:text-slate-400">awaiting approval</span>
+          </div>
         </div>
       </div>
 
@@ -235,9 +345,9 @@ export default function AdminDonationsNew() {
       </div>
 
       {/* Donations Table */}
-      <div className="flex-1 flex flex-col bg-white dark:bg-[#1E2130] border border-slate-200 dark:border-white/10 rounded-xl shadow-sm overflow-hidden min-h-[500px]">
+      <div className="w-full bg-white dark:bg-[#1E2130] border border-slate-200 dark:border-white/10 rounded-xl shadow-sm overflow-hidden mb-6">
         <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-4 p-4 border-b border-slate-200 dark:border-white/10 bg-slate-50 dark:bg-black/20 shrink-0">
-          <div className="relative flex-1 max-w-[400px]">
+          <div className="relative flex-1 max-w-[320px]">
             <Search className="absolute left-3 top-1/2 -translate-y-1/2 text-slate-400 pointer-events-none" size={18} />
             <input
               type="text"
@@ -248,7 +358,7 @@ export default function AdminDonationsNew() {
             />
           </div>
           <select
-            className="flex items-center gap-2"
+            className="h-10 px-3 pr-8 appearance-none bg-white dark:bg-[#161922] border border-slate-300 dark:border-white/10 rounded-lg text-sm font-inter text-slate-700 dark:text-slate-300 outline-none focus:border-blue-500 transition-colors cursor-pointer bg-[url('data:image/svg+xml;charset=US-ASCII,%3Csvg%20xmlns%3D%22http%3A%2F%2Fwww.w3.org%2F2000%2Fsvg%22%20width%3D%2216%22%20height%3D%2216%22%20viewBox%3D%220%200%2024%2024%22%20fill%3D%22none%22%20stroke%3D%22%236B7280%22%20stroke-width%3D%222%22%20stroke-linecap%3D%22round%22%20stroke-linejoin%3D%22round%22%3E%3Cpolyline%20points%3D%226%209%2012%2015%2018%209%22%3E%3C%2Fpolyline%3E%3C%2Fsvg%3E')] bg-[length:16px] bg-[position:right_12px_center] bg-no-repeat"
             value={statusFilter}
             onChange={(e) => setStatusFilter(e.target.value)}
           >
@@ -259,59 +369,70 @@ export default function AdminDonationsNew() {
           </select>
         </div>
 
-        <div className="flex-1 overflow-x-auto overflow-y-auto custom-scrollbar">
-          <table className="w-full text-left border-collapse min-w-[900px]">
+        <div className="overflow-x-auto" style={{ minHeight: '310px' }}>
+          <table className="w-full text-left border-collapse min-w-[900px]" style={{ tableLayout: 'fixed' }}>
+            <colgroup>
+              <col style={{ width: '12%' }} />
+              <col style={{ width: '15%' }} />
+              <col style={{ width: '13%' }} />
+              <col style={{ width: '10%' }} />
+              <col style={{ width: '13%' }} />
+              <col style={{ width: '9%' }} />
+              <col style={{ width: '12%' }} />
+              <col style={{ width: '9%' }} />
+              <col style={{ width: '7%' }} />
+            </colgroup>
             <thead>
               <tr>
-                <th className="px-4 py-2 bg-slate-50 dark:bg-black/20 border-b border-slate-200 dark:border-white/10 font-semibold text-[10px] tracking-wider uppercase text-slate-500 dark:text-slate-400 whitespace-nowrap sticky top-0 z-10">Donation ID</th>
-                <th className="px-4 py-2 bg-slate-50 dark:bg-black/20 border-b border-slate-200 dark:border-white/10 font-semibold text-[10px] tracking-wider uppercase text-slate-500 dark:text-slate-400 whitespace-nowrap sticky top-0 z-10">Member</th>
-                <th className="px-4 py-2 bg-slate-50 dark:bg-black/20 border-b border-slate-200 dark:border-white/10 font-semibold text-[10px] tracking-wider uppercase text-slate-500 dark:text-slate-400 whitespace-nowrap sticky top-0 z-10">Community</th>
-                <th className="px-4 py-2 bg-slate-50 dark:bg-black/20 border-b border-slate-200 dark:border-white/10 font-semibold text-[10px] tracking-wider uppercase text-slate-500 dark:text-slate-400 whitespace-nowrap sticky top-0 z-10">Amount</th>
-                <th className="px-4 py-2 bg-slate-50 dark:bg-black/20 border-b border-slate-200 dark:border-white/10 font-semibold text-[10px] tracking-wider uppercase text-slate-500 dark:text-slate-400 whitespace-nowrap sticky top-0 z-10">Purpose</th>
-                <th className="px-4 py-2 bg-slate-50 dark:bg-black/20 border-b border-slate-200 dark:border-white/10 font-semibold text-[10px] tracking-wider uppercase text-slate-500 dark:text-slate-400 whitespace-nowrap sticky top-0 z-10">Date</th>
-                <th className="px-4 py-2 bg-slate-50 dark:bg-black/20 border-b border-slate-200 dark:border-white/10 font-semibold text-[10px] tracking-wider uppercase text-slate-500 dark:text-slate-400 whitespace-nowrap sticky top-0 z-10">Status</th>
-                <th className="px-4 py-2 bg-slate-50 dark:bg-black/20 border-b border-slate-200 dark:border-white/10 font-semibold text-[10px] tracking-wider uppercase text-slate-500 dark:text-slate-400 whitespace-nowrap sticky top-0 z-10">Proof</th>
-                <th className="px-4 py-2 bg-slate-50 dark:bg-black/20 border-b border-slate-200 dark:border-white/10 font-semibold text-[10px] tracking-wider uppercase text-slate-500 dark:text-slate-400 whitespace-nowrap sticky top-0 z-10">Actions</th>
+                <th className="px-4 py-3 bg-slate-50 dark:bg-black/20 border-b border-slate-200 dark:border-white/10 font-semibold text-[11px] tracking-wider uppercase text-slate-500 dark:text-slate-400 whitespace-nowrap sticky top-0 z-10">Donation ID</th>
+                <th className="px-4 py-3 bg-slate-50 dark:bg-black/20 border-b border-slate-200 dark:border-white/10 font-semibold text-[11px] tracking-wider uppercase text-slate-500 dark:text-slate-400 whitespace-nowrap sticky top-0 z-10">Member</th>
+                <th className="px-4 py-3 bg-slate-50 dark:bg-black/20 border-b border-slate-200 dark:border-white/10 font-semibold text-[11px] tracking-wider uppercase text-slate-500 dark:text-slate-400 whitespace-nowrap sticky top-0 z-10">Community</th>
+                <th className="px-4 py-3 bg-slate-50 dark:bg-black/20 border-b border-slate-200 dark:border-white/10 font-semibold text-[11px] tracking-wider uppercase text-slate-500 dark:text-slate-400 whitespace-nowrap sticky top-0 z-10">Amount</th>
+                <th className="px-4 py-3 bg-slate-50 dark:bg-black/20 border-b border-slate-200 dark:border-white/10 font-semibold text-[11px] tracking-wider uppercase text-slate-500 dark:text-slate-400 whitespace-nowrap sticky top-0 z-10">Purpose</th>
+                <th className="px-4 py-3 bg-slate-50 dark:bg-black/20 border-b border-slate-200 dark:border-white/10 font-semibold text-[11px] tracking-wider uppercase text-slate-500 dark:text-slate-400 whitespace-nowrap sticky top-0 z-10">Date</th>
+                <th className="px-4 py-3 bg-slate-50 dark:bg-black/20 border-b border-slate-200 dark:border-white/10 font-semibold text-[11px] tracking-wider uppercase text-slate-500 dark:text-slate-400 whitespace-nowrap sticky top-0 z-10">Status</th>
+                <th className="px-4 py-3 bg-slate-50 dark:bg-black/20 border-b border-slate-200 dark:border-white/10 font-semibold text-[11px] tracking-wider uppercase text-slate-500 dark:text-slate-400 whitespace-nowrap sticky top-0 z-10">Proof</th>
+                <th className="px-4 py-3 pr-6 bg-slate-50 dark:bg-black/20 border-b border-slate-200 dark:border-white/10 font-semibold text-[11px] tracking-wider uppercase text-slate-500 dark:text-slate-400 whitespace-nowrap sticky top-0 z-10 text-right">Actions</th>
               </tr>
             </thead>
             <tbody>
-              {loading ? (
+              {loading && !data ? (
                 <tr>
-                  <td colSpan={8} className="px-4 py-12 text-center text-slate-500 dark:text-slate-400">
+                  <td colSpan={9} className="px-4 py-12 text-center text-slate-500 dark:text-slate-400">
                     Loading donations…
                   </td>
                 </tr>
               ) : donations.length === 0 ? (
                 <tr>
-                  <td colSpan={8} className="px-4 py-12 text-center text-slate-500 dark:text-slate-400">
+                  <td colSpan={9} className="px-4 py-12 text-center text-slate-500 dark:text-slate-400">
                     No donations found
                   </td>
                 </tr>
               ) : (
                 donations.map((donation, index) => (
                   <tr key={donation._id || index} className="hover:bg-slate-50 dark:hover:bg-white/5 transition-colors border-b border-slate-100 dark:border-white/5">
-                    <td className="px-4 py-2 text-[13px] font-inter font-semibold text-slate-800 dark:text-white">
+                    <td className="px-4 py-3 text-[13px] font-inter font-semibold text-slate-800 dark:text-white truncate">
                       {donation.donationId || `D-${String(index + 1).padStart(3, '0')}`}
                     </td>
-                    <td className="px-4 py-2 text-[13px] font-inter text-slate-700 dark:text-slate-300">
+                    <td className="px-4 py-3 text-[13px] font-inter text-slate-700 dark:text-slate-300 truncate">
                       {donation.member || '—'}
                     </td>
-                    <td className="px-4 py-2 text-[13px] font-inter text-slate-500 dark:text-slate-400">
+                    <td className="px-4 py-3 text-[13px] font-inter text-slate-500 dark:text-slate-400 truncate">
                       {donation.community || 'General'}
                     </td>
-                    <td className="px-4 py-2 text-[13px] font-inter font-bold text-emerald-600 dark:text-emerald-400 whitespace-nowrap">
+                    <td className="px-4 py-3 text-[13px] font-inter font-bold text-emerald-600 dark:text-emerald-400 whitespace-nowrap">
                       {fmt(donation.amount)}
                     </td>
-                    <td className="px-4 py-2 text-[13px] font-inter text-slate-500 dark:text-slate-400">
+                    <td className="px-4 py-3 text-[13px] font-inter text-slate-500 dark:text-slate-400 truncate">
                       {donation.category || donation.purpose || 'General Fund'}
                     </td>
-                    <td className="px-4 py-2 text-[13px] font-inter text-slate-600 dark:text-slate-400 whitespace-nowrap">
+                    <td className="px-4 py-3 text-[13px] font-inter text-slate-600 dark:text-slate-400 whitespace-nowrap">
                       {fmtDate(donation.createdAt || donation.date)}
                     </td>
-                    <td className="px-4 py-2 text-[13px] font-inter text-slate-700 dark:text-slate-300">
+                    <td className="px-4 py-3 text-[13px] font-inter text-slate-700 dark:text-slate-300">
                       <StatusBadge status={donation.status || 'pending'} />
                     </td>
-                    <td className="px-4 py-2 text-[13px] font-inter text-slate-700 dark:text-slate-300">
+                    <td className="px-4 py-3 text-[13px] font-inter text-slate-700 dark:text-slate-300 whitespace-nowrap">
                       {(donation.proofData || donation.proofOfPayment) ? (
                         <img 
                           src={donation.proofData || donation.proofOfPayment} 
@@ -320,19 +441,17 @@ export default function AdminDonationsNew() {
                           onClick={(e) => { e.stopPropagation(); const win = window.open(); win.document.write(`<img src="${donation.proofData || donation.proofOfPayment}" style="max-width:100%;" />`); }}
                         />
                       ) : (
-                        <span style={{ fontSize: '11px', color: '#9CA3AF' }}>No Proof</span>
+                        <span className="whitespace-nowrap font-inter text-xs text-slate-400">No Proof</span>
                       )}
                     </td>
-                    <td className="px-4 py-2 text-[13px] font-inter text-slate-700 dark:text-slate-300">
-                      <div className="flex items-center justify-end gap-2">
-                        <button
-                          className="flex items-center gap-1.5 px-3 py-1 rounded-md text-xs font-semibold text-blue-600 hover:bg-blue-50 dark:hover:bg-blue-500/10 transition-colors border-none bg-transparent cursor-pointer"
-                          onClick={() => setDetailModal(donation)}
-                          title="View Details"
-                        >
-                          View
-                        </button>
-                      </div>
+                    <td className="px-4 py-3 pr-6 text-[13px] font-inter text-slate-700 dark:text-slate-300 text-right">
+                      <button
+                        className="px-3 py-1 rounded-md text-xs font-semibold text-blue-600 hover:bg-blue-50 dark:hover:bg-blue-500/10 transition-colors border-none bg-transparent cursor-pointer"
+                        onClick={() => setDetailModal(donation)}
+                        title="View Details"
+                      >
+                        View
+                      </button>
                     </td>
                   </tr>
                 ))
@@ -342,7 +461,7 @@ export default function AdminDonationsNew() {
         </div>
 
         {/* Pagination */}
-        {!loading && totalPages > 1 && (
+        {(!loading || data) && (
           <div className="border-t border-slate-200 dark:border-white/10 shrink-0 bg-white dark:bg-[#1E2130]">
             <Pagination
               currentPage={currentPage}

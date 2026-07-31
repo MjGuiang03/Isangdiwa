@@ -83,17 +83,14 @@ export default function App() {
         <AuthProvider>
           <Toaster
             position="top-right"
-            closeButton
             expand={false}
-            duration={1000}
+            duration={3000}
             toastOptions={{
-              style: {
-                background: 'rgba(30, 58, 138, 0.85)',
-                backdropFilter: 'blur(12px)',
-                WebkitBackdropFilter: 'blur(12px)',
-                border: '1px solid rgba(201, 168, 76, 0.5)',
-                color: '#ffffff',
-                boxShadow: '0 8px 32px rgba(0, 0, 0, 0.25)',
+              classNames: {
+                toast: 'bg-[#0D1F45] dark:bg-[#1E2130] text-white border border-white/15 dark:border-white/10 rounded-xl shadow-2xl font-inter text-xs font-medium p-3.5',
+                title: 'text-white font-semibold text-xs',
+                description: 'text-slate-300 text-[11px]',
+                icon: 'text-white',
               }
             }}
           />

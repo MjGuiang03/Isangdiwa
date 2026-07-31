@@ -3,13 +3,15 @@ import useSWR from 'swr';
 import { useNavigate } from 'react-router';
 import { toast } from 'sonner';
 import LoanAdminSidebar from './loanAdminSidebar';
+import PageHeader from '../components/PageHeader';
 import DSSPanel from '../components/DSSPanel';
 
 import useDebounce from '../../hooks/useDebounce';
 
 
 import API from '../../utils/api';
-import { CheckCircle, Circle, Search, X, XCircle, ShieldCheck, AlertTriangle, Loader2 } from 'lucide-react'; 
+import Pagination from '../../components/Pagination';
+import { CheckCircle, Circle, Search, X, XCircle, ShieldCheck, AlertTriangle, Loader2, AlertCircle, Edit3, Send } from 'lucide-react'; 
 import { performOCRScan } from '../../utils/ocrProcessor';
 
 
@@ -134,9 +136,15 @@ export default function LoanAdminLoanManagement() {
         params.set('page', page);
         params.set('limit', LIMIT);
         if (debouncedSearch.trim()) params.set('search', debouncedSearch.trim());
-        if (statusFilter !== 'all') params.set('status', statusFilter);
+        if (activeView === 'completed') {
+            params.set('status', 'completed');
+        } else if (statusFilter !== 'all') {
+            params.set('status', statusFilter);
+        } else {
+            params.set('status', 'non_completed');
+        }
         return params.toString();
-    }, [page, debouncedSearch, statusFilter]);
+    }, [page, debouncedSearch, statusFilter, activeView]);
 
     const { data: loansData, isValidating: loadingLoans, mutate: fetchLoans } = useSWR(
         token ? `${API}/api/admin/loans?${queryParams}` : null,
@@ -150,8 +158,12 @@ export default function LoanAdminLoanManagement() {
     );
 
     const loans = useMemo(() => loansData?.loans || [], [loansData]);
+    const totalCount = useMemo(() => loansData?.totalCount || 0, [loansData]);
+    const totalPages = useMemo(() => loansData?.totalPages || Math.ceil(totalCount / LIMIT) || 1, [loansData, totalCount]);
+
     const stats = useMemo(() => ({
         pending: loansData?.stats?.pending || 0,
+        approved: loansData?.stats?.approved || 0,
         active: loansData?.stats?.active || 0,
         completed: loansData?.stats?.completed || 0,
         rejected: loansData?.stats?.rejected || 0,
@@ -192,9 +204,9 @@ export default function LoanAdminLoanManagement() {
             if (interestFilter === '1x' && mult !== '1x') return false;
             return true;
         }).reduce((sum, l) => {
-            const totalRepay = Number(l.totalRepayment || (l.monthlyPayment * l.term)) || 0;
+            const totalRepay = Number(l.totalRepayment || (l.monthlyPayment * (l.termMonths || 12))) || 0;
             const principal = Number(l.amount) || 0;
-            const interest = totalRepay - principal;
+            const interest = l.totalInterest != null && l.totalInterest > 0 ? Number(l.totalInterest) : (totalRepay - principal);
             return sum + (interest > 0 ? interest : 0);
         }, 0);
     }, [allLoansStats, interestFilter]);
@@ -416,9 +428,7 @@ export default function LoanAdminLoanManagement() {
             : [];
     }, [selectedType]);
 
-    const filteredLoans = useMemo(() => {
-        return activeView === 'all' ? loans.filter(l => l.status !== 'completed') : loans;
-    }, [activeView, loans]);
+    const filteredLoans = loans;
 
     const counts = stats;
 
@@ -442,136 +452,177 @@ export default function LoanAdminLoanManagement() {
         return pillColorMap[pillColorKey] || '';
     }, [selectedType]);
 
+    if (!loansData && loadingLoans) {
+        return (
+            <div className="flex h-screen overflow-hidden bg-slate-100 dark:bg-[#161922]">
+                <LoanAdminSidebar />
+                <div className="p-6 pb-16 flex-1 overflow-y-auto w-full animate-pulse flex flex-col gap-6">
+                    {/* Header Skeleton */}
+                    <div className="flex flex-col gap-2">
+                        <div className="h-8 w-56 bg-slate-200 dark:bg-slate-700/80 rounded-lg"></div>
+                        <div className="h-4 w-96 bg-slate-200 dark:bg-slate-700/80 rounded-md"></div>
+                    </div>
+
+                    {/* Stat Cards Skeleton */}
+                    <div className="bg-white dark:bg-[#1E2130] border border-slate-200 dark:border-white/10 rounded-2xl shadow-sm overflow-hidden mb-6">
+                        <div className="grid grid-cols-2 sm:grid-cols-3 lg:grid-cols-5 divide-y sm:divide-y-0 lg:divide-x divide-slate-200 dark:divide-white/10">
+                            {[1, 2, 3, 4, 5].map((i) => (
+                                <div key={i} className="p-4 min-h-[90px] flex flex-col justify-between">
+                                    <div className="h-3 w-20 bg-slate-200 dark:bg-slate-700/80 rounded"></div>
+                                    <div className="h-6 w-16 bg-slate-200 dark:bg-slate-700/80 rounded mt-2"></div>
+                                </div>
+                            ))}
+                        </div>
+                    </div>
+
+                    {/* Filter toolbar & Table Skeleton */}
+                    <div className="w-full bg-white dark:bg-[#1E2130] border border-slate-200 dark:border-white/10 rounded-xl shadow-sm p-4 flex flex-col gap-4">
+                        <div className="h-10 bg-slate-100 dark:bg-slate-800/50 rounded-lg"></div>
+                        <div className="flex flex-col gap-3">
+                            {[1, 2, 3, 4, 5, 6].map((i) => (
+                                <div key={i} className="h-14 bg-slate-100 dark:bg-slate-800/50 rounded-lg"></div>
+                            ))}
+                        </div>
+                    </div>
+                </div>
+            </div>
+        );
+    }
+
     return (
         <div className="flex h-screen overflow-hidden bg-slate-100 dark:bg-[#161922]">
             <LoanAdminSidebar />
 
-            <div className="p-[20px_24px] flex-1 flex flex-col gap-2.5 bg-transparent overflow-y-auto">
+            <div className="p-6 pb-16 flex-1 overflow-y-auto w-full">
                 {/* Header */}
-                <div className="flex items-center justify-between pb-2 mb-[2px] max-md:flex-col max-md:items-start max-md:gap-3">
-                    <h1 className="font-inter text-lg font-bold text-slate-800 dark:text-white m-0 tracking-[-0.01em]">Loan Management</h1>
-                </div>
+                <PageHeader 
+                    title="Loan Management" 
+                    subtitle="Review, approve, and manage member loan applications." 
+                />
 
-                {/* Status Cards */}
-                <div className="grid grid-cols-2 md:grid-cols-3 lg:grid-cols-5 gap-4 mb-6">
-                    <div className="bg-white dark:bg-[#1E2130] border border-slate-200 dark:border-white/10 rounded-xl p-5 shadow-sm flex flex-col gap-2 transition-transform hover:-translate-y-1 cursor-pointer" onClick={() => setStatusFilter(statusFilter === 'pending' ? 'all' : 'pending')} >
-                        <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', margin: '0 0 4px 0', minHeight: '24px' }}>
-                            <p className="font-inter font-semibold text-[11px] tracking-wider uppercase text-slate-500 dark:text-slate-400 m-0" style={{ margin: 0 }}>Pending Review</p>
+                {/* Status Cards — Unified Metric Bar */}
+                <div className="bg-white dark:bg-[#1E2130] border border-slate-200/80 dark:border-white/10 rounded-2xl shadow-[0_2px_12px_-4px_rgba(0,0,0,0.05)] overflow-hidden mb-6">
+                    <div className="grid grid-cols-2 sm:grid-cols-3 lg:grid-cols-5 divide-y sm:divide-y-0 lg:divide-x divide-slate-200/80 dark:divide-white/10">
+                        <div className={`group relative p-4 transition-all duration-200 hover:bg-slate-50/80 dark:hover:bg-white/[0.02] cursor-pointer flex flex-col justify-between min-h-[90px] ${statusFilter === 'pending' ? 'bg-amber-500/5 dark:bg-amber-500/10' : ''}`} onClick={() => { setStatusFilter(statusFilter === 'pending' ? 'all' : 'pending'); setActiveView('all'); setPage(1); }}>
+                            <span className="font-inter font-bold text-[10px] tracking-wider uppercase text-slate-500 dark:text-slate-400 mt-0.5">Pending Review</span>
+                            <p className="font-inter font-extrabold text-2xl text-amber-500 dark:text-amber-400 m-0 mt-2">{counts.pending}</p>
                         </div>
-                        <p className="font-inter font-bold text-3xl text-amber-500 m-0">{counts.pending}</p>
-                    </div>
-                    <div className="bg-white dark:bg-[#1E2130] border border-slate-200 dark:border-white/10 rounded-xl p-5 shadow-sm flex flex-col gap-2 transition-transform hover:-translate-y-1 cursor-pointer" onClick={() => setStatusFilter(statusFilter === 'approved' ? 'all' : 'approved')} >
-                        <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', margin: '0 0 4px 0', minHeight: '24px' }}>
-                            <p className="font-inter font-semibold text-[11px] tracking-wider uppercase text-slate-500 dark:text-slate-400 m-0" style={{ margin: 0 }}>Approved</p>
+                        <div className={`group relative p-4 transition-all duration-200 hover:bg-slate-50/80 dark:hover:bg-white/[0.02] cursor-pointer flex flex-col justify-between min-h-[90px] ${statusFilter === 'approved' ? 'bg-blue-500/5 dark:bg-blue-500/10' : ''}`} onClick={() => { setStatusFilter(statusFilter === 'approved' ? 'all' : 'approved'); setActiveView('all'); setPage(1); }}>
+                            <span className="font-inter font-bold text-[10px] tracking-wider uppercase text-slate-500 dark:text-slate-400 mt-0.5">Approved</span>
+                            <p className="font-inter font-extrabold text-2xl text-blue-500 dark:text-blue-400 m-0 mt-2">{counts.approved}</p>
                         </div>
-                        <p className="font-inter font-bold text-3xl text-emerald-500 m-0">{counts.active}</p>
-                    </div>
-                    <div className="bg-white dark:bg-[#1E2130] border border-slate-200 dark:border-white/10 rounded-xl p-5 shadow-sm flex flex-col gap-2 transition-transform hover:-translate-y-1 cursor-pointer" onClick={() => setStatusFilter(statusFilter === 'completed' ? 'all' : 'completed')} >
-                        <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', margin: '0 0 4px 0', minHeight: '24px' }}>
-                            <p className="font-inter font-semibold text-[11px] tracking-wider uppercase text-slate-500 dark:text-slate-400 m-0" style={{ margin: 0 }}>Completed</p>
+                        <div className={`group relative p-4 transition-all duration-200 hover:bg-slate-50/80 dark:hover:bg-white/[0.02] cursor-pointer flex flex-col justify-between min-h-[90px] ${statusFilter === 'active' ? 'bg-emerald-500/5 dark:bg-emerald-500/10' : ''}`} onClick={() => { setStatusFilter(statusFilter === 'active' ? 'all' : 'active'); setActiveView('all'); setPage(1); }}>
+                            <span className="font-inter font-bold text-[10px] tracking-wider uppercase text-slate-500 dark:text-slate-400 mt-0.5">On Going</span>
+                            <p className="font-inter font-extrabold text-2xl text-emerald-500 dark:text-emerald-400 m-0 mt-2">{counts.active}</p>
                         </div>
-                        <p className="font-inter font-bold text-3xl text-purple-500 m-0">{counts.completed}</p>
-                    </div>
-                    <div className="bg-white dark:bg-[#1E2130] border border-slate-200 dark:border-white/10 rounded-xl p-5 shadow-sm flex flex-col gap-2 transition-transform hover:-translate-y-1 cursor-pointer" onClick={() => setStatusFilter(statusFilter === 'rejected' ? 'all' : 'rejected')} >
-                        <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', margin: '0 0 4px 0', minHeight: '24px' }}>
-                            <p className="font-inter font-semibold text-[11px] tracking-wider uppercase text-slate-500 dark:text-slate-400 m-0" style={{ margin: 0 }}>Rejected</p>
+                        <div className={`group relative p-4 transition-all duration-200 hover:bg-slate-50/80 dark:hover:bg-white/[0.02] cursor-pointer flex flex-col justify-between min-h-[90px] ${statusFilter === 'completed' ? 'bg-purple-500/5 dark:bg-purple-500/10' : ''}`} onClick={() => { setStatusFilter(statusFilter === 'completed' ? 'all' : 'completed'); setActiveView(statusFilter === 'completed' ? 'all' : 'completed'); setPage(1); }}>
+                            <span className="font-inter font-bold text-[10px] tracking-wider uppercase text-slate-500 dark:text-slate-400 mt-0.5">Completed</span>
+                            <p className="font-inter font-extrabold text-2xl text-purple-500 dark:text-purple-400 m-0 mt-2">{counts.completed}</p>
                         </div>
-                        <p className="font-inter font-bold text-3xl text-rose-500 m-0">{counts.rejected}</p>
-                    </div>
-                    <div className="bg-white dark:bg-[#1E2130] border border-slate-200 dark:border-white/10 rounded-xl p-5 shadow-sm flex flex-col gap-2">
-                        <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', margin: '0 0 4px 0', minHeight: '24px' }}>
-                            <p className="font-inter font-semibold text-[11px] tracking-wider uppercase text-slate-500 dark:text-slate-400 m-0" style={{ margin: 0 }}>Total Income from Interest</p>
-                            <select value={interestFilter} onChange={e => setInterestFilter(e.target.value)} style={{ fontSize: '11px', padding: '2px 4px', borderRadius: '6px', border: '1px solid #D1D5DB', marginLeft: '8px' }}>
-                                <option value="all">All</option>
-                                <option value="2x">2x Savings</option>
-                                <option value="1.5x">1.5x Savings</option>
-                                <option value="1x">1x Savings</option>
-                            </select>
+                        <div className={`group relative p-4 transition-all duration-200 hover:bg-slate-50/80 dark:hover:bg-white/[0.02] cursor-pointer flex flex-col justify-between min-h-[90px] ${statusFilter === 'rejected' ? 'bg-rose-500/5 dark:bg-rose-500/10' : ''}`} onClick={() => { setStatusFilter(statusFilter === 'rejected' ? 'all' : 'rejected'); setActiveView('all'); setPage(1); }}>
+                            <span className="font-inter font-bold text-[10px] tracking-wider uppercase text-slate-500 dark:text-slate-400 mt-0.5">Rejected</span>
+                            <p className="font-inter font-extrabold text-2xl text-rose-500 dark:text-rose-400 m-0 mt-2">{counts.rejected}</p>
                         </div>
-                        <p className="font-inter font-bold text-2xl text-slate-800 dark:text-white m-0 truncate" style={{ color: '#ffffff' }} title={fmt(totalInterestFiltered)}>{fmt(totalInterestFiltered)}</p>
                     </div>
                 </div>
 
-                {/* Tabs */}
-                <div className="flex items-center gap-2 mb-6 border-b border-slate-200 dark:border-white/10 pb-2">
-                    <button
-                        onClick={() => { setActiveView('all'); setStatusFilter('all'); }}
-                        className={`px-4 py-2 text-[13px] font-semibold font-inter transition-colors border-b-2 -mb-[2px] ${activeView === 'all' ? 'border-blue-500 text-blue-600 dark:text-blue-400' : 'border-transparent text-slate-500 hover:text-slate-800 dark:text-slate-400 dark:hover:text-white'}`}
-                    >
-                        All Loans
-                    </button>
-                    <button
-                        onClick={() => { setActiveView('completed'); setStatusFilter('completed'); }}
-                        className={`px-4 py-2 flex items-center gap-2 text-[13px] font-semibold font-inter transition-colors border-b-2 -mb-[2px] ${activeView === 'completed' ? 'border-blue-500 text-blue-600 dark:text-blue-400' : 'border-transparent text-slate-500 hover:text-slate-800 dark:text-slate-400 dark:hover:text-white'}`}
-                    >
-                        Completed History
-                        {counts.completed > 0 && (
-                            <span className="bg-slate-100 dark:bg-white/10 text-slate-600 dark:text-slate-300 px-2 py-0.5 rounded-full text-[10px]">{counts.completed}</span>
-                        )}
-                    </button>
-                </div>
-
-                {/* Search + Filter */}
-                <div className="flex items-center justify-between gap-4 mb-6 max-md:flex-col">
-                    <div className="relative flex-1 max-w-[400px] w-full">
-                        
-                        <Search size={18}  /><input type="text" placeholder="Search by member name or loan ID..." value={searchQuery} onChange={(e) => setSearchQuery(e.target.value)} className="absolute left-4 top-1/2 -translate-y-1/2 text-slate-400 w-full h-10 pl-11 pr-4 py-2 bg-white dark:bg-[#1E2130] border border-slate-200 dark:border-white/10 rounded-lg text-sm font-inter text-slate-900 dark:text-white placeholder:text-slate-400 focus:outline-none focus:border-blue-500 transition-colors" />
-                    </div>
-                    {activeView === 'all' && (
-                        <select
-                            value={statusFilter}
-                            onChange={(e) => setStatusFilter(e.target.value)}
-                            className="h-10 px-4 bg-white dark:bg-[#1E2130] border border-slate-200 dark:border-white/10 rounded-lg text-sm font-inter text-slate-700 dark:text-slate-300 outline-none focus:border-blue-500 transition-colors cursor-pointer appearance-none pr-10 min-w-[160px]"
+                {/* Control Toolbar: Tabs + Search */}
+                <div className="flex flex-wrap items-center justify-between gap-4 border-b border-slate-200 dark:border-white/10 mb-4 pb-3">
+                    <div className="flex flex-wrap items-center gap-1.5 [&::-webkit-scrollbar]:hidden [-ms-overflow-style:none] [scrollbar-width:none]">
+                        <button
+                            onClick={() => { setActiveView('all'); setStatusFilter('all'); setPage(1); }}
+                            className={`px-3.5 py-2 text-[13px] font-semibold font-inter transition-colors border-b-2 -mb-[13px] whitespace-nowrap ${statusFilter === 'all' ? 'border-blue-500 text-blue-600 dark:text-blue-400' : 'border-transparent text-slate-500 hover:text-slate-800 dark:text-slate-400 dark:hover:text-white'}`}
                         >
-                            <option value="all">All Statuses</option>
-                            <option value="pending">Pending</option>
-                            <option value="approved">Approved</option>
-                            <option value="rejected">Rejected</option>
-                        </select>
-                    )}
+                            All Loans
+                        </button>
+                        <button
+                            onClick={() => { setActiveView('all'); setStatusFilter('pending'); setPage(1); }}
+                            className={`px-3.5 py-2 text-[13px] font-semibold font-inter transition-colors border-b-2 -mb-[13px] whitespace-nowrap ${statusFilter === 'pending' ? 'border-blue-500 text-blue-600 dark:text-blue-400' : 'border-transparent text-slate-500 hover:text-slate-800 dark:text-slate-400 dark:hover:text-white'}`}
+                        >
+                            Pending Review
+                        </button>
+                        <button
+                            onClick={() => { setActiveView('all'); setStatusFilter('approved'); setPage(1); }}
+                            className={`px-3.5 py-2 text-[13px] font-semibold font-inter transition-colors border-b-2 -mb-[13px] whitespace-nowrap ${statusFilter === 'approved' ? 'border-blue-500 text-blue-600 dark:text-blue-400' : 'border-transparent text-slate-500 hover:text-slate-800 dark:text-slate-400 dark:hover:text-white'}`}
+                        >
+                            Approved
+                        </button>
+                        <button
+                            onClick={() => { setActiveView('all'); setStatusFilter('active'); setPage(1); }}
+                            className={`px-3.5 py-2 text-[13px] font-semibold font-inter transition-colors border-b-2 -mb-[13px] whitespace-nowrap ${statusFilter === 'active' ? 'border-blue-500 text-blue-600 dark:text-blue-400' : 'border-transparent text-slate-500 hover:text-slate-800 dark:text-slate-400 dark:hover:text-white'}`}
+                        >
+                            On Going
+                        </button>
+                        <button
+                            onClick={() => { setActiveView('completed'); setStatusFilter('completed'); setPage(1); }}
+                            className={`px-3.5 py-2 text-[13px] font-semibold font-inter transition-colors border-b-2 -mb-[13px] whitespace-nowrap ${statusFilter === 'completed' ? 'border-blue-500 text-blue-600 dark:text-blue-400' : 'border-transparent text-slate-500 hover:text-slate-800 dark:text-slate-400 dark:hover:text-white'}`}
+                        >
+                            Completed
+                        </button>
+                        <button
+                            onClick={() => { setActiveView('all'); setStatusFilter('rejected'); setPage(1); }}
+                            className={`px-3.5 py-2 text-[13px] font-semibold font-inter transition-colors border-b-2 -mb-[13px] whitespace-nowrap ${statusFilter === 'rejected' ? 'border-blue-500 text-blue-600 dark:text-blue-400' : 'border-transparent text-slate-500 hover:text-slate-800 dark:text-slate-400 dark:hover:text-white'}`}
+                        >
+                            Rejected
+                        </button>
+                    </div>
+
+                    <div className="flex items-center gap-3 max-sm:w-full">
+                        <div className="relative max-w-[320px] w-full flex items-center">
+                            <Search size={16} className="absolute left-3 top-1/2 -translate-y-1/2 text-slate-400 pointer-events-none z-10" />
+                            <input
+                                type="text"
+                                placeholder="Search member or loan ID..."
+                                value={searchQuery}
+                                onChange={(e) => setSearchQuery(e.target.value)}
+                                className="w-full h-9 pl-9 pr-3 bg-white dark:bg-[#1E2130] border border-slate-200 dark:border-white/10 rounded-lg text-xs font-inter text-slate-900 dark:text-white placeholder:text-slate-400 focus:outline-none focus:border-blue-500 transition-colors shadow-sm"
+                            />
+                        </div>
+                    </div>
                 </div>
 
                 {/* Table */}
                 {activeView === 'all' ? (
-                    <div className="bg-white dark:bg-[#1E2130] border border-slate-200 dark:border-white/10 rounded-xl overflow-x-auto shadow-sm">
-                        <table className="w-full text-left border-collapse min-w-[900px]">
-                            <thead><tr>
-                                    <th className="bg-slate-50 dark:bg-black/20 border-b border-slate-200 dark:border-white/10 px-4 py-3 font-inter font-semibold text-[11px] tracking-wider uppercase text-slate-500 dark:text-slate-400">Loan ID</th>
-                                    <th className="bg-slate-50 dark:bg-black/20 border-b border-slate-200 dark:border-white/10 px-4 py-3 font-inter font-semibold text-[11px] tracking-wider uppercase text-slate-500 dark:text-slate-400">Member</th>
-                                    <th className="bg-slate-50 dark:bg-black/20 border-b border-slate-200 dark:border-white/10 px-4 py-3 font-inter font-semibold text-[11px] tracking-wider uppercase text-slate-500 dark:text-slate-400">Amount</th>
-                                    <th className="bg-slate-50 dark:bg-black/20 border-b border-slate-200 dark:border-white/10 px-4 py-3 font-inter font-semibold text-[11px] tracking-wider uppercase text-slate-500 dark:text-slate-400">Purpose</th>
-                                    <th className="bg-slate-50 dark:bg-black/20 border-b border-slate-200 dark:border-white/10 px-4 py-3 font-inter font-semibold text-[11px] tracking-wider uppercase text-slate-500 dark:text-slate-400">Applied Date</th>
-                                    <th className="bg-slate-50 dark:bg-black/20 border-b border-slate-200 dark:border-white/10 px-4 py-3 font-inter font-semibold text-[11px] tracking-wider uppercase text-slate-500 dark:text-slate-400">Status</th>
+                    <div className="bg-white dark:bg-[#1E2130] border border-slate-200 dark:border-white/10 rounded-xl overflow-x-auto shadow-sm min-h-[280px] flex flex-col justify-between">
+                        <table className="w-full text-left border-collapse min-w-[900px] table-fixed">
+                            <thead>
+                                <tr>
+                                    <th className="w-[15%] bg-slate-50 dark:bg-black/20 border-b border-slate-200 dark:border-white/10 px-3.5 py-2.5 font-inter font-semibold text-[10px] tracking-wider uppercase text-slate-500 dark:text-slate-400">Loan ID</th>
+                                    <th className="w-[28%] bg-slate-50 dark:bg-black/20 border-b border-slate-200 dark:border-white/10 px-3.5 py-2.5 font-inter font-semibold text-[10px] tracking-wider uppercase text-slate-500 dark:text-slate-400">Member</th>
+                                    <th className="w-[15%] bg-slate-50 dark:bg-black/20 border-b border-slate-200 dark:border-white/10 px-3.5 py-2.5 font-inter font-semibold text-[10px] tracking-wider uppercase text-slate-500 dark:text-slate-400">Amount</th>
+                                    <th className="w-[15%] bg-slate-50 dark:bg-black/20 border-b border-slate-200 dark:border-white/10 px-3.5 py-2.5 font-inter font-semibold text-[10px] tracking-wider uppercase text-slate-500 dark:text-slate-400">Purpose</th>
+                                    <th className="w-[14%] bg-slate-50 dark:bg-black/20 border-b border-slate-200 dark:border-white/10 px-3.5 py-2.5 font-inter font-semibold text-[10px] tracking-wider uppercase text-slate-500 dark:text-slate-400">Applied Date</th>
+                                    <th className="w-[13%] bg-slate-50 dark:bg-black/20 border-b border-slate-200 dark:border-white/10 px-3.5 py-2.5 font-inter font-semibold text-[10px] tracking-wider uppercase text-slate-500 dark:text-slate-400">Status</th>
                                 </tr>
                             </thead>
-                            <tbody>
+                            <tbody className="divide-y divide-slate-100 dark:divide-white/5">
                                 {loading ? (
                                     <tr>
-                                        <td colSpan={6} className="text-center p-10 text-slate-500 font-inter text-sm">
+                                        <td colSpan={6} className="text-center p-8 text-slate-500 font-inter text-xs">
                                             Loading loans…
                                         </td>
                                     </tr>
                                 ) : filteredLoans.length === 0 ? (
                                     <tr>
-                                        <td colSpan={6} className="text-center p-10 text-slate-500 font-inter text-sm">
+                                        <td colSpan={6} className="text-center p-8 text-slate-500 font-inter text-xs">
                                             No loans found
                                         </td>
                                     </tr>
                                 ) : (
                                     filteredLoans.map(loan => (
-                                        <tr key={loan._id} onClick={() => handleViewDetails(loan)} className="border-b border-slate-100 dark:border-white/5 hover:bg-slate-50 dark:hover:bg-white/5 transition-colors cursor-pointer group">
-                                            <td className="px-4 py-3 whitespace-nowrap font-inter text-sm font-semibold text-blue-600 dark:text-blue-400">{loan.loanId}</td>
-                                            <td className="px-4 py-3 whitespace-nowrap">
+                                        <tr key={loan._id} onClick={() => handleViewDetails(loan)} className="hover:bg-slate-50 dark:hover:bg-white/5 transition-colors cursor-pointer group h-11">
+                                            <td className="px-3.5 py-2 whitespace-nowrap font-inter text-xs font-semibold text-blue-600 dark:text-blue-400">{loan.loanId}</td>
+                                            <td className="px-3.5 py-2 whitespace-nowrap">
                                                 <div className="flex flex-col">
-                                                    <p className="font-inter text-sm font-semibold text-slate-800 dark:text-white m-0">{loan.memberName}</p>
-                                                    <p className="font-inter text-[11px] text-slate-500 dark:text-slate-400 m-0 mt-0.5">{loan.email}</p>
+                                                    <p className="font-inter text-xs font-semibold text-slate-800 dark:text-white m-0 truncate">{loan.memberName}</p>
+                                                    <p className="font-inter text-[10px] text-slate-500 dark:text-slate-400 m-0 truncate">{loan.email}</p>
                                                 </div>
                                             </td>
-                                            <td className="font-inter text-sm font-bold text-slate-800 dark:text-white">{fmt(loan.amount)}</td>
-                                            <td className="px-4 py-3 whitespace-nowrap">{loan.purpose}</td>
-                                            <td className="px-4 py-3 whitespace-nowrap">{fmtDate(loan.appliedDate)}</td>
-                                            <td className="px-4 py-3 whitespace-nowrap">
-                                                <span className={`inline-block px-2.5 py-1 rounded-md text-[11px] font-bold tracking-wide uppercase ${ resolveStatusClass(loan.status) === 'pending' ? 'bg-amber-100 text-amber-700 dark:bg-amber-500/20 dark:text-amber-400' : resolveStatusClass(loan.status) === 'approved' ? 'bg-emerald-100 text-emerald-700 dark:bg-emerald-500/20 dark:text-emerald-400' : resolveStatusClass(loan.status) === 'completed' ? 'bg-purple-100 text-purple-700 dark:bg-purple-500/20 dark:text-purple-400' : resolveStatusClass(loan.status) === 'rejected' ? 'bg-rose-100 text-rose-700 dark:bg-rose-500/20 dark:text-rose-400' : 'bg-blue-100 text-blue-700 dark:bg-blue-500/20 dark:text-blue-400'}`}>
+                                            <td className="px-3.5 py-2 whitespace-nowrap font-inter text-xs font-bold text-slate-800 dark:text-white">{fmt(loan.amount)}</td>
+                                            <td className="px-3.5 py-2 whitespace-nowrap text-xs text-slate-600 dark:text-slate-300 truncate">{loan.purpose}</td>
+                                            <td className="px-3.5 py-2 whitespace-nowrap text-xs text-slate-600 dark:text-slate-300">{fmtDate(loan.appliedDate)}</td>
+                                            <td className="px-3.5 py-2 whitespace-nowrap">
+                                                <span className={`inline-block px-2 py-0.5 rounded text-[10px] font-bold tracking-wide uppercase ${ resolveStatusClass(loan.status) === 'pending' ? 'bg-amber-100 text-amber-700 dark:bg-amber-500/20 dark:text-amber-400' : resolveStatusClass(loan.status) === 'approved' ? 'bg-emerald-100 text-emerald-700 dark:bg-emerald-500/20 dark:text-emerald-400' : resolveStatusClass(loan.status) === 'completed' ? 'bg-purple-100 text-purple-700 dark:bg-purple-500/20 dark:text-purple-400' : resolveStatusClass(loan.status) === 'rejected' ? 'bg-rose-100 text-rose-700 dark:bg-rose-500/20 dark:text-rose-400' : 'bg-blue-100 text-blue-700 dark:bg-blue-500/20 dark:text-blue-400'}`}>
                                                     {resolveStatusLabel(loan.status)}
                                                 </span>
                                             </td>
@@ -582,27 +633,28 @@ export default function LoanAdminLoanManagement() {
                         </table>
                     </div>
                 ) : (
-                    <div className="bg-white dark:bg-[#1E2130] border border-slate-200 dark:border-white/10 rounded-xl overflow-x-auto shadow-sm">
-                        <table className="w-full text-left border-collapse min-w-[900px]">
-                            <thead><tr>
-                                    <th className="bg-slate-50 dark:bg-black/20 border-b border-slate-200 dark:border-white/10 px-4 py-3 font-inter font-semibold text-[11px] tracking-wider uppercase text-slate-500 dark:text-slate-400">Loan ID</th>
-                                    <th className="bg-slate-50 dark:bg-black/20 border-b border-slate-200 dark:border-white/10 px-4 py-3 font-inter font-semibold text-[11px] tracking-wider uppercase text-slate-500 dark:text-slate-400">Member</th>
-                                    <th className="bg-slate-50 dark:bg-black/20 border-b border-slate-200 dark:border-white/10 px-4 py-3 font-inter font-semibold text-[11px] tracking-wider uppercase text-slate-500 dark:text-slate-400">Amount</th>
-                                    <th className="bg-slate-50 dark:bg-black/20 border-b border-slate-200 dark:border-white/10 px-4 py-3 font-inter font-semibold text-[11px] tracking-wider uppercase text-slate-500 dark:text-slate-400">Term</th>
-                                    <th className="bg-slate-50 dark:bg-black/20 border-b border-slate-200 dark:border-white/10 px-4 py-3 font-inter font-semibold text-[11px] tracking-wider uppercase text-slate-500 dark:text-slate-400">Total Repaid</th>
-                                    <th className="bg-slate-50 dark:bg-black/20 border-b border-slate-200 dark:border-white/10 px-4 py-3 font-inter font-semibold text-[11px] tracking-wider uppercase text-slate-500 dark:text-slate-400">Completed</th>
+                    <div className="bg-white dark:bg-[#1E2130] border border-slate-200 dark:border-white/10 rounded-xl overflow-x-auto shadow-sm min-h-[280px] flex flex-col justify-between">
+                        <table className="w-full text-left border-collapse min-w-[900px] table-fixed">
+                            <thead>
+                                <tr>
+                                    <th className="w-[15%] bg-slate-50 dark:bg-black/20 border-b border-slate-200 dark:border-white/10 px-3.5 py-2.5 font-inter font-semibold text-[10px] tracking-wider uppercase text-slate-500 dark:text-slate-400">Loan ID</th>
+                                    <th className="w-[28%] bg-slate-50 dark:bg-black/20 border-b border-slate-200 dark:border-white/10 px-3.5 py-2.5 font-inter font-semibold text-[10px] tracking-wider uppercase text-slate-500 dark:text-slate-400">Member</th>
+                                    <th className="w-[15%] bg-slate-50 dark:bg-black/20 border-b border-slate-200 dark:border-white/10 px-3.5 py-2.5 font-inter font-semibold text-[10px] tracking-wider uppercase text-slate-500 dark:text-slate-400">Amount</th>
+                                    <th className="w-[14%] bg-slate-50 dark:bg-black/20 border-b border-slate-200 dark:border-white/10 px-3.5 py-2.5 font-inter font-semibold text-[10px] tracking-wider uppercase text-slate-500 dark:text-slate-400">Term</th>
+                                    <th className="w-[15%] bg-slate-50 dark:bg-black/20 border-b border-slate-200 dark:border-white/10 px-3.5 py-2.5 font-inter font-semibold text-[10px] tracking-wider uppercase text-slate-500 dark:text-slate-400">Total Repaid</th>
+                                    <th className="w-[13%] bg-slate-50 dark:bg-black/20 border-b border-slate-200 dark:border-white/10 px-3.5 py-2.5 font-inter font-semibold text-[10px] tracking-wider uppercase text-slate-500 dark:text-slate-400">Completed</th>
                                 </tr>
                             </thead>
-                            <tbody>
+                            <tbody className="divide-y divide-slate-100 dark:divide-white/5">
                                 {loading ? (
                                     <tr>
-                                        <td colSpan={6} className="text-center p-10 text-slate-500 font-inter text-sm">
+                                        <td colSpan={6} className="text-center p-8 text-slate-500 font-inter text-xs">
                                             Loading…
                                         </td>
                                     </tr>
                                 ) : filteredLoans.length === 0 ? (
                                     <tr>
-                                        <td colSpan={6} className="text-center p-10 text-slate-500 font-inter text-sm">
+                                        <td colSpan={6} className="text-center p-8 text-slate-500 font-inter text-xs">
                                             No completed loans found
                                         </td>
                                     </tr>
@@ -612,7 +664,7 @@ export default function LoanAdminLoanManagement() {
                                         return (
                                             <Fragment key={loan._id}>
                                                 <tr
-                                                    className={`border-b border-slate-100 dark:border-white/5 hover:bg-slate-50 dark:hover:bg-white/5 transition-colors cursor-pointer group ${isExpanded ? 'bg-slate-50 dark:bg-white/5 border-l-4 border-l-blue-500' : ''}`}
+                                                    className={`hover:bg-slate-50 dark:hover:bg-white/5 transition-colors cursor-pointer group h-11 ${isExpanded ? 'bg-slate-50 dark:bg-white/5 border-l-4 border-l-blue-500' : ''}`}
                                                     onClick={async () => {
                                                         if (isExpanded) {
                                                             setExpandedLoanId(null);
@@ -630,43 +682,44 @@ export default function LoanAdminLoanManagement() {
                                                         finally { setExpandedLoading(false); }
                                                     }}
                                                 >
-                                                    <td className="px-4 py-3 whitespace-nowrap font-inter text-sm font-semibold text-blue-600 dark:text-blue-400">{loan.loanId}</td>
-                                                    <td className="px-4 py-3 whitespace-nowrap">
+                                                    <td className="px-3.5 py-2 whitespace-nowrap font-inter text-xs font-semibold text-blue-600 dark:text-blue-400">{loan.loanId}</td>
+                                                    <td className="px-3.5 py-2 whitespace-nowrap">
                                                         <div className="flex flex-col">
-                                                            <p className="font-inter text-sm font-semibold text-slate-800 dark:text-white m-0">{loan.memberName}</p>
-                                                            <p className="font-inter text-[11px] text-slate-500 dark:text-slate-400 m-0 mt-0.5">{loan.email}</p>
+                                                            <p className="font-inter text-xs font-semibold text-slate-800 dark:text-white m-0 truncate">{loan.memberName}</p>
+                                                            <p className="font-inter text-[10px] text-slate-500 dark:text-slate-400 m-0 truncate">{loan.email}</p>
                                                         </div>
                                                     </td>
-                                                    <td className="font-inter text-sm font-bold text-slate-800 dark:text-white">{fmt(loan.amount)}</td>
-                                                    <td className="px-4 py-3 whitespace-nowrap">{loan.termMonths} months</td>
-                                                    <td className="font-inter text-sm font-bold text-emerald-600 dark:text-emerald-400">{fmt(loan.totalRepayment)}</td>
-                                                    <td className="px-4 py-3 whitespace-nowrap">{fmtDate(loan.completedDate || loan.updatedAt)}</td>
+                                                    <td className="px-3.5 py-2 whitespace-nowrap font-inter text-xs font-bold text-slate-800 dark:text-white">{fmt(loan.amount)}</td>
+                                                    <td className="px-3.5 py-2 whitespace-nowrap text-xs text-slate-600 dark:text-slate-300">{loan.termMonths} months</td>
+                                                    <td className="px-3.5 py-2 whitespace-nowrap font-inter text-xs font-bold text-emerald-600 dark:text-emerald-400">{fmt(loan.totalRepayment)}</td>
+                                                    <td className="px-3.5 py-2 whitespace-nowrap text-xs text-slate-600 dark:text-slate-300">{fmtDate(loan.completedDate || loan.updatedAt)}</td>
                                                 </tr>
                                                 {isExpanded && (
                                                     <tr className="bg-slate-50 dark:bg-black/20 border-b border-slate-200 dark:border-white/10">
                                                         <td colSpan={6}>
-                                                            <div className="p-6">
-                                                                <p className="font-inter text-[13px] font-bold text-slate-800 dark:text-white mb-3 m-0 uppercase tracking-wide">Payment History — {loan.loanId}</p>
+                                                            <div className="p-4">
+                                                                <p className="font-inter text-xs font-bold text-slate-800 dark:text-white mb-2 m-0 uppercase tracking-wide">Payment History — {loan.loanId}</p>
                                                                 {expandedLoading ? (
-                                                                    <p className="text-[13px] text-slate-500 font-inter italic">Loading payments...</p>
+                                                                    <p className="text-xs text-slate-500 font-inter italic">Loading payments...</p>
                                                                 ) : expandedPayments.length === 0 ? (
-                                                                    <p className="text-[13px] text-slate-500 font-inter italic">No payment records found</p>
+                                                                    <p className="text-xs text-slate-500 font-inter italic">No payment records found</p>
                                                                 ) : (
                                                                     <table className="w-full text-left border-collapse bg-white dark:bg-[#1E2130] border border-slate-200 dark:border-white/10 rounded-lg overflow-hidden">
-                                                                        <thead><tr>
-                                                                                <th className="bg-slate-50 dark:bg-black/20 border-b border-slate-200 dark:border-white/10 px-4 py-3 font-inter font-semibold text-[11px] tracking-wider uppercase text-slate-500 dark:text-slate-400">Date</th>
-                                                                                <th className="bg-slate-50 dark:bg-black/20 border-b border-slate-200 dark:border-white/10 px-4 py-3 font-inter font-semibold text-[11px] tracking-wider uppercase text-slate-500 dark:text-slate-400">Amount</th>
-                                                                                <th className="bg-slate-50 dark:bg-black/20 border-b border-slate-200 dark:border-white/10 px-4 py-3 font-inter font-semibold text-[11px] tracking-wider uppercase text-slate-500 dark:text-slate-400">Method</th>
-                                                                                <th className="bg-slate-50 dark:bg-black/20 border-b border-slate-200 dark:border-white/10 px-4 py-3 font-inter font-semibold text-[11px] tracking-wider uppercase text-slate-500 dark:text-slate-400">Type</th>
+                                                                        <thead>
+                                                                            <tr>
+                                                                                <th className="bg-slate-50 dark:bg-black/20 border-b border-slate-200 dark:border-white/10 px-3 py-2 font-inter font-semibold text-[10px] tracking-wider uppercase text-slate-500 dark:text-slate-400">Date</th>
+                                                                                <th className="bg-slate-50 dark:bg-black/20 border-b border-slate-200 dark:border-white/10 px-3 py-2 font-inter font-semibold text-[10px] tracking-wider uppercase text-slate-500 dark:text-slate-400">Amount</th>
+                                                                                <th className="bg-slate-50 dark:bg-black/20 border-b border-slate-200 dark:border-white/10 px-3 py-2 font-inter font-semibold text-[10px] tracking-wider uppercase text-slate-500 dark:text-slate-400">Method</th>
+                                                                                <th className="bg-slate-50 dark:bg-black/20 border-b border-slate-200 dark:border-white/10 px-3 py-2 font-inter font-semibold text-[10px] tracking-wider uppercase text-slate-500 dark:text-slate-400">Type</th>
                                                                             </tr>
                                                                         </thead>
                                                                         <tbody>
                                                                             {expandedPayments.map((p, i) => (
                                                                                 <tr key={p._id || i}>
-                                                                                    <td className="px-4 py-3 whitespace-nowrap">{fmtDate(p.confirmedAt || p.submittedAt)}</td>
-                                                                                    <td className="px-4 py-3 whitespace-nowrap font-inter text-sm font-bold text-emerald-600 dark:text-emerald-400">{fmt(p.amount)}</td>
-                                                                                    <td className="px-4 py-3 whitespace-nowrap font-inter text-[13px] text-slate-600 dark:text-slate-300 capitalize">{p.paymentMethod || 'cash'}</td>
-                                                                                    <td className="px-4 py-3 whitespace-nowrap">
+                                                                                    <td className="px-3 py-2 whitespace-nowrap text-xs">{fmtDate(p.confirmedAt || p.submittedAt)}</td>
+                                                                                    <td className="px-3 py-2 whitespace-nowrap font-inter text-xs font-bold text-emerald-600 dark:text-emerald-400">{fmt(p.amount)}</td>
+                                                                                    <td className="px-3 py-2 whitespace-nowrap font-inter text-xs text-slate-600 dark:text-slate-300 capitalize">{p.paymentMethod || 'cash'}</td>
+                                                                                    <td className="px-3 py-2 whitespace-nowrap">
                                                                                         <span className={`inline-block px-2 py-0.5 rounded text-[10px] font-bold uppercase tracking-wider ${p.paymentType === 'full' ? 'bg-purple-100 text-purple-700 dark:bg-purple-500/20 dark:text-purple-400' : p.paymentType === 'advance' ? 'bg-blue-100 text-blue-700 dark:bg-blue-500/20 dark:text-blue-400' : 'bg-slate-100 text-slate-600 dark:bg-slate-800 dark:text-slate-300'}`}>
                                                                                             {p.paymentType || 'regular'}{p.monthsCovered > 1 ? ` (${p.monthsCovered}mo)` : ''}
                                                                                         </span>
@@ -690,40 +743,137 @@ export default function LoanAdminLoanManagement() {
                 )}
 
                 {/* Pagination */}
-                <div className="flex items-center justify-between mt-4 p-[12px_16px] bg-white dark:bg-[#1E2130] rounded-xl border border-slate-200 dark:border-white/10 shadow-sm">
-                    <p className="font-inter text-[13px] text-slate-500 dark:text-slate-400 m-0">Showing {filteredLoans.length} results</p>
-                </div>
+                <Pagination
+                    currentPage={page}
+                    totalPages={totalPages}
+                    onPageChange={(newPage) => setPage(newPage)}
+                    totalItems={totalCount}
+                    itemsPerPage={LIMIT}
+                    itemName="loans"
+                />
             </div>
 
-            {/* ══ Approve Confirm Modal ══ */}
+            {/* ══ Approve / Propose Terms Confirm Modal ══ */}
             {showApproveModal && selectedLoan && (
-                <div className="fixed inset-0 bg-black/50 backdrop-blur-sm flex items-center justify-center z-[1000] p-4" onClick={() => setShowApproveModal(false)}>
-                    <div className="bg-white dark:bg-[#1E2130] rounded-2xl w-full max-w-[420px] p-8 shadow-2xl flex flex-col border border-slate-200 dark:border-white/10" onClick={(e) => e.stopPropagation()}>
-                        <div className="w-16 h-16 rounded-full bg-emerald-50 dark:bg-emerald-500/10 flex items-center justify-center mx-auto">
-                            <CheckCircle size={32} color="#00A63E" />
-                        </div>
-                        <h2 className="font-inter text-xl font-bold text-slate-800 dark:text-white mt-4 mb-2 text-center">Approve Loan?</h2>
-                        <p className="font-inter text-sm text-slate-500 dark:text-slate-400 text-center mb-6">
-                            Are you sure you want to approve loan <strong>{selectedLoan.loanId}</strong> for {selectedLoan.memberName}?
-                        </p>
-                        <div className="bg-slate-50 dark:bg-black/20 rounded-xl p-4 flex flex-col gap-3 mb-6 border border-slate-100 dark:border-white/5">
-                            <div className="flex items-center justify-between">
-                                <span className="font-inter text-[13px] text-slate-500 dark:text-slate-400">Amount</span>
-                                <span className="font-inter text-[13px] font-bold text-blue-600 dark:text-blue-400">{fmt(selectedLoan.amount)}</span>
+                (() => {
+                    const amtDiff = Number(approvedAmount) !== Number(selectedLoan.amount);
+                    const termDiff = Number(repaymentTerm) !== Number(selectedLoan.termMonths);
+                    const isTermsModified = (amtDiff || termDiff) && !selectedLoan.memberApprovedTerms;
+
+                    return (
+                        <div className="fixed inset-0 bg-black/50 backdrop-blur-sm flex items-center justify-center z-[1000] p-4" onClick={() => setShowApproveModal(false)}>
+                            <div className="bg-white dark:bg-[#1E2130] rounded-2xl w-full max-w-[480px] p-6 shadow-2xl flex flex-col border border-slate-200 dark:border-white/10" onClick={(e) => e.stopPropagation()}>
+                                
+                                {isTermsModified ? (
+                                    <>
+                                        <div className="w-14 h-14 rounded-full bg-amber-50 dark:bg-amber-500/10 flex items-center justify-center mx-auto mb-2">
+                                            <Edit3 size={28} className="text-amber-600 dark:text-amber-400" />
+                                        </div>
+                                        <h2 className="font-inter text-lg font-bold text-slate-800 dark:text-white mb-1 text-center">
+                                            Proposed Loan Terms Confirmation
+                                        </h2>
+                                        <p className="font-inter text-xs text-slate-500 dark:text-slate-400 text-center mb-4">
+                                            You modified the original loan terms. The new proposed terms will be sent to <strong>{selectedLoan.memberName}</strong> for review and approval first.
+                                        </p>
+
+                                        {/* Comparison Box */}
+                                        <div className="bg-slate-50 dark:bg-black/20 rounded-xl p-4 border border-slate-200/80 dark:border-white/5 space-y-3 mb-4">
+                                            <div className="text-[11px] font-bold uppercase tracking-wider text-slate-400">
+                                                Terms Comparison
+                                            </div>
+
+                                            {/* Amount row */}
+                                            <div className="flex items-center justify-between text-xs">
+                                                <span className="text-slate-500 dark:text-slate-400">Loan Amount:</span>
+                                                <div className="flex items-center gap-2">
+                                                    <span className={`font-semibold ${amtDiff ? 'line-through text-slate-400' : 'text-slate-700 dark:text-slate-300'}`}>
+                                                        {fmt(selectedLoan.amount)}
+                                                    </span>
+                                                    {amtDiff && (
+                                                        <span className="font-bold text-amber-600 dark:text-amber-400 bg-amber-100 dark:bg-amber-500/20 px-2 py-0.5 rounded">
+                                                            ➔ {fmt(approvedAmount)}
+                                                        </span>
+                                                    )}
+                                                </div>
+                                            </div>
+
+                                            {/* Term months row */}
+                                            <div className="flex items-center justify-between text-xs">
+                                                <span className="text-slate-500 dark:text-slate-400">Repayment Term:</span>
+                                                <div className="flex items-center gap-2">
+                                                    <span className={`font-semibold ${termDiff ? 'line-through text-slate-400' : 'text-slate-700 dark:text-slate-300'}`}>
+                                                        {selectedLoan.termMonths} mos
+                                                    </span>
+                                                    {termDiff && (
+                                                        <span className="font-bold text-amber-600 dark:text-amber-400 bg-amber-100 dark:bg-amber-500/20 px-2 py-0.5 rounded">
+                                                            ➔ {repaymentTerm} mos
+                                                        </span>
+                                                    )}
+                                                </div>
+                                            </div>
+
+                                            {/* Calculated monthly */}
+                                            <div className="flex items-center justify-between text-xs pt-2 border-t border-slate-200/60 dark:border-white/5">
+                                                <span className="text-slate-500 dark:text-slate-400">New Monthly Payment:</span>
+                                                <span className="font-bold text-slate-900 dark:text-white">
+                                                    {fmt(calc?.monthly)} / mo
+                                                </span>
+                                            </div>
+                                        </div>
+
+                                        {/* Notice Banner */}
+                                        <div className="p-3 bg-amber-50 dark:bg-amber-500/10 border border-amber-200 dark:border-amber-500/20 rounded-xl mb-5 flex items-start gap-2.5">
+                                            <AlertCircle size={18} className="text-amber-600 dark:text-amber-400 shrink-0 mt-0.5" />
+                                            <div className="font-inter text-[12px] text-amber-800 dark:text-amber-300 leading-snug">
+                                                <strong>Member Notification:</strong> The user will receive an in-app & email notification to accept or decline these modified terms before the loan can proceed to final approval.
+                                            </div>
+                                        </div>
+
+                                        <div className="flex items-center gap-3 w-full">
+                                            <button className="flex-1 px-4 py-2.5 bg-slate-100 dark:bg-white/5 text-slate-700 dark:text-slate-300 font-inter text-[13px] font-semibold rounded-lg hover:bg-slate-200 dark:hover:bg-white/10 transition-colors border-none cursor-pointer" onClick={() => setShowApproveModal(false)}>
+                                                Cancel
+                                            </button>
+                                            <button className="flex-1 px-4 py-2.5 bg-amber-500 hover:bg-amber-600 text-white font-inter text-[13px] font-semibold rounded-lg transition-colors border-none cursor-pointer flex items-center justify-center gap-1.5 shadow-sm disabled:opacity-50 disabled:cursor-not-allowed" onClick={confirmApprove} disabled={!!actionLoading}>
+                                                {actionLoading ? <Loader2 className="animate-spin" size={16} /> : <><Send size={15} /> Send to Member</>}
+                                            </button>
+                                        </div>
+                                    </>
+                                ) : (
+                                    <>
+                                        <div className="w-14 h-14 rounded-full bg-emerald-50 dark:bg-emerald-500/10 flex items-center justify-center mx-auto mb-2">
+                                            <CheckCircle size={28} className="text-emerald-600 dark:text-emerald-400" />
+                                        </div>
+                                        <h2 className="font-inter text-lg font-bold text-slate-800 dark:text-white mb-1 text-center">Approve Loan Request?</h2>
+                                        <p className="font-inter text-xs text-slate-500 dark:text-slate-400 text-center mb-5">
+                                            Are you sure you want to approve loan <strong>{selectedLoan.loanId}</strong> for {selectedLoan.memberName}?
+                                        </p>
+                                        <div className="bg-slate-50 dark:bg-black/20 rounded-xl p-4 flex flex-col gap-2.5 mb-6 border border-slate-100 dark:border-white/5">
+                                            <div className="flex items-center justify-between text-xs">
+                                                <span className="text-slate-500 dark:text-slate-400">Approved Amount:</span>
+                                                <span className="font-bold text-emerald-600 dark:text-emerald-400">{fmt(approvedAmount)}</span>
+                                            </div>
+                                            <div className="flex items-center justify-between text-xs">
+                                                <span className="text-slate-500 dark:text-slate-400">Repayment Term:</span>
+                                                <span className="font-semibold text-slate-800 dark:text-white">{repaymentTerm} months</span>
+                                            </div>
+                                            <div className="flex items-center justify-between text-xs pt-2 border-t border-slate-200/60 dark:border-white/5">
+                                                <span className="text-slate-500 dark:text-slate-400">Monthly Payment:</span>
+                                                <span className="font-bold text-slate-900 dark:text-white">{fmt(calc?.monthly)}</span>
+                                            </div>
+                                        </div>
+                                        <div className="flex items-center gap-3 w-full">
+                                            <button className="flex-1 px-4 py-2.5 bg-slate-100 dark:bg-white/5 text-slate-700 dark:text-slate-300 font-inter text-[13px] font-semibold rounded-lg hover:bg-slate-200 dark:hover:bg-white/10 transition-colors border-none cursor-pointer" onClick={() => setShowApproveModal(false)}>Cancel</button>
+                                            <button className="flex-1 px-4 py-2.5 bg-emerald-500 text-white font-inter text-[13px] font-semibold rounded-lg hover:bg-emerald-600 transition-colors border-none cursor-pointer flex items-center justify-center gap-1.5 disabled:opacity-50 disabled:cursor-not-allowed" onClick={confirmApprove} disabled={!!actionLoading}>
+                                                {actionLoading ? <Loader2 className="animate-spin" size={16} /> : 'Confirm Approval'}
+                                            </button>
+                                        </div>
+                                    </>
+                                )}
+
                             </div>
-                            <div className="flex items-center justify-between">
-                                <span className="font-inter text-[13px] text-slate-500 dark:text-slate-400">Purpose</span>
-                                <span className="font-inter text-[13px] font-semibold text-slate-800 dark:text-white">{selectedLoan.purpose}</span>
-                            </div>
                         </div>
-                        <div className="flex items-center gap-3 w-full">
-                            <button className="flex-1 px-4 py-2.5 bg-slate-100 dark:bg-white/5 text-slate-700 dark:text-slate-300 font-inter text-[13px] font-semibold rounded-lg hover:bg-slate-200 dark:hover:bg-white/10 transition-colors border-none cursor-pointer" onClick={() => setShowApproveModal(false)}>Cancel</button>
-                            <button className="flex-1 px-4 py-2.5 bg-emerald-500 text-white font-inter text-[13px] font-semibold rounded-lg hover:bg-emerald-600 transition-colors border-none cursor-pointer disabled:opacity-50 disabled:cursor-not-allowed" onClick={confirmApprove} disabled={!!actionLoading}>
-                                {actionLoading ? <Loader2 className="animate-spin" size={16} /> : 'Approve Loan'}
-                            </button>
-                        </div>
-                    </div>
-                </div>
+                    );
+                })()
             )}
 
             {/* ══ Reject Confirm Modal ══ */}
@@ -768,7 +918,7 @@ export default function LoanAdminLoanManagement() {
                                 Cancel
                             </button>
                             <button
-                                className="flex-1 px-4 py-2.5 bg-rose-500 text-white font-inter text-[13px] font-semibold rounded-lg hover:bg-rose-600 transition-colors border-none cursor-pointer disabled:opacity-50 disabled:cursor-not-allowed"
+                                className="flex-1 px-4 py-2.5 bg-rose-500 text-white font-inter text-[13px] font-semibold rounded-lg hover:bg-rose-600 transition-colors border-none cursor-pointer flex items-center justify-center gap-1.5 disabled:opacity-50 disabled:cursor-not-allowed"
                                 onClick={confirmReject}
                                 disabled={!rejectReason.trim() || !!actionLoading}
                             >
@@ -782,7 +932,7 @@ export default function LoanAdminLoanManagement() {
             {/* ══════════ DETAILS MODAL — HTML reference layout ══════════ */}
             {showDetailsModal && selectedLoan && (
                 <div className="fixed inset-0 bg-black/50 backdrop-blur-sm flex items-center justify-center z-[1000] p-4" onClick={() => setShowDetailsModal(false)}>
-                    <div className="bg-white dark:bg-[#1E2130] rounded-2xl w-full max-w-[800px] shadow-2xl flex flex-col border border-slate-200 dark:border-white/10 max-h-[90vh] overflow-hidden" onClick={(e) => e.stopPropagation()}>
+                    <div className="bg-white dark:bg-[#1E2130] rounded-2xl w-full max-w-[1240px] shadow-2xl flex flex-col border border-slate-200 dark:border-white/10 max-h-[90vh] overflow-hidden" onClick={(e) => e.stopPropagation()}>
 
                         {/* ── Header ── */}
                         <div className="flex items-start justify-between p-[20px_24px] border-b border-slate-200 dark:border-white/10 shrink-0">
@@ -812,35 +962,48 @@ export default function LoanAdminLoanManagement() {
                                 </span>
                             </div>
 
-                            <div className="grid grid-cols-1 md:grid-cols-12 gap-6">
-                                {/* ── LEFT COLUMN ── */}
-                                <div className="md:col-span-7 flex flex-col gap-6">
+                            {/* Member Decline Reason Banner (if member declined previously proposed terms) */}
+                            {selectedLoan.declineReason && (
+                                <div className="flex items-start gap-3 p-3.5 rounded-xl bg-amber-50 dark:bg-amber-500/10 border border-amber-200 dark:border-amber-500/20 text-amber-900 dark:text-amber-300 font-inter text-xs shadow-sm">
+                                    <AlertTriangle size={18} className="shrink-0 mt-0.5 text-amber-600 dark:text-amber-400" />
+                                    <div className="flex flex-col gap-0.5">
+                                        <span className="font-bold text-[13px] text-amber-800 dark:text-amber-300">Member Declined Previous Proposed Terms</span>
+                                        <span className="text-[12px] text-slate-700 dark:text-slate-300">
+                                            Reason: <strong className="text-amber-900 dark:text-amber-200">"{selectedLoan.declineReason}"</strong>
+                                        </span>
+                                    </div>
+                                </div>
+                            )}
+
+                            <div className="grid grid-cols-1 lg:grid-cols-3 gap-4">
+                                {/* ── COLUMN 1: Primary Action & Loan Terms (Most Important) ── */}
+                                <div className="flex flex-col gap-4">
                                     {/* Member Information */}
                                     <div>
-                                        <div className="font-inter text-[11px] font-semibold uppercase tracking-wider text-slate-500 dark:text-slate-400 m-0 mb-3">Member information</div>
-                                        <div className="grid grid-cols-2 gap-4 bg-slate-50 dark:bg-[#252836] p-4 rounded-xl border border-slate-200 dark:border-white/5">
+                                        <div className="font-inter text-[11px] font-bold uppercase tracking-wider text-slate-500 dark:text-slate-400 m-0 mb-1.5">Member information</div>
+                                        <div className="grid grid-cols-2 gap-x-3 gap-y-2.5 bg-slate-50 dark:bg-[#252836] p-4 rounded-xl border border-slate-200 dark:border-white/5 shadow-sm">
                                             <div className="flex flex-col gap-0.5">
-                                                <div className="font-inter text-[11px] text-slate-500 dark:text-slate-400">Member name</div>
-                                                <div className="font-inter text-[13px] font-semibold text-slate-800 dark:text-white">{selectedLoan.memberName}</div>
+                                                <div className="font-inter text-[11px] font-medium text-slate-400 dark:text-slate-400">Member name</div>
+                                                <div className="font-inter text-[14px] font-bold text-slate-900 dark:text-white truncate">{selectedLoan.memberName}</div>
+                                            </div>
+                                            <div className="flex flex-col gap-0.5 overflow-hidden">
+                                                <div className="font-inter text-[11px] font-medium text-slate-400 dark:text-slate-400">Email address</div>
+                                                <div className="font-inter text-[13px] font-semibold text-slate-800 dark:text-slate-200 truncate" title={selectedLoan.email}>{selectedLoan.email}</div>
                                             </div>
                                             <div className="flex flex-col gap-0.5">
-                                                <div className="font-inter text-[11px] text-slate-500 dark:text-slate-400">Email address</div>
-                                                <div className="font-inter text-[13px] font-semibold text-slate-800 dark:text-white break-all">{selectedLoan.email}</div>
+                                                <div className="font-inter text-[11px] font-medium text-slate-400 dark:text-slate-400">Applied date</div>
+                                                <div className="font-inter text-[13px] font-semibold text-slate-800 dark:text-slate-200">{fmtDate(selectedLoan.appliedDate)}</div>
                                             </div>
                                             <div className="flex flex-col gap-0.5">
-                                                <div className="font-inter text-[11px] text-slate-500 dark:text-slate-400">Applied date</div>
-                                                <div className="font-inter text-[13px] font-semibold text-slate-800 dark:text-white">{fmtDate(selectedLoan.appliedDate)}</div>
-                                            </div>
-                                            <div className="flex flex-col gap-0.5">
-                                                <div className="font-inter text-[11px] text-slate-500 dark:text-slate-400">Member savings</div>
-                                                <div className="font-inter text-[13px] font-bold text-emerald-600 dark:text-emerald-400">{fmt(memberSavings)}</div>
+                                                <div className="font-inter text-[11px] font-medium text-slate-400 dark:text-slate-400">Member savings</div>
+                                                <div className="font-inter text-[15px] font-bold text-emerald-600 dark:text-emerald-400">{fmt(memberSavings)}</div>
                                             </div>
                                         </div>
                                     </div>
 
                                     {/* Requested Loan Type */}
                                     <div>
-                                        <div className="font-inter text-[11px] font-semibold uppercase tracking-wider text-slate-500 dark:text-slate-400 m-0 mb-3">Requested loan type</div>
+                                        <div className="font-inter text-[11px] font-bold uppercase tracking-wider text-slate-500 dark:text-slate-400 m-0 mb-1.5">Requested loan type</div>
                                         <div className={`flex items-center justify-between p-4 rounded-xl border ${pillClass === 'emergency' ? 'bg-amber-50 border-amber-200 dark:bg-amber-500/10 dark:border-amber-500/20' : pillClass === 'short-term' ? 'bg-teal-50 border-teal-200 dark:bg-teal-500/10 dark:border-teal-500/20' : 'bg-blue-50 border-blue-200 dark:bg-blue-500/10 dark:border-blue-500/20'}`}>
                                             <div style={{ flex: 1 }}>
                                                 <div className={`font-inter text-sm font-bold m-0 ${pillClass === 'emergency' ? 'text-amber-800 dark:text-amber-400' : pillClass === 'short-term' ? 'text-teal-800 dark:text-teal-400' : 'text-blue-800 dark:text-blue-400'}`}>
@@ -859,7 +1022,7 @@ export default function LoanAdminLoanManagement() {
                                         </div>
                                     </div>
 
-                                    {/* Admin — set repayment terms (MOVED HERE) */}
+                                    {/* Admin — set repayment terms */}
                                     <div className="bg-slate-50 dark:bg-[#252836] border border-slate-200 dark:border-white/5 rounded-xl p-4 flex flex-col gap-3">
                                         <div className="font-inter text-[12px] font-semibold text-slate-700 dark:text-slate-300">
                                             Admin — Set Repayment Terms
@@ -913,7 +1076,7 @@ export default function LoanAdminLoanManagement() {
                                         )}
                                     </div>
 
-                                    {/* Disbursement Method (MOVED HERE) */}
+                                    {/* Disbursement Method */}
                                     <div>
                                         <div className="font-inter text-[11px] font-semibold uppercase tracking-wider text-slate-500 dark:text-slate-400 m-0 mb-3">Disbursement method</div>
                                         <div className="flex items-center gap-3">
@@ -937,104 +1100,21 @@ export default function LoanAdminLoanManagement() {
                                             </p>
                                         )}
                                     </div>
-
-                                    {/* Uploaded Documents (MOVED HERE) */}
-                                    <div>
-                                        <div className="font-inter text-[11px] font-semibold uppercase tracking-wider text-slate-500 dark:text-slate-400 m-0 mb-3">Uploaded documents</div>
-                                        <div className="grid grid-cols-2 gap-4 mt-2">
-                                            {/* Selfie with ID */}
-                                            <div className="bg-white dark:bg-[#252836] border border-slate-200 dark:border-white/5 rounded-xl overflow-hidden flex flex-col cursor-pointer transition-transform hover:-translate-y-1 hover:shadow-md" onClick={() => handleDocClick(selectedLoan.selfieData, setViewingImage)}>
-                                                <div className="h-28 bg-slate-100 dark:bg-black/20 flex items-center justify-center overflow-hidden border-b border-slate-200 dark:border-white/5">
-                                                    {renderDocPreview(selectedLoan.selfieData)}
-                                                </div>
-                                                <div className="p-2.5 flex items-center justify-between">
-                                                    <span className="font-inter text-[11px] font-semibold text-slate-700 dark:text-slate-300">Selfie w/ ID</span>
-                                                    <span className={`text-[10px] font-bold px-1.5 py-0.5 rounded ${selectedLoan.selfieData ? 'bg-emerald-100 text-emerald-700 dark:bg-emerald-500/20 dark:text-emerald-400' : 'bg-rose-100 text-rose-700 dark:bg-rose-500/20 dark:text-rose-400'}`}>
-                                                        {selectedLoan.selfieData ? 'OK' : 'X'}
-                                                    </span>
-                                                </div>
-                                            </div>
-
-                                            {/* Government ID */}
-                                            <div className="bg-white dark:bg-[#252836] border border-slate-200 dark:border-white/5 rounded-xl overflow-hidden flex flex-col cursor-pointer transition-transform hover:-translate-y-1 hover:shadow-md" onClick={() => handleDocClick(selectedLoan.idData, setViewingImage)}>
-                                                <div className="h-28 bg-slate-100 dark:bg-black/20 flex items-center justify-center overflow-hidden border-b border-slate-200 dark:border-white/5">
-                                                    {renderDocPreview(selectedLoan.idData)}
-                                                </div>
-                                                <div className="p-2.5 flex items-center justify-between">
-                                                    <span className="font-inter text-[11px] font-semibold text-slate-700 dark:text-slate-300">Valid ID</span>
-                                                    <span className={`text-[10px] font-bold px-1.5 py-0.5 rounded ${selectedLoan.idData ? 'bg-emerald-100 text-emerald-700 dark:bg-emerald-500/20 dark:text-emerald-400' : 'bg-rose-100 text-rose-700 dark:bg-rose-500/20 dark:text-rose-400'}`}>
-                                                        {selectedLoan.idData ? 'OK' : 'X'}
-                                                    </span>
-                                                </div>
-                                            </div>
-
-                                            {/* COE */}
-                                            <div className="bg-white dark:bg-[#252836] border border-slate-200 dark:border-white/5 rounded-xl overflow-hidden flex flex-col cursor-pointer transition-transform hover:-translate-y-1 hover:shadow-md" onClick={() => handleDocClick(selectedLoan.coeData, setViewingImage)}>
-                                                <div className="h-28 bg-slate-100 dark:bg-black/20 flex items-center justify-center overflow-hidden border-b border-slate-200 dark:border-white/5">
-                                                    {renderDocPreview(selectedLoan.coeData)}
-                                                </div>
-                                                <div className="p-2.5 flex items-center justify-between">
-                                                    <span className="font-inter text-[11px] font-semibold text-slate-700 dark:text-slate-300">COE</span>
-                                                    <span className={`text-[10px] font-bold px-1.5 py-0.5 rounded ${selectedLoan.coeData ? 'bg-emerald-100 text-emerald-700 dark:bg-emerald-500/20 dark:text-emerald-400' : 'bg-rose-100 text-rose-700 dark:bg-rose-500/20 dark:text-rose-400'}`}>
-                                                        {selectedLoan.coeData ? 'OK' : 'X'}
-                                                    </span>
-                                                </div>
-                                            </div>
-
-                                            {/* ITR */}
-                                            <div className="bg-white dark:bg-[#252836] border border-slate-200 dark:border-white/5 rounded-xl overflow-hidden flex flex-col cursor-pointer transition-transform hover:-translate-y-1 hover:shadow-md" onClick={() => handleDocClick(selectedLoan.itrData, setViewingImage)}>
-                                                <div className="h-28 bg-slate-100 dark:bg-black/20 flex items-center justify-center overflow-hidden border-b border-slate-200 dark:border-white/5">
-                                                    {renderDocPreview(selectedLoan.itrData)}
-                                                </div>
-                                                <div className="p-2.5 flex items-center justify-between">
-                                                    <span className="font-inter text-[11px] font-semibold text-slate-700 dark:text-slate-300">ITR</span>
-                                                    <span className={`text-[10px] font-bold px-1.5 py-0.5 rounded ${selectedLoan.itrData ? 'bg-emerald-100 text-emerald-700 dark:bg-emerald-500/20 dark:text-emerald-400' : 'bg-rose-100 text-rose-700 dark:bg-rose-500/20 dark:text-rose-400'}`}>
-                                                        {selectedLoan.itrData ? 'OK' : 'X'}
-                                                    </span>
-                                                </div>
-                                            </div>
-
-                                            {/* Payslip */}
-                                            <div className="bg-white dark:bg-[#252836] border border-slate-200 dark:border-white/5 rounded-xl overflow-hidden flex flex-col cursor-pointer transition-transform hover:-translate-y-1 hover:shadow-md" onClick={() => handleDocClick(selectedLoan.payslipData, setViewingImage)}>
-                                                <div className="h-28 bg-slate-100 dark:bg-black/20 flex items-center justify-center overflow-hidden border-b border-slate-200 dark:border-white/5">
-                                                    {renderDocPreview(selectedLoan.payslipData)}
-                                                </div>
-                                                <div className="p-2.5 flex items-center justify-between">
-                                                    <span className="font-inter text-[11px] font-semibold text-slate-700 dark:text-slate-300">Payslip</span>
-                                                    <span className={`text-[10px] font-bold px-1.5 py-0.5 rounded ${selectedLoan.payslipData ? 'bg-emerald-100 text-emerald-700 dark:bg-emerald-500/20 dark:text-emerald-400' : 'bg-rose-100 text-rose-700 dark:bg-rose-500/20 dark:text-rose-400'}`}>
-                                                        {selectedLoan.payslipData ? 'OK' : 'X'}
-                                                    </span>
-                                                </div>
-                                            </div>
-
-                                            {/* Active Loan Screenshot */}
-                                            {selectedLoan.hasActiveLoan && (
-                                                <div className="bg-white dark:bg-[#252836] border border-slate-200 dark:border-white/5 rounded-xl overflow-hidden flex flex-col cursor-pointer transition-transform hover:-translate-y-1 hover:shadow-md" onClick={() => handleDocClick(selectedLoan.activeLoanScreenshotData, setViewingImage)}>
-                                                    <div className="h-28 bg-slate-100 dark:bg-black/20 flex items-center justify-center overflow-hidden border-b border-slate-200 dark:border-white/5">
-                                                        {renderDocPreview(selectedLoan.activeLoanScreenshotData)}
-                                                    </div>
-                                                    <div className="p-2.5 flex items-center justify-between">
-                                                        <span className="font-inter text-[11px] font-semibold text-slate-700 dark:text-slate-300">Active Loan</span>
-                                                        <span className={`text-[10px] font-bold px-1.5 py-0.5 rounded ${selectedLoan.activeLoanScreenshotData ? 'bg-emerald-100 text-emerald-700 dark:bg-emerald-500/20 dark:text-emerald-400' : 'bg-rose-100 text-rose-700 dark:bg-rose-500/20 dark:text-rose-400'}`}>
-                                                            {selectedLoan.activeLoanScreenshotData ? 'OK' : 'X'}
-                                                        </span>
-                                                    </div>
-                                                </div>
-                                            )}
-                                        </div>
-                                    </div>
                                 </div>
 
-                                {/* ── RIGHT COLUMN ── */}
-                                <div className="md:col-span-5 flex flex-col gap-6">
-                                    {/* ── DSS Panel (MOVED HERE) ── */}
+                                {/* ── COLUMN 2: Verification & Decision Analysis (DSS Panel) ── */}
+                                <div className="flex flex-col gap-4">
+                                    {/* DSS Panel */}
                                     <DSSPanel 
                                         analysis={dssAnalysis} 
                                         loading={dssLoading} 
                                         onRefresh={() => fetchDSSAnalysis(selectedLoan, true)} 
                                         memberName={selectedLoan.memberName}
                                     />
+                                </div>
 
+                                {/* ── COLUMN 3: Verification Alerts, Documents & System Notes ── */}
+                                <div className="flex flex-col gap-4">
                                     {/* OCR Results Analysis */}
                                     {ocrResults && (
                                         <div className={`p-4 rounded-xl border ${ocrResults.matchFound ? 'bg-emerald-50 border-emerald-200 dark:bg-emerald-500/10 dark:border-emerald-500/20' : 'bg-rose-50 border-rose-200 dark:bg-rose-500/10 dark:border-rose-500/20'}`}>
@@ -1060,6 +1140,92 @@ export default function LoanAdminLoanManagement() {
                                             )}
                                         </div>
                                     )}
+
+                                    {/* Uploaded Documents */}
+                                    <div>
+                                        <div className="font-inter text-[11px] font-semibold uppercase tracking-wider text-slate-500 dark:text-slate-400 m-0 mb-3">Uploaded documents</div>
+                                        <div className="grid grid-cols-2 gap-3 mt-2">
+                                            {/* Selfie with ID */}
+                                            <div className="bg-white dark:bg-[#252836] border border-slate-200 dark:border-white/5 rounded-xl overflow-hidden flex flex-col cursor-pointer transition-transform hover:-translate-y-1 hover:shadow-md" onClick={() => handleDocClick(selectedLoan.selfieData, setViewingImage)}>
+                                                <div className="h-24 bg-slate-100 dark:bg-black/20 flex items-center justify-center overflow-hidden border-b border-slate-200 dark:border-white/5">
+                                                    {renderDocPreview(selectedLoan.selfieData)}
+                                                </div>
+                                                <div className="p-2 flex items-center justify-between">
+                                                    <span className="font-inter text-[11px] font-semibold text-slate-700 dark:text-slate-300">Selfie w/ ID</span>
+                                                    <span className={`text-[10px] font-bold px-1.5 py-0.5 rounded ${selectedLoan.selfieData ? 'bg-emerald-100 text-emerald-700 dark:bg-emerald-500/20 dark:text-emerald-400' : 'bg-rose-100 text-rose-700 dark:bg-rose-500/20 dark:text-rose-400'}`}>
+                                                        {selectedLoan.selfieData ? 'OK' : 'X'}
+                                                    </span>
+                                                </div>
+                                            </div>
+
+                                            {/* Government ID */}
+                                            <div className="bg-white dark:bg-[#252836] border border-slate-200 dark:border-white/5 rounded-xl overflow-hidden flex flex-col cursor-pointer transition-transform hover:-translate-y-1 hover:shadow-md" onClick={() => handleDocClick(selectedLoan.idData, setViewingImage)}>
+                                                <div className="h-24 bg-slate-100 dark:bg-black/20 flex items-center justify-center overflow-hidden border-b border-slate-200 dark:border-white/5">
+                                                    {renderDocPreview(selectedLoan.idData)}
+                                                </div>
+                                                <div className="p-2 flex items-center justify-between">
+                                                    <span className="font-inter text-[11px] font-semibold text-slate-700 dark:text-slate-300">Valid ID</span>
+                                                    <span className={`text-[10px] font-bold px-1.5 py-0.5 rounded ${selectedLoan.idData ? 'bg-emerald-100 text-emerald-700 dark:bg-emerald-500/20 dark:text-emerald-400' : 'bg-rose-100 text-rose-700 dark:bg-rose-500/20 dark:text-rose-400'}`}>
+                                                        {selectedLoan.idData ? 'OK' : 'X'}
+                                                    </span>
+                                                </div>
+                                            </div>
+
+                                            {/* COE */}
+                                            <div className="bg-white dark:bg-[#252836] border border-slate-200 dark:border-white/5 rounded-xl overflow-hidden flex flex-col cursor-pointer transition-transform hover:-translate-y-1 hover:shadow-md" onClick={() => handleDocClick(selectedLoan.coeData, setViewingImage)}>
+                                                <div className="h-24 bg-slate-100 dark:bg-black/20 flex items-center justify-center overflow-hidden border-b border-slate-200 dark:border-white/5">
+                                                    {renderDocPreview(selectedLoan.coeData)}
+                                                </div>
+                                                <div className="p-2 flex items-center justify-between">
+                                                    <span className="font-inter text-[11px] font-semibold text-slate-700 dark:text-slate-300">COE</span>
+                                                    <span className={`text-[10px] font-bold px-1.5 py-0.5 rounded ${selectedLoan.coeData ? 'bg-emerald-100 text-emerald-700 dark:bg-emerald-500/20 dark:text-emerald-400' : 'bg-rose-100 text-rose-700 dark:bg-rose-500/20 dark:text-rose-400'}`}>
+                                                        {selectedLoan.coeData ? 'OK' : 'X'}
+                                                    </span>
+                                                </div>
+                                            </div>
+
+                                            {/* ITR */}
+                                            <div className="bg-white dark:bg-[#252836] border border-slate-200 dark:border-white/5 rounded-xl overflow-hidden flex flex-col cursor-pointer transition-transform hover:-translate-y-1 hover:shadow-md" onClick={() => handleDocClick(selectedLoan.itrData, setViewingImage)}>
+                                                <div className="h-24 bg-slate-100 dark:bg-black/20 flex items-center justify-center overflow-hidden border-b border-slate-200 dark:border-white/5">
+                                                    {renderDocPreview(selectedLoan.itrData)}
+                                                </div>
+                                                <div className="p-2 flex items-center justify-between">
+                                                    <span className="font-inter text-[11px] font-semibold text-slate-700 dark:text-slate-300">ITR</span>
+                                                    <span className={`text-[10px] font-bold px-1.5 py-0.5 rounded ${selectedLoan.itrData ? 'bg-emerald-100 text-emerald-700 dark:bg-emerald-500/20 dark:text-emerald-400' : 'bg-rose-100 text-rose-700 dark:bg-rose-500/20 dark:text-rose-400'}`}>
+                                                        {selectedLoan.itrData ? 'OK' : 'X'}
+                                                    </span>
+                                                </div>
+                                            </div>
+
+                                            {/* Payslip */}
+                                            <div className="bg-white dark:bg-[#252836] border border-slate-200 dark:border-white/5 rounded-xl overflow-hidden flex flex-col cursor-pointer transition-transform hover:-translate-y-1 hover:shadow-md" onClick={() => handleDocClick(selectedLoan.payslipData, setViewingImage)}>
+                                                <div className="h-24 bg-slate-100 dark:bg-black/20 flex items-center justify-center overflow-hidden border-b border-slate-200 dark:border-white/5">
+                                                    {renderDocPreview(selectedLoan.payslipData)}
+                                                </div>
+                                                <div className="p-2 flex items-center justify-between">
+                                                    <span className="font-inter text-[11px] font-semibold text-slate-700 dark:text-slate-300">Payslip</span>
+                                                    <span className={`text-[10px] font-bold px-1.5 py-0.5 rounded ${selectedLoan.payslipData ? 'bg-emerald-100 text-emerald-700 dark:bg-emerald-500/20 dark:text-emerald-400' : 'bg-rose-100 text-rose-700 dark:bg-rose-500/20 dark:text-rose-400'}`}>
+                                                        {selectedLoan.payslipData ? 'OK' : 'X'}
+                                                    </span>
+                                                </div>
+                                            </div>
+
+                                            {/* Active Loan Screenshot */}
+                                            {selectedLoan.hasActiveLoan && (
+                                                <div className="bg-white dark:bg-[#252836] border border-slate-200 dark:border-white/5 rounded-xl overflow-hidden flex flex-col cursor-pointer transition-transform hover:-translate-y-1 hover:shadow-md" onClick={() => handleDocClick(selectedLoan.activeLoanScreenshotData, setViewingImage)}>
+                                                    <div className="h-24 bg-slate-100 dark:bg-black/20 flex items-center justify-center overflow-hidden border-b border-slate-200 dark:border-white/5">
+                                                        {renderDocPreview(selectedLoan.activeLoanScreenshotData)}
+                                                    </div>
+                                                    <div className="p-2 flex items-center justify-between">
+                                                        <span className="font-inter text-[11px] font-semibold text-slate-700 dark:text-slate-300">Active Loan</span>
+                                                        <span className={`text-[10px] font-bold px-1.5 py-0.5 rounded ${selectedLoan.activeLoanScreenshotData ? 'bg-emerald-100 text-emerald-700 dark:bg-emerald-500/20 dark:text-emerald-400' : 'bg-rose-100 text-rose-700 dark:bg-rose-500/20 dark:text-rose-400'}`}>
+                                                            {selectedLoan.activeLoanScreenshotData ? 'OK' : 'X'}
+                                                        </span>
+                                                    </div>
+                                                </div>
+                                            )}
+                                        </div>
+                                    </div>
 
                                     {/* System Note */}
                                     <div className="p-4 bg-slate-50 dark:bg-[#252836] border border-slate-200 dark:border-white/5 rounded-xl">
@@ -1146,7 +1312,7 @@ export default function LoanAdminLoanManagement() {
                                 zIndex: 1101, boxShadow: '0 2px 8px rgba(0,0,0,0.15)'
                             }}
                         >
-                            <Circle size={14} color="#374151" />
+                            <X size={16} color="#374151" />
                         </button>
                         <img
                             src={viewingImage}

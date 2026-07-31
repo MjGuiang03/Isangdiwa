@@ -164,7 +164,7 @@ export default function Sidebar({ collapsed, setCollapsed, toggleCollapsed }) {
         }`}
       >
         {/* Logo Header */}
-        <div className={`border-b border-white/10 flex-shrink-0 flex items-center ${collapsed ? 'md:justify-center p-3 md:p-0 md:h-[72px]' : 'p-5'}`}>
+        <div className={`border-b border-white/10 flex-shrink-0 flex items-center ${collapsed ? 'md:justify-center p-3 md:p-0 md:h-[64px]' : 'p-3.5 px-4'}`}>
           <div className={`flex items-center gap-3 w-full ${collapsed ? 'md:justify-center' : ''}`}>
             {/* Logo — hidden when collapsed on desktop */}
             {(!collapsed || isMobile) && (
@@ -176,117 +176,117 @@ export default function Sidebar({ collapsed, setCollapsed, toggleCollapsed }) {
             {/* Brand name — only when expanded */}
             {(!collapsed || isMobile) && (
               <div className="flex-1 min-w-0">
-                <h1 className="text-xl font-semibold m-0 text-white font-cormorant tracking-wide whitespace-nowrap">
+                <h1 className="text-xl font-semibold m-0 text-white font-cormorant tracking-wide whitespace-nowrap leading-tight">
                   <span className="font-inter font-semibold tracking-tight text-white">Isang</span>
                   <span className="font-inter font-semibold tracking-tight text-[#F5C800]">Diwa</span>
                 </h1>
-                <p className="text-xs text-white/60 m-0 font-inter whitespace-nowrap">Member Portal</p>
+                <p className="text-xs text-white/60 m-0 font-inter whitespace-nowrap leading-tight">Member Portal</p>
               </div>
             )}
 
             {/* Hamburger toggle */}
             <button
-              className={`w-8 h-8 rounded-lg bg-white/10 hover:bg-white/20 border border-white/15 text-white/70 hover:text-white flex items-center justify-center cursor-pointer transition-colors shrink-0 p-0 ${collapsed ? 'md:ml-0' : 'ml-auto'}`}
+              className={`w-7.5 h-7.5 rounded-lg bg-white/10 hover:bg-white/20 border border-white/15 text-white/70 hover:text-white flex items-center justify-center cursor-pointer transition-colors shrink-0 p-0 ${collapsed ? 'md:ml-0' : 'ml-auto'}`}
               onClick={toggleCollapsed}
               title={collapsed ? 'Expand sidebar' : 'Collapse sidebar'}
             >
-              {collapsed ? <Menu size={18} /> : <X size={18} />}
+              {collapsed ? <Menu size={17} /> : <X size={17} />}
             </button>
           </div>
         </div>
 
 
         {/* Navigation items */}
-        <div className={`flex-1 py-4 overflow-y-auto flex flex-col gap-1 ${collapsed ? 'md:px-2 md:items-center' : 'px-3'}`}>
+        <div className={`flex-1 py-2 overflow-y-auto flex flex-col gap-[2px] scrollbar-none ${collapsed ? 'md:px-2 md:items-center' : 'px-2'}`}>
           {/* Main */}
           {navItems.filter(n => ['/home'].includes(n.path)).map(({ path, icon, label }) => (
             <button 
               key={path} 
               onClick={() => handleNavClick(path)} 
-              className={`flex items-center gap-3 h-12 px-3 rounded-xl border-none font-inter text-sm cursor-pointer transition-all duration-200 w-full text-left relative ${
+              className={`flex items-center gap-3 h-[37px] px-3.5 rounded-lg border-none font-inter text-sm cursor-pointer transition-all duration-200 w-full text-left relative ${
                 isActive(path) 
                   ? 'bg-white/15 text-white font-semibold shadow-sm' 
                   : 'bg-transparent text-white/70 hover:bg-white/10 hover:text-white'
-              } ${collapsed ? 'md:w-12 md:h-12 md:p-0 md:justify-center' : ''}`} 
+              } ${collapsed ? 'md:w-9 md:h-9 md:p-0 md:justify-center' : ''}`} 
               title={collapsed ? label : undefined}
             >
-              <span className="w-5 h-5 flex items-center justify-center shrink-0">{icon}</span>
+              <span className="w-[18px] h-[18px] flex items-center justify-center shrink-0">{icon}</span>
               {(!collapsed || isMobile) && <span className="truncate">{label}</span>}
             </button>
           ))}
 
           {(!collapsed || isMobile) ? (
-            <div className="flex items-center gap-2 px-3 pt-4 pb-1 select-none">
+            <div className="flex items-center gap-2 px-3.5 pt-2.5 pb-1 select-none">
               <span className="text-[10px] font-bold uppercase tracking-widest text-white/30 font-inter whitespace-nowrap">Finance</span>
               <div className="flex-1 h-[1px] bg-white/10"></div>
             </div>
           ) : (
-            <div className="w-1.5 h-1.5 rounded-full bg-white/15 my-2 mx-auto" />
+            <div className="w-1.5 h-1.5 rounded-full bg-white/15 my-1 mx-auto" />
           )}
           {navItems.filter(n => ['/savings', '/loans', '/donation'].includes(n.path)).map(({ path, icon, label }) => (
             <button 
               key={path} 
               onClick={() => handleNavClick(path)} 
-              className={`flex items-center gap-3 h-12 px-3 rounded-xl border-none font-inter text-sm cursor-pointer transition-all duration-200 w-full text-left relative ${
+              className={`flex items-center gap-3 h-[37px] px-3.5 rounded-lg border-none font-inter text-sm cursor-pointer transition-all duration-200 w-full text-left relative ${
                 isActive(path) 
                   ? 'bg-white/15 text-white font-semibold shadow-sm' 
                   : 'bg-transparent text-white/70 hover:bg-white/10 hover:text-white'
-              } ${collapsed ? 'md:w-12 md:h-12 md:p-0 md:justify-center' : ''}`} 
+              } ${collapsed ? 'md:w-9 md:h-9 md:p-0 md:justify-center' : ''}`} 
               title={collapsed ? label : undefined}
             >
-              <span className="w-5 h-5 flex items-center justify-center shrink-0">{icon}</span>
+              <span className="w-[18px] h-[18px] flex items-center justify-center shrink-0">{icon}</span>
               {(!collapsed || isMobile) && <span className="truncate">{label}</span>}
             </button>
           ))}
 
           {(!collapsed || isMobile) ? (
-            <div className="flex items-center gap-2 px-3 pt-4 pb-1 select-none">
+            <div className="flex items-center gap-2 px-3.5 pt-2.5 pb-1 select-none">
               <span className="text-[10px] font-bold uppercase tracking-widest text-white/30 font-inter whitespace-nowrap">Activity</span>
               <div className="flex-1 h-[1px] bg-white/10"></div>
             </div>
           ) : (
-            <div className="w-1.5 h-1.5 rounded-full bg-white/15 my-2 mx-auto" />
+            <div className="w-1.5 h-1.5 rounded-full bg-white/15 my-1 mx-auto" />
           )}
           {navItems.filter(n => ['/attendance', '/branches'].includes(n.path)).map(({ path, icon, label }) => (
             <button 
               key={path} 
               onClick={() => handleNavClick(path)} 
-              className={`flex items-center gap-3 h-12 px-3 rounded-xl border-none font-inter text-sm cursor-pointer transition-all duration-200 w-full text-left relative ${
+              className={`flex items-center gap-3 h-[37px] px-3.5 rounded-lg border-none font-inter text-sm cursor-pointer transition-all duration-200 w-full text-left relative ${
                 isActive(path) 
                   ? 'bg-white/15 text-white font-semibold shadow-sm' 
                   : 'bg-transparent text-white/70 hover:bg-white/10 hover:text-white'
-              } ${collapsed ? 'md:w-12 md:h-12 md:p-0 md:justify-center' : ''}`} 
+              } ${collapsed ? 'md:w-9 md:h-9 md:p-0 md:justify-center' : ''}`} 
               title={collapsed ? label : undefined}
             >
-              <span className="w-5 h-5 flex items-center justify-center shrink-0">{icon}</span>
+              <span className="w-[18px] h-[18px] flex items-center justify-center shrink-0">{icon}</span>
               {(!collapsed || isMobile) && <span className="truncate">{label}</span>}
             </button>
           ))}
 
           {(!collapsed || isMobile) ? (
-            <div className="flex items-center gap-2 px-3 pt-4 pb-1 select-none">
+            <div className="flex items-center gap-2 px-3.5 pt-2.5 pb-1 select-none">
               <span className="text-[10px] font-bold uppercase tracking-widest text-white/30 font-inter whitespace-nowrap">System</span>
               <div className="flex-1 h-[1px] bg-white/10"></div>
             </div>
           ) : (
-            <div className="w-1.5 h-1.5 rounded-full bg-white/15 my-2 mx-auto" />
+            <div className="w-1.5 h-1.5 rounded-full bg-white/15 my-1 mx-auto" />
           )}
           {navItems.filter(n => ['/notifications', '/settings'].includes(n.path)).map(({ path, icon, label }) => (
             <button 
               key={path} 
               onClick={() => handleNavClick(path)} 
-              className={`flex items-center gap-3 h-12 px-3 rounded-xl border-none font-inter text-sm cursor-pointer transition-all duration-200 w-full text-left relative ${
+              className={`flex items-center gap-3 h-[37px] px-3.5 rounded-lg border-none font-inter text-sm cursor-pointer transition-all duration-200 w-full text-left relative ${
                 isActive(path) 
                   ? 'bg-white/15 text-white font-semibold shadow-sm' 
                   : 'bg-transparent text-white/70 hover:bg-white/10 hover:text-white'
-              } ${collapsed ? 'md:w-12 md:h-12 md:p-0 md:justify-center' : ''}`} 
+              } ${collapsed ? 'md:w-9 md:h-9 md:p-0 md:justify-center' : ''}`} 
               title={collapsed ? label : undefined}
             >
-              <span className="w-5 h-5 flex items-center justify-center shrink-0">{icon}</span>
+              <span className="w-[18px] h-[18px] flex items-center justify-center shrink-0">{icon}</span>
               {(!collapsed || isMobile) && <span className="truncate">{label}</span>}
               {path === '/notifications' && unreadNotifCount > 0 && (
-                <span className={`ml-auto bg-rose-600 text-white font-inter text-xs font-bold px-1.5 py-0.5 rounded-full min-w-[20px] h-[20px] flex items-center justify-center animate-badgePop ${
-                  collapsed ? 'md:absolute md:top-1.5 md:right-1.5 md:ml-0 md:text-[9px] md:h-4 md:min-w-[16px]' : ''
+                <span className={`ml-auto bg-rose-600 text-white font-inter text-xs font-bold px-1.5 py-0.5 rounded-full min-w-[19px] h-[19px] flex items-center justify-center animate-badgePop ${
+                  collapsed ? 'md:absolute md:top-1 md:right-1 md:ml-0 md:text-[9px] md:h-3.5 md:min-w-[14px]' : ''
                 }`}>
                   {unreadNotifCount > 9 ? '9+' : unreadNotifCount}
                 </span>
@@ -296,36 +296,36 @@ export default function Sidebar({ collapsed, setCollapsed, toggleCollapsed }) {
         </div>
 
         {/* Profile Section */}
-        <div className="p-3 border-t border-white/10 shrink-0">
+        <div className="p-3 px-3.5 border-t border-white/10 shrink-0">
           <div 
-            className={`flex items-center gap-3 p-2.5 rounded-xl cursor-pointer hover:bg-white/10 transition-colors mb-2 ${
-              collapsed ? 'md:justify-center md:p-1.5' : ''
+            className={`flex items-center gap-3 p-1.5 rounded-lg cursor-pointer hover:bg-white/10 transition-colors mb-2 ${
+              collapsed ? 'md:justify-center md:p-1' : ''
             }`}
             onClick={() => handleNavClick('/profile')}
             title={collapsed ? 'Profile' : undefined}
           >
-            <div className="w-10 h-10 rounded-full bg-[#F5C800] flex items-center justify-center font-bold text-[#0D1F45] shrink-0 overflow-hidden">
+            <div className="w-8 h-8 rounded-full bg-[#F5C800] flex items-center justify-center font-bold text-[#0D1F45] shrink-0 overflow-hidden">
               {profile?.photoUrl ? (
                 <img src={profile.photoUrl} alt="Profile" className="w-full h-full object-cover rounded-full" />
               ) : (
-                <p className="m-0 text-base font-inter text-[#1E3A8A] font-bold">{profile?.fullName?.charAt(0)?.toUpperCase() || 'M'}</p>
+                <p className="m-0 text-xs font-inter text-[#1E3A8A] font-bold leading-none">{profile?.fullName?.charAt(0)?.toUpperCase() || 'M'}</p>
               )}
             </div>
             {(!collapsed || isMobile) && (
               <div className="flex-1 min-w-0">
-                <p className="text-sm font-semibold text-white m-0 font-inter truncate leading-tight">{profile?.fullName || 'Member'}</p>
-                <p className="text-xs text-white/60 truncate m-0 font-inter">{user?.email || 'member@isangdiwa.org'}</p>
+                <p className="text-[13px] font-semibold text-white m-0 font-inter truncate leading-tight">{profile?.fullName || 'Member'}</p>
+                <p className="text-[11px] text-white/60 truncate m-0 font-inter leading-tight">{user?.email || 'member@isangdiwa.org'}</p>
               </div>
             )}
           </div>
           <button 
-            className={`w-full flex items-center justify-center gap-2 p-3 bg-transparent border border-white/15 hover:border-rose-500/50 hover:bg-rose-500/10 text-white/70 hover:text-rose-300 text-sm font-inter rounded-xl cursor-pointer transition-all ${
-              collapsed ? 'md:w-12 md:h-12 md:p-0 md:mx-auto' : ''
+            className={`w-full flex items-center justify-center gap-2 h-[34px] px-3 bg-transparent border border-white/15 hover:border-rose-500/50 hover:bg-rose-500/10 text-white/70 hover:text-rose-300 text-xs font-inter rounded-lg cursor-pointer transition-all ${
+              collapsed ? 'md:w-9 md:h-9 md:p-0 md:mx-auto' : ''
             }`}
             onClick={() => setShowLogoutModal(true)}
             title={collapsed ? 'Sign out' : undefined}
           >
-            <LogOut size={18} />
+            <LogOut size={16} />
             {(!collapsed || isMobile) && <span>Sign out</span>}
           </button>
         </div>

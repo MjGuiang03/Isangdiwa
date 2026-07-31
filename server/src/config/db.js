@@ -68,6 +68,7 @@ export const prayers             = db.collection('prayers');
 export const settings            = db.collection('settings');
 export const reportCache         = db.collection('reportCache');
 export const branches            = db.collection('branches');
+export const counters            = db.collection('counters');
 
 
 /* ================== DATABASE INDEXES (non-fatal) ================== */
