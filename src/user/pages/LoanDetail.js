@@ -13,11 +13,7 @@ import {
   X, 
   UploadCloud, 
   FileCheck2,
-  Calendar,
-  DollarSign,
   CreditCard,
-  ChevronRight,
-  Sparkles,
   AlertCircle
 } from 'lucide-react';
 

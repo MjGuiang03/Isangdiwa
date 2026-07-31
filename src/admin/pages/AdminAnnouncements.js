@@ -22,7 +22,6 @@ export default function AdminAnnouncements() {
   const [categoryFilter, setCategoryFilter] = useState('All');
   const [editingId, setEditingId] = useState(null);
   const [template, setTemplate] = useState('banner');
-  const [showPosted, setShowPosted] = useState(false);
   const [form, setForm] = useState({
     title: '', body: '', category: 'Divine Service',
     customCategory: '', // Added for 'Other' option

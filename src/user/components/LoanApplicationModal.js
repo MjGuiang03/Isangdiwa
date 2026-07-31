@@ -2,7 +2,7 @@ import { useState, useMemo, useEffect, useRef, useCallback } from 'react';
 import { toast } from 'sonner';
 
 import API from '../../utils/api';
-import { Banknote, CheckCircle, X, Pencil, Camera, RotateCcw, AlertTriangle, Upload, Trash2, Search, ChevronDown, Check, ShieldCheck, Send } from 'lucide-react';
+import { Banknote, CheckCircle, X, Pencil, Camera, RotateCcw, AlertTriangle, Upload, Trash2, ChevronDown, Check, ShieldCheck, Send } from 'lucide-react';
 
 /* ── Loan-type config ── */
 const LOAN_TYPES = [
@@ -161,7 +161,6 @@ export default function LoanApplicationModal({
   const [cameraReady, setCameraReady] = useState(false);
   const [cameraError, setCameraError] = useState(null);
   const [cameraHint, setCameraHint] = useState('');
-  const [idDetected, setIdDetected] = useState(false);       // Gemini detected ID
   const [idChecking, setIdChecking] = useState(false);       // currently verifying frame
   const [idDetectionMsg, setIdDetectionMsg] = useState('');  // detection message
   const [capturedIdPreview, setCapturedIdPreview] = useState(null); // preview of captured ID photo
@@ -169,7 +168,6 @@ export default function LoanApplicationModal({
   const canvasRef = useRef(null);
   const streamRef = useRef(null);
   const hintTimerRef = useRef(null);
-  const idCheckCanvasRef = useRef(null);                      // canvas for low-res frame capture
 
   /* ── derived ── */
   const selectedType = LOAN_TYPES.find((t) => t.key === loanType) || null;
@@ -281,57 +279,9 @@ export default function LoanApplicationModal({
     }
     setCameraReady(false);
     setCameraHint('');
-    setIdDetected(false);
     setIdChecking(false);
     setIdDetectionMsg('');
     if (hintTimerRef.current) clearInterval(hintTimerRef.current);
-  }, []);
-
-  const checkIdFrame = useCallback(async () => {
-    if (!videoRef.current || !streamRef.current) return;
-    const video = videoRef.current;
-    if (video.videoWidth === 0) return;
-
-    // Create a low-res canvas for the check (320px wide to keep payload small)
-    if (!idCheckCanvasRef.current) {
-      idCheckCanvasRef.current = document.createElement('canvas');
-    }
-    const checkCanvas = idCheckCanvasRef.current;
-    const scale = 320 / video.videoWidth;
-    checkCanvas.width = 320;
-    checkCanvas.height = Math.round(video.videoHeight * scale);
-    const ctx = checkCanvas.getContext('2d');
-    ctx.drawImage(video, 0, 0, checkCanvas.width, checkCanvas.height);
-    const frameData = checkCanvas.toDataURL('image/jpeg', 0.5);
-
-    setIdChecking(true);
-    setIdDetectionMsg('');
-    try {
-      const token = localStorage.getItem('token');
-      const res = await fetch(`${API}/api/loans/verify-id-frame`, {
-        method: 'POST',
-        headers: { 'Content-Type': 'application/json', Authorization: `Bearer ${token}` },
-        body: JSON.stringify({ imageData: frameData }),
-      });
-      const data = await res.json();
-
-      if (data.rateLimited) {
-        setIdDetectionMsg('API busy — please try again in a moment');
-        return;
-      }
-
-      if (data.detected && (data.confidence === 'high' || data.confidence === 'medium')) {
-        setIdDetected(true);
-        setIdDetectionMsg('✓ Government ID detected — you can now capture');
-      } else {
-        setIdDetected(false);
-        setIdDetectionMsg(data.reason || 'No ID detected — position your ID and try again');
-      }
-    } catch {
-      setIdDetectionMsg('Verification failed — please try again');
-    } finally {
-      setIdChecking(false);
-    }
   }, []);
 
   const openCamera = useCallback(async (target) => {
@@ -340,7 +290,6 @@ export default function LoanApplicationModal({
     setCameraError(null);
     setCameraReady(false);
     setCameraHint('');
-    setIdDetected(false);
     setIdChecking(false);
     setIdDetectionMsg('');
     setCapturedIdPreview(null);

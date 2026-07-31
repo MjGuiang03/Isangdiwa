@@ -2,7 +2,7 @@
 import { useAuth } from '../../context/AuthContext';
 import { useState, useMemo, useEffect, useRef, Suspense, lazy } from 'react';
 import useSWR from 'swr';
-import { MapPin, Search, X, ChevronDown, Check, Map, List, Calendar, Users } from 'lucide-react';
+import { MapPin, Search, X, ChevronDown, Check, Map, List, Calendar } from 'lucide-react';
 import { branchData, REGION_ORDER, REGION_LABELS, DAY_COLORS, COMMUNITY_MAP } from '../components/branchData';
 import { useNavigate } from 'react-router-dom';
 import API from '../../utils/api';

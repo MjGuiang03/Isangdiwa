@@ -1,4 +1,4 @@
-import React, { useRef, useState } from 'react';
+import React, { useRef } from 'react';
 import { CheckCircle, XCircle, Info, AlertCircle, RefreshCw } from 'lucide-react';
 
 
@@ -6,30 +6,8 @@ import { CheckCircle, XCircle, Info, AlertCircle, RefreshCw } from 'lucide-react
 const fmt = (n) =>
   n != null ? `₱${Number(n).toLocaleString('en-PH', { minimumFractionDigits: 2 })}` : '₱0.00';
 
-const DSSPanel = ({ analysis, loading, onRefresh, memberName }) => {
+const DSSPanel = ({ analysis, loading, onRefresh }) => {
   const panelRef = useRef(null);
-  const [exporting, setExporting] = useState(false);
-
-  const handleDownloadPDF = async () => {
-    if (!panelRef.current) return;
-    setExporting(true);
-    try {
-      const element = panelRef.current;
-      const opt = {
-        margin: [10, 10, 10, 10],
-        filename: `Loan_Risk_Assessment_${memberName || 'Member'}.pdf`,
-        image: { type: 'jpeg', quality: 0.98 },
-        html2canvas: { scale: 2, useCORS: true, scrollY: 0, backgroundColor: '#ffffff' },
-        jsPDF: { unit: 'mm', format: 'a4', orientation: 'portrait' }
-      };
-      const html2pdf = (await import('html2pdf.js')).default;
-      await html2pdf().set(opt).from(element).save();
-    } catch (err) {
-      console.error('PDF Export Error:', err);
-    } finally {
-      setExporting(false);
-    }
-  };
 
   if (loading) {
     return (

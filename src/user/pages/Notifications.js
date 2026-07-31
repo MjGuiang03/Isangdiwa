@@ -46,7 +46,6 @@ export default function Notifications() {
   const [detailModal, setDetailModal] = useState(null);
   const [previewImage, setPreviewImage] = useState(null);
   const [expandedGroups, setExpandedGroups] = useState(new Set());
-  const [expandedSimple, setExpandedSimple] = useState(new Set());
 
   /* ── Modal swipe-down-to-close touch gesture state ── */
   const [modalDragY, setModalDragY] = useState(0);
@@ -466,7 +465,7 @@ export default function Notifications() {
 
   const renderCard = (n) => {
     const isSimple = simpleTypes.includes(n.type) && !n.actionRequired;
-    const isExpanded = expandedSimple.has(n.id);
+    const isExpanded = false;
 
     return (
       <NotificationCard

@@ -11,7 +11,7 @@ import useDebounce from '../../hooks/useDebounce';
 
 import API from '../../utils/api';
 import Pagination from '../../components/Pagination';
-import { CheckCircle, Circle, Search, X, XCircle, ShieldCheck, AlertTriangle, Loader2, AlertCircle, Edit3, Send } from 'lucide-react'; 
+import { CheckCircle, Search, X, XCircle, ShieldCheck, AlertTriangle, Loader2, AlertCircle, Edit3, Send } from 'lucide-react';
 import { performOCRScan } from '../../utils/ocrProcessor';
 
 
@@ -98,7 +98,6 @@ export default function LoanAdminLoanManagement() {
     const [showDetailsModal, setShowDetailsModal] = useState(false);
     const [selectedLoan, setSelectedLoan] = useState(null);
     const [rejectReason, setRejectReason] = useState('');
-    const [interestFilter, setInterestFilter] = useState('all');
     const [statusFilter, setStatusFilter] = useState('all');
     const [activeView, setActiveView] = useState('all');
     const [actionLoading, setActionLoading] = useState(null);
@@ -176,40 +175,6 @@ export default function LoanAdminLoanManagement() {
             toast.error(loansData.message);
         }
     }, [loansData]);
-
-    const { data: allLoansData } = useSWR(
-        token ? `${API}/api/admin/loans?limit=10000` : null,
-        fetcherSingle,
-        { 
-            revalidateOnFocus: false,
-            dedupingInterval: 30000,
-            keepPreviousData: true
-        }
-    );
-
-    const allLoansStats = useMemo(() => allLoansData?.loans || [], [allLoansData]);
-
-    const totalInterestFiltered = useMemo(() => {
-        return allLoansStats.filter(l => {
-            if (l.status === 'rejected' || l.status === 'pending') return false;
-            const lType = (l.loanType || '').toLowerCase();
-            
-            let mult = '2x';
-            if (lType.includes('emergency')) mult = '1.5x';
-            if (lType.includes('short')) mult = '1x';
-            if (l.multiplier) mult = `${l.multiplier}x`;
-
-            if (interestFilter === '2x' && mult !== '2x') return false;
-            if (interestFilter === '1.5x' && mult !== '1.5x') return false;
-            if (interestFilter === '1x' && mult !== '1x') return false;
-            return true;
-        }).reduce((sum, l) => {
-            const totalRepay = Number(l.totalRepayment || (l.monthlyPayment * (l.termMonths || 12))) || 0;
-            const principal = Number(l.amount) || 0;
-            const interest = l.totalInterest != null && l.totalInterest > 0 ? Number(l.totalInterest) : (totalRepay - principal);
-            return sum + (interest > 0 ? interest : 0);
-        }, 0);
-    }, [allLoansStats, interestFilter]);
 
     useEffect(() => { setPage(1); }, [debouncedSearch, statusFilter]);
 

@@ -2,7 +2,7 @@ import React, { useState, useEffect, useRef, useCallback } from 'react';
 import { useNavigate } from 'react-router-dom';
 import { toast } from 'sonner';
 import API from '../../utils/api';
-import { Play, Square, X, ArrowLeft, Radio, QrCode, CheckCircle2, MapPin, Sparkles, ShieldCheck, UserCheck, CalendarDays, Clock } from 'lucide-react';
+import { Play, Square, X, ArrowLeft, Radio, CheckCircle2, ShieldCheck, UserCheck } from 'lucide-react';
 import QRCode from 'react-qr-code';
 
 function StartServiceModal({ onClose, onSave }) {
