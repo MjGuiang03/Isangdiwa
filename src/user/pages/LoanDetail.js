@@ -1,5 +1,5 @@
 import { useNavigate, useParams, useSearchParams } from 'react-router-dom';
-import { useState, useEffect, useMemo } from 'react';
+import { useState, useEffect } from 'react';
 import useSWR from 'swr';
 import { useAuth } from '../../context/AuthContext';
 
@@ -643,7 +643,7 @@ export default function LoanDetail() {
     return res.ok ? res.json() : { success: false };
   };
 
-  const { data: loanData, isValidating: loanValidating, mutate: mutateLoan } = useSWR(
+  const { data: loanData, mutate: mutateLoan } = useSWR(
     token && encodedId ? `${API}/api/loans/${encodedId}` : null,
     fetcherSingle,
     { revalidateOnFocus: false, dedupingInterval: 5000 }

@@ -1,5 +1,5 @@
 import { useNavigate } from 'react-router';
-import { useState, useEffect, useMemo } from 'react';
+import { useState, useEffect } from 'react';
 import useSWR from 'swr';
 import { toast } from 'sonner';
 import { useAuth } from '../../context/AuthContext';
@@ -76,7 +76,7 @@ export default function Loans() {
   const token = localStorage.getItem('token');
   const fetcher = (url) => fetch(url, { headers: { Authorization: `Bearer ${token}` } }).then(res => res.ok ? res.json() : { success: false });
 
-  const { data: loansData, isValidating: loansValidating, mutate: mutateLoans } = useSWR(
+  const { data: loansData, mutate: mutateLoans } = useSWR(
     token ? `${API}/api/loans/my-loans?page=${page}&limit=${LIMIT}` : null,
     fetcher,
     { revalidateOnFocus: false, dedupingInterval: 5000 }
