@@ -3,7 +3,7 @@ import { useState, useEffect, useMemo } from 'react';
 import useSWR from 'swr';
 import { useNavigate } from 'react-router-dom';
 import { toast } from 'sonner';
-import { UserPlus, Search, Edit2, Trash2, Shield, Loader2, X, Info, Eye, EyeOff, Users, KeyRound, UserCog } from 'lucide-react';
+import { UserPlus, Search, Edit2, Trash2, Shield, Loader2, X, Info, Eye, EyeOff, Users, KeyRound, UserCog, MoreVertical } from 'lucide-react';
 import useDebounce from '../../hooks/useDebounce';
 import API from '../../utils/api';
 import Pagination from '../../components/Pagination';
@@ -30,6 +30,7 @@ function PasswordModal({ title, description, onConfirm, onClose, loading, varian
   const [password, setPassword] = useState('');
   const [showPw, setShowPw] = useState(false);
   const isDelete = title.toLowerCase().includes('delete');
+  const isCreate = title.toLowerCase().includes('create');
 
   return (
     <div className="fixed inset-0 bg-black/50 backdrop-blur-sm z-[1100] flex items-center justify-center p-4" onClick={onClose}>
@@ -37,7 +38,7 @@ function PasswordModal({ title, description, onConfirm, onClose, loading, varian
         {/* Header with icon */}
         <div className="p-6 pb-0 flex flex-col items-center text-center gap-3">
           <div className={`w-14 h-14 rounded-2xl flex items-center justify-center shadow-sm ${isDelete ? 'bg-rose-100 text-rose-600 dark:bg-rose-500/20 dark:text-rose-400' : 'bg-blue-100 text-blue-600 dark:bg-blue-500/20 dark:text-blue-400'}`}>
-            {isDelete ? <Trash2 size={24} /> : <Shield size={24} />}
+            {isDelete ? <Trash2 size={24} /> : isCreate ? <UserPlus size={24} /> : <Shield size={24} />}
           </div>
           <h3 className="m-0 font-inter text-lg font-bold text-slate-900 dark:text-white">{title}</h3>
           <p className="m-0 font-inter text-[13px] text-slate-500 dark:text-slate-400 leading-relaxed">{description}</p>
@@ -97,15 +98,23 @@ export default function AdminUserManagement() {
   const [showAddModal, setShowAddModal] = useState(false);
   const [editTarget, setEditTarget] = useState(null);
   const [deleteTarget, setDeleteTarget] = useState(null);
+  const [openMenuId, setOpenMenuId] = useState(null);
   const [editRole, setEditRole] = useState('');
   const [editEmail, setEditEmail] = useState('');
   const [editPassword, setEditPassword] = useState('');
   const [showCreatePassword, setShowCreatePassword] = useState(false);
   const [showEditPassword, setShowEditPassword] = useState(false);
 
+  useEffect(() => {
+    const handleClickOutside = () => setOpenMenuId(null);
+    window.addEventListener('click', handleClickOutside);
+    return () => window.removeEventListener('click', handleClickOutside);
+  }, []);
+
   // Create form
   const [createForm, setCreateForm] = useState({ email: '', password: '', role: 'loanAdmin' });
   const [createLoading, setCreateLoading] = useState(false);
+  const [showCreateConfirmModal, setShowCreateConfirmModal] = useState(false);
 
   const token = localStorage.getItem('adminToken');
   const superAdminEmail = localStorage.getItem('adminEmail');
@@ -144,21 +153,20 @@ export default function AdminUserManagement() {
   }, [navigate]);
 
   /* ── Create ── */
-  const handleCreate = async (e) => {
-    e.preventDefault();
-
-    setCreateLoading(true);
+  const handleCreate = async (adminPassword) => {
+    setActionLoading(true);
     try {
       const res = await fetch(`${API}/api/admin/create-admin`, {
         method: 'POST',
         headers: { 'Content-Type': 'application/json', Authorization: `Bearer ${token}` },
-        body: JSON.stringify(createForm)
+        body: JSON.stringify({ ...createForm, adminPassword })
       });
       const data = await res.json();
       if (res.ok && data.success) {
         toast.success(`Account created for ${createForm.email}`);
         setCreateForm({ email: '', password: '', role: 'loanAdmin' });
         setShowAddModal(false);
+        setShowCreateConfirmModal(false);
         fetchAdmins();
       } else {
         toast.error(data.message || 'Failed to create account');
@@ -166,7 +174,7 @@ export default function AdminUserManagement() {
     } catch {
       toast.error('Network error');
     } finally {
-      setCreateLoading(false);
+      setActionLoading(false);
     }
   };
 
@@ -429,25 +437,40 @@ export default function AdminUserManagement() {
                       </span>
                     </td>
                     <td className="px-5 py-3 border-b border-slate-100 dark:border-white/5 font-inter text-xs text-slate-500 dark:text-slate-400">{fmtDate(a.createdAt)}</td>
-                    <td className="px-5 py-3 border-b border-slate-100 dark:border-white/5 text-right">
-                      <div className="flex items-center justify-end gap-1.5">
-                        <button
-                          className="w-8 h-8 flex items-center justify-center rounded-lg bg-slate-100 dark:bg-white/5 text-blue-600 hover:bg-blue-100 dark:hover:bg-blue-500/20 transition-colors border-none cursor-pointer"
-                          title="Edit Account"
-                          onClick={() => { setEditTarget(a); setEditRole(a.role); setEditEmail(a.email); setEditPassword(''); setShowEditPassword(false); }}
-                        >
-                          <Edit2 size={14} />
-                        </button>
-                        {a.role !== 'admin' && (
-                          <button
-                            className="w-8 h-8 flex items-center justify-center rounded-lg bg-slate-100 dark:bg-white/5 text-rose-600 hover:bg-rose-100 dark:hover:bg-rose-500/20 transition-colors border-none cursor-pointer"
-                            title="Delete"
-                            onClick={() => setDeleteTarget(a)}
+                    <td className="px-5 py-3 border-b border-slate-100 dark:border-white/5 text-right relative" onClick={(e) => e.stopPropagation()}>
+                      <button 
+                        className="w-8 h-8 rounded-lg flex items-center justify-center text-slate-400 hover:text-slate-700 dark:hover:text-white hover:bg-slate-100 dark:hover:bg-white/10 transition-colors border-none bg-transparent cursor-pointer ml-auto"
+                        title="Actions"
+                        onClick={(e) => { e.stopPropagation(); setOpenMenuId(openMenuId === a._id ? null : a._id); }}
+                      >
+                        <MoreVertical size={16} />
+                      </button>
+                      
+                      {openMenuId === a._id && (
+                        <div className="absolute right-4 top-10 z-50 w-44 bg-white dark:bg-[#1E2130] border border-slate-200 dark:border-white/10 rounded-xl shadow-xl py-1 text-left">
+                          <button 
+                            className="w-full flex items-center gap-2.5 px-3.5 py-2 text-xs font-medium text-slate-700 dark:text-slate-300 hover:bg-slate-50 dark:hover:bg-white/5 transition-colors border-none bg-transparent cursor-pointer" 
+                            onClick={() => { 
+                              setOpenMenuId(null); 
+                              setEditTarget(a); 
+                              setEditRole(a.role); 
+                              setEditEmail(a.email); 
+                              setEditPassword(''); 
+                              setShowEditPassword(false); 
+                            }}
                           >
-                            <Trash2 size={14} />
+                            <Edit2 size={14} className="text-blue-500" /> Edit Account
                           </button>
-                        )}
-                      </div>
+                          {a.role !== 'admin' && (
+                            <button 
+                              className="w-full flex items-center gap-2.5 px-3.5 py-2 text-xs font-medium text-rose-600 hover:bg-rose-50 dark:hover:bg-rose-500/10 transition-colors border-none bg-transparent cursor-pointer" 
+                              onClick={() => { setOpenMenuId(null); setDeleteTarget(a); }}
+                            >
+                              <Trash2 size={14} /> Delete Account
+                            </button>
+                          )}
+                        </div>
+                      )}
                     </td>
                   </tr>
                 ))
@@ -496,7 +519,13 @@ export default function AdminUserManagement() {
               </div>
             </div>
 
-            <form className="flex-1 overflow-y-auto custom-scrollbar flex flex-col" onSubmit={handleCreate}>
+            <form className="flex-1 overflow-y-auto custom-scrollbar flex flex-col" onSubmit={(e) => {
+              e.preventDefault();
+              if (!createForm.email.trim() || !createForm.password.trim()) {
+                return toast.error('Please fill in all fields');
+              }
+              setShowCreateConfirmModal(true);
+            }}>
               <div className="px-6 pb-6 flex flex-col gap-4">
                 <div className="flex flex-col gap-1.5">
                   <label className="font-inter text-[12px] font-semibold text-slate-500 dark:text-slate-400 uppercase tracking-wider">Email Address</label>
@@ -536,13 +565,23 @@ export default function AdminUserManagement() {
               {/* Actions */}
               <div className="px-6 pb-6 flex items-center gap-3">
                 <button type="button" className="h-10 flex-1 rounded-xl font-inter text-sm font-semibold transition-all border border-slate-200 dark:border-white/10 bg-white dark:bg-white/5 text-slate-700 dark:text-slate-300 hover:bg-slate-50 dark:hover:bg-white/10 cursor-pointer" onClick={() => setShowAddModal(false)}>Cancel</button>
-                <button type="submit" className="h-10 flex-1 rounded-xl font-inter text-sm font-semibold transition-all border-none bg-blue-600 text-white hover:bg-blue-700 cursor-pointer flex items-center justify-center gap-2 disabled:opacity-50" disabled={createLoading}>
-                  {createLoading ? <Loader2 className="animate-spin" size={16} /> : <><UserPlus size={16} /> Create Account</>}
+                <button type="submit" className="h-10 flex-1 rounded-xl font-inter text-sm font-semibold transition-all border-none bg-blue-600 text-white hover:bg-blue-700 cursor-pointer flex items-center justify-center gap-2 disabled:opacity-50" disabled={actionLoading}>
+                  {actionLoading ? <Loader2 className="animate-spin" size={16} /> : <><UserPlus size={16} /> Create Account</>}
                 </button>
               </div>
             </form>
           </div>
         </div>
+      )}
+
+      {showCreateConfirmModal && (
+        <PasswordModal
+          title="Confirm Account Creation"
+          description={`Creating a new ${ROLE_LABELS[createForm.role] || createForm.role} account for ${createForm.email}.`}
+          onConfirm={handleCreate}
+          onClose={() => setShowCreateConfirmModal(false)}
+          loading={actionLoading}
+        />
       )}
 
       {/* ── Edit Account Modal ── */}

@@ -1,4 +1,5 @@
 import { Resend } from 'resend';
+import crypto from 'crypto';
 import dotenv from 'dotenv';
 dotenv.config();
 
@@ -11,13 +12,15 @@ const resend = new Resend(process.env.RESEND_API_KEY);
 const senderEmail = process.env.RESEND_SENDER_EMAIL || 'noreply@puacfaithly.com';
 
 export const generateOTP = () =>
-  Math.floor(100000 + Math.random() * 900000).toString();
+  crypto.randomInt(100000, 1000000).toString();
 
 export const sendOTP = async (email, otp, subject = 'Your Email Verification Code', title = 'Your OTP Code') => {
-  // EMERGENCY FALLBACK: Log the Email OTP to the console
-  console.log(`\n\n📧 ================================== 📧`);
-  console.log(`✉️ FALLBACK EMAIL OTP FOR ${email}: [ ${otp} ]`);
-  console.log(`📧 ================================== 📧\n\n`);
+  // Console logging fallback (Only active in non-production environments to avoid leaking OTPs in prod logs)
+  if (process.env.NODE_ENV !== 'production') {
+    console.log(`\n📧 ================================== 📧`);
+    console.log(`✉️ DEV FALLBACK EMAIL OTP FOR ${email}: [ ${otp} ]`);
+    console.log(`📧 ================================== 📧\n`);
+  }
 
   try {
     const { data, error } = await resend.emails.send({

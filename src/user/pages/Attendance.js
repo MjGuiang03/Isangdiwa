@@ -117,7 +117,7 @@ export default function Attendance() {
   const { data, isValidating, mutate } = useSWR(
     token ? `${API}/api/attendance/my-attendance?page=1&limit=100` : null,
     fetcher,
-    { revalidateOnFocus: false, revalidateIfStale: true }
+    { revalidateOnFocus: false, dedupingInterval: 5000 }
   );
 
   useEffect(() => {

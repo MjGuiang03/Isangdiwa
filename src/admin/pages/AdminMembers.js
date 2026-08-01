@@ -130,18 +130,18 @@ function EditModal({ member, onClose, onSave }) {
   return (
     <div className="fixed inset-0 bg-black/50 backdrop-blur-sm z-[1000] flex items-center justify-center p-4" onClick={onClose}>
       <div className="bg-white dark:bg-[#1E2130] rounded-2xl w-full max-w-[600px] shadow-2xl border border-slate-200 dark:border-white/10 flex flex-col max-h-[90vh] overflow-hidden" onClick={e => e.stopPropagation()}>
-        <div className="flex items-center gap-4 p-5 border-b border-slate-200 dark:border-white/10 shrink-0 relative">
-          <div className="w-12 h-12 rounded-xl flex items-center justify-center shrink-0 bg-blue-100 dark:bg-blue-500/20"><IconEdit /></div>
+        <div className="flex items-center gap-3 px-5 py-3.5 border-b border-slate-200 dark:border-white/10 shrink-0 relative">
+          <div className="w-9 h-9 rounded-xl flex items-center justify-center shrink-0 bg-blue-100 dark:bg-blue-500/20"><IconEdit /></div>
           <div className="flex flex-col">
-            <p className="m-0 font-inter text-lg font-bold text-slate-800 dark:text-white">Edit Member</p>
-            <p className="m-0 font-inter text-[13px] text-slate-500 dark:text-slate-400">Update information for {member.fullName || member.name}</p>
+            <p className="m-0 font-inter text-base font-bold text-slate-800 dark:text-white leading-snug">Edit Member</p>
+            <p className="m-0 font-inter text-xs text-slate-500 dark:text-slate-400">Update information for {member.fullName || member.name}</p>
           </div>
-          <button className="absolute top-5 right-5 w-8 h-8 flex items-center justify-center rounded-lg bg-slate-100 dark:bg-white/5 text-slate-500 hover:bg-slate-200 dark:hover:bg-white/10 transition-colors cursor-pointer border-none" onClick={onClose}>
-            <X size={20} color="#6a7282" />
+          <button className="absolute top-3.5 right-4 w-7 h-7 flex items-center justify-center rounded-lg bg-slate-100 dark:bg-white/5 text-slate-500 hover:bg-slate-200 dark:hover:bg-white/10 transition-colors cursor-pointer border-none" onClick={onClose}>
+            <X size={18} color="#6a7282" />
           </button>
         </div>
 
-        <div className="p-6 overflow-y-auto custom-scrollbar flex-1 flex flex-col gap-5">
+        <div className="p-5 overflow-y-auto custom-scrollbar flex-1 flex flex-col gap-4">
           <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
             <div className="flex flex-col gap-1.5">
               <label className="font-inter text-[13px] font-semibold text-slate-700 dark:text-slate-300">Full Name</label>
@@ -270,9 +270,9 @@ function EditModal({ member, onClose, onSave }) {
           </div>
         </div>
 
-        <div className="p-5 border-t border-slate-200 dark:border-white/10 bg-slate-50 dark:bg-black/20 flex items-center justify-end gap-3 shrink-0">
-          <button className="h-10 px-4 w-24 rounded-lg font-inter text-sm font-semibold transition-all border border-slate-300 dark:border-white/10 bg-white dark:bg-[#1E2130] text-slate-700 dark:text-slate-300 hover:bg-slate-50 dark:hover:bg-white/5 cursor-pointer flex items-center justify-center gap-2" onClick={onClose} disabled={saving}>Cancel</button>
-          <button className="h-10 px-4 rounded-lg font-inter text-sm font-semibold transition-all border-none bg-blue-600 text-white hover:bg-blue-700 cursor-pointer flex items-center justify-center gap-2" onClick={handleSubmit} disabled={saving}>
+        <div className="px-5 py-3 border-t border-slate-200 dark:border-white/10 bg-slate-50 dark:bg-black/20 flex items-center justify-end gap-2.5 shrink-0">
+          <button className="h-9 px-4 rounded-lg font-inter text-xs font-semibold transition-all border border-slate-300 dark:border-white/10 bg-white dark:bg-[#1E2130] text-slate-700 dark:text-slate-300 hover:bg-slate-50 dark:hover:bg-white/5 cursor-pointer flex items-center justify-center gap-2" onClick={onClose} disabled={saving}>Cancel</button>
+          <button className="h-9 px-4 rounded-lg font-inter text-xs font-semibold transition-all border-none bg-blue-600 text-white hover:bg-blue-700 cursor-pointer flex items-center justify-center gap-2" onClick={handleSubmit} disabled={saving}>
             {saving ? <Loader2 className="animate-spin" size={16} /> : 'Save Changes'}
           </button>
         </div>
@@ -318,36 +318,36 @@ function DeleteModal({ member, onClose, onConfirm }) {
   return (
     <div className="fixed inset-0 bg-black/50 backdrop-blur-sm z-[1000] flex items-center justify-center p-4" onClick={onClose}>
       <div className="bg-white dark:bg-[#1E2130] rounded-2xl w-full max-w-[400px] shadow-2xl border border-slate-200 dark:border-white/10 flex flex-col max-h-[90vh] overflow-hidden" onClick={e => e.stopPropagation()}>
-        <div className="flex items-center gap-4 p-5 border-b border-slate-200 dark:border-white/10 shrink-0 relative">
-          <div className="w-12 h-12 rounded-xl flex items-center justify-center shrink-0 bg-rose-100 dark:bg-rose-500/20"><IconTrash /></div>
+        <div className="flex items-center gap-3 px-5 py-3.5 border-b border-slate-200 dark:border-white/10 shrink-0 relative">
+          <div className="w-9 h-9 rounded-xl flex items-center justify-center shrink-0 bg-rose-100 dark:bg-rose-500/20"><IconTrash /></div>
           <div className="flex flex-col">
-            <p className="m-0 font-inter text-lg font-bold text-slate-800 dark:text-white">Delete Member</p>
-            <p className="m-0 font-inter text-[13px] text-slate-500 dark:text-slate-400">This action cannot be undone</p>
+            <p className="m-0 font-inter text-base font-bold text-slate-800 dark:text-white leading-snug">Delete Member</p>
+            <p className="m-0 font-inter text-xs text-slate-500 dark:text-slate-400">This action cannot be undone</p>
           </div>
-          <button className="absolute top-5 right-5 w-8 h-8 flex items-center justify-center rounded-lg bg-slate-100 dark:bg-white/5 text-slate-500 hover:bg-slate-200 dark:hover:bg-white/10 transition-colors cursor-pointer border-none" onClick={onClose}>
-            <X size={20} color="#6a7282" />
+          <button className="absolute top-3.5 right-4 w-7 h-7 flex items-center justify-center rounded-lg bg-slate-100 dark:bg-white/5 text-slate-500 hover:bg-slate-200 dark:hover:bg-white/10 transition-colors cursor-pointer border-none" onClick={onClose}>
+            <X size={18} color="#6a7282" />
           </button>
         </div>
 
-        <div className="p-6 overflow-y-auto custom-scrollbar flex-1 flex flex-col gap-5">
-          <div className="flex items-center gap-4 p-4 rounded-xl bg-rose-50 dark:bg-rose-500/10 border border-rose-100 dark:border-rose-500/20 mb-4">
-            <div className="w-12 h-12 rounded-full bg-rose-100 dark:bg-rose-500/20 flex items-center justify-center shrink-0">
-              <User size={20} color="#155DFC" />
+        <div className="p-5 overflow-y-auto custom-scrollbar flex-1 flex flex-col gap-4">
+          <div className="flex items-center gap-4 p-4 rounded-xl bg-rose-50 dark:bg-rose-500/10 border border-rose-100 dark:border-rose-500/20 mb-2">
+            <div className="w-10 h-10 rounded-full bg-rose-100 dark:bg-rose-500/20 flex items-center justify-center shrink-0">
+              <User size={18} color="#155DFC" />
             </div>
             <div>
               <p className="m-0 font-inter text-base font-bold text-rose-900 dark:text-rose-100">{member.fullName || member.name}</p>
-              <p className="m-0 font-inter text-sm text-rose-700 dark:text-rose-300">{member.email}</p>
+              <p className="m-0 font-inter text-xs text-rose-700 dark:text-rose-300">{member.email}</p>
             </div>
           </div>
-          <p className="m-0 font-inter text-sm text-slate-600 dark:text-slate-400 leading-relaxed mb-6">
+          <p className="m-0 font-inter text-xs text-slate-600 dark:text-slate-400 leading-relaxed mb-4">
             Are you sure you want to permanently delete this member? All associated data including loans, donations, and attendance records may be affected.
           </p>
 
-          <div className="flex items-center text-center text-xs font-semibold uppercase tracking-wider text-slate-400 before:flex-1 before:border-t before:border-slate-200 dark:before:border-white/10 before:mr-4 after:flex-1 after:border-t after:border-slate-200 dark:after:border-white/10 after:ml-4 mb-4">
+          <div className="flex items-center text-center text-[11px] font-semibold uppercase tracking-wider text-slate-400 before:flex-1 before:border-t before:border-slate-200 dark:before:border-white/10 before:mr-3 after:flex-1 after:border-t after:border-slate-200 dark:after:border-white/10 after:ml-3 mb-3">
             <span>Confirm your identity to delete</span>
           </div>
           <div className="flex flex-col gap-1.5 !mb-0">
-            <label className="font-inter text-[13px] font-semibold text-slate-700 dark:text-slate-300">Admin Password</label>
+            <label className="font-inter text-xs font-semibold text-slate-700 dark:text-slate-300">Admin Password</label>
             <div className="relative flex items-center">
               <input
                 className={`h-10 px-3 bg-white dark:bg-[#161922] border rounded-lg text-sm font-inter text-slate-800 dark:text-white outline-none focus:border-blue-500 transition-all w-full ${passwordError ? 'border-rose-500 ring-1 ring-rose-500/50' : 'border-slate-300 dark:border-white/10'}`}
@@ -368,9 +368,9 @@ function DeleteModal({ member, onClose, onConfirm }) {
           </div>
         </div>
 
-        <div className="p-5 border-t border-slate-200 dark:border-white/10 bg-slate-50 dark:bg-black/20 flex items-center justify-end gap-3 shrink-0">
-          <button className="h-10 px-4 w-24 rounded-lg font-inter text-sm font-semibold transition-all border border-slate-300 dark:border-white/10 bg-white dark:bg-[#1E2130] text-slate-700 dark:text-slate-300 hover:bg-slate-50 dark:hover:bg-white/5 cursor-pointer flex items-center justify-center gap-2" onClick={onClose} disabled={deleting}>Cancel</button>
-          <button className="h-10 px-4 rounded-lg font-inter text-sm font-semibold transition-all border-none bg-rose-600 text-white hover:bg-rose-700 cursor-pointer flex items-center justify-center gap-2" onClick={handleDelete} disabled={deleting}>
+        <div className="px-5 py-3 border-t border-slate-200 dark:border-white/10 bg-slate-50 dark:bg-black/20 flex items-center justify-end gap-2.5 shrink-0">
+          <button className="h-9 px-4 rounded-lg font-inter text-xs font-semibold transition-all border border-slate-300 dark:border-white/10 bg-white dark:bg-[#1E2130] text-slate-700 dark:text-slate-300 hover:bg-slate-50 dark:hover:bg-white/5 cursor-pointer flex items-center justify-center gap-2" onClick={onClose} disabled={deleting}>Cancel</button>
+          <button className="h-9 px-4 rounded-lg font-inter text-xs font-semibold transition-all border-none bg-rose-600 text-white hover:bg-rose-700 cursor-pointer flex items-center justify-center gap-2" onClick={handleDelete} disabled={deleting}>
             {deleting ? <Loader2 className="animate-spin" size={16} /> : 'Delete Member'}
           </button>
         </div>
@@ -484,18 +484,18 @@ function AddMemberModal({ onClose, onSave }) {
   return (
     <div className="fixed inset-0 bg-black/50 backdrop-blur-sm z-[1000] flex items-center justify-center p-4" onClick={onClose}>
       <div className="bg-white dark:bg-[#1E2130] rounded-2xl w-full max-w-[600px] shadow-2xl border border-slate-200 dark:border-white/10 flex flex-col max-h-[90vh] overflow-hidden" onClick={e => e.stopPropagation()}>
-        <div className="flex items-center gap-4 p-5 border-b border-slate-200 dark:border-white/10 shrink-0 relative">
-          <div className="w-12 h-12 rounded-xl flex items-center justify-center shrink-0 bg-blue-100 text-blue-600 dark:bg-blue-500/20 dark:text-blue-400"><UserPlus size={20} /></div>
+        <div className="flex items-center gap-3 px-5 py-3.5 border-b border-slate-200 dark:border-white/10 shrink-0 relative">
+          <div className="w-9 h-9 rounded-xl flex items-center justify-center shrink-0 bg-blue-100 text-blue-600 dark:bg-blue-500/20 dark:text-blue-400"><UserPlus size={18} /></div>
           <div className="flex flex-col">
-            <p className="m-0 font-inter text-lg font-bold text-slate-800 dark:text-white">Add New Member</p>
-            <p className="m-0 font-inter text-[13px] text-slate-500 dark:text-slate-400">Register a new member directly</p>
+            <p className="m-0 font-inter text-base font-bold text-slate-800 dark:text-white leading-snug">Add New Member</p>
+            <p className="m-0 font-inter text-xs text-slate-500 dark:text-slate-400">Register a new member directly</p>
           </div>
-          <button className="absolute top-5 right-5 w-8 h-8 flex items-center justify-center rounded-lg bg-slate-100 dark:bg-white/5 text-slate-500 hover:bg-slate-200 dark:hover:bg-white/10 transition-colors cursor-pointer border-none" onClick={onClose}>
-            <X size={20} color="#6a7282" />
+          <button className="absolute top-3.5 right-4 w-7 h-7 flex items-center justify-center rounded-lg bg-slate-100 dark:bg-white/5 text-slate-500 hover:bg-slate-200 dark:hover:bg-white/10 transition-colors cursor-pointer border-none" onClick={onClose}>
+            <X size={18} color="#6a7282" />
           </button>
         </div>
 
-        <div className="p-6 overflow-y-auto custom-scrollbar flex-1 flex flex-col gap-5">
+        <div className="p-5 overflow-y-auto custom-scrollbar flex-1 flex flex-col gap-4">
           <div className="flex flex-col gap-1.5 mb-4">
             <div className="flex flex-col gap-1.5 md:col-span-2">
               <label className="font-inter text-[13px] font-semibold text-slate-700 dark:text-slate-300">Full Name</label>
@@ -616,9 +616,9 @@ function AddMemberModal({ onClose, onSave }) {
           </div>
         </div>
 
-        <div className="p-5 border-t border-slate-200 dark:border-white/10 bg-slate-50 dark:bg-black/20 flex items-center justify-end gap-3 shrink-0">
-          <button className="h-10 px-4 w-24 rounded-lg font-inter text-sm font-semibold transition-all border border-slate-300 dark:border-white/10 bg-white dark:bg-[#1E2130] text-slate-700 dark:text-slate-300 hover:bg-slate-50 dark:hover:bg-white/5 cursor-pointer flex items-center justify-center gap-2" onClick={onClose} disabled={saving}>Cancel</button>
-          <button className="h-10 px-4 rounded-lg font-inter text-sm font-semibold transition-all border-none bg-blue-600 text-white hover:bg-blue-700 cursor-pointer flex items-center justify-center gap-2" onClick={handleSubmit} disabled={saving}>
+        <div className="px-5 py-3 border-t border-slate-200 dark:border-white/10 bg-slate-50 dark:bg-black/20 flex items-center justify-end gap-2.5 shrink-0">
+          <button className="h-9 px-4 rounded-lg font-inter text-xs font-semibold transition-all border border-slate-300 dark:border-white/10 bg-white dark:bg-[#1E2130] text-slate-700 dark:text-slate-300 hover:bg-slate-50 dark:hover:bg-white/5 cursor-pointer flex items-center justify-center gap-2" onClick={onClose} disabled={saving}>Cancel</button>
+          <button className="h-9 px-4 rounded-lg font-inter text-xs font-semibold transition-all border-none bg-blue-600 text-white hover:bg-blue-700 cursor-pointer flex items-center justify-center gap-2" onClick={handleSubmit} disabled={saving}>
             {saving ? <Loader2 className="animate-spin" size={16} /> : 'Add Member'}
           </button>
         </div>
@@ -674,41 +674,40 @@ function LinkRFIDModal({ member, onClose, onSave }) {
   return (
     <div className="fixed inset-0 bg-black/50 backdrop-blur-sm z-[1000] flex items-center justify-center p-4" onClick={onClose}>
       <div className="bg-white dark:bg-[#1E2130] rounded-2xl w-full max-w-[400px] shadow-2xl border border-slate-200 dark:border-white/10 flex flex-col max-h-[90vh] overflow-hidden" onClick={e => e.stopPropagation()}>
-        <div className="flex items-center gap-4 p-5 border-b border-slate-200 dark:border-white/10 shrink-0 relative">
-          <div className="w-12 h-12 rounded-xl flex items-center justify-center shrink-0 bg-sky-100 text-sky-600 dark:bg-sky-500/20 dark:text-sky-400"><CreditCard size={20} /></div>
+        <div className="flex items-center gap-3 px-5 py-3.5 border-b border-slate-200 dark:border-white/10 shrink-0 relative">
+          <div className="w-9 h-9 rounded-xl flex items-center justify-center shrink-0 bg-sky-100 text-sky-600 dark:bg-sky-500/20 dark:text-sky-400"><CreditCard size={18} /></div>
           <div className="flex flex-col">
-            <p className="m-0 font-inter text-lg font-bold text-slate-800 dark:text-white">Link RFID Card</p>
-            <p className="m-0 font-inter text-[13px] text-slate-500 dark:text-slate-400">Assign card to {member.fullName || member.name}</p>
+            <p className="m-0 font-inter text-base font-bold text-slate-800 dark:text-white leading-snug">Link RFID Card</p>
+            <p className="m-0 font-inter text-xs text-slate-500 dark:text-slate-400">Assign card to {member.fullName || member.name}</p>
           </div>
-          <button className="absolute top-5 right-5 w-8 h-8 flex items-center justify-center rounded-lg bg-slate-100 dark:bg-white/5 text-slate-500 hover:bg-slate-200 dark:hover:bg-white/10 transition-colors cursor-pointer border-none" onClick={onClose}><X size={20} color="#6a7282" /></button>
+          <button className="absolute top-3.5 right-4 w-7 h-7 flex items-center justify-center rounded-lg bg-slate-100 dark:bg-white/5 text-slate-500 hover:bg-slate-200 dark:hover:bg-white/10 transition-colors cursor-pointer border-none" onClick={onClose}><X size={18} color="#6a7282" /></button>
         </div>
 
-        <div className="p-6 overflow-y-auto custom-scrollbar flex-1 flex flex-col gap-5 items-center text-center">
+        <div className="p-5 overflow-y-auto custom-scrollbar flex-1 flex flex-col gap-4 items-center text-center">
           {rfidCode ? (
-            <div className="flex flex-col items-center justify-center py-6">
-              <div className="text-emerald-500 mb-4 mx-auto"><CheckCircle2 size={48} /></div>
-              <p className="m-0 font-inter text-lg font-bold text-slate-800 dark:text-white mb-2">Card Detected!</p>
-              <p className="font-mono text-lg font-bold bg-slate-100 dark:bg-white/5 px-4 py-2 rounded-lg text-slate-800 dark:text-white mb-4">{rfidCode}</p>
-              <p className="m-0 font-inter text-sm text-slate-500 dark:text-slate-400">Click "Link Card" to confirm assignment.</p>
+            <div className="flex flex-col items-center justify-center py-4">
+              <div className="text-emerald-500 mb-3 mx-auto"><CheckCircle2 size={40} /></div>
+              <p className="m-0 font-inter text-base font-bold text-slate-800 dark:text-white mb-2">Card Detected!</p>
+              <p className="font-mono text-base font-bold bg-slate-100 dark:bg-white/5 px-3 py-1.5 rounded-lg text-slate-800 dark:text-white mb-3">{rfidCode}</p>
+              <p className="m-0 font-inter text-xs text-slate-500 dark:text-slate-400">Click "Link Card" to confirm assignment.</p>
             </div>
           ) : (
-            <div className="flex flex-col items-center justify-center py-8 gap-4">
-              <div className="relative flex items-center justify-center w-24 h-24 mb-2">
+            <div className="flex flex-col items-center justify-center py-6 gap-3">
+              <div className="relative flex items-center justify-center w-20 h-20 mb-1">
                 <div className="w-full h-full rounded-full border-4 border-blue-500/30 border-t-blue-500 animate-spin"></div>
               </div>
-              <p className="m-0 font-inter text-base font-semibold text-slate-700 dark:text-slate-300">Waiting for RFID Scan...</p>
-              <p className="m-0 font-inter text-sm text-slate-500 dark:text-slate-400 text-center max-w-[250px]">Please tap the physical card on the reader now.</p>
+              <p className="m-0 font-inter text-sm font-semibold text-slate-700 dark:text-slate-300">Waiting for RFID Scan...</p>
+              <p className="m-0 font-inter text-xs text-slate-500 dark:text-slate-400 text-center max-w-[240px]">Please tap the physical card on the reader now.</p>
             </div>
           )}
         </div>
 
-        <div className="p-5 border-t border-slate-200 dark:border-white/10 bg-slate-50 dark:bg-black/20 flex items-center justify-end gap-3 shrink-0">
-          <button className="h-10 px-4 rounded-lg font-inter text-sm font-semibold transition-all border border-slate-300 dark:border-white/20 bg-transparent text-slate-700 dark:text-slate-300 hover:bg-slate-50 dark:hover:bg-white/5 cursor-pointer flex items-center justify-center gap-2" onClick={onClose} disabled={saving}>Cancel</button>
+        <div className="px-5 py-3 border-t border-slate-200 dark:border-white/10 bg-slate-50 dark:bg-black/20 flex items-center justify-end gap-2.5 shrink-0">
+          <button className="h-9 px-4 rounded-lg font-inter text-xs font-semibold transition-all border border-slate-300 dark:border-white/20 bg-transparent text-slate-700 dark:text-slate-300 hover:bg-slate-50 dark:hover:bg-white/5 cursor-pointer flex items-center justify-center gap-2" onClick={onClose} disabled={saving}>Cancel</button>
           <button 
-            className="h-10 px-4 rounded-lg font-inter text-sm font-semibold transition-all border-none bg-blue-600 text-white hover:bg-blue-700 cursor-pointer flex items-center justify-center gap-2" 
+            className="h-9 px-4 rounded-lg font-inter text-xs font-semibold transition-all border-none bg-blue-600 text-white hover:bg-blue-700 cursor-pointer flex items-center justify-center gap-2" 
             onClick={handleLink} 
             disabled={saving || !rfidCode}
-            
           >
             {saving ? <Loader2 className="animate-spin" size={16} /> : 'Link Card'}
           </button>

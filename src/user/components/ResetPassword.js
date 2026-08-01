@@ -3,6 +3,7 @@ import { useNavigate } from "react-router";
 import { useAuth } from "../../context/AuthContext";
 import { Mail, Lock, ArrowLeft, Eye, EyeOff, X, AlertTriangle, CheckCircle } from "lucide-react";
 import puacLogo from "../../assets/puaclogo.png";
+import useSwipeDownToClose from "../hooks/useSwipeDownToClose";
 
 
 const RULES = [
@@ -93,6 +94,8 @@ export default function ResetPassword({ isOpen, onClose }) {
     if (isModal && onClose) onClose();
     else navigate("/login");
   };
+
+  const swipeProps = useSwipeDownToClose(handleClose);
 
   const handleBack = () => {
     if (step > 1) setStep(s => s - 1);
@@ -324,15 +327,32 @@ export default function ResetPassword({ isOpen, onClose }) {
 
   /* ── Modal wrapper ── */
   const card = (
-    <div className="relative w-full max-w-md bg-white dark:bg-[#1E2130] rounded-2xl p-6 sm:p-8 shadow-2xl border border-slate-200 dark:border-white/10 my-auto" onClick={e => e.stopPropagation()}>
-      {/* Top nav: back arrow + close */}
-      <div className="flex items-center justify-between mb-6 pb-2 border-b border-slate-100 dark:border-white/5">
-        <button className="text-slate-400 hover:text-slate-600 dark:hover:text-white p-1.5 rounded-full transition-colors" onClick={handleBack} type="button">
-          <ArrowLeft size={18} />
-        </button>
+    <div
+      ref={isModal ? swipeProps.containerRef : undefined}
+      onTouchStart={isModal ? swipeProps.handleTouchStart : undefined}
+      onTouchMove={isModal ? swipeProps.handleTouchMove : undefined}
+      onTouchEnd={isModal ? swipeProps.handleTouchEnd : undefined}
+      style={isModal ? swipeProps.dragStyle : undefined}
+      className={`relative w-full max-w-md bg-white dark:bg-[#1E2130] p-6 sm:p-8 shadow-2xl border-slate-200 dark:border-white/10 ${
+        isModal
+          ? "rounded-t-3xl rounded-b-none sm:rounded-2xl border-t sm:border my-0 sm:my-auto max-h-[85vh] sm:max-h-none overflow-y-auto [&::-webkit-scrollbar]:hidden [-ms-overflow-style:none] [scrollbar-width:none] animate-mobile-slide-up"
+          : "rounded-2xl border my-auto"
+      }`}
+      onClick={e => e.stopPropagation()}
+    >
+      {/* Mobile Pull Handle Indicator */}
+      {isModal && <div className="w-12 h-1 bg-slate-300 dark:bg-slate-700 rounded-full mx-auto mb-3 sm:hidden" />}
+
+      {/* Top nav: back arrow + step indicator + close */}
+      <div className="relative flex items-center justify-center mb-6 pb-2 border-b border-slate-100 dark:border-white/5 min-h-[32px]">
+        {step > 1 && (
+          <button className="absolute left-0 text-slate-400 hover:text-slate-600 dark:hover:text-white p-1 rounded-full transition-colors" onClick={handleBack} type="button">
+            <ArrowLeft size={18} />
+          </button>
+        )}
 
         {/* Step indicator */}
-        <div className="flex items-center gap-2">
+        <div className="flex items-center gap-2 mx-auto">
           {steps.map((label, i) => (
             <div key={label} className="flex items-center gap-1.5">
               <div className={`w-5 h-5 rounded-full text-[11px] font-bold flex items-center justify-center ${i + 1 < step ? "bg-emerald-500 text-white" : i + 1 === step ? "bg-blue-600 text-white" : "bg-slate-100 dark:bg-slate-800 text-slate-400"}`}>
@@ -345,7 +365,7 @@ export default function ResetPassword({ isOpen, onClose }) {
         </div>
 
         {isModal && (
-          <button className="text-slate-400 hover:text-slate-600 dark:hover:text-white p-1.5 rounded-full transition-colors" onClick={handleClose} type="button">
+          <button className="absolute right-0 text-slate-400 hover:text-slate-600 dark:hover:text-white p-1 rounded-full transition-colors" onClick={handleClose} type="button">
             <X size={18} />
           </button>
         )}
@@ -359,7 +379,7 @@ export default function ResetPassword({ isOpen, onClose }) {
   if (isModal) {
     if (!isOpen) return null;
     return (
-      <div className="fixed inset-0 z-[9999] bg-black/60 backdrop-blur-sm flex items-center justify-center p-4 overflow-y-auto" onClick={handleClose}>
+      <div className="fixed inset-0 z-[9999] bg-black/60 backdrop-blur-sm flex items-end sm:items-center justify-center p-0 sm:p-4 overflow-y-auto" onClick={handleClose}>
         {card}
       </div>
     );

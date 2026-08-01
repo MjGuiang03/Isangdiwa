@@ -65,201 +65,205 @@ export default function Home() {
   const token = localStorage.getItem('token');
   const branch = profile?.branch || '';
 
-  const urls = useMemo(() => {
-    if (!token) return null;
-    return [
-      `${API}/api/loans/my-loans`,
-      `${API}/api/donations/my-donations`,
-      `${API}/api/attendance/my-attendance`,
-      `${API}/api/admin/announcements${branch ? `?branch=${encodeURIComponent(branch)}` : ''}`,
-      `${API}/api/savings/stats`,
-      `${API}/api/savings/goals`,
-      `${API}/api/prayers`,
-      `${API}/api/savings/transactions?limit=5`,
-      `${API}/api/loans/my-payments`,
-    ];
-  }, [token, branch]);
+  const singleFetcher = (url) =>
+    fetch(url, { headers: { Authorization: `Bearer ${token}` } }).then(res => res.ok ? res.json() : { success: false });
 
-  const fetcher = async (urlsToFetch) => {
-    const headers = { Authorization: `Bearer ${token}` };
-    const responses = await Promise.all(urlsToFetch.map(url => fetch(url, { headers })));
-    return Promise.all(responses.map(res => res.ok ? res.json() : { success: false }));
-  };
+  const { data: loansData } = useSWR(token ? `${API}/api/loans/my-loans` : null, singleFetcher, { revalidateOnFocus: false, dedupingInterval: 10000 });
+  const { data: donationsData } = useSWR(token ? `${API}/api/donations/my-donations` : null, singleFetcher, { revalidateOnFocus: false, dedupingInterval: 10000 });
+  const { data: attendanceData } = useSWR(token ? `${API}/api/attendance/my-attendance` : null, singleFetcher, { revalidateOnFocus: false, dedupingInterval: 10000 });
+  const { data: annData } = useSWR(token ? `${API}/api/admin/announcements${branch ? `?branch=${encodeURIComponent(branch)}` : ''}` : null, singleFetcher, { revalidateOnFocus: false, dedupingInterval: 10000 });
+  const { data: savingsData } = useSWR(token ? `${API}/api/savings/stats` : null, singleFetcher, { revalidateOnFocus: false, dedupingInterval: 10000 });
+  const { data: savingsGoalsData } = useSWR(token ? `${API}/api/savings/goals` : null, singleFetcher, { revalidateOnFocus: false, dedupingInterval: 10000 });
+  const { data: prayersData } = useSWR(token ? `${API}/api/prayers` : null, singleFetcher, { revalidateOnFocus: false, dedupingInterval: 10000 });
+  const { data: savingsTxnData } = useSWR(token ? `${API}/api/savings/transactions?limit=5` : null, singleFetcher, { revalidateOnFocus: false, dedupingInterval: 10000 });
+  const { data: loanPaymentsData } = useSWR(token ? `${API}/api/loans/my-payments` : null, singleFetcher, { revalidateOnFocus: false, dedupingInterval: 10000 });
 
-  const { data, isValidating } = useSWR(urls, fetcher, {
-    revalidateOnFocus: false,
-    revalidateIfStale: true
-  });
+  /* Update domain states progressively as data arrives */
+  useEffect(() => {
+    if (!loansData) return;
+    if (loansData.success) {
+      setLoanStats(loansData.stats || { activeCount: 0, remainingBalance: 0 });
+      setActiveLoansList((loansData.loans || []).filter(l => l.status === 'active'));
+      setRejectedLoansCount((loansData.loans || []).filter(l => l.status === 'rejected').length);
+    }
+  }, [loansData]);
 
   useEffect(() => {
-    if (!data) return;
-    setLoading(isValidating && !data);
-    try {
-      const [loansData, donationsData, attendanceData, annData, savingsData, savingsGoalsData, prayersData, savingsTxnData, loanPaymentsData] = data;
-
+    if (!donationsData) return;
+    if (donationsData.success) {
+      setDonationStats(donationsData.stats || { totalDonated: 0 });
       const now = new Date();
       const thisMonth = now.getMonth();
       const thisYear = now.getFullYear();
-
-      if (loansData && loansData.success) {
-        setLoanStats(loansData.stats || { activeCount: 0, remainingBalance: 0 });
-        const activeList = (loansData.loans || []).filter(l => l.status === 'active');
-        setActiveLoansList(activeList);
-        const rejected = (loansData.loans || []).filter(l => l.status === 'rejected').length;
-        setRejectedLoansCount(rejected);
-      }
-      if (donationsData && donationsData.success) {
-        setDonationStats(donationsData.stats || { totalDonated: 0 });
-        const monthlyDons = (donationsData.donations || []).filter(d => {
-          const dt = new Date(d.createdAt);
-          return dt.getMonth() === thisMonth && dt.getFullYear() === thisYear;
-        });
-        setMonthlyDonationCount(monthlyDons.length);
-      }
-
-      if (savingsData && savingsData.success) {
-        setSavingsStats(savingsData.stats || { totalSavings: 0, thisMonth: 0 });
-      }
-
-      if (savingsGoalsData && savingsGoalsData.success) {
-        setSavingsGoalsList((savingsGoalsData.goals || []).filter(g => g.status !== 'completed'));
-      }
-
-      if (annData && annData.success) {
-        const list = (annData.announcements || []).map(ann => {
-          const d = ann.eventDate ? new Date(ann.eventDate) : new Date(ann.createdAt);
-          const text = ann.content || ann.body || '';
-          const vis = ann.visibility;
-          const branches = ann.targetBranches;
-          const branchLabel = (!vis || vis === 'all') ? 'All Branches'
-            : (vis === 'branches' && Array.isArray(branches) && branches.length > 0)
-              ? branches.join(', ')
-              : vis;
-          const timeLabel = ann.eventDate ? new Date(ann.eventDate).toLocaleTimeString('en-US', { hour: 'numeric', minute: '2-digit', hour12: true }) : '';
-          return {
-            ...ann,
-            day: d.getDate().toString(),
-            month: d.toLocaleString('en-US', { month: 'short' }).toUpperCase(),
-            title: ann.title,
-            body: text.length > 80 ? text.substring(0, 80) + '...' : text,
-            fullBody: text,
-            dateObj: d,
-            time: timeLabel,
-            category: ann.category || 'General',
-            branch: branchLabel,
-            tag: ann.category || 'General',
-          };
-        });
-        list.sort((a, b) => b.dateObj - a.dateObj);
-        setAllAnnouncements(list);
-        setUpcomingEvents(list.slice(0, 4));
-      }
-
-      if (prayersData && prayersData.success) {
-        setPrayers(prayersData.prayers || []);
-      }
-
-      const activities = [];
-
-      if (loansData.success && loansData.loans?.length) {
-        const STATUS_TEXT = {
-          pending: 'Pending review',
-          approved: 'Approved',
-          active: 'Active',
-          completed: 'Completed',
-          rejected: 'Rejected',
-          overdue: 'Overdue',
-          awaiting_member_approval: 'Review requested',
-        };
-
-        loansData.loans.slice(0, 5).forEach(loan => {
-          activities.push({
-            type: 'loan',
-            title: `Loan ${STATUS_TEXT[loan.status] || loan.status.charAt(0).toUpperCase() + loan.status.slice(1)}`,
-            loanId: loan.loanId,
-            amount: `₱${Number(loan.amount).toLocaleString('en-PH', { minimumFractionDigits: 2, maximumFractionDigits: 2 })}`,
-            date: new Date(loan.appliedDate),
-            status: loan.status,
-          });
-        });
-      }
-
-      if (loanPaymentsData.success && loanPaymentsData.payments?.length) {
-        loanPaymentsData.payments.slice(0, 5).forEach(payment => {
-          activities.push({
-            type: 'loan',
-            title: payment.status === 'confirmed' ? 'Loan Payment Confirmed' : 'Loan Payment Pending',
-            loanId: payment.loanId,
-            amount: `₱${Number(payment.amount).toLocaleString('en-PH', { minimumFractionDigits: 2, maximumFractionDigits: 2 })}`,
-            date: new Date(payment.submittedAt || payment.createdAt),
-            status: payment.status,
-          });
-        });
-      }
-
-      if (donationsData.success && donationsData.donations?.length) {
-        donationsData.donations
-          .filter(donation => donation.status === 'confirmed')
-          .slice(0, 5)
-          .forEach(donation => {
-            activities.push({
-              type: 'donation',
-              title: 'Donation Made',
-              category: donation.category,
-              amount: `₱${Number(donation.amount).toLocaleString('en-PH', { minimumFractionDigits: 2, maximumFractionDigits: 2 })}`,
-              date: new Date(donation.createdAt),
-            });
-          });
-      }
-
-      if (attendanceData && attendanceData.success) {
-        const records = attendanceData.attendance || [];
-        setAttendanceCount(records.length);
-        records.slice(0, 3).forEach(record => {
-          activities.push({
-            type: 'attendance',
-            title: 'Service Attended',
-            category: record.service || record.branch,
-            amount: '',
-            date: new Date(record.createdAt),
-          });
-        });
-      }
-
-      if (savingsTxnData.success && savingsTxnData.transactions?.length) {
-        savingsTxnData.transactions
-          .filter(txn => txn.type === 'deposit')
-          .slice(0, 5)
-          .forEach(txn => {
-            activities.push({
-              type: 'savings',
-              title: txn.status === 'confirmed' ? 'Savings Validated' : 'Savings Deposit',
-              category: txn.goalName || 'General Savings',
-              amount: `₱${Number(txn.amount).toLocaleString('en-PH', { minimumFractionDigits: 2, maximumFractionDigits: 2 })}`,
-              date: new Date(txn.date),
-              status: txn.status
-            });
-          });
-      }
-
-      activities.sort((a, b) => b.date - a.date);
-
-      // Dedup: if a loan has payment entries, remove the bare loan-application entry for that same loanId
-      const loanIdsWithPayments = new Set(
-        activities.filter(a => a.type === 'loan' && a.title.includes('Payment')).map(a => a.loanId)
-      );
-      const dedupedActivities = activities.filter(a =>
-        !(a.type === 'loan' && !a.title.includes('Payment') && loanIdsWithPayments.has(a.loanId))
-      );
-
-      setRecentActivity(dedupedActivities.slice(0, 5));
-
-    } catch (err) {
-      console.error('Failed to parse dashboard data:', err);
-    } finally {
-      if (data) setLoading(false);
+      const monthlyDons = (donationsData.donations || []).filter(d => {
+        const dt = new Date(d.createdAt);
+        return dt.getMonth() === thisMonth && dt.getFullYear() === thisYear;
+      });
+      setMonthlyDonationCount(monthlyDons.length);
     }
-  }, [data, isValidating, profile?.branch]);
+  }, [donationsData]);
+
+  useEffect(() => {
+    if (!attendanceData) return;
+    if (attendanceData.success) {
+      setAttendanceCount((attendanceData.attendance || []).length);
+    }
+  }, [attendanceData]);
+
+  useEffect(() => {
+    if (!savingsData) return;
+    if (savingsData.success) {
+      setSavingsStats(savingsData.stats || { totalSavings: 0, thisMonth: 0 });
+    }
+  }, [savingsData]);
+
+  useEffect(() => {
+    if (!savingsGoalsData) return;
+    if (savingsGoalsData.success) {
+      setSavingsGoalsList((savingsGoalsData.goals || []).filter(g => g.status !== 'completed'));
+    }
+  }, [savingsGoalsData]);
+
+  useEffect(() => {
+    if (!annData) return;
+    if (annData.success) {
+      const list = (annData.announcements || []).map(ann => {
+        const d = ann.eventDate ? new Date(ann.eventDate) : new Date(ann.createdAt);
+        const text = ann.content || ann.body || '';
+        const vis = ann.visibility;
+        const branches = ann.targetBranches;
+        const branchLabel = (!vis || vis === 'all') ? 'All Branches'
+          : (vis === 'branches' && Array.isArray(branches) && branches.length > 0)
+            ? branches.join(', ')
+            : vis;
+        const timeLabel = ann.eventDate ? new Date(ann.eventDate).toLocaleTimeString('en-US', { hour: 'numeric', minute: '2-digit', hour12: true }) : '';
+        return {
+          ...ann,
+          day: d.getDate().toString(),
+          month: d.toLocaleString('en-US', { month: 'short' }).toUpperCase(),
+          title: ann.title,
+          body: text.length > 80 ? text.substring(0, 80) + '...' : text,
+          fullBody: text,
+          dateObj: d,
+          time: timeLabel,
+          category: ann.category || 'General',
+          branch: branchLabel,
+          tag: ann.category || 'General',
+        };
+      });
+      list.sort((a, b) => b.dateObj - a.dateObj);
+      setAllAnnouncements(list);
+      setUpcomingEvents(list.slice(0, 4));
+    }
+  }, [annData]);
+
+  useEffect(() => {
+    if (!prayersData) return;
+    if (prayersData.success) {
+      setPrayers(prayersData.prayers || []);
+    }
+  }, [prayersData]);
+
+  /* Build recent activity as activity data sources arrive */
+  useEffect(() => {
+    const activities = [];
+
+    if (loansData?.success && loansData.loans?.length) {
+      const STATUS_TEXT = {
+        pending: 'Pending review',
+        approved: 'Approved',
+        active: 'Active',
+        completed: 'Completed',
+        rejected: 'Rejected',
+        overdue: 'Overdue',
+        awaiting_member_approval: 'Review requested',
+      };
+      loansData.loans.slice(0, 5).forEach(loan => {
+        activities.push({
+          type: 'loan',
+          title: `Loan ${STATUS_TEXT[loan.status] || loan.status.charAt(0).toUpperCase() + loan.status.slice(1)}`,
+          loanId: loan.loanId,
+          amount: `₱${Number(loan.amount).toLocaleString('en-PH', { minimumFractionDigits: 2, maximumFractionDigits: 2 })}`,
+          date: new Date(loan.appliedDate),
+          status: loan.status,
+        });
+      });
+    }
+
+    if (loanPaymentsData?.success && loanPaymentsData.payments?.length) {
+      loanPaymentsData.payments.slice(0, 5).forEach(payment => {
+        activities.push({
+          type: 'loan',
+          title: payment.status === 'confirmed' ? 'Loan Payment Confirmed' : 'Loan Payment Pending',
+          loanId: payment.loanId,
+          amount: `₱${Number(payment.amount).toLocaleString('en-PH', { minimumFractionDigits: 2, maximumFractionDigits: 2 })}`,
+          date: new Date(payment.submittedAt || payment.createdAt),
+          status: payment.status,
+        });
+      });
+    }
+
+    if (donationsData?.success && donationsData.donations?.length) {
+      donationsData.donations
+        .filter(donation => donation.status === 'confirmed')
+        .slice(0, 5)
+        .forEach(donation => {
+          activities.push({
+            type: 'donation',
+            title: 'Donation Made',
+            category: donation.category,
+            amount: `₱${Number(donation.amount).toLocaleString('en-PH', { minimumFractionDigits: 2, maximumFractionDigits: 2 })}`,
+            date: new Date(donation.createdAt),
+          });
+        });
+    }
+
+    if (attendanceData?.success && attendanceData.attendance?.length) {
+      attendanceData.attendance.slice(0, 3).forEach(record => {
+        activities.push({
+          type: 'attendance',
+          title: 'Service Attended',
+          category: record.service || record.branch,
+          amount: '',
+          date: new Date(record.createdAt),
+        });
+      });
+    }
+
+    if (savingsTxnData?.success && savingsTxnData.transactions?.length) {
+      savingsTxnData.transactions
+        .filter(txn => txn.type === 'deposit')
+        .slice(0, 5)
+        .forEach(txn => {
+          activities.push({
+            type: 'savings',
+            title: txn.status === 'confirmed' ? 'Savings Validated' : 'Savings Deposit',
+            category: txn.goalName || 'General Savings',
+            amount: `₱${Number(txn.amount).toLocaleString('en-PH', { minimumFractionDigits: 2, maximumFractionDigits: 2 })}`,
+            date: new Date(txn.date),
+            status: txn.status
+          });
+        });
+    }
+
+    activities.sort((a, b) => b.date - a.date);
+
+    const loanIdsWithPayments = new Set(
+      activities.filter(a => a.type === 'loan' && a.title.includes('Payment')).map(a => a.loanId)
+    );
+    const dedupedActivities = activities.filter(a =>
+      !(a.type === 'loan' && !a.title.includes('Payment') && loanIdsWithPayments.has(a.loanId))
+    );
+
+    setRecentActivity(dedupedActivities.slice(0, 5));
+  }, [loansData, loanPaymentsData, donationsData, attendanceData, savingsTxnData]);
+
+  /* Unblock full-screen loading state as soon as basic structure or any endpoint arrives */
+  useEffect(() => {
+    if (loansData || donationsData || savingsData || annData || attendanceData) {
+      setLoading(false);
+    }
+  }, [loansData, donationsData, savingsData, annData, attendanceData]);
 
   useEffect(() => {
     if (upcomingEvents.length <= 1) return;

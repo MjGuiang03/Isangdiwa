@@ -160,13 +160,13 @@ export default function Profile() {
   };
   const fetcherSingle = (url) => fetch(url, { headers: { Authorization: `Bearer ${localStorage.getItem('token')}` } }).then(res => res.ok ? res.json() : { success: false });
 
-  const { data: dData, isValidating: dValidating } = useSWR(token ? `${API}/api/donations/my-donations` : null, fetcherSingle, { revalidateOnFocus: false });
-  const { data: attData, isValidating: attValidating } = useSWR(token ? `${API}/api/attendance/my-attendance` : null, fetcherSingle, { revalidateOnFocus: false });
-  const { data: loanData, isValidating: loanValidating } = useSWR(token ? `${API}/api/loans/my-loans` : null, fetcherSingle, { revalidateOnFocus: false });
-  const { data: savData, isValidating: savValidating } = useSWR(token ? `${API}/api/savings/stats` : null, fetcherSingle, { revalidateOnFocus: false });
-  const { data: savGoalsData, isValidating: savGoalsValidating } = useSWR(token ? `${API}/api/savings/goals` : null, fetcherSingle, { revalidateOnFocus: false });
+  const { data: dData } = useSWR(token ? `${API}/api/donations/my-donations` : null, fetcherSingle, { revalidateOnFocus: false, dedupingInterval: 5000 });
+  const { data: attData } = useSWR(token ? `${API}/api/attendance/my-attendance` : null, fetcherSingle, { revalidateOnFocus: false, dedupingInterval: 5000 });
+  const { data: loanData } = useSWR(token ? `${API}/api/loans/my-loans` : null, fetcherSingle, { revalidateOnFocus: false, dedupingInterval: 5000 });
+  const { data: savData } = useSWR(token ? `${API}/api/savings/stats` : null, fetcherSingle, { revalidateOnFocus: false, dedupingInterval: 5000 });
+  const { data: savGoalsData } = useSWR(token ? `${API}/api/savings/goals` : null, fetcherSingle, { revalidateOnFocus: false, dedupingInterval: 5000 });
 
-  const loading = (!dData && dValidating) || (!attData && attValidating) || (!loanData && loanValidating) || (!savData && savValidating) || (!savGoalsData && savGoalsValidating);
+  const loading = !dData && !attData && !loanData && !savData && !savGoalsData;
 
   const donations = useMemo(() => dData?.donations?.filter(d => d.status === 'confirmed') || [], [dData]);
   const attendance = useMemo(() => attData?.attendance || [], [attData]);

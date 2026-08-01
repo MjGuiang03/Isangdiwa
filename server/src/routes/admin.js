@@ -12,7 +12,7 @@ import { authenticateAdmin } from '../middleware/auth.js';
 import { callGemini } from '../utils/gemini.js';
 
 const router = Router();
-const JWT_SECRET = process.env.JWT_SECRET || 'supersecretkey';
+const JWT_SECRET = process.env.JWT_SECRET;
 
 /* ================== ADMIN LOGIN ================== */
 router.post('/login',
@@ -132,7 +132,8 @@ router.get('/members', authenticateAdmin, async (req, res) => {
       } else if (!user.lastLoginAt || new Date(user.lastLoginAt) < oneWeekAgo) {
         userStatus = 'inactive';
       }
-      return { ...user, status: userStatus, memberId: user.memberId || `M-${user._id.toString().slice(-5).toUpperCase()}` };
+      const { passwordHash, failedLoginAttempts, lockUntil, dailyResetOtpCount, ...safeUser } = user;
+      return { ...safeUser, status: userStatus, memberId: user.memberId || `M-${user._id.toString().slice(-5).toUpperCase()}` };
     });
 
     const sr = statsResult[0] || {};
@@ -469,10 +470,20 @@ router.post('/create-admin', authenticateAdmin, async (req, res) => {
       return res.status(403).json({ success: false, message: 'Only Main Admin can create accounts' });
     }
 
-    const { email, password, role } = req.body;
+    const { email, password, role, adminPassword } = req.body;
 
     if (!email || !password || !role) {
       return res.status(400).json({ success: false, message: 'All fields are required' });
+    }
+    if (!adminPassword) {
+      return res.status(400).json({ success: false, message: 'Admin password is required' });
+    }
+
+    // Verify admin password
+    const currentAdmin = await admins.findOne({ email: req.admin.email });
+    const passwordMatch = await bcrypt.compare(adminPassword, currentAdmin.passwordHash);
+    if (!passwordMatch) {
+      return res.status(401).json({ success: false, wrongPassword: true, message: 'Incorrect admin password' });
     }
 
     // Role validation
@@ -685,10 +696,24 @@ router.delete('/delete-admin', authenticateAdmin, async (req, res) => {
 /* ================== ANNOUNCEMENTS - GET ALL ================== */
 router.get('/announcements', async (req, res) => {
   try {
-    const { branch, admin: isAdmin } = req.query;
+    const { branch } = req.query;
+    let isAdmin = false;
+
+    if (req.headers.authorization) {
+      try {
+        const token = req.headers.authorization.split(' ')[1];
+        const decoded = jwt.verify(token, JWT_SECRET);
+        if (['admin', 'loanAdmin', 'secretaryAdmin'].includes(decoded?.role)) {
+          isAdmin = true;
+        }
+      } catch (e) {
+        // Token invalid or unverified, treat as non-admin visitor
+      }
+    }
+
     const query = {};
 
-    // For user-facing requests, filter by branch visibility and expiration
+    // For non-admin user-facing requests, filter by branch visibility and expiration
     if (!isAdmin) {
       query.$and = [
         {

@@ -3,7 +3,10 @@ import { admins } from '../config/db.js';
 import dotenv from 'dotenv';
 dotenv.config();
 
-const JWT_SECRET = process.env.JWT_SECRET || 'supersecretkey';
+const JWT_SECRET = process.env.JWT_SECRET;
+if (!JWT_SECRET) {
+  throw new Error('CRITICAL SECURITY ERROR: JWT_SECRET environment variable is missing.');
+}
 
 export const authenticateUser = (req, res, next) => {
   const authHeader = req.headers.authorization;

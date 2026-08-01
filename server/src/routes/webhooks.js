@@ -2,14 +2,49 @@ import { Router } from 'express';
 import { donations, loans, savingsTransactions, savingsGoals, loanPayments } from '../config/db.js';
 import { ObjectId } from 'mongodb';
 import { notifyUser } from '../utils/notifyHelpers.js';
+import crypto from 'crypto';
 
 const router = Router();
 
 router.post('/webhooks/paymongo', async (req, res) => {
   try {
+    const webhookSecret = process.env.PAYMONGO_WEBHOOK_SECRET;
+    const signatureHeader = req.headers['paymongo-signature'];
+
+    if (webhookSecret) {
+      if (!signatureHeader) {
+        console.warn('[PayMongo Webhook] Missing paymongo-signature header');
+        return res.status(400).send('Missing webhook signature');
+      }
+
+      // Verify PayMongo HMAC signature if secret is provided
+      try {
+        const parts = signatureHeader.split(',').reduce((acc, part) => {
+          const [key, value] = part.split('=');
+          if (key && value) acc[key.trim()] = value.trim();
+          return acc;
+        }, {});
+
+        const timestamp = parts['t'];
+        const signature = parts['te'] || parts['li'];
+        const payload = `${timestamp}.${JSON.stringify(req.body)}`;
+        const expectedSignature = crypto.createHmac('sha256', webhookSecret).update(payload).digest('hex');
+
+        if (signature !== expectedSignature) {
+          console.error('[PayMongo Webhook] Invalid signature verification');
+          return res.status(401).send('Invalid webhook signature');
+        }
+      } catch (sigErr) {
+        console.error('[PayMongo Webhook] Signature verification failed:', sigErr);
+        return res.status(400).send('Webhook signature error');
+      }
+    } else {
+      console.warn('[PayMongo Webhook] Warning: PAYMONGO_WEBHOOK_SECRET is not set in env. Signature check skipped for testing.');
+    }
+
     const event = req.body;
 
-    console.log('[PayMongo Webhook] Received Event:', event.data.attributes.type);
+    console.log('[PayMongo Webhook] Received Event:', event?.data?.attributes?.type);
 
     // Event Types from PayMongo:
     // checkout_session.payment.paid -> For Checkout Sessions (Donations, Savings Deposit, Loan Repayments)

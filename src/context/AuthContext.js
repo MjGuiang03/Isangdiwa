@@ -196,12 +196,26 @@ export const AuthProvider = ({ children }) => {
       const data = await safeJSON(res);
 
       if (!res.ok) {
-        if (res.status !== 429) toast.error(data.message || 'Failed to send OTP');
-        return { success: false, retryAfter: data.retryAfter || 0 };
+        // Daily email-based limit hit
+        if (data.dailyLimitReached) {
+          toast.error(data.message || 'Daily limit reached. Try again tomorrow.');
+          return { success: false, dailyLimitReached: true };
+        }
+        // IP-based rate limit (429 from express-rate-limit)
+        if (res.status === 429) {
+          return { success: false, retryAfter: data.retryAfter || 0 };
+        }
+        toast.error(data.message || 'Failed to send OTP');
+        return { success: false, retryAfter: 0 };
       }
 
-      toast.success('OTP sent to your email');
-      return { success: true };
+      const remaining = data.remainingAttempts;
+      if (remaining !== undefined && remaining <= 1) {
+        toast.success(`OTP sent! You have ${remaining} reset attempt${remaining === 1 ? '' : 's'} left today.`);
+      } else {
+        toast.success('OTP sent to your email');
+      }
+      return { success: true, remainingAttempts: remaining };
     } catch (err) {
       toast.error(err.message);
       return { success: false, retryAfter: 0 };
@@ -243,6 +257,11 @@ export const AuthProvider = ({ children }) => {
       const data = await safeJSON(res);
 
       if (!res.ok) {
+        // Daily password change limit
+        if (data.dailyLimitReached) {
+          toast.error(data.message || 'You already changed your password today.');
+          return { success: false, dailyLimitReached: true };
+        }
         if (res.status !== 429) toast.error(data.message || 'Failed to update password');
         return { success: false, retryAfter: data.retryAfter || 0 };
       }

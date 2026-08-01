@@ -27,15 +27,24 @@ const app = express();
 // 0. Trust proxy (Required for express-rate-limit on Render)
 app.set('trust proxy', 1);
 
-// 1. ABSOLUTE TOP MANIFOLD: Reflect origin dynamically to solve persistent CORS blocks
+// 1. CORS Middleware with Strict Allowed Origins
+const ALLOWED_ORIGINS = [
+  'https://puacfaithly.com',
+  'https://www.puacfaithly.com',
+  'http://localhost:3000',
+  'http://localhost:5173',
+];
+if (process.env.FRONTEND_URL) {
+  ALLOWED_ORIGINS.push(process.env.FRONTEND_URL.replace(/\/$/, ''));
+}
+
 app.use((req, res, next) => {
   const origin = req.headers.origin;
   
-  // Reflect the incoming origin exactly if it exists
-  if (origin) {
+  if (origin && ALLOWED_ORIGINS.includes(origin)) {
     res.setHeader('Access-Control-Allow-Origin', origin);
-  } else {
-    // Fallback for requests without Origin header (e.g. direct server-to-server)
+  } else if (!origin) {
+    // Fallback for requests without Origin header (e.g. direct server-to-server or tools)
     res.setHeader('Access-Control-Allow-Origin', 'https://puacfaithly.com');
   }
   
@@ -51,10 +60,14 @@ app.use((req, res, next) => {
 });
 
 /* ================== GLOBAL MIDDLEWARE ================== */
-// Temporarily disabled Helmet to rule out low-level header stripping
-// app.use(helmet({ ... }));
+// Enable Helmet security headers (configured for REST API and inline media)
+app.use(helmet({
+  contentSecurityPolicy: false,
+  crossOriginEmbedderPolicy: false,
+}));
+app.use(globalLimiter);
 app.use(mongoSanitize());
-app.use(express.json({ limit: '50mb' }));
+app.use(express.json({ limit: '15mb' }));
 
 /* ================== ROUTES ================== */
 app.use('/api', authRoutes);

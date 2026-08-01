@@ -103,19 +103,14 @@ export default function Notifications() {
 
   const fetcherSingle = (url) => fetch(url, { headers: { Authorization: `Bearer ${localStorage.getItem('token')}` } }).then(res => res.ok ? res.json() : { success: false });
 
-  const { data: lData, isValidating: lValidating } = useSWR(`${API}/api/loans/my-loans`, fetcherSingle, { revalidateOnFocus: false });
-  const { data: dData, isValidating: dValidating } = useSWR(`${API}/api/donations/my-donations`, fetcherSingle, { revalidateOnFocus: false });
-  const { data: aData, isValidating: aValidating } = useSWR(`${API}/api/attendance/my-attendance`, fetcherSingle, { revalidateOnFocus: false });
-  const { data: sData, isValidating: sValidating } = useSWR(`${API}/api/savings/transactions`, fetcherSingle, { revalidateOnFocus: false });
-  const { data: ppData, isValidating: ppValidating } = useSWR(`${API}/api/loans/my-payments`, fetcherSingle, { revalidateOnFocus: false });
-  const { data: readData, isValidating: readValidating, mutate: mutateRead } = useSWR(`${API}/api/read-notifications`, fetcherSingle, { revalidateOnFocus: false });
+  const { data: lData } = useSWR(`${API}/api/loans/my-loans`, fetcherSingle, { revalidateOnFocus: false, dedupingInterval: 5000 });
+  const { data: dData } = useSWR(`${API}/api/donations/my-donations`, fetcherSingle, { revalidateOnFocus: false, dedupingInterval: 5000 });
+  const { data: aData } = useSWR(`${API}/api/attendance/my-attendance`, fetcherSingle, { revalidateOnFocus: false, dedupingInterval: 5000 });
+  const { data: sData } = useSWR(`${API}/api/savings/transactions`, fetcherSingle, { revalidateOnFocus: false, dedupingInterval: 5000 });
+  const { data: ppData } = useSWR(`${API}/api/loans/my-payments`, fetcherSingle, { revalidateOnFocus: false, dedupingInterval: 5000 });
+  const { data: readData, mutate: mutateRead } = useSWR(`${API}/api/read-notifications`, fetcherSingle, { revalidateOnFocus: false, dedupingInterval: 5000 });
 
-  const loading = (!lData && lValidating) ||
-    (!dData && dValidating) ||
-    (!aData && aValidating) ||
-    (!sData && sValidating) ||
-    (!ppData && ppValidating) ||
-    (!readData && readValidating);
+  const loading = !lData && !dData && !aData && !sData && !ppData && !readData;
 
   useEffect(() => {
     if (readData && readData.readIds) {

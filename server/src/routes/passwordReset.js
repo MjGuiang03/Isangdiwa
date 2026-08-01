@@ -11,9 +11,78 @@ import { sendOTP, generateOTP } from '../utils/email.js';
 
 const router = Router();
 
+/* ── Daily limit constants ────────────────────────────────────────────── */
+const DAILY_OTP_LIMIT = 3;          // max OTP send requests per email per day
+const DAILY_RESET_LIMIT = 1;        // max successful password changes per email per day
+
+/* ── Helper: get start of today (server time) ─────────────────────────── */
+function startOfToday() {
+  const d = new Date();
+  d.setHours(0, 0, 0, 0);
+  return d;
+}
+
+/* ── Helper: check daily OTP send limit for an email ──────────────────── */
+async function checkDailyOtpLimit(email) {
+  const user = await users.findOne({ email });
+  if (!user) return { allowed: true, remaining: DAILY_OTP_LIMIT };
+
+  const today = startOfToday();
+  const count = user.dailyResetOtpCount || 0;
+  const lastDate = user.dailyResetOtpDate ? new Date(user.dailyResetOtpDate) : null;
+
+  // If the stored date is before today, the counter has expired → reset
+  if (!lastDate || lastDate < today) {
+    return { allowed: true, remaining: DAILY_OTP_LIMIT };
+  }
+
+  // Same day — check the count
+  if (count >= DAILY_OTP_LIMIT) {
+    return { allowed: false, remaining: 0 };
+  }
+
+  return { allowed: true, remaining: DAILY_OTP_LIMIT - count };
+}
+
+/* ── Helper: increment daily OTP counter ──────────────────────────────── */
+async function incrementDailyOtpCount(email) {
+  const today = startOfToday();
+  const user = await users.findOne({ email });
+  const lastDate = user?.dailyResetOtpDate ? new Date(user.dailyResetOtpDate) : null;
+
+  if (!lastDate || lastDate < today) {
+    // New day → reset counter to 1
+    await users.updateOne({ email }, {
+      $set: { dailyResetOtpCount: 1, dailyResetOtpDate: new Date() }
+    });
+  } else {
+    // Same day → increment
+    await users.updateOne({ email }, {
+      $inc: { dailyResetOtpCount: 1 },
+      $set: { dailyResetOtpDate: new Date() }
+    });
+  }
+}
+
+/* ── Helper: check daily password change limit ────────────────────────── */
+async function checkDailyResetLimit(email) {
+  const user = await users.findOne({ email });
+  if (!user) return { allowed: true };
+
+  const today = startOfToday();
+  const lastChange = user.lastPasswordChangeAt ? new Date(user.lastPasswordChangeAt) : null;
+
+  if (lastChange && lastChange >= today) {
+    return { allowed: false };
+  }
+
+  return { allowed: true };
+}
+
+
 /* ================== REQUEST OTP ================== */
 router.post('/reset-password-request',
-  resetRequestLimiter,
+  resetRequestLimiter,                // Layer 1: IP-based rate limit (5 per 15 min)
   validate([body('email').trim().isEmail().withMessage('Invalid email')]),
   async (req, res) => {
     try {
@@ -21,13 +90,28 @@ router.post('/reset-password-request',
       const user = await users.findOne({ email });
       if (!user) return res.status(400).json({ message: 'Invalid credentials' });
 
+      // Layer 2: Per-email daily limit
+      const { allowed, remaining } = await checkDailyOtpLimit(email);
+      if (!allowed) {
+        return res.status(429).json({
+          message: 'You have reached the daily limit for password reset requests. Please try again tomorrow.',
+          dailyLimitReached: true
+        });
+      }
+
       const otp = generateOTP();
       await otps.deleteMany({ email, type: 'reset-password' });
       await otps.insertOne({ email, otp, type: 'reset-password', expiresAt: new Date(Date.now() + 15 * 60 * 1000) });
 
       await sendOTP(email, otp, 'Password Reset Code', 'Password Reset OTP');
 
-      res.json({ message: 'OTP sent to your email' });
+      // Increment the daily counter after successful send
+      await incrementDailyOtpCount(email);
+
+      res.json({
+        message: 'OTP sent to your email',
+        remainingAttempts: remaining - 1
+      });
     } catch (err) {
       console.error(err);
       res.status(500).json({ message: 'Failed to send OTP' });
@@ -37,7 +121,7 @@ router.post('/reset-password-request',
 
 /* ================== VERIFY OTP ================== */
 router.post('/reset-password-verify-otp',
-  resetVerifyLimiter,
+  resetVerifyLimiter,                 // Layer 1: IP-based rate limit (10 per 15 min)
   validate([
     body('email').trim().isEmail().withMessage('Invalid email'),
     body('otp').trim().matches(/^\d{6}$/).withMessage('OTP must be 6 digits'),
@@ -58,7 +142,7 @@ router.post('/reset-password-verify-otp',
 
 /* ================== UPDATE PASSWORD ================== */
 router.post('/reset-password-update',
-  resetUpdateLimiter,
+  resetUpdateLimiter,                 // Layer 1: IP-based rate limit (10 per 15 min)
   validate([
     body('email').trim().isEmail().withMessage('Invalid email'),
     body('otp').trim().matches(/^\d{6}$/).withMessage('OTP must be 6 digits'),
@@ -71,12 +155,28 @@ router.post('/reset-password-update',
   async (req, res) => {
     try {
       const { email, otp, newPassword } = req.body;
+
+      // Layer 2: Per-email daily password change limit
+      const { allowed } = await checkDailyResetLimit(email);
+      if (!allowed) {
+        return res.status(429).json({
+          message: 'You have already changed your password today. Please try again tomorrow.',
+          dailyLimitReached: true
+        });
+      }
+
       const record = await otps.findOne({ email, otp, type: 'reset-password', expiresAt: { $gt: new Date() } });
       if (!record) return res.status(400).json({ message: 'Invalid or expired OTP' });
 
       const passwordHash = await bcrypt.hash(newPassword, 10);
       await users.updateOne({ email }, {
-        $set: { passwordHash, failedLoginAttempts: 0, lockUntil: null, isPermanentlyLocked: false }
+        $set: {
+          passwordHash,
+          failedLoginAttempts: 0,
+          lockUntil: null,
+          isPermanentlyLocked: false,
+          lastPasswordChangeAt: new Date()    // Track for daily limit
+        }
       });
       await otps.deleteMany({ email, type: 'reset-password' });
 

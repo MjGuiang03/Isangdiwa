@@ -630,45 +630,61 @@ export default function LoanDetail() {
 
   const token = localStorage.getItem('token');
   const encodedId = loanId ? encodeURIComponent(loanId) : null;
-  const urls = useMemo(() => {
-    if (!token || !encodedId) return null;
-    return [
-      `${API}/api/loans/${encodedId}`,
-      `${API}/api/loans/${encodedId}/schedule`,
-      `${API}/api/loans/${encodedId}/payment-history`
-    ];
-  }, [token, encodedId]);
 
-  const fetcher = async (urlsToFetch) => {
-    const headers = { 'Content-Type': 'application/json', Authorization: `Bearer ${token}` };
-    const responses = await Promise.all(urlsToFetch.map(url => fetch(url, { headers })));
-    
-    if (responses[0].status === 401) {
+  const fetcherSingle = async (url) => {
+    const res = await fetch(url, {
+      headers: { 'Content-Type': 'application/json', Authorization: `Bearer ${token}` }
+    });
+    if (res.status === 401) {
       localStorage.removeItem('token');
       navigate('/');
       return null;
     }
-    
-    return Promise.all(responses.map(res => res.ok ? res.json() : { success: false }));
+    return res.ok ? res.json() : { success: false };
   };
 
-  const { data, isValidating, mutate } = useSWR(urls, fetcher, { revalidateOnFocus: false, revalidateIfStale: true });
+  const { data: loanData, isValidating: loanValidating, mutate: mutateLoan } = useSWR(
+    token && encodedId ? `${API}/api/loans/${encodedId}` : null,
+    fetcherSingle,
+    { revalidateOnFocus: false, dedupingInterval: 5000 }
+  );
+
+  const { data: schedData, mutate: mutateSched } = useSWR(
+    token && encodedId ? `${API}/api/loans/${encodedId}/schedule` : null,
+    fetcherSingle,
+    { revalidateOnFocus: false, dedupingInterval: 5000 }
+  );
+
+  const { data: histData, mutate: mutateHist } = useSWR(
+    token && encodedId ? `${API}/api/loans/${encodedId}/payment-history` : null,
+    fetcherSingle,
+    { revalidateOnFocus: false, dedupingInterval: 5000 }
+  );
+
+  const mutate = () => {
+    mutateLoan();
+    mutateSched();
+    mutateHist();
+  };
 
   useEffect(() => {
-    if (!data) return;
-    setLoading(isValidating && !data);
-    const [loanData, schedData, histData] = data;
-
-    if (loanData && loanData.success) {
+    if (!loanData) return;
+    if (loanData.success) {
       setLoan(loanData.loan);
-      setSchedule(schedData?.schedule || []);
-      setPaymentHistory(histData?.payments || []);
       setError('');
     } else {
-      setError(loanData?.message || 'Failed to load loan details.');
+      setError(loanData.message || 'Failed to load loan details.');
     }
-    if (data) setLoading(false);
-  }, [data, isValidating]);
+    setLoading(false);
+  }, [loanData]);
+
+  useEffect(() => {
+    if (schedData?.schedule) setSchedule(schedData.schedule);
+  }, [schedData]);
+
+  useEffect(() => {
+    if (histData?.payments) setPaymentHistory(histData.payments);
+  }, [histData]);
 
   /* Derived */
   const paidCount = schedule.filter(r => r.status === 'paid').length;

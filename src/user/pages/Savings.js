@@ -72,13 +72,13 @@ export default function Savings() {
     const { data: overviewData, error: overviewError, isValidating: overviewValidating, mutate: mutateOverview } = useSWR(
         txnPage === 1 ? `${API}/api/savings/overview?txnLimit=${TXN_LIMIT}` : null,
         fetcher,
-        { revalidateOnFocus: false, revalidateIfStale: true }
+        { revalidateOnFocus: false, dedupingInterval: 5000 }
     );
 
     const { data: txnData, error: txnError, isValidating: txnValidating, mutate: mutateTxn } = useSWR(
         txnPage > 1 ? `${API}/api/savings/transactions?page=${txnPage}&limit=${TXN_LIMIT}` : null,
         fetcher,
-        { revalidateOnFocus: false, revalidateIfStale: true }
+        { revalidateOnFocus: false, dedupingInterval: 5000 }
     );
 
     const dataLoading = (txnPage === 1 && overviewValidating && !overviewData) || (txnPage > 1 && txnValidating && !txnData);

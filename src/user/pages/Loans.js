@@ -74,48 +74,51 @@ export default function Loans() {
   }, [profile, isVerified, navigate]);
 
   const token = localStorage.getItem('token');
-  const urls = useMemo(() => {
-    if (!token) return null;
-    return [
-      `${API}/api/loans/my-loans?page=${page}&limit=${LIMIT}`,
-      `${API}/api/savings/stats`,
-    ];
-  }, [token, page]);
+  const fetcher = (url) => fetch(url, { headers: { Authorization: `Bearer ${token}` } }).then(res => res.ok ? res.json() : { success: false });
 
-  const fetcher = async (urlsToFetch) => {
-    const headers = { Authorization: `Bearer ${token}` };
-    const responses = await Promise.all([
-      fetch(urlsToFetch[0], { headers }),
-      fetch(urlsToFetch[1], { headers })
-    ]);
-    return Promise.all(responses.map(res => res.ok ? res.json() : { success: false }));
+  const { data: loansData, isValidating: loansValidating, mutate: mutateLoans } = useSWR(
+    token ? `${API}/api/loans/my-loans?page=${page}&limit=${LIMIT}` : null,
+    fetcher,
+    { revalidateOnFocus: false, dedupingInterval: 5000 }
+  );
+
+  const { data: statsData, mutate: mutateStats } = useSWR(
+    token ? `${API}/api/savings/stats` : null,
+    fetcher,
+    { revalidateOnFocus: false, dedupingInterval: 5000 }
+  );
+
+  const mutate = () => {
+    mutateLoans();
+    mutateStats();
   };
 
-  const { data, isValidating, mutate } = useSWR(urls, fetcher, { revalidateOnFocus: false, revalidateIfStale: true });
-
   useEffect(() => {
-    if (!data) return;
-    setDataLoading(isValidating && !data);
-    const [loansData, statsData] = data;
-
-    if (loansData && loansData.success) {
+    if (!loansData) return;
+    if (loansData.success) {
       setLoans(loansData.loans || []);
       setStats(loansData.stats || { totalBorrowed: 0, remainingBalance: 0, activeCount: 0 });
       setTotalCount(loansData.pagination?.totalItems || 0);
       setError(null);
       if ((loansData.loans || []).length === 0 && !hasClosedInstruction) {
-          setShowInstruction(true);
+        setShowInstruction(true);
       }
     } else {
       setError(loansData?.message || 'Failed to fetch loans');
     }
+  }, [loansData, hasClosedInstruction]);
 
-    if (statsData && statsData.success) {
+  useEffect(() => {
+    if (!statsData) return;
+    if (statsData.success) {
       setTotalSavings(statsData.stats?.totalSavings || 0);
       setPendingSavings(statsData.stats?.pendingSavings || 0);
     }
-    if (data) setDataLoading(false);
-  }, [data, isValidating, hasClosedInstruction]);
+  }, [statsData]);
+
+  useEffect(() => {
+    if (loansData) setDataLoading(false);
+  }, [loansData]);
 
   const handleApplyClick = () => {
     if (!isVerified) {

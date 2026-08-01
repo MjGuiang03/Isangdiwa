@@ -8,7 +8,7 @@ import { authenticateUser } from '../middleware/auth.js';
 import { sendOTP, generateOTP } from '../utils/email.js';
 
 const router  = Router();
-const JWT_SECRET = process.env.JWT_SECRET || 'supersecretkey';
+const JWT_SECRET = process.env.JWT_SECRET;
 
 /* ================== UPDATE PROFILE ================== */
 router.put('/update-profile', authenticateUser, async (req, res) => {

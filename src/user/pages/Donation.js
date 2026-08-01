@@ -89,38 +89,37 @@ export default function Donation() {
   const HISTORY_PER_PAGE = 5;
 
   const token = localStorage.getItem('token');
-  const urls = useMemo(() => {
-    if (!token) return null;
-    return [
-      `${API}/api/donations/my-donations?page=${historyPage}&limit=${HISTORY_PER_PAGE}`,
-      `${API}/api/settings/public`
-    ];
-  }, [token, historyPage]);
+  const fetcherSingle = (url, headers = {}) => fetch(url, headers).then(res => res.ok ? res.json() : { success: false });
 
-  const fetcher = async (urlsToFetch) => {
-    const headers = { Authorization: `Bearer ${token}` };
-    const responses = await Promise.all([
-      fetch(urlsToFetch[0], { headers }),
-      fetch(urlsToFetch[1])
-    ]);
-    return Promise.all(responses.map(res => res.ok ? res.json() : { success: false }));
-  };
+  const { data: historyData, mutate: mutateHistory } = useSWR(
+    token ? `${API}/api/donations/my-donations?page=${historyPage}&limit=${HISTORY_PER_PAGE}` : null,
+    url => fetcherSingle(url, { headers: { Authorization: `Bearer ${token}` } }),
+    { revalidateOnFocus: false, dedupingInterval: 5000 }
+  );
 
-  const { data, isValidating, mutate } = useSWR(urls, fetcher, { revalidateOnFocus: false, revalidateIfStale: true });
+  const { data: settingsData } = useSWR(
+    `${API}/api/settings/public`,
+    url => fetcherSingle(url),
+    { revalidateOnFocus: false, dedupingInterval: 10000 }
+  );
+
+  const mutate = () => mutateHistory();
 
   useEffect(() => {
-    if (!data) return;
-    setLoading(isValidating && !data);
-    const [historyData, settingsData] = data;
-    if (historyData && historyData.success) {
+    if (!historyData) return;
+    if (historyData.success) {
       setStats(historyData.stats || { totalDonated: 0, thisYearTotal: 0, totalCount: 0 });
       setRecentDonations(historyData.donations || []);
     }
-    if (settingsData && settingsData.success) {
+    setLoading(false);
+  }, [historyData]);
+
+  useEffect(() => {
+    if (!settingsData) return;
+    if (settingsData.success) {
       setApprovalMethod(settingsData.paymentApprovalMethod || 'gateway');
     }
-    if (data) setLoading(false);
-  }, [data, isValidating]);
+  }, [settingsData]);
 
   const modalUrl = isHistoryModalOpen 
     ? `${API}/api/donations/my-donations?page=${modalPage}&limit=${MODAL_LIMIT}${modalCategory ? `&category=${modalCategory}` : ''}${modalPaymentMethod ? `&paymentMethod=${modalPaymentMethod}` : ''}`
