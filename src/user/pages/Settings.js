@@ -102,7 +102,6 @@ export default function Settings() {
   });
   const [passLoading, setPassLoading] = useState(false);
   const [passError, setPassError] = useState('');
-  const [passSuccess, setPassSuccess] = useState('');
   const [isChangingPassword, setIsChangingPassword] = useState(false);
 
   /* ── Show/hide password toggles ──────────────────────────────────────── */
@@ -208,7 +207,6 @@ export default function Settings() {
   const handleUpdatePassword = (e) => {
     if (e) e.preventDefault();
     setPassError('');
-    setPassSuccess('');
 
     if (!passForm.current || !passForm.new || !passForm.confirm) {
       setPassError('Please fill in all password fields.');
@@ -617,7 +615,6 @@ export default function Settings() {
                         setIsChangingPassword(false);
                         setPassForm({ current: '', new: '', confirm: '' });
                         setPassError('');
-                        setPassSuccess('');
                         setShowCurrent(false);
                         setShowNew(false);
                         setShowConfirm(false);

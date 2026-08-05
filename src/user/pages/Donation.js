@@ -1,7 +1,7 @@
 import { useState, useEffect } from 'react';
 import useSWR from 'swr';
 import { useAuth } from '../../context/AuthContext';
-import { Banknote, CalendarDays, ChevronDown, Download, Heart, Receipt, Share2, X, UploadCloud, FileCheck2, ZoomIn, AlertCircle, CheckCircle2, ShieldCheck, Edit3, Clock } from 'lucide-react';
+import { Banknote, CalendarDays, ChevronDown, Heart, Receipt, X, UploadCloud, FileCheck2, ZoomIn, AlertCircle, CheckCircle2, ShieldCheck, Edit3, Clock } from 'lucide-react';
 import useSwipeToClose, { DragHandle } from '../hooks/useSwipeToClose';
 
 import { branchData, REGION_ORDER } from '../components/branchData';
