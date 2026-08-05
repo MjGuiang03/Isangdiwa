@@ -8,7 +8,7 @@ import PageHeader from '../components/PageHeader';
 
 import API from '../../utils/api';
 import Pagination from '../../components/Pagination';
-import { PiggyBank, Search, X, Loader2 } from 'lucide-react'; 
+import { PiggyBank, Search, X, Loader2, CreditCard } from 'lucide-react';
 import { PieChart, Pie, Cell, Tooltip as RechartsTooltip, ResponsiveContainer, Label } from 'recharts';
 
 const renderSliceLabel = ({ cx, cy, midAngle, innerRadius, outerRadius, percent }) => {
@@ -76,7 +76,9 @@ export default function LoanAdminPaymentStatus() {
   const [pendingDetail, setPendingDetail] = useState(null);
   const [rejectReason, setRejectReason] = useState('');
   const [showRejectInput, setShowRejectInput] = useState(false);
+  const [showApproveConfirm, setShowApproveConfirm] = useState(false);
   const [actionLoading, setActionLoading] = useState(false);
+  const [proofZoom, setProofZoom] = useState(null);
 
   // Walk-in Feature State
   const [showWalkinModal, setShowWalkinModal] = useState(false);
@@ -100,9 +102,9 @@ export default function LoanAdminPaymentStatus() {
   const { data: settingsData } = useSWR(
     `${API}/api/settings/public`,
     fetcherSingle,
-    { 
-      revalidateOnFocus: false, 
-      dedupingInterval: 60000 
+    {
+      revalidateOnFocus: false,
+      dedupingInterval: 60000
     }
   );
 
@@ -112,8 +114,8 @@ export default function LoanAdminPaymentStatus() {
   const { data: loansData, isValidating: loadingLoans, mutate: fetchLoans } = useSWR(
     token ? `${API}/api/admin/loans` : null,
     fetcherSingle,
-    { 
-      revalidateOnFocus: false, 
+    {
+      revalidateOnFocus: false,
       revalidateIfStale: true,
       dedupingInterval: 30000,
       keepPreviousData: true
@@ -127,7 +129,7 @@ export default function LoanAdminPaymentStatus() {
   const { data: savingsData, mutate: fetchSavings } = useSWR(
     token ? `${API}/api/admin/savings/deposits` : null,
     fetcherSingle,
-    { 
+    {
       revalidateOnFocus: false,
       dedupingInterval: 30000,
       keepPreviousData: true
@@ -150,7 +152,7 @@ export default function LoanAdminPaymentStatus() {
   const { data: loanHistoryData } = useSWR(
     (token && activeTab === 'history') ? `${API}/api/admin/loan-payments?status=confirmed&page=${historyPage}&limit=${HISTORY_PER_PAGE}` : null,
     fetcherSingle,
-    { 
+    {
       revalidateOnFocus: false,
       dedupingInterval: 30000,
       keepPreviousData: true
@@ -188,6 +190,7 @@ export default function LoanAdminPaymentStatus() {
       const data = await res.json();
       if (data.success) {
         toast.success('Approved successfully');
+        setShowApproveConfirm(false);
         setPendingDetail(null);
         fetchPendingApprovals();
         if (isSavingsRoute) fetchSavings(); else fetchLoans();
@@ -201,8 +204,8 @@ export default function LoanAdminPaymentStatus() {
     setActionLoading(true);
     try {
       const endpoint = isSavingsRoute ? `/api/admin/savings/deposits/${pendingDetail._id}/reject` : `/api/admin/loans/payments/${pendingDetail._id}/reject`;
-      const res = await fetch(`${API}${endpoint}`, { 
-        method: 'PUT', 
+      const res = await fetch(`${API}${endpoint}`, {
+        method: 'PUT',
         headers: { 'Content-Type': 'application/json', Authorization: `Bearer ${token}` },
         body: JSON.stringify({ reason: rejectReason })
       });
@@ -242,7 +245,7 @@ export default function LoanAdminPaymentStatus() {
     setShowWalkinUsers(false);
     setWalkinGoals([]);
     setWalkinSelectedGoal('');
-    
+
     // fetch goals
     try {
       const res = await fetch(`${API}/api/admin/user-savings-goals/${member.email}`, { headers: { Authorization: `Bearer ${token}` } });
@@ -317,7 +320,13 @@ export default function LoanAdminPaymentStatus() {
 
   const enriched = useMemo(() => {
     return loans.map(l => {
-      const effectiveDueDate = l.nextPaymentDate || l.nextDueDate || l.approvedDate;
+      let effectiveDueDate = l.nextPaymentDate || l.nextDueDate;
+      if (!effectiveDueDate) {
+        // No due date set — calculate first due date as 1 month after disbursement/approval
+        const baseDate = new Date(l.disbursementDate || l.approvedDate);
+        baseDate.setMonth(baseDate.getMonth() + 1);
+        effectiveDueDate = baseDate;
+      }
       const daysLate = getDaysLate(effectiveDueDate);
       const status = getPaymentStatus(daysLate);
       return { ...l, daysLate, paymentStatus: status, effectiveDueDate };
@@ -426,11 +435,11 @@ export default function LoanAdminPaymentStatus() {
     <div className="flex h-screen overflow-hidden bg-slate-100 dark:bg-[#161922]">
       <LoanAdminSidebar />
       <div className="flex-1 overflow-y-auto p-6 pb-16 w-full">
-        <PageHeader 
+        <PageHeader
           title={isSavingsRoute ? 'Savings Overview' : 'Loan Payments'}
           subtitle={isSavingsRoute ? 'Monitor member savings accounts, deposits, and role distribution.' : 'Track active loan repayments, schedules, and payment statuses.'}
           rightElement={
-            <button 
+            <button
               onClick={() => { resetWalkin(); setShowWalkinModal(true); setWalkinType(isSavingsRoute ? 'savings' : 'loan'); }}
               className="flex items-center gap-2 px-4 py-2.5 bg-blue-600 text-white text-sm font-semibold font-inter rounded-lg hover:bg-blue-700 transition-colors border-none cursor-pointer shadow-sm"
             >
@@ -489,21 +498,21 @@ export default function LoanAdminPaymentStatus() {
                           {savingsChartData.pieData.map((entry, index) => (
                             <Cell key={`cell-${index}`} fill={entry.color} />
                           ))}
-                          <Label 
-                            value={`₱${savingsChartData.pieTotal >= 1000 ? (savingsChartData.pieTotal/1000).toFixed(1).replace(/\.0$/, '') + 'k' : savingsChartData.pieTotal}`} 
-                            position="center" 
-                            fill="#1e3a5f" 
-                            className="text-sm font-extrabold font-inter" 
+                          <Label
+                            value={`₱${savingsChartData.pieTotal >= 1000000 ? (savingsChartData.pieTotal / 1000000).toFixed(2).replace(/\.00$/, '').replace(/(\.\d)0$/, '$1') + 'M' : savingsChartData.pieTotal >= 1000 ? (savingsChartData.pieTotal / 1000).toFixed(1).replace(/\.0$/, '') + 'k' : savingsChartData.pieTotal}`}
+                            position="center"
+                            fill="#1e3a5f"
+                            className="text-sm font-extrabold font-inter"
                           />
-                          <Label 
-                            value="Total" 
-                            position="center" 
-                            dy={14} 
-                            fill="#6B7280" 
-                            className="text-[10px] font-inter" 
+                          <Label
+                            value="Total"
+                            position="center"
+                            dy={14}
+                            fill="#6B7280"
+                            className="text-[10px] font-inter"
                           />
                         </Pie>
-                        <RechartsTooltip formatter={(value, name, props) => [`₱${(value || 0).toLocaleString()} (${Math.round((value/savingsChartData.pieTotal)*100)}%)`, props.payload.name]} contentStyle={{ borderRadius: '8px', border: 'none', boxShadow: '0 4px 6px -1px rgba(0, 0, 0, 0.1)', fontSize: '11px' }} />
+                        <RechartsTooltip formatter={(value, name, props) => [`₱${(value || 0).toLocaleString()} (${Math.round((value / savingsChartData.pieTotal) * 100)}%)`, props.payload.name]} contentStyle={{ borderRadius: '8px', border: 'none', boxShadow: '0 4px 6px -1px rgba(0, 0, 0, 0.1)', fontSize: '11px' }} />
                       </PieChart>
                     </ResponsiveContainer>
                   </div>
@@ -515,7 +524,7 @@ export default function LoanAdminPaymentStatus() {
                           <div className="w-2.5 h-2.5 rounded-full shrink-0" style={{ background: cat.color }} />
                           <span className="font-inter text-xs font-semibold text-slate-700 dark:text-slate-300">{cat.name}</span>
                         </div>
-                        <span className="font-inter text-xs font-bold text-slate-800 dark:text-white ml-3">₱{cat.value.toLocaleString()} <span className="text-slate-400 text-[11px] font-normal">({Math.round((cat.value/savingsChartData.pieTotal)*100)}%)</span></span>
+                        <span className="font-inter text-xs font-bold text-slate-800 dark:text-white ml-3">₱{cat.value.toLocaleString()} <span className="text-slate-400 text-[11px] font-normal">({Math.round((cat.value / savingsChartData.pieTotal) * 100)}%)</span></span>
                       </div>
                     ))}
                   </div>
@@ -546,7 +555,7 @@ export default function LoanAdminPaymentStatus() {
                 </div>
 
                 {/* Pending Review */}
-                <div 
+                <div
                   className="p-3 px-4 flex flex-col justify-center gap-1 hover:bg-slate-50/50 dark:hover:bg-white/[0.02] transition-colors cursor-pointer"
                   onClick={() => setActiveTab('pending')}
                 >
@@ -562,14 +571,14 @@ export default function LoanAdminPaymentStatus() {
         <div className="flex flex-wrap items-center justify-between gap-4 border-b border-slate-200 dark:border-white/10 mb-4 pb-3">
           {(!isSavingsRoute || approvalMethod === 'manual') && (
             <div className="flex items-center gap-1">
-              <button 
+              <button
                 onClick={() => setActiveTab(isSavingsRoute ? 'savings' : 'loans')}
                 className={`px-4 py-2 text-[13px] font-semibold font-inter transition-colors border-b-2 -mb-[13px] ${activeTab === (isSavingsRoute ? 'savings' : 'loans') ? 'border-blue-500 text-blue-600 dark:text-blue-400' : 'border-transparent text-slate-500 hover:text-slate-800 dark:text-slate-400'} bg-transparent cursor-pointer`}
               >
                 {isSavingsRoute ? 'Savings Records' : 'Active Loans'}
               </button>
               {!isSavingsRoute && (
-                <button 
+                <button
                   onClick={() => setActiveTab('history')}
                   className={`px-4 py-2 text-[13px] font-semibold font-inter transition-colors border-b-2 -mb-[13px] ${activeTab === 'history' ? 'border-blue-500 text-blue-600 dark:text-blue-400' : 'border-transparent text-slate-500 hover:text-slate-800 dark:text-slate-400'} bg-transparent cursor-pointer`}
                 >
@@ -577,7 +586,7 @@ export default function LoanAdminPaymentStatus() {
                 </button>
               )}
               {approvalMethod === 'manual' && (
-                <button 
+                <button
                   onClick={() => setActiveTab('pending')}
                   className={`px-4 py-2 flex items-center gap-2 text-[13px] font-semibold font-inter transition-colors border-b-2 -mb-[13px] ${activeTab === 'pending' ? 'border-blue-500 text-blue-600 dark:text-blue-400' : 'border-transparent text-slate-500 hover:text-slate-800 dark:text-slate-400'} bg-transparent cursor-pointer`}
                 >
@@ -595,17 +604,17 @@ export default function LoanAdminPaymentStatus() {
           <div className="flex items-center gap-3 max-sm:w-full">
             <div className="relative max-w-[320px] w-full flex items-center">
               <Search size={16} className="absolute left-3 top-1/2 -translate-y-1/2 text-slate-400 pointer-events-none z-10" />
-              <input 
-                type="text" 
-                placeholder={isSavingsRoute ? "Search by member name or goal..." : "Search member or loan ID..."} 
-                value={searchQuery} 
-                onChange={(e) => setSearchQuery(e.target.value)} 
+              <input
+                type="text"
+                placeholder={isSavingsRoute ? "Search by member name or goal..." : "Search member or loan ID..."}
+                value={searchQuery}
+                onChange={(e) => setSearchQuery(e.target.value)}
                 className="w-full h-9 pl-9 pr-3 bg-white dark:bg-[#1E2130] border border-slate-200 dark:border-white/10 rounded-lg text-xs font-inter text-slate-800 dark:text-white placeholder:text-slate-400 focus:outline-none focus:border-blue-500 transition-colors shadow-sm"
               />
             </div>
             {isSavingsRoute && activeTab === 'savings' && (
-              <select 
-                value={savingsTypeFilter} 
+              <select
+                value={savingsTypeFilter}
                 onChange={(e) => setSavingsTypeFilter(e.target.value)}
                 className="h-9 px-3 bg-white dark:bg-[#1E2130] border border-slate-200 dark:border-white/10 rounded-lg text-xs font-inter text-slate-700 dark:text-slate-300 outline-none focus:border-blue-500 transition-colors cursor-pointer shadow-sm"
               >
@@ -622,62 +631,62 @@ export default function LoanAdminPaymentStatus() {
             {/* Table */}
             <div className="bg-white dark:bg-[#1E2130] border border-slate-200 dark:border-white/10 rounded-xl overflow-x-auto shadow-sm" >
               <table className="w-full text-left border-collapse min-w-[700px]">
-              <thead>
-                <tr>
-                  <th className="bg-slate-50 dark:bg-black/20 border-b border-slate-200 dark:border-white/10 px-4 py-2.5 font-inter font-semibold text-[11px] tracking-wider uppercase text-slate-500 dark:text-slate-400">Date</th>
-                  <th className="bg-slate-50 dark:bg-black/20 border-b border-slate-200 dark:border-white/10 px-4 py-2.5 font-inter font-semibold text-[11px] tracking-wider uppercase text-slate-500 dark:text-slate-400">Member</th>
-                  <th className="bg-slate-50 dark:bg-black/20 border-b border-slate-200 dark:border-white/10 px-4 py-2.5 font-inter font-semibold text-[11px] tracking-wider uppercase text-slate-500 dark:text-slate-400">Type</th>
-                  <th className="bg-slate-50 dark:bg-black/20 border-b border-slate-200 dark:border-white/10 px-4 py-2.5 font-inter font-semibold text-[11px] tracking-wider uppercase text-slate-500 dark:text-slate-400">Goal</th>
-                  <th className="bg-slate-50 dark:bg-black/20 border-b border-slate-200 dark:border-white/10 px-4 py-2.5 font-inter font-semibold text-[11px] tracking-wider uppercase text-slate-500 dark:text-slate-400">Amount</th>
-                  <th className="bg-slate-50 dark:bg-black/20 border-b border-slate-200 dark:border-white/10 px-4 py-2.5 font-inter font-semibold text-[11px] tracking-wider uppercase text-slate-500 dark:text-slate-400">Status</th>
-                </tr>
-              </thead>
-              <tbody>
-                {loading ? (
-                  <tr><td colSpan={6} className="text-center p-8 text-slate-400">Loading...</td></tr>
-                ) : (() => {
-                  const filteredSavingsList = confirmedSavings.filter(s => {
-                    const matchesSearch = (s.memberName || '').toLowerCase().includes(searchQuery.toLowerCase()) || (s.goalName || s.goalId || '').toLowerCase().includes(searchQuery.toLowerCase());
-                    const matchesType = savingsTypeFilter === 'all' || s.type === savingsTypeFilter;
-                    return matchesSearch && matchesType;
-                  });
-                  
-                  if (filteredSavingsList.length === 0) {
-                    return <tr><td colSpan={6} className="text-center p-8 text-slate-400">No records found</td></tr>;
-                  }
-                  
-                  const paginatedSavings = filteredSavingsList.slice((savingsPage - 1) * SAVINGS_PER_PAGE, savingsPage * SAVINGS_PER_PAGE);
-                  
-                  return (
-                    <>
-                      {paginatedSavings.map(txn => (
-                        <tr key={txn._id} className="border-b border-slate-100 dark:border-white/5 hover:bg-slate-50 dark:hover:bg-white/5 transition-colors cursor-pointer" onClick={() => setSelectedSavings(txn)}>
-                          <td className="px-4 py-2 whitespace-nowrap font-inter text-[12.5px] text-slate-700 dark:text-slate-300">{fmtDate(txn.confirmedAt || txn.date)}</td>
-                          <td className="px-4 py-2 whitespace-nowrap font-inter text-[12.5px] text-slate-700 dark:text-slate-300">
-                            <div className="flex flex-col">
-                              <p className="font-inter text-[13px] font-semibold text-slate-800 dark:text-white m-0">{txn.memberName || txn.email}</p>
-                              <p className="font-inter text-[10.5px] text-slate-500 dark:text-slate-400 m-0 mt-0.5">{txn.email}</p>
-                            </div>
-                          </td>
-                          <td className="px-4 py-2 whitespace-nowrap font-inter text-[12.5px] text-slate-700 dark:text-slate-300">
-                            <span className={`inline-block px-2 py-0.5 rounded text-[10.5px] font-bold tracking-wider uppercase ${txn.type === 'withdrawal' ? 'bg-rose-100 text-rose-700 dark:bg-rose-500/20 dark:text-rose-400' : 'bg-emerald-100 text-emerald-700 dark:bg-emerald-500/20 dark:text-emerald-400'}`}>
-                              {txn.type}
-                            </span>
-                          </td>
-                          <td className="px-4 py-2 whitespace-nowrap text-[12.5px] text-slate-600 dark:text-slate-400">{txn.goalName || 'General Savings'}</td>
-                          <td className={`px-4 py-2 whitespace-nowrap font-inter text-[13px] font-bold ${txn.type === 'withdrawal' ? 'text-rose-600 dark:text-rose-400' : 'text-emerald-600 dark:text-emerald-400'}`}>
-                            {txn.type === 'withdrawal' ? '-' : '+'}{fmt(txn.amount)}
-                          </td>
-                          <td className="px-4 py-2 whitespace-nowrap font-inter text-[12.5px] text-slate-700 dark:text-slate-300">
-                            <span className="inline-block px-2 py-0.5 rounded text-[10.5px] font-bold tracking-wide uppercase bg-emerald-100 text-emerald-700 dark:bg-emerald-500/20 dark:text-emerald-400">Confirmed</span>
-                          </td>
-                        </tr>
-                      ))}
-                    </>
-                  );
-                })()}
-              </tbody>
-            </table>
+                <thead>
+                  <tr>
+                    <th className="bg-slate-50 dark:bg-black/20 border-b border-slate-200 dark:border-white/10 px-4 py-2.5 font-inter font-semibold text-[11px] tracking-wider uppercase text-slate-500 dark:text-slate-400">Date</th>
+                    <th className="bg-slate-50 dark:bg-black/20 border-b border-slate-200 dark:border-white/10 px-4 py-2.5 font-inter font-semibold text-[11px] tracking-wider uppercase text-slate-500 dark:text-slate-400">Member</th>
+                    <th className="bg-slate-50 dark:bg-black/20 border-b border-slate-200 dark:border-white/10 px-4 py-2.5 font-inter font-semibold text-[11px] tracking-wider uppercase text-slate-500 dark:text-slate-400">Type</th>
+                    <th className="bg-slate-50 dark:bg-black/20 border-b border-slate-200 dark:border-white/10 px-4 py-2.5 font-inter font-semibold text-[11px] tracking-wider uppercase text-slate-500 dark:text-slate-400">Goal</th>
+                    <th className="bg-slate-50 dark:bg-black/20 border-b border-slate-200 dark:border-white/10 px-4 py-2.5 font-inter font-semibold text-[11px] tracking-wider uppercase text-slate-500 dark:text-slate-400">Amount</th>
+                    <th className="bg-slate-50 dark:bg-black/20 border-b border-slate-200 dark:border-white/10 px-4 py-2.5 font-inter font-semibold text-[11px] tracking-wider uppercase text-slate-500 dark:text-slate-400">Status</th>
+                  </tr>
+                </thead>
+                <tbody>
+                  {loading ? (
+                    <tr><td colSpan={6} className="text-center p-8 text-slate-400">Loading...</td></tr>
+                  ) : (() => {
+                    const filteredSavingsList = confirmedSavings.filter(s => {
+                      const matchesSearch = (s.memberName || '').toLowerCase().includes(searchQuery.toLowerCase()) || (s.goalName || s.goalId || '').toLowerCase().includes(searchQuery.toLowerCase());
+                      const matchesType = savingsTypeFilter === 'all' || s.type === savingsTypeFilter;
+                      return matchesSearch && matchesType;
+                    });
+
+                    if (filteredSavingsList.length === 0) {
+                      return <tr><td colSpan={6} className="text-center p-8 text-slate-400">No records found</td></tr>;
+                    }
+
+                    const paginatedSavings = filteredSavingsList.slice((savingsPage - 1) * SAVINGS_PER_PAGE, savingsPage * SAVINGS_PER_PAGE);
+
+                    return (
+                      <>
+                        {paginatedSavings.map(txn => (
+                          <tr key={txn._id} className="border-b border-slate-100 dark:border-white/5 hover:bg-slate-50 dark:hover:bg-white/5 transition-colors cursor-pointer" onClick={() => setSelectedSavings(txn)}>
+                            <td className="px-4 py-2 whitespace-nowrap font-inter text-[12.5px] text-slate-700 dark:text-slate-300">{fmtDate(txn.confirmedAt || txn.date)}</td>
+                            <td className="px-4 py-2 whitespace-nowrap font-inter text-[12.5px] text-slate-700 dark:text-slate-300">
+                              <div className="flex flex-col">
+                                <p className="font-inter text-[13px] font-semibold text-slate-800 dark:text-white m-0">{txn.memberName || txn.email}</p>
+                                <p className="font-inter text-[10.5px] text-slate-500 dark:text-slate-400 m-0 mt-0.5">{txn.email}</p>
+                              </div>
+                            </td>
+                            <td className="px-4 py-2 whitespace-nowrap font-inter text-[12.5px] text-slate-700 dark:text-slate-300">
+                              <span className={`inline-block px-2 py-0.5 rounded text-[10.5px] font-bold tracking-wider uppercase ${txn.type === 'withdrawal' ? 'bg-rose-100 text-rose-700 dark:bg-rose-500/20 dark:text-rose-400' : 'bg-emerald-100 text-emerald-700 dark:bg-emerald-500/20 dark:text-emerald-400'}`}>
+                                {txn.type}
+                              </span>
+                            </td>
+                            <td className="px-4 py-2 whitespace-nowrap text-[12.5px] text-slate-600 dark:text-slate-400">{txn.goalName || 'General Savings'}</td>
+                            <td className={`px-4 py-2 whitespace-nowrap font-inter text-[13px] font-bold ${txn.type === 'withdrawal' ? 'text-rose-600 dark:text-rose-400' : 'text-emerald-600 dark:text-emerald-400'}`}>
+                              {txn.type === 'withdrawal' ? '-' : '+'}{fmt(txn.amount)}
+                            </td>
+                            <td className="px-4 py-2 whitespace-nowrap font-inter text-[12.5px] text-slate-700 dark:text-slate-300">
+                              <span className="inline-block px-2 py-0.5 rounded text-[10.5px] font-bold tracking-wide uppercase bg-emerald-100 text-emerald-700 dark:bg-emerald-500/20 dark:text-emerald-400">Confirmed</span>
+                            </td>
+                          </tr>
+                        ))}
+                      </>
+                    );
+                  })()}
+                </tbody>
+              </table>
             </div>
 
             {(() => {
@@ -803,10 +812,10 @@ export default function LoanAdminPaymentStatus() {
                         <td className="px-4 py-3 whitespace-nowrap font-inter text-[13px] text-slate-700 dark:text-slate-300">{txn.referenceNumber || '—'}</td>
                         <td className="px-4 py-3 whitespace-nowrap font-inter text-[13px] text-slate-700 dark:text-slate-300">
                           {(txn.proofData || txn.proofOfPayment) ? (
-                            <img 
-                              src={txn.proofData || txn.proofOfPayment} 
-                              alt="Proof" 
-                              className="w-8 h-8 object-cover rounded shadow-sm cursor-pointer border border-slate-200 dark:border-white/10" 
+                            <img
+                              src={txn.proofData || txn.proofOfPayment}
+                              alt="Proof"
+                              className="w-8 h-8 object-cover rounded shadow-sm cursor-pointer border border-slate-200 dark:border-white/10"
                               onClick={(e) => { e.stopPropagation(); const win = window.open(); win.document.write(`<img src="${txn.proofData || txn.proofOfPayment}" style="max-width:100%;" />`); }}
                             />
                           ) : (
@@ -1040,99 +1049,225 @@ export default function LoanAdminPaymentStatus() {
 
       {/* ── Pending Detail Modal ── */}
       {pendingDetail && (
-        <div className="fixed inset-0 bg-black/50 backdrop-blur-sm flex items-center justify-center z-[1000] p-4" onClick={() => !actionLoading && setPendingDetail(null)} style={{ zIndex: 2000 }}>
-          <div className="bg-white dark:bg-[#1E2130] rounded-2xl w-full max-w-[520px] flex flex-col border border-slate-200 dark:border-white/10 shadow-2xl" style={{ maxWidth: '440px' }} onClick={(e) => e.stopPropagation()}>
-            <div className="flex items-center justify-between p-[18px_24px] border-b border-slate-200 dark:border-white/10 shrink-0">
-              <h2 className="font-inter text-lg font-bold text-slate-800 dark:text-white m-0">
-                {pendingDetail.status === 'pending' ? 'Review Transaction' : 'Transaction Detail'}
-              </h2>
-              <button className="w-8 h-8 border-none bg-slate-100 dark:bg-white/5 text-slate-500 rounded-lg cursor-pointer flex items-center justify-center text-lg font-bold hover:bg-slate-200 transition-colors" onClick={() => setPendingDetail(null)}><X size={16} /></button>
+        <div className="fixed inset-0 bg-black/60 backdrop-blur-sm flex items-center justify-center z-[2000] p-4" onClick={() => !actionLoading && setPendingDetail(null)}>
+          <div className="bg-white dark:bg-[#1E2130] rounded-2xl w-full max-w-[480px] flex flex-col border border-slate-200 dark:border-white/10 shadow-2xl max-h-[90vh]" onClick={(e) => e.stopPropagation()}>
+            {/* Header */}
+            <div className="flex items-center justify-between p-5 px-6 border-b border-slate-200 dark:border-white/10 shrink-0">
+              <div className="flex items-center gap-3">
+                <div className={`w-9 h-9 rounded-xl flex items-center justify-center shrink-0 ${pendingDetail.status === 'pending' ? 'bg-amber-100 dark:bg-amber-500/20' : 'bg-blue-100 dark:bg-blue-500/20'}`}>
+                  <CreditCard size={18} className={pendingDetail.status === 'pending' ? 'text-amber-600 dark:text-amber-400' : 'text-blue-600 dark:text-blue-400'} />
+                </div>
+                <div>
+                  <h2 className="font-inter text-base font-bold text-slate-800 dark:text-white m-0">
+                    {pendingDetail.status === 'pending' ? 'Review Transaction' : 'Transaction Detail'}
+                  </h2>
+                  <p className="font-inter text-[11px] text-slate-500 dark:text-slate-400 m-0 mt-0.5">
+                    {isSavingsRoute ? `Goal: ${pendingDetail.goalId || 'General'}` : `Loan: ${pendingDetail.loanId || '—'}`}
+                  </p>
+                </div>
+              </div>
+              <button
+                className="w-8 h-8 border-none bg-slate-100 dark:bg-white/5 text-slate-500 dark:text-slate-400 rounded-lg cursor-pointer flex items-center justify-center hover:bg-slate-200 dark:hover:bg-white/10 transition-colors"
+                onClick={() => { setPendingDetail(null); setShowRejectInput(false); setRejectReason(''); }}
+              >
+                <X size={16} />
+              </button>
             </div>
-            <div style={{ padding: '16px 24px' }}>
-              <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', rowGap: '16px', columnGap: '12px', marginBottom: '16px' }}>
-                <div><p style={{ margin: 0, marginBottom: '4px', fontSize: '12px', color: '#6B7280' }}>Member</p><p style={{ margin: 0, fontWeight: 600 }}>{pendingDetail.memberName || pendingDetail.email}</p></div>
-                <div><p style={{ margin: 0, marginBottom: '4px', fontSize: '12px', color: '#6B7280' }}>Amount</p><p style={{ margin: 0, fontWeight: 700, color: '#EA580C', fontSize: '16px' }}>{fmt(pendingDetail.amount)}</p></div>
-                <div>
-                  <p style={{ margin: 0, marginBottom: '4px', fontSize: '12px', color: '#6B7280' }}>Payment Type</p>
-                  <p style={{ margin: 0, fontWeight: 700, textTransform: 'capitalize' }}>
-                    <span style={{ display: 'inline-block', padding: '3px 10px', borderRadius: '6px', fontSize: '12px', background: pendingDetail.paymentType === 'full' ? '#DCFCE7' : pendingDetail.paymentType === 'advance' ? '#DBEAFE' : '#F3F4F6', color: pendingDetail.paymentType === 'full' ? '#166534' : pendingDetail.paymentType === 'advance' ? '#1E3A8A' : '#374151' }}>
-                      {pendingDetail.paymentType || 'regular'}
-                    </span>
-                  </p>
-                </div>
-                <div>
-                  <p style={{ margin: 0, marginBottom: '4px', fontSize: '12px', color: '#6B7280' }}>Months Covered</p>
-                  <p style={{ margin: 0, fontWeight: 700, color: '#111827' }}>{pendingDetail.monthsCovered > 0 ? `${pendingDetail.monthsCovered} month${pendingDetail.monthsCovered > 1 ? 's' : ''}` : 'Partial'}</p>
-                </div>
-                <div>
-                  <p style={{ margin: 0, marginBottom: '4px', fontSize: '12px', color: '#6B7280' }}>Method</p>
-                  <p style={{ margin: 0, fontWeight: 600, textTransform: 'capitalize' }}>
-                    {pendingDetail.paymentMethod || 'cash'}
-                    {pendingDetail.subMethod ? ` (${pendingDetail.subMethod})` : ''}
-                  </p>
-                </div>
-                <div><p style={{ margin: 0, marginBottom: '4px', fontSize: '12px', color: '#6B7280' }}>Reference #</p><p style={{ margin: 0, fontWeight: 600 }}>{pendingDetail.referenceNumber || '—'}</p></div>
-                
-                {pendingDetail.accountName && (
-                  <div><p style={{ margin: 0, marginBottom: '4px', fontSize: '12px', color: '#6B7280' }}>Sender Account Name</p><p style={{ margin: 0, fontWeight: 600 }}>{pendingDetail.accountName}</p></div>
-                )}
-                {pendingDetail.accountNumber && (
-                  <div><p style={{ margin: 0, marginBottom: '4px', fontSize: '12px', color: '#6B7280' }}>Sender Account No.</p><p style={{ margin: 0, fontWeight: 600 }}>{pendingDetail.accountNumber}</p></div>
-                )}
+
+            {/* Scrollable Content */}
+            <div className="overflow-y-auto flex-1 p-5 px-6 flex flex-col gap-3">
+              {/* Info — single container with rows */}
+              <div className="rounded-xl border border-slate-200 dark:border-white/10 overflow-hidden">
+                {[
+                  { label: 'Member', value: pendingDetail.memberName || pendingDetail.email },
+                  { label: 'Reference #', value: pendingDetail.referenceNumber || pendingDetail.loanId || 'N/A' },
+                  { label: 'Amount', value: fmt(pendingDetail.amount), highlight: true },
+                  { label: 'Payment Type', badge: pendingDetail.paymentType || 'regular' },
+                  { label: 'Months Covered', value: pendingDetail.monthsCovered > 0 ? `${pendingDetail.monthsCovered} month${pendingDetail.monthsCovered > 1 ? 's' : ''}` : 'Partial' },
+                  { label: 'Method', value: `${pendingDetail.paymentMethod || 'cash'}${pendingDetail.subMethod ? ` (${pendingDetail.subMethod})` : ''}` },
+                  ...(pendingDetail.accountName ? [{ label: 'Sender Name', value: pendingDetail.accountName }] : []),
+                  ...(pendingDetail.accountNumber ? [{ label: 'Sender Account', value: pendingDetail.accountNumber }] : []),
+                ].map((item, i, arr) => (
+                  <div key={i} className={`flex items-center justify-between px-4 py-2.5 ${i < arr.length - 1 ? 'border-b border-slate-100 dark:border-white/5' : ''}`}>
+                    <span className="font-inter text-xs text-slate-500 dark:text-slate-400">{item.label}</span>
+                    {item.badge ? (
+                      <span className={`inline-block px-2 py-0.5 rounded text-[10px] font-bold tracking-wide uppercase ${item.badge === 'full' ? 'bg-emerald-100 text-emerald-700 dark:bg-emerald-500/20 dark:text-emerald-400' : item.badge === 'advance' ? 'bg-blue-100 text-blue-700 dark:bg-blue-500/20 dark:text-blue-400' : 'bg-slate-200 text-slate-700 dark:bg-white/10 dark:text-slate-300'}`}>
+                        {item.badge}
+                      </span>
+                    ) : (
+                      <span className={`font-inter text-sm font-semibold ${item.highlight ? 'text-amber-600 dark:text-amber-400' : 'text-slate-800 dark:text-white'} capitalize`}>{item.value}</span>
+                    )}
+                  </div>
+                ))}
               </div>
 
+              {/* Proof of Payment */}
               {(pendingDetail.proofData || pendingDetail.proofOfPayment) && (() => {
                 const proof = pendingDetail.proofData || pendingDetail.proofOfPayment;
                 const isPdf = proof.startsWith('data:application/pdf');
                 return (
-                  <div style={{ marginTop: '16px', marginBottom: '16px' }}>
-                    <p style={{ margin: 0, fontSize: '12px', color: '#6B7280', marginBottom: '8px' }}>Proof of Payment</p>
+                  <div>
+                    <p className="font-inter text-[10px] font-semibold uppercase tracking-wider text-slate-500 dark:text-slate-400 m-0 mb-2">Proof of Payment</p>
                     {isPdf ? (
-                      <div style={{ background: '#F9FAFB', borderRadius: '8px', border: '1px solid #E5E7EB', padding: '16px', display: 'flex', flexDirection: 'column', alignItems: 'center', gap: '8px' }}>
-                        <span style={{ fontSize: '13px', color: '#374151', fontWeight: 600 }}>📄 {pendingDetail.proofFileName || 'proof.pdf'}</span>
+                      <div className="flex items-center gap-3 bg-slate-50 dark:bg-black/20 rounded-lg border border-slate-100 dark:border-white/5 p-3">
+                        <div className="w-10 h-10 bg-blue-100 dark:bg-blue-500/20 rounded-lg flex items-center justify-center shrink-0 text-lg">📄</div>
+                        <div className="flex-1 min-w-0">
+                          <p className="font-inter text-xs font-semibold text-slate-700 dark:text-slate-300 m-0 truncate">{pendingDetail.proofFileName || 'proof.pdf'}</p>
+                          <p className="font-inter text-[10px] text-slate-400 m-0">PDF Document</p>
+                        </div>
                         <button
                           onClick={() => { const win = window.open(); win.document.write(`<iframe src="${proof}" style="width:100%;height:100%;border:none;" />`); }}
-                          style={{ background: '#155DFC', color: 'white', border: 'none', padding: '6px 16px', borderRadius: '6px', fontSize: '12px', fontWeight: 600, cursor: 'pointer' }}
-                        >View PDF</button>
+                          className="px-3 py-1.5 bg-blue-600 text-white border-none rounded-lg text-[11px] font-semibold font-inter cursor-pointer hover:bg-blue-700 transition-colors shrink-0"
+                        >View</button>
                       </div>
                     ) : (
-                      <img
-                        src={proof}
-                        alt="Proof"
-                        style={{ width: '100%', maxHeight: '200px', objectFit: 'contain', borderRadius: '8px', border: '1px solid #E5E7EB', cursor: 'pointer' }}
-                        onClick={() => { const win = window.open(); win.document.write(`<img src="${proof}" style="max-width:100%;" />`); }}
-                      />
+                      <div
+                        className="bg-slate-50 dark:bg-black/20 rounded-lg border border-slate-100 dark:border-white/5 p-2 cursor-pointer hover:border-blue-300 dark:hover:border-blue-500/30 transition-colors group"
+                        onClick={() => setProofZoom(proof)}
+                      >
+                        <img
+                          src={proof}
+                          alt="Proof"
+                          className="w-full max-h-[120px] object-contain rounded-md group-hover:opacity-90 transition-opacity"
+                        />
+                      </div>
                     )}
                   </div>
                 );
               })()}
 
-              <div style={{ borderTop: '1px solid #E5E7EB', paddingTop: '16px' }}>
-                {pendingDetail.status !== 'pending' ? (
-                  <div style={{ display: 'flex', justifyContent: 'flex-end' }}>
-                    <button onClick={() => setPendingDetail(null)} style={{ padding: '8px 20px', borderRadius: '8px', border: 'none', backgroundColor: '#155DFC', color: 'white', fontWeight: 600, cursor: 'pointer' }}>Close</button>
+              {/* Rejection Reason (inline, always visible when showRejectInput) */}
+              {showRejectInput && (
+                <div className="flex flex-col gap-2">
+                  <div className="flex items-center gap-1.5">
+                    <p className="font-inter text-[10px] font-semibold uppercase tracking-wider text-rose-600 dark:text-rose-400 m-0">Reason for Rejection</p>
+                    <span className="text-rose-500 text-xs font-bold">*</span>
                   </div>
-                ) : !showRejectInput ? (
-                  <div style={{ display: 'flex', gap: '10px', justifyContent: 'flex-end' }}>
-                    <button onClick={() => setShowRejectInput(true)} disabled={actionLoading} style={{ padding: '8px 16px', borderRadius: '6px', border: 'none', backgroundColor: '#FEE2E2', color: '#DC2626', fontWeight: 600, cursor: 'pointer' }}>Reject</button>
-                    <button onClick={handleApprovePending} disabled={actionLoading} style={{ padding: '8px 16px', borderRadius: '6px', border: 'none', backgroundColor: '#16A34A', color: 'white', fontWeight: 600, cursor: 'pointer' }}>{actionLoading ? 'Approving...' : 'Approve'}</button>
-                  </div>
-                ) : (
-                  <div style={{ display: 'flex', flexDirection: 'column', gap: '8px' }}>
-                    <textarea value={rejectReason} onChange={(e) => setRejectReason(e.target.value)} placeholder="Enter reason for rejection..." style={{ padding: '10px', borderRadius: '6px', border: '1px solid #D1D5DB', width: '100%', minHeight: '80px', fontFamily: 'inherit', fontSize: '14px' }} />
-                    <div style={{ display: 'flex', gap: '10px', justifyContent: 'flex-end' }}>
-                      <button onClick={() => { setShowRejectInput(false); setRejectReason(''); }} style={{ padding: '8px 16px', borderRadius: '6px', border: '1px solid #D1D5DB', backgroundColor: 'white', color: '#374151', fontWeight: 500, cursor: 'pointer' }}>Cancel</button>
-                      <button onClick={handleRejectPending} disabled={actionLoading || !rejectReason.trim()} style={{ padding: '8px 16px', borderRadius: '6px', border: 'none', backgroundColor: '#DC2626', color: 'white', fontWeight: 600, cursor: 'pointer' }}>{actionLoading ? 'Rejecting...' : 'Confirm Rejection'}</button>
-                    </div>
-                  </div>
-                )}
-              </div>
+                  <input 
+                    list="reject-reasons-list"
+                    value={rejectReason} 
+                    onChange={(e) => setRejectReason(e.target.value)} 
+                    placeholder="Select or type a reason..." 
+                    className="w-full h-10 px-3 bg-slate-50 dark:bg-black/20 border border-slate-200 dark:border-white/10 rounded-lg text-sm font-inter text-slate-800 dark:text-white placeholder:text-slate-400 focus:outline-none focus:border-rose-400 focus:ring-1 focus:ring-rose-400/30 transition-all"
+                  />
+                  <datalist id="reject-reasons-list">
+                    <option value="Invalid or unclear proof of payment" />
+                    <option value="Amount does not match the required payment" />
+                    <option value="Reference number not found or already used" />
+                    <option value="Payment sent to wrong account" />
+                    <option value="Duplicate transaction submission" />
+                    <option value="Proof of payment appears to be altered or fraudulent" />
+                    <option value="Payment received after the cut-off period" />
+                  </datalist>
+                  {rejectReason.trim().length === 0 && (
+                    <p className="font-inter text-[11px] text-rose-500 m-0">This field is required to reject the transaction.</p>
+                  )}
+                </div>
+              )}
+            </div>
+
+            {/* Footer Actions */}
+            <div className="p-4 px-6 border-t border-slate-200 dark:border-white/10 shrink-0 bg-slate-50/50 dark:bg-black/10 rounded-b-2xl">
+              {pendingDetail.status !== 'pending' ? (
+                <div className="flex justify-end">
+                  <button
+                    onClick={() => setPendingDetail(null)}
+                    className="px-5 py-2.5 bg-blue-600 text-white border-none rounded-lg text-sm font-semibold font-inter cursor-pointer hover:bg-blue-700 transition-colors"
+                  >Close</button>
+                </div>
+              ) : !showRejectInput ? (
+                <div className="flex gap-3 justify-end">
+                  <button
+                    onClick={() => setShowRejectInput(true)}
+                    disabled={actionLoading}
+                    className="px-5 py-2.5 bg-rose-50 dark:bg-rose-500/10 text-rose-600 dark:text-rose-400 border border-rose-200 dark:border-rose-500/20 rounded-lg text-sm font-semibold font-inter cursor-pointer hover:bg-rose-100 dark:hover:bg-rose-500/20 transition-colors disabled:opacity-50"
+                  >Reject</button>
+                  <button
+                    onClick={() => setShowApproveConfirm(true)}
+                    disabled={actionLoading}
+                    className="px-5 py-2.5 bg-emerald-600 text-white border-none rounded-lg text-sm font-semibold font-inter cursor-pointer hover:bg-emerald-700 transition-colors disabled:opacity-50 flex items-center gap-2"
+                  >
+                    Approve
+                  </button>
+                </div>
+              ) : (
+                <div className="flex gap-3 justify-end">
+                  <button
+                    onClick={() => { setShowRejectInput(false); setRejectReason(''); }}
+                    className="px-5 py-2.5 bg-white dark:bg-white/5 text-slate-700 dark:text-slate-300 border border-slate-200 dark:border-white/10 rounded-lg text-sm font-semibold font-inter cursor-pointer hover:bg-slate-100 dark:hover:bg-white/10 transition-colors"
+                  >Cancel</button>
+                  <button
+                    onClick={handleRejectPending}
+                    disabled={actionLoading || !rejectReason.trim()}
+                    className="px-5 py-2.5 bg-rose-600 text-white border-none rounded-lg text-sm font-semibold font-inter cursor-pointer hover:bg-rose-700 transition-colors disabled:opacity-40 disabled:cursor-not-allowed flex items-center gap-2"
+                  >
+                    {actionLoading && <Loader2 size={14} className="animate-spin" />}
+                    {actionLoading ? 'Rejecting...' : 'Confirm Rejection'}
+                  </button>
+                </div>
+              )}
             </div>
           </div>
         </div>
       )}
 
+      {/* ── Approve Confirmation Modal ── */}
+      {showApproveConfirm && pendingDetail && (
+        <div className="fixed inset-0 bg-black/60 backdrop-blur-sm flex items-center justify-center z-[3000] p-4" onClick={() => !actionLoading && setShowApproveConfirm(false)}>
+          <div className="bg-white dark:bg-[#1E2130] rounded-2xl w-full max-w-[400px] border border-slate-200 dark:border-white/10 shadow-2xl" onClick={(e) => e.stopPropagation()}>
+            <div className="p-6 text-center">
+              <div className="w-14 h-14 rounded-full bg-emerald-100 dark:bg-emerald-500/20 flex items-center justify-center mx-auto mb-4">
+                <svg xmlns="http://www.w3.org/2000/svg" className="w-7 h-7 text-emerald-600 dark:text-emerald-400" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2.5}><path strokeLinecap="round" strokeLinejoin="round" d="M5 13l4 4L19 7" /></svg>
+              </div>
+              <h3 className="font-inter text-lg font-bold text-slate-800 dark:text-white m-0 mb-2">Confirm Approval</h3>
+              <p className="font-inter text-sm text-slate-600 dark:text-slate-400 m-0 mb-1 leading-relaxed">
+                Are you sure you want to approve this payment?
+              </p>
+              <div className="bg-slate-50 dark:bg-black/20 rounded-lg p-3 mt-3 border border-slate-100 dark:border-white/5">
+                <p className="font-inter text-xs text-slate-500 dark:text-slate-400 m-0 mb-1">
+                  {pendingDetail.memberName || pendingDetail.email}
+                </p>
+                <p className="font-inter text-lg font-extrabold text-emerald-600 dark:text-emerald-400 m-0">
+                  {fmt(pendingDetail.amount)}
+                </p>
+              </div>
+            </div>
+            <div className="flex gap-3 p-4 px-6 border-t border-slate-200 dark:border-white/10 bg-slate-50/50 dark:bg-black/10 rounded-b-2xl">
+              <button
+                onClick={() => setShowApproveConfirm(false)}
+                disabled={actionLoading}
+                className="flex-1 py-2.5 bg-white dark:bg-white/5 text-slate-700 dark:text-slate-300 border border-slate-200 dark:border-white/10 rounded-lg text-sm font-semibold font-inter cursor-pointer hover:bg-slate-100 dark:hover:bg-white/10 transition-colors"
+              >Cancel</button>
+              <button
+                onClick={handleApprovePending}
+                disabled={actionLoading}
+                className="flex-1 py-2.5 bg-emerald-600 text-white border-none rounded-lg text-sm font-semibold font-inter cursor-pointer hover:bg-emerald-700 transition-colors disabled:opacity-50 flex items-center justify-center gap-2"
+              >
+                {actionLoading && <Loader2 size={14} className="animate-spin" />}
+                {actionLoading ? 'Approving...' : 'Yes, Approve'}
+              </button>
+            </div>
+          </div>
+        </div>
+      )}
 
+      {/* ── Proof Zoom Lightbox ── */}
+      {proofZoom && (
+        <div className="fixed inset-0 bg-black/80 backdrop-blur-sm flex items-center justify-center z-[4000] p-6 cursor-pointer" onClick={() => setProofZoom(null)}>
+          <button
+            onClick={() => setProofZoom(null)}
+            className="absolute top-4 right-4 w-10 h-10 rounded-full bg-white/10 hover:bg-white/20 border-none text-white cursor-pointer flex items-center justify-center transition-colors"
+          >
+            <X size={20} />
+          </button>
+          <img
+            src={proofZoom}
+            alt="Proof of Payment"
+            className="max-w-[90vw] max-h-[85vh] object-contain rounded-xl shadow-2xl"
+            onClick={(e) => e.stopPropagation()}
+          />
+        </div>
+      )}
 
       {/* ── Savings Detail Modal ── */}
       {selectedSavings && (
@@ -1190,9 +1325,9 @@ export default function LoanAdminPaymentStatus() {
             <div className="p-5 flex flex-col gap-3.5 max-h-[65vh] overflow-y-auto">
               <div className="flex flex-col gap-1">
                 <label className="font-inter text-xs font-semibold text-slate-700 dark:text-slate-300">Transaction Type</label>
-                <select 
-                  className="w-full h-9 px-3 bg-white dark:bg-[#252836] border border-slate-200 dark:border-white/10 rounded-lg font-inter text-xs text-slate-800 dark:text-white outline-none focus:border-blue-500 transition-colors cursor-pointer shadow-sm" 
-                  value={walkinType} 
+                <select
+                  className="w-full h-9 px-3 bg-white dark:bg-[#252836] border border-slate-200 dark:border-white/10 rounded-lg font-inter text-xs text-slate-800 dark:text-white outline-none focus:border-blue-500 transition-colors cursor-pointer shadow-sm"
+                  value={walkinType}
                   onChange={(e) => { setWalkinType(e.target.value); setWalkinSelectedLoan(''); setWalkinSelectedMember(null); setWalkinAmount(''); }}
                 >
                   <option value="loan">Loan Repayment</option>
@@ -1203,9 +1338,9 @@ export default function LoanAdminPaymentStatus() {
               {walkinType === 'loan' ? (
                 <div className="flex flex-col gap-1">
                   <label className="font-inter text-xs font-semibold text-slate-700 dark:text-slate-300">Select Active Loan</label>
-                  <select 
-                    className="w-full h-9 px-3 bg-white dark:bg-[#252836] border border-slate-200 dark:border-white/10 rounded-lg font-inter text-xs text-slate-800 dark:text-white outline-none focus:border-blue-500 transition-colors cursor-pointer shadow-sm" 
-                    value={walkinSelectedLoan} 
+                  <select
+                    className="w-full h-9 px-3 bg-white dark:bg-[#252836] border border-slate-200 dark:border-white/10 rounded-lg font-inter text-xs text-slate-800 dark:text-white outline-none focus:border-blue-500 transition-colors cursor-pointer shadow-sm"
+                    value={walkinSelectedLoan}
                     onChange={handleWalkinLoanSelected}
                   >
                     <option value="">-- Choose Loan --</option>
@@ -1220,10 +1355,10 @@ export default function LoanAdminPaymentStatus() {
                 <>
                   <div className="flex flex-col gap-1 relative">
                     <label className="font-inter text-xs font-semibold text-slate-700 dark:text-slate-300">Search Member</label>
-                    <input 
-                      type="text" 
-                      className="w-full h-9 px-3 bg-white dark:bg-[#252836] border border-slate-200 dark:border-white/10 rounded-lg font-inter text-xs text-slate-800 dark:text-white placeholder:text-slate-400 outline-none focus:border-blue-500 transition-colors shadow-sm" 
-                      placeholder="Type name or email..." 
+                    <input
+                      type="text"
+                      className="w-full h-9 px-3 bg-white dark:bg-[#252836] border border-slate-200 dark:border-white/10 rounded-lg font-inter text-xs text-slate-800 dark:text-white placeholder:text-slate-400 outline-none focus:border-blue-500 transition-colors shadow-sm"
+                      placeholder="Type name or email..."
                       value={walkinSearch}
                       onChange={(e) => handleWalkinSearchChange(e.target.value)}
                     />
@@ -1240,10 +1375,10 @@ export default function LoanAdminPaymentStatus() {
                   </div>
                   <div className="flex flex-col gap-1">
                     <label className="font-inter text-xs font-semibold text-slate-700 dark:text-slate-300">Select Savings Goal</label>
-                    <select 
-                      className="w-full h-9 px-3 bg-white dark:bg-[#252836] border border-slate-200 dark:border-white/10 rounded-lg font-inter text-xs text-slate-800 dark:text-white outline-none focus:border-blue-500 transition-colors cursor-pointer shadow-sm disabled:opacity-50" 
-                      value={walkinSelectedGoal} 
-                      onChange={(e) => setWalkinSelectedGoal(e.target.value)} 
+                    <select
+                      className="w-full h-9 px-3 bg-white dark:bg-[#252836] border border-slate-200 dark:border-white/10 rounded-lg font-inter text-xs text-slate-800 dark:text-white outline-none focus:border-blue-500 transition-colors cursor-pointer shadow-sm disabled:opacity-50"
+                      value={walkinSelectedGoal}
+                      onChange={(e) => setWalkinSelectedGoal(e.target.value)}
                       disabled={!walkinSelectedMember || walkinGoals.length === 0}
                     >
                       {!walkinSelectedMember ? (
@@ -1267,12 +1402,12 @@ export default function LoanAdminPaymentStatus() {
                 <label className="font-inter text-xs font-semibold text-slate-700 dark:text-slate-300">{walkinType === 'loan' ? 'Payment Amount' : 'Deposit Amount'}</label>
                 <div className="relative">
                   <span className="absolute left-3 top-2 text-slate-400 font-inter text-xs pointer-events-none">₱</span>
-                  <input 
-                    type="number" 
-                    className="w-full h-9 pl-7 pr-3 bg-white dark:bg-[#252836] border border-slate-200 dark:border-white/10 rounded-lg font-inter text-xs text-slate-800 dark:text-white placeholder:text-slate-400 outline-none focus:border-blue-500 transition-colors shadow-sm" 
-                    placeholder="0.00" 
-                    value={walkinAmount} 
-                    onChange={(e) => setWalkinAmount(e.target.value)} 
+                  <input
+                    type="number"
+                    className="w-full h-9 pl-7 pr-3 bg-white dark:bg-[#252836] border border-slate-200 dark:border-white/10 rounded-lg font-inter text-xs text-slate-800 dark:text-white placeholder:text-slate-400 outline-none focus:border-blue-500 transition-colors shadow-sm"
+                    placeholder="0.00"
+                    value={walkinAmount}
+                    onChange={(e) => setWalkinAmount(e.target.value)}
                   />
                 </div>
               </div>
@@ -1280,9 +1415,9 @@ export default function LoanAdminPaymentStatus() {
               <div className="grid grid-cols-2 gap-3">
                 <div className="flex flex-col gap-1">
                   <label className="font-inter text-xs font-semibold text-slate-700 dark:text-slate-300">Payment Method</label>
-                  <select 
-                    className="w-full h-9 px-3 bg-white dark:bg-[#252836] border border-slate-200 dark:border-white/10 rounded-lg font-inter text-xs text-slate-800 dark:text-white outline-none focus:border-blue-500 transition-colors cursor-pointer shadow-sm" 
-                    value={walkinMethod} 
+                  <select
+                    className="w-full h-9 px-3 bg-white dark:bg-[#252836] border border-slate-200 dark:border-white/10 rounded-lg font-inter text-xs text-slate-800 dark:text-white outline-none focus:border-blue-500 transition-colors cursor-pointer shadow-sm"
+                    value={walkinMethod}
                     onChange={(e) => setWalkinMethod(e.target.value)}
                   >
                     <option value="cash">Walk-in Cash</option>
@@ -1292,33 +1427,33 @@ export default function LoanAdminPaymentStatus() {
                 </div>
                 <div className="flex flex-col gap-1">
                   <label className="font-inter text-xs font-semibold text-slate-700 dark:text-slate-300">Reference # (Optional)</label>
-                  <input 
-                    type="text" 
-                    className="w-full h-9 px-3 bg-white dark:bg-[#252836] border border-slate-200 dark:border-white/10 rounded-lg font-inter text-xs text-slate-800 dark:text-white placeholder:text-slate-400 outline-none focus:border-blue-500 transition-colors shadow-sm" 
-                    placeholder="e.g. 12345678" 
-                    value={walkinRef} 
-                    onChange={(e) => setWalkinRef(e.target.value)} 
+                  <input
+                    type="text"
+                    className="w-full h-9 px-3 bg-white dark:bg-[#252836] border border-slate-200 dark:border-white/10 rounded-lg font-inter text-xs text-slate-800 dark:text-white placeholder:text-slate-400 outline-none focus:border-blue-500 transition-colors shadow-sm"
+                    placeholder="e.g. 12345678"
+                    value={walkinRef}
+                    onChange={(e) => setWalkinRef(e.target.value)}
                   />
                 </div>
               </div>
             </div>
 
             <div className="p-4 border-t border-slate-200 dark:border-white/10 flex justify-end gap-2 bg-slate-50 dark:bg-black/20">
-               <button 
-                 onClick={() => setShowWalkinModal(false)} 
-                 disabled={walkinLoading} 
-                 className="px-4 py-2 rounded-lg border border-slate-200 dark:border-white/10 bg-white dark:bg-[#252836] text-slate-700 dark:text-slate-300 text-xs font-semibold font-inter hover:bg-slate-50 dark:hover:bg-white/5 transition-colors cursor-pointer"
-               >
-                 Cancel
-               </button>
-               <button 
-                 onClick={handleWalkinSubmit} 
-                 disabled={walkinLoading} 
-                 className="px-4 py-2 rounded-lg border-none bg-blue-600 hover:bg-blue-700 text-white text-xs font-semibold font-inter transition-colors cursor-pointer flex items-center gap-1.5 shadow-sm"
-               >
-                 {walkinLoading ? <Loader2 className="animate-spin" size={14} /> : null}
-                 Submit & Confirm
-               </button>
+              <button
+                onClick={() => setShowWalkinModal(false)}
+                disabled={walkinLoading}
+                className="px-4 py-2 rounded-lg border border-slate-200 dark:border-white/10 bg-white dark:bg-[#252836] text-slate-700 dark:text-slate-300 text-xs font-semibold font-inter hover:bg-slate-50 dark:hover:bg-white/5 transition-colors cursor-pointer"
+              >
+                Cancel
+              </button>
+              <button
+                onClick={handleWalkinSubmit}
+                disabled={walkinLoading}
+                className="px-4 py-2 rounded-lg border-none bg-blue-600 hover:bg-blue-700 text-white text-xs font-semibold font-inter transition-colors cursor-pointer flex items-center gap-1.5 shadow-sm"
+              >
+                {walkinLoading ? <Loader2 className="animate-spin" size={14} /> : null}
+                Submit & Confirm
+              </button>
             </div>
           </div>
         </div>

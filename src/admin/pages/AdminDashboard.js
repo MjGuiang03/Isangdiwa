@@ -57,7 +57,7 @@ const INITIAL_DONATION_CATEGORIES = [
 ];
 
 const formatK = (num) => {
-  if (num >= 1000000) return (num / 1000000).toFixed(1).replace(/\.0$/, '') + 'm';
+  if (num >= 1000000) return (num / 1000000).toFixed(1).replace(/\.0$/, '') + 'M';
   if (num >= 1000) return (num / 1000).toFixed(0) + 'k';
   return num.toString();
 };
@@ -265,7 +265,10 @@ export default function AdminDashboard() {
 
     let growth = [];
     if (growthMonth === 'all') {
-      const monthNames = ['Jan', 'Feb', 'Mar', 'Apr', 'May', 'Jun', 'Jul', 'Aug', 'Sep', 'Oct', 'Nov', 'Dec'];
+      const allMonthNames = ['Jan', 'Feb', 'Mar', 'Apr', 'May', 'Jun', 'Jul', 'Aug', 'Sep', 'Oct', 'Nov', 'Dec'];
+      const now = new Date();
+      const monthsCount = growthYear === now.getFullYear() ? Math.max(now.getMonth() + 1, 6) : 12;
+      const monthNames = allMonthNames.slice(0, monthsCount);
       growth = monthNames.map((m, i) => ({ label: m, totalMembers: 0, newMembers: 0, sortKey: i }));
       
       let runningTotal = 0;
@@ -346,13 +349,16 @@ export default function AdminDashboard() {
     }
 
     if (attMonth === 'all') {
-      const monthNames = ['Jan', 'Feb', 'Mar', 'Apr', 'May', 'Jun', 'Jul', 'Aug', 'Sep', 'Oct', 'Nov', 'Dec'];
+      const allMonthNames = ['Jan', 'Feb', 'Mar', 'Apr', 'May', 'Jun', 'Jul', 'Aug', 'Sep', 'Oct', 'Nov', 'Dec'];
+      const now = new Date();
+      const monthsCount = attYear === now.getFullYear() ? Math.max(now.getMonth() + 1, 6) : 12;
+      const monthNames = allMonthNames.slice(0, monthsCount);
       att = monthNames.map((m, i) => ({ label: m, present: 0, late: 0, absent: 0, sortKey: i }));
       
       filteredAtt.forEach(a => {
         const s = (a.status || '').toLowerCase();
         const d = new Date(a.date || a.createdAt);
-        if (d.getFullYear() === attYear) {
+        if (d.getFullYear() === attYear && att[d.getMonth()]) {
           if (s === 'present') att[d.getMonth()].present += 1;
           else if (s === 'late') att[d.getMonth()].late += 1;
           else if (s === 'absent') att[d.getMonth()].absent += 1;
@@ -717,13 +723,13 @@ export default function AdminDashboard() {
           </div>
         </div>
         {aiInsightsExpanded && (
-          <div className="mt-6 pt-6 border-t border-slate-100 dark:border-white/10">
+          <div className="mt-4 pt-4 border-t border-slate-100 dark:border-white/10">
             {aiInsightsLoading ? (
-              <div className="grid grid-cols-1 md:grid-cols-2 gap-4 animate-pulse">
+              <div className="grid grid-cols-1 md:grid-cols-2 gap-3 animate-pulse">
                 {[1, 2, 3, 4].map(i => (
-                  <div key={i} className="flex gap-4 p-4">
-                    <div className="w-8 h-8 rounded-full bg-slate-200 dark:bg-white/10" />
-                    <div className="flex-1 flex flex-col gap-2 pt-1">
+                  <div key={i} className="flex gap-3 p-3">
+                    <div className="w-7 h-7 rounded-full bg-slate-200 dark:bg-white/10" />
+                    <div className="flex-1 flex flex-col gap-2 pt-0.5">
                       <div className="h-3 bg-slate-200 dark:bg-white/10 rounded w-1/3" />
                       <div className="h-3 bg-slate-200 dark:bg-white/10 rounded w-full" />
                     </div>
@@ -731,15 +737,15 @@ export default function AdminDashboard() {
                 ))}
               </div>
             ) : aiInsights.length > 0 ? (
-              <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+              <div className="grid grid-cols-1 md:grid-cols-2 gap-3">
                 {aiInsights.map((insight, idx) => (
-                  <div key={idx} className="flex gap-4 p-4 rounded-xl bg-slate-50 dark:bg-black/20 border border-slate-100 dark:border-white/5 hover:border-blue-200 dark:hover:border-blue-500/30 transition-colors">
-                    <span className="w-8 h-8 rounded-full bg-blue-100 text-blue-600 dark:bg-blue-500/20 dark:text-blue-400 flex items-center justify-center shrink-0 mt-0.5">
+                  <div key={idx} className="flex gap-3 p-3 rounded-xl bg-slate-50 dark:bg-black/20 border border-slate-100 dark:border-white/5 hover:border-blue-200 dark:hover:border-blue-500/30 transition-colors">
+                    <span className="w-7 h-7 rounded-full bg-blue-100 text-blue-600 dark:bg-blue-500/20 dark:text-blue-400 flex items-center justify-center shrink-0 mt-0.5 text-xs">
                       <InsightIcon name={insight.icon} />
                     </span>
                     <div className="flex-1 min-w-0">
-                      <p className="m-0 mb-1 font-inter text-sm font-semibold text-slate-800 dark:text-white">{insight.title}</p>
-                      <p className="m-0 font-inter text-xs text-slate-600 dark:text-slate-400 leading-relaxed">{insight.detail}</p>
+                      <p className="m-0 mb-0.5 font-inter text-[13px] font-semibold text-slate-800 dark:text-white leading-tight">{insight.title}</p>
+                      <p className="m-0 font-inter text-[11px] text-slate-600 dark:text-slate-400 leading-relaxed">{insight.detail}</p>
                     </div>
                   </div>
                 ))}
@@ -754,9 +760,9 @@ export default function AdminDashboard() {
 
 
       {/* ── Row 2: Analytics Row ── */}
-      <div className="grid grid-cols-1 lg:grid-cols-2 gap-4">
+      <div className="grid grid-cols-1 lg:grid-cols-12 gap-4">
         {/* Donation Categories */}
-        <div className="bg-white dark:bg-[#1E2130] border border-slate-200/80 dark:border-white/10 rounded-2xl p-5 shadow-[0_2px_12px_-4px_rgba(0,0,0,0.04)] flex flex-col relative group overflow-hidden">
+        <div className="lg:col-span-5 bg-white dark:bg-[#1E2130] border border-slate-200/80 dark:border-white/10 rounded-2xl p-5 shadow-[0_2px_12px_-4px_rgba(0,0,0,0.04)] flex flex-col relative group overflow-hidden">
           <div className="absolute top-0 right-0 w-32 h-32 bg-amber-500/5 rounded-full blur-3xl -mr-10 -mt-10 pointer-events-none transition-transform duration-500 group-hover:scale-125"></div>
           <div className="flex items-center justify-between mb-5 relative z-10">
             <div>
@@ -787,7 +793,7 @@ export default function AdminDashboard() {
         </div>
 
         {/* Members by Community */}
-        <div className="bg-white dark:bg-[#1E2130] border border-slate-200/80 dark:border-white/10 rounded-2xl p-5 shadow-[0_2px_12px_-4px_rgba(0,0,0,0.04)] flex flex-col relative group overflow-hidden">
+        <div className="lg:col-span-7 bg-white dark:bg-[#1E2130] border border-slate-200/80 dark:border-white/10 rounded-2xl p-5 shadow-[0_2px_12px_-4px_rgba(0,0,0,0.04)] flex flex-col relative group overflow-hidden">
           <div className="absolute top-0 right-0 w-32 h-32 bg-blue-500/5 rounded-full blur-3xl -mr-10 -mt-10 pointer-events-none transition-transform duration-500 group-hover:scale-125"></div>
           <div className="flex items-center justify-between mb-5 relative z-10">
             <div>
@@ -838,9 +844,9 @@ export default function AdminDashboard() {
       </div>
 
       {/* ── Row 3: Charts ── */}
-      <div className="grid grid-cols-1 lg:grid-cols-2 gap-4">
+      <div className="grid grid-cols-1 lg:grid-cols-12 gap-4">
         {/* Member Growth Trends */}
-        <div className="bg-white dark:bg-[#1E2130] border border-slate-200/80 dark:border-white/10 rounded-2xl p-5 shadow-[0_2px_12px_-4px_rgba(0,0,0,0.04)] flex flex-col relative group overflow-hidden">
+        <div className="lg:col-span-7 bg-white dark:bg-[#1E2130] border border-slate-200/80 dark:border-white/10 rounded-2xl p-5 shadow-[0_2px_12px_-4px_rgba(0,0,0,0.04)] flex flex-col relative group overflow-hidden">
           <div className="absolute top-0 right-0 w-32 h-32 bg-emerald-500/5 rounded-full blur-3xl -mr-10 -mt-10 pointer-events-none transition-transform duration-500 group-hover:scale-125"></div>
           <div className="flex items-center justify-between mb-5 relative z-10">
             <div>
@@ -890,7 +896,7 @@ export default function AdminDashboard() {
         </div>
 
         {/* Attendance Trends */}
-        <div className="bg-white dark:bg-[#1E2130] border border-slate-200/80 dark:border-white/10 rounded-2xl p-5 shadow-[0_2px_12px_-4px_rgba(0,0,0,0.04)] flex flex-col relative group overflow-hidden">
+        <div className="lg:col-span-5 bg-white dark:bg-[#1E2130] border border-slate-200/80 dark:border-white/10 rounded-2xl p-5 shadow-[0_2px_12px_-4px_rgba(0,0,0,0.04)] flex flex-col relative group overflow-hidden">
           <div className="absolute top-0 right-0 w-32 h-32 bg-violet-500/5 rounded-full blur-3xl -mr-10 -mt-10 pointer-events-none transition-transform duration-500 group-hover:scale-125"></div>
           <div className="flex items-center justify-between mb-5 relative z-10">
             <div>

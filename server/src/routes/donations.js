@@ -17,8 +17,9 @@ router.post('/donations', authenticateUser, async (req, res) => {
     const email = req.user.email;
     const { amount, category, community, isRecurring, paymentMethod } = req.body;
 
-    if (!amount || !category) {
-      return res.status(400).json({ success: false, message: 'Amount and category are required' });
+    const parsedAmount = Number(amount);
+    if (!amount || !category || isNaN(parsedAmount) || !Number.isInteger(parsedAmount) || parsedAmount <= 0) {
+      return res.status(400).json({ success: false, message: 'Amount must be a positive whole number and category is required' });
     }
 
     const user = await users.findOne({ email });
@@ -44,11 +45,19 @@ router.post('/donations', authenticateUser, async (req, res) => {
         return res.status(400).json({ success: false, message: 'Proof of payment is required for manual approval' });
       }
 
+      // Backend validation: proofOfPayment must be a valid image Data URL
+      if (typeof proofOfPayment !== 'string' || !proofOfPayment.startsWith('data:image/')) {
+        return res.status(400).json({ 
+          success: false, 
+          message: 'Invalid proof of payment. Only image files (PNG, JPG, JPEG, WEBP) are allowed.' 
+        });
+      }
+
       const newDonation = {
         donationId,
         email,
         member: user.fullName,
-        amount: Number(amount),
+        amount: parsedAmount,
         category,
         community: resolvedCommunity,
         method: paymentMethod || 'Manual',
@@ -112,7 +121,7 @@ router.get('/donations/my-donations', authenticateUser, async (req, res) => {
     const limit = parseInt(req.query.limit) || 10;
     const skip  = (page - 1) * limit;
 
-    const findQuery = { email, status: { $ne: 'pending' } };
+    const findQuery = { email };
     if (category) findQuery.category = category;
     if (req.query.paymentMethod) findQuery.method = req.query.paymentMethod;
 

@@ -1,14 +1,89 @@
 import { Router } from 'express';
 import jwt from 'jsonwebtoken';
+import bcrypt from 'bcryptjs';
 import dotenv from 'dotenv';
 dotenv.config();
 
 import { users, otps, loans, loanPayments, donations, attendance, savingsTransactions, announcements } from '../config/db.js';
 import { authenticateUser } from '../middleware/auth.js';
 import { sendOTP, generateOTP } from '../utils/email.js';
+import { notifyUser } from '../utils/notifyHelpers.js';
 
 const router  = Router();
 const JWT_SECRET = process.env.JWT_SECRET;
+
+/* ================== CHANGE PASSWORD ================== */
+const handlePasswordChange = async (req, res) => {
+  try {
+    const email = req.user.email;
+    const { currentPassword, newPassword } = req.body;
+
+    if (!currentPassword || !newPassword) {
+      return res.status(400).json({ success: false, message: 'Current and new passwords are required' });
+    }
+
+    if (newPassword.length < 8) {
+      return res.status(400).json({ success: false, message: 'New password must be at least 8 characters' });
+    }
+
+    const user = await users.findOne({ email });
+    if (!user) return res.status(404).json({ success: false, message: 'User not found' });
+
+    // Enforce 1 password change per day limit
+    const startOfToday = new Date();
+    startOfToday.setHours(0, 0, 0, 0);
+    if (user.lastPasswordChangeAt && new Date(user.lastPasswordChangeAt) >= startOfToday) {
+      return res.status(429).json({
+        success: false,
+        message: 'For security reasons, password updates are limited to once per day. Please try again tomorrow.'
+      });
+    }
+
+    const isMatch = await bcrypt.compare(currentPassword, user.passwordHash);
+    if (!isMatch) {
+      return res.status(400).json({ success: false, message: 'Current password is incorrect' });
+    }
+
+    const hashed = await bcrypt.hash(newPassword, 10);
+    const now = new Date();
+    const notifItem = {
+      id: `sec-${now.getTime()}`,
+      type: 'security',
+      title: 'Security Alert: Password Changed',
+      message: 'Your account password was updated successfully.',
+      timestamp: now,
+    };
+
+    await users.updateOne(
+      { email },
+      { 
+        $set: { passwordHash: hashed, lastPasswordChangeAt: now, updatedAt: now },
+        $push: { securityNotifications: { $each: [notifItem], $slice: -20 } }
+      }
+    );
+
+    // Send email & push notification
+    const htmlBody = `
+      <div style="font-family: Arial, sans-serif; color: #1E293B; max-width: 500px; margin: 0 auto; padding: 20px; border: 1px solid #E2E8F0; rounded-radius: 12px;">
+        <h2 style="color: #2563EB;">Security Notification</h2>
+        <p>Hello <strong>${user.fullName || 'Member'}</strong>,</p>
+        <p>Your account password was successfully updated on <strong>${now.toLocaleString('en-PH')}</strong>.</p>
+        <p style="background: #F1F5F9; padding: 12px; border-radius: 8px; font-size: 13px; color: #475569;">
+          🔒 If you initiated this change, no further action is required. If you did not authorize this change, please reset your password immediately or contact support.
+        </p>
+      </div>
+    `;
+    notifyUser(email, 'security', 'Security Alert: Password Changed', htmlBody, 'Your account password was updated successfully.', '/settings');
+
+    res.status(200).json({ success: true, message: 'Password updated successfully' });
+  } catch (err) {
+    console.error('Password change error:', err);
+    res.status(500).json({ success: false, message: 'Failed to update password' });
+  }
+};
+
+router.put('/user/change-password', authenticateUser, handlePasswordChange);
+router.put('/change-password', authenticateUser, handlePasswordChange);
 
 /* ================== UPDATE PROFILE ================== */
 router.put('/update-profile', authenticateUser, async (req, res) => {
@@ -350,7 +425,8 @@ router.get('/notifications/feed', authenticateUser, async (req, res) => {
       donations:  userDonations,
       attendance: userAttendance,
       savings:    userSavings,
-      announcements: filteredAnnouncements
+      announcements: filteredAnnouncements,
+      securityNotifications: userReq?.securityNotifications || []
     });
   } catch (err) {
     console.error('Notification feed error:', err);

@@ -61,7 +61,7 @@ export default function Sidebar({ collapsed, setCollapsed, toggleCollapsed }) {
       const data = await res.json();
       if (!data.success) return;
 
-      const { readIds: readIdsFromData, payments, loans: loansDataFeed, donations: donationsDataFeed, attendance: attendanceDataFeed, savings: savingsDataFeed } = data;
+      const { readIds: readIdsFromData, payments, loans: loansDataFeed, donations: donationsDataFeed, attendance: attendanceDataFeed, savings: savingsDataFeed, securityNotifications: secDataFeed } = data;
       const currentReadIds = new Set(readIdsFromData || []);
       const items = [];
 
@@ -106,6 +106,9 @@ export default function Sidebar({ collapsed, setCollapsed, toggleCollapsed }) {
       if (savingsDataFeed) {
         savingsDataFeed.filter(s => s.type === 'deposit' && s.status === 'confirmed').forEach(s => items.push({ id: `sav-${s._id}` }));
         savingsDataFeed.filter(s => s.type === 'withdrawal' && s.status === 'confirmed').forEach(s => items.push({ id: `sav-wd-${s._id}` }));
+      }
+      if (secDataFeed) {
+        secDataFeed.forEach(s => items.push({ id: s.id }));
       }
 
       setUnreadNotifCount(items.filter(it => !currentReadIds.has(it.id)).length);

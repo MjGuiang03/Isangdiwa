@@ -17,6 +17,7 @@ export default function SecretaryAdminSidebar() {
     const [showLogoutModal, setShowLogoutModal] = useState(false);
     const currentPath = location.pathname;
     const [unreadCount, setUnreadCount] = useState(0);
+    const [pendingLoansCount, setPendingLoansCount] = useState(0);
     const prevNotifIdsRef = useRef(new Set());
 
     const [collapsed, setCollapsed] = useState(() => {
@@ -79,13 +80,33 @@ export default function SecretaryAdminSidebar() {
             } catch { /* silent */ }
         };
 
-        calcUnread();
+        const calcCounts = async () => {
+            try {
+                const res = await fetch(`${API}/api/admin/sidebar-counts`, {
+                    headers: { Authorization: `Bearer ${token}` },
+                });
+                if (!res.ok) return;
+                const data = await res.json();
+                if (data.success && data.counts) {
+                    setPendingLoansCount(data.counts.pendingLoans || 0);
+                }
+            } catch { /* silent */ }
+        };
 
-        const onUpdate = () => calcUnread();
+        calcUnread();
+        calcCounts();
+
+        const onUpdate = () => {
+            calcUnread();
+            calcCounts();
+        };
         window.addEventListener('admin-notif-read-update', onUpdate);
         
         // Poll every 30 seconds for live updates
-        const intervalId = setInterval(calcUnread, 60000);
+        const intervalId = setInterval(() => {
+            calcUnread();
+            calcCounts();
+        }, 30000);
         
         return () => {
              window.removeEventListener('admin-notif-read-update', onUpdate);
@@ -206,6 +227,11 @@ export default function SecretaryAdminSidebar() {
                 >
                     <span><FileText size={18} className="w-[18px] h-[18px] flex items-center justify-center shrink-0" /></span>
                     {!collapsed && <span className="font-inter text-sm">Loan Processing</span>}
+                    {pendingLoansCount > 0 && (
+                        <span className={`ml-auto bg-red-500 text-white p-[1px_6px] rounded-[10px] text-xs font-inter font-bold leading-none min-w-[19px] h-[19px] flex items-center justify-center shrink-0 animate-badgePop ${collapsed ? 'md:absolute md:top-1 md:right-1 md:ml-0 md:text-[9px] md:h-3.5 md:min-w-[14px]' : ''}`}>
+                            {pendingLoansCount > 99 ? '99+' : pendingLoansCount}
+                        </span>
+                    )}
                 </button>
 
                 <button

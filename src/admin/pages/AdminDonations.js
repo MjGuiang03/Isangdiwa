@@ -347,11 +347,11 @@ export default function AdminDonationsNew() {
         </div>
       </div>
 
-      <div className="grid grid-cols-1 lg:grid-cols-3 gap-6 mb-6">
-        <div className="lg:col-span-2">
+      <div className="grid grid-cols-1 lg:grid-cols-12 gap-4 mb-4">
+        <div className="lg:col-span-7">
           <CommunityDonationChart communityBreakdown={stats.communityBreakdown || {}} />
         </div>
-        <div className="lg:col-span-1">
+        <div className="lg:col-span-5">
           <DonationCategoriesPie categoryBreakdown={stats.categoryBreakdown || {}} />
         </div>
       </div>

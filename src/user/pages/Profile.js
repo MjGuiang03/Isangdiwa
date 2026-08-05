@@ -388,21 +388,21 @@ export default function Profile() {
 
       {/* ── 2. CORE PERSONAL & ACCOUNT DETAILS (Top Priority Info) ── */}
       <div className="p-6 bg-white dark:bg-[#1E2130] border border-slate-200/80 dark:border-white/10 rounded-2xl shadow-sm space-y-4">
-        <div className="flex items-center justify-between gap-2 pb-3 border-b border-slate-100 dark:border-white/5">
-          <div>
-            <h2 className="text-sm font-bold text-slate-900 dark:text-white uppercase tracking-wider font-inter flex items-center gap-2">
-              <Shield size={16} className="text-blue-600 dark:text-blue-400" />
+        <div className="flex items-start sm:items-center justify-between gap-3 pb-3 border-b border-slate-100 dark:border-white/5">
+          <div className="min-w-0 flex-1">
+            <h2 className="text-sm font-bold text-slate-900 dark:text-white uppercase tracking-wider font-inter">
               Personal &amp; Account Details
             </h2>
             <p className="text-xs text-slate-500 dark:text-slate-400 mt-0.5">Your core membership contact and community profile</p>
           </div>
           {!isEditing && (
             <button 
-              className="px-3 py-1.5 bg-blue-50 dark:bg-blue-950/40 hover:bg-blue-100 dark:hover:bg-blue-900/50 text-blue-600 dark:text-blue-400 text-xs font-bold rounded-xl transition-colors flex items-center gap-1.5 cursor-pointer border-none" 
+              className="px-3 py-1.5 bg-blue-50 dark:bg-blue-950/40 hover:bg-blue-100 dark:hover:bg-blue-900/50 text-blue-600 dark:text-blue-400 text-xs font-bold rounded-xl transition-colors flex items-center gap-1.5 cursor-pointer border-none shrink-0 whitespace-nowrap" 
               onClick={() => setIsEditing(true)}
             >
-              <Edit2 size={13} />
-              Edit Information
+              <Edit2 size={13} className="shrink-0" />
+              <span className="hidden sm:inline">Edit Information</span>
+              <span className="inline sm:hidden">Edit</span>
             </button>
           )}
         </div>
@@ -540,8 +540,7 @@ export default function Profile() {
         {/* Column 1: Achievements & Badges */}
         <div className="p-6 bg-white dark:bg-[#1E2130] border border-slate-200/80 dark:border-white/10 rounded-2xl shadow-sm space-y-4">
           <div className="flex items-center justify-between gap-2 pb-3 border-b border-slate-100 dark:border-white/5">
-            <h2 className="text-sm font-bold text-slate-900 dark:text-white uppercase tracking-wider font-inter flex items-center gap-2">
-              <Award size={16} className="text-amber-500" />
+            <h2 className="text-sm font-bold text-slate-900 dark:text-white uppercase tracking-wider font-inter">
               Achievements &amp; Badges
             </h2>
             <span className="text-[11px] font-bold px-2 py-0.5 rounded-full bg-amber-50 dark:bg-amber-950/40 text-amber-600 dark:text-amber-400 font-inter">{achievements.length} Earned</span>
@@ -571,23 +570,22 @@ export default function Profile() {
         <div className="space-y-6">
 
           {/* Giving Trend Chart */}
-          <div className="p-6 bg-white dark:bg-[#1E2130] border border-slate-200/80 dark:border-white/10 rounded-2xl shadow-sm space-y-4">
+          <div className="p-4 sm:p-6 bg-white dark:bg-[#1E2130] border border-slate-200/80 dark:border-white/10 rounded-2xl shadow-sm space-y-3 sm:space-y-4">
             <div className="flex items-center justify-between gap-2 pb-2 border-b border-slate-100 dark:border-white/5">
-              <h2 className="text-sm font-bold text-slate-900 dark:text-white uppercase tracking-wider font-inter flex items-center gap-2">
-                <TrendingUp size={16} className="text-blue-600 dark:text-blue-400" />
+              <h2 className="text-sm font-bold text-slate-900 dark:text-white uppercase tracking-wider font-inter">
                 Giving Trend
               </h2>
               <span className="text-xs font-semibold text-slate-400 dark:text-slate-500 font-inter">{new Date().getFullYear()}</span>
             </div>
-            <div className="pt-2">
+            <div className="pt-1 -ml-2 -mr-2">
               {loading ? (
-                <div className="h-[180px] w-full bg-slate-100 dark:bg-slate-800 animate-pulse rounded-xl" />
+                <div className="h-[210px] w-full bg-slate-100 dark:bg-slate-800 animate-pulse rounded-xl" />
               ) : (
-                <ResponsiveContainer width="100%" height={180}>
-                  <BarChart data={donationTrend} margin={{ top: 5, right: 5, bottom: 0, left: -10 }}>
+                <ResponsiveContainer width="100%" height={210}>
+                  <BarChart data={donationTrend} margin={{ top: 10, right: 5, bottom: 0, left: -22 }}>
                     <CartesianGrid strokeDasharray="3 3" stroke="#e2e8f0" />
                     <XAxis dataKey="label" tick={{ fontSize: 11, fill: '#94a3b8' }} axisLine={false} tickLine={false} />
-                    <YAxis tick={{ fontSize: 10, fill: '#94a3b8' }} axisLine={false} tickLine={false} tickFormatter={v => v > 0 ? `₱${(v / 1000).toFixed(0)}k` : '0'} />
+                    <YAxis tick={{ fontSize: 10, fill: '#94a3b8' }} axisLine={false} tickLine={false} tickFormatter={v => v >= 1000000 ? `₱${(v / 1000000).toFixed(1).replace(/\.0$/, '')}M` : v > 0 ? `₱${(v / 1000).toFixed(0)}k` : '0'} />
                     <Tooltip
                       formatter={(v) => [fmt(v), 'Donated']}
                       contentStyle={{ background: '#ffffff', border: '1px solid #e2e8f0', borderRadius: 8, fontSize: 12 }}
@@ -600,20 +598,19 @@ export default function Profile() {
           </div>
 
           {/* Attendance Overview Chart */}
-          <div className="p-6 bg-white dark:bg-[#1E2130] border border-slate-200/80 dark:border-white/10 rounded-2xl shadow-sm space-y-4">
+          <div className="p-4 sm:p-6 bg-white dark:bg-[#1E2130] border border-slate-200/80 dark:border-white/10 rounded-2xl shadow-sm space-y-3 sm:space-y-4">
             <div className="flex items-center justify-between gap-2 pb-2 border-b border-slate-100 dark:border-white/5">
-              <h2 className="text-sm font-bold text-slate-900 dark:text-white uppercase tracking-wider font-inter flex items-center gap-2">
-                <CalendarDays size={16} className="text-teal-600 dark:text-teal-400" />
+              <h2 className="text-sm font-bold text-slate-900 dark:text-white uppercase tracking-wider font-inter">
                 Attendance Overview
               </h2>
               <span className="text-xs font-semibold text-slate-400 dark:text-slate-500 font-inter">{attendance.length} total</span>
             </div>
-            <div className="pt-2">
+            <div className="pt-1 -ml-2 -mr-2">
               {loading ? (
-                <div className="h-[180px] w-full bg-slate-100 dark:bg-slate-800 animate-pulse rounded-xl" />
+                <div className="h-[210px] w-full bg-slate-100 dark:bg-slate-800 animate-pulse rounded-xl" />
               ) : (
-                <ResponsiveContainer width="100%" height={180}>
-                  <BarChart data={attendanceByMonth} margin={{ top: 5, right: 5, bottom: 0, left: -20 }}>
+                <ResponsiveContainer width="100%" height={210}>
+                  <BarChart data={attendanceByMonth} margin={{ top: 10, right: 5, bottom: 0, left: -30 }}>
                     <CartesianGrid strokeDasharray="3 3" stroke="#e2e8f0" />
                     <XAxis dataKey="label" tick={{ fontSize: 11, fill: '#94a3b8' }} axisLine={false} tickLine={false} />
                     <YAxis allowDecimals={false} tick={{ fontSize: 10, fill: '#94a3b8' }} axisLine={false} tickLine={false} />

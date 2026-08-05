@@ -728,13 +728,19 @@ router.put('/admin/loans/:id/process', authenticateAdmin, async (req, res) => {
       }
     }
 
+    // Calculate first payment due date: 1 month after disbursement
+    const disbursementDate = new Date();
+    const firstDueDate = new Date(disbursementDate);
+    firstDueDate.setMonth(firstDueDate.getMonth() + 1);
+
     await loans.updateOne(
       { _id: new ObjectId(id) },
       { 
         $set: { 
           status: 'active',
           disbursed: true, 
-          disbursementDate: new Date(), 
+          disbursementDate, 
+          nextDueDate: firstDueDate,
           paymentMethod,
           processReason: processReason || null,
           transferResult: transferResult?.data || null,
@@ -929,9 +935,31 @@ router.post('/loans/:id/pay', authenticateUser, async (req, res) => {
         const isManual = config?.paymentApprovalMethod === 'manual';
 
         if (paymentMethod === 'cash' || isManual) {
-            if (isManual && paymentMethod !== 'cash' && !proofData) {
-                return res.status(400).json({ success: false, message: 'Proof of payment is required for manual approval' });
+            if (isManual && paymentMethod !== 'cash') {
+                if (!proofData) {
+                    return res.status(400).json({ success: false, message: 'Proof of payment is required for manual approval' });
+                }
+
+                // Security Validation: Strict MIME type check (PNG, JPG, JPEG, WEBP, PDF)
+                if (typeof proofData !== 'string' || !/^data:(image\/(png|jpeg|jpg|webp)|application\/pdf);base64,/.test(proofData)) {
+                    return res.status(400).json({ 
+                        success: false, 
+                        message: 'Security Alert: Invalid file format. Only PNG, JPG, JPEG, WEBP, and PDF files are allowed.' 
+                    });
+                }
+
+                // Security Validation: File size limit (5MB max = ~7,000,000 base64 chars)
+                if (proofData.length > 7000000) {
+                    return res.status(400).json({
+                        success: false,
+                        message: 'File size exceeds maximum allowed limit of 5MB.'
+                    });
+                }
             }
+
+            const safeProofFileName = proofFileName 
+                ? String(proofFileName).replace(/[^a-zA-Z0-9_.-]/g, '_').slice(0, 100) 
+                : null;
 
             const payment = {
                 loanId: loan.loanId, loanObjectId: loan._id, email,
@@ -941,7 +969,7 @@ router.post('/loans/:id/pay', authenticateUser, async (req, res) => {
                 subMethod: isManual && paymentMethod !== 'cash' ? subMethod : null,
                 accountName: isManual && paymentMethod !== 'cash' ? accountName : null,
                 accountNumber: isManual && paymentMethod !== 'cash' ? accountNumber : null,
-                proofData: proofData || null, proofFileName: proofFileName || null,
+                proofData: proofData || null, proofFileName: safeProofFileName,
                 status: 'pending', submittedAt: new Date(),
                 monthNumber: (loan.paidMonths || 0) + 1,
                 isLate: loan.isLate || false, interestMultiplier: loan.interestMultiplier || 1
@@ -1259,7 +1287,12 @@ router.get('/admin/loan-reports', authenticateAdmin, async (req, res) => {
     // Include active loans that are currently past due
     const activeLoans = await loans.find({ status: 'active' }).toArray();
     const currentlyLateLoans = activeLoans.filter(l => {
-      const dueDate = l.nextDueDate || l.approvedDate;
+      let dueDate = l.nextDueDate;
+      if (!dueDate) {
+        const baseDate = new Date(l.disbursementDate || l.approvedDate);
+        baseDate.setMonth(baseDate.getMonth() + 1);
+        dueDate = baseDate;
+      }
       if (!dueDate) return false;
       const daysLate = Math.floor((new Date() - new Date(dueDate)) / (1000 * 60 * 60 * 24));
       return daysLate >= 1;

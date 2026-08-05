@@ -6,7 +6,7 @@ import { useAuth } from '../../context/AuthContext';
 import { useTheme } from '../../context/ThemeContext';
 
 import API from '../../utils/api';
-import { Mail, User, XCircle, Check, Bell, Lock, Eye, EyeOff, AlertTriangle, LogOut } from 'lucide-react';
+import { Mail, User, XCircle, Check, Bell, Lock, Eye, EyeOff, AlertTriangle, LogOut, ShieldCheck } from 'lucide-react';
 import { subscribeToPushNotifications, unsubscribeFromPushNotifications } from '../../utils/desktopNotify';
 
 /* ─── Community options removed in favor of dynamic fetching ─── */
@@ -111,6 +111,7 @@ export default function Settings() {
   const [showConfirm, setShowConfirm] = useState(false);
   const [showResetModal, setShowResetModal] = useState(false);
   const [showPasswordConfirmModal, setShowPasswordConfirmModal] = useState(false);
+  const [showSuccessModal, setShowSuccessModal] = useState(false);
   const [emailConfirmModal, setEmailConfirmModal] = useState({ show: false, names: '' });
   const [showLogoutModal, setShowLogoutModal] = useState(false);
 
@@ -249,7 +250,7 @@ export default function Settings() {
       const data = await res.json();
       if (!res.ok) throw new Error(data.message || 'Failed to update password');
 
-      setPassSuccess('Password updated successfully!');
+      setShowSuccessModal(true);
       setPassForm({ current: '', new: '', confirm: '' });
       setIsChangingPassword(false);
       setShowCurrent(false);
@@ -443,12 +444,6 @@ export default function Settings() {
                 <div className="p-3 bg-red-50 dark:bg-red-950/40 border border-red-200 dark:border-red-800/40 rounded-xl flex items-center gap-2 text-xs text-red-600 dark:text-red-400">
                   <XCircle size={16} className="shrink-0" />
                   <span>{passError}</span>
-                </div>
-              )}
-              {passSuccess && (
-                <div className="p-3 bg-emerald-50 dark:bg-emerald-950/40 border border-emerald-200 dark:border-emerald-800/40 rounded-xl flex items-center gap-2 text-xs text-emerald-600 dark:text-emerald-400">
-                  <Check size={16} className="shrink-0" />
-                  <span>{passSuccess}</span>
                 </div>
               )}
 
@@ -725,6 +720,31 @@ export default function Settings() {
                 onClick={executePasswordUpdate}
               >
                 Confirm Update
+              </button>
+            </div>
+          </div>
+        </div>
+      )}
+
+      {/* Password Update Success Modal */}
+      {showSuccessModal && (
+        <div className="fixed inset-0 z-[9999] bg-black/60 backdrop-blur-sm flex items-center justify-center p-4 overflow-y-auto animate-fadeIn" onClick={() => setShowSuccessModal(false)}>
+          <div className="relative w-full max-w-sm bg-white dark:bg-[#151821] rounded-2xl p-6 shadow-2xl border border-slate-200 dark:border-white/10 my-auto text-center space-y-4 font-inter" onClick={e => e.stopPropagation()}>
+            <div className="w-14 h-14 rounded-2xl bg-emerald-50 dark:bg-emerald-950/50 border border-emerald-200/80 dark:border-emerald-800/50 flex items-center justify-center text-emerald-600 dark:text-emerald-400 mx-auto shadow-xs">
+              <ShieldCheck size={30} />
+            </div>
+            <div>
+              <h2 className="text-lg font-bold text-slate-900 dark:text-white">Password Updated!</h2>
+              <p className="text-xs text-slate-500 dark:text-slate-400 mt-1.5 leading-relaxed">
+                Your account password has been changed successfully. A security notification has been sent to your email and added to your notification feed.
+              </p>
+            </div>
+            <div className="pt-2 border-t border-slate-100 dark:border-white/5">
+              <button 
+                className="w-full py-2.5 bg-blue-600 hover:bg-blue-700 text-white font-bold rounded-xl shadow-md transition-all text-xs border-none cursor-pointer"
+                onClick={() => setShowSuccessModal(false)}
+              >
+                Got it
               </button>
             </div>
           </div>

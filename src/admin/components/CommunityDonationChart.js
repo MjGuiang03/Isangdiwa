@@ -129,10 +129,10 @@ export default function CommunityDonationChart({ communityBreakdown = {} }) {
   const toggleDropdown = () => setDropdownOpen(!dropdownOpen);
 
   return (
-    <div className="bg-white dark:bg-[#1E2130] rounded-2xl border border-slate-200 dark:border-white/10 shadow-sm p-6 flex flex-col h-full relative">
-      <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-4 mb-4">
+    <div className="bg-white dark:bg-[#1E2130] rounded-2xl border border-slate-200 dark:border-white/10 shadow-sm p-4 flex flex-col h-full relative">
+      <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-3 mb-3">
         <div>
-          <span className="m-0 font-inter text-base font-bold text-slate-900 dark:text-white block">Donations by community</span>
+          <span className="m-0 font-inter text-sm font-bold text-slate-900 dark:text-white block">Donations by community</span>
           <span className="font-inter text-xs text-slate-500 dark:text-slate-400">Total funds raised per location</span>
         </div>
         
@@ -212,7 +212,7 @@ export default function CommunityDonationChart({ communityBreakdown = {} }) {
         </div>
       </div>
 
-      <div className="flex-1 w-full min-h-[340px] mt-2">
+      <div className="flex-1 w-full min-h-[260px] mt-1">
         {chartData.length === 0 ? (
           <div className="flex items-center justify-center h-full text-sm font-inter text-slate-500 dark:text-slate-400 text-center px-4 bg-slate-50 dark:bg-white/5 rounded-xl border border-slate-100 dark:border-white/5 border-dashed">No communities selected. Use the filter to choose communities.</div>
         ) : (

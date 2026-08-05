@@ -71,57 +71,57 @@
 }
 
 .dark {
-  /* ── IsangDiwa Dark Mode — soft warm gray, NOT black ── */
-  --background: #161922;
-  --foreground: #F0F2F8;
-  --card: #1E2130;
-  --card-foreground: #D8DCE8;
-  --popover: #363940;
-  --popover-foreground: #D8DCE8;
-  --primary: #7090D0;
+  /* ── IsangDiwa Dark Mode — Modern Neutral Charcoal Slate (No Blue Tint) ── */
+  --background: #0D0F14;
+  --foreground: #F1F5F9;
+  --card: #151821;
+  --card-foreground: #E2E8F0;
+  --popover: #1A1D27;
+  --popover-foreground: #E2E8F0;
+  --primary: #3B82F6;
   --primary-foreground: #FFFFFF;
-  --secondary: #3E4148;
-  --secondary-foreground: #D8DCE8;
-  --muted: #3E4148;
-  --muted-foreground: #788094;
-  --accent: #2A2E3A;
-  --accent-foreground: #D8DCE8;
-  --destructive: #E83535;
+  --secondary: #1F232F;
+  --secondary-foreground: #E2E8F0;
+  --muted: #1F232F;
+  --muted-foreground: #94A3B8;
+  --accent: #191C25;
+  --accent-foreground: #E2E8F0;
+  --destructive: #EF4444;
   --destructive-foreground: #FFFFFF;
-  --border: #484C55;
-  --border-strong: #555960;
-  --input: #484C55;
-  --input-background: #3E4148;
-  --input-border: #555960;
-  --switch-background: #555960;
-  --ring: #7090D0;
-  --card-shadow: 0 8px 32px rgba(0, 0, 0, 0.3);
+  --border: #242834;
+  --border-strong: #313646;
+  --input: #242834;
+  --input-background: #1F232F;
+  --input-border: #313646;
+  --switch-background: #313646;
+  --ring: #3B82F6;
+  --card-shadow: 0 8px 32px rgba(0, 0, 0, 0.4);
 
-  /* IsangDiwa Brand Tokens — gold unchanged, red slightly brightened */
+  /* IsangDiwa Brand Tokens — gold unchanged */
   --gold: #F5C800;
   --gold-text: #F5C800;
-  --gold-tint: #32300A;
-  --blue-hover: #7090D0;
-  --blue-tint: #2A2E3A;
-  --red-tint: #38181A;
-  --text-secondary: #B0B8CC;
-  --text-muted: #788094;
-  --text-timestamp: #607090;
+  --gold-tint: #2B2808;
+  --blue-hover: #3B82F6;
+  --blue-tint: #181C28;
+  --red-tint: #2A1416;
+  --text-secondary: #94A3B8;
+  --text-muted: #64748B;
+  --text-timestamp: #475569;
 
   --font-weight-medium: 500;
   --font-weight-normal: 400;
 
   /* Chart */
-  --chart-1: #7090D0;
+  --chart-1: #3B82F6;
   --chart-2: #F5C800;
-  --chart-3: #E83535;
-  --chart-4: #B0B8CC;
-  --chart-5: #788094;
+  --chart-3: #EF4444;
+  --chart-4: #94A3B8;
+  --chart-5: #64748B;
 
-  /* Sidebar — deeper gray than page */
-  --sidebar: #22252B;
+  /* Sidebar — deep neutral charcoal */
+  --sidebar: #101217;
   --sidebar-foreground: #FFFFFF;
-  --sidebar-primary: #7090D0;
+  --sidebar-primary: #3B82F6;
   --sidebar-primary-foreground: #FFFFFF;
   --sidebar-accent: rgba(245, 200, 0, 0.10);
   --sidebar-accent-foreground: #FFFFFF;
@@ -226,9 +226,12 @@
 }
 
 /* ── Enhanced card visibility on light background ── */
-.bg-white,
-.dark\:bg-\[\#1E2130\] {
-  box-shadow: 0 2px 10px rgba(100, 116, 160, 0.10), 0 1px 3px rgba(100, 116, 160, 0.06);
+.bg-white {
+  box-shadow: 0 2px 10px rgba(0, 0, 0, 0.06), 0 1px 3px rgba(0, 0, 0, 0.04);
+}
+
+.dark .dark\:bg-\[\#1E2130\] {
+  background-color: var(--card) !important;
 }
 
 .user-home-layout {
@@ -1093,4 +1096,83 @@ h1[class*="-title"]:not(.fl-hero-title):not(.wpt-hero-title) {
 
 [data-sonner-toast] [data-icon] {
   color: #ffffff !important;
+}
+
+/* ════════════════════════════════════════════════════════════
+   GLOBAL SCROLLBAR STYLING (Light & Dark Mode)
+   ════════════════════════════════════════════════════════════ */
+
+/* Firefox Standard Property */
+html, body {
+  scrollbar-color: rgba(148, 163, 184, 0.45) transparent;
+  scrollbar-width: thin;
+}
+.dark, html.dark, body.dark {
+  scrollbar-color: rgba(255, 255, 255, 0.25) transparent;
+}
+
+/* WebKit Global Scrollbar (Chrome, Edge, Safari) */
+::-webkit-scrollbar {
+  width: 8px;
+  height: 8px;
+}
+::-webkit-scrollbar-track {
+  background: transparent;
+}
+::-webkit-scrollbar-thumb {
+  background: rgba(148, 163, 184, 0.4);
+  border-radius: 9999px;
+  border: 2px solid transparent;
+  background-clip: padding-box;
+}
+::-webkit-scrollbar-thumb:hover {
+  background: rgba(100, 116, 139, 0.7);
+  border: 2px solid transparent;
+  background-clip: padding-box;
+}
+
+/* Dark mode WebKit Global Scrollbar */
+.dark ::-webkit-scrollbar-thumb,
+html.dark ::-webkit-scrollbar-thumb,
+body.dark ::-webkit-scrollbar-thumb {
+  background: rgba(255, 255, 255, 0.22);
+  border: 2px solid transparent;
+  background-clip: padding-box;
+}
+.dark ::-webkit-scrollbar-thumb:hover,
+html.dark ::-webkit-scrollbar-thumb:hover,
+body.dark ::-webkit-scrollbar-thumb:hover {
+  background: rgba(255, 255, 255, 0.45);
+  border: 2px solid transparent;
+  background-clip: padding-box;
+}
+
+/* Custom Scrollbar Utility Class */
+.custom-scrollbar {
+  scrollbar-width: thin;
+  scrollbar-color: rgba(148, 163, 184, 0.45) transparent;
+}
+.dark .custom-scrollbar {
+  scrollbar-color: rgba(255, 255, 255, 0.25) transparent;
+}
+
+.custom-scrollbar::-webkit-scrollbar {
+  width: 6px;
+  height: 6px;
+}
+.custom-scrollbar::-webkit-scrollbar-track {
+  background: transparent;
+}
+.custom-scrollbar::-webkit-scrollbar-thumb {
+  background: rgba(148, 163, 184, 0.4);
+  border-radius: 9999px;
+}
+.custom-scrollbar::-webkit-scrollbar-thumb:hover {
+  background: rgba(100, 116, 139, 0.7);
+}
+.dark .custom-scrollbar::-webkit-scrollbar-thumb {
+  background: rgba(255, 255, 255, 0.22);
+}
+.dark .custom-scrollbar::-webkit-scrollbar-thumb:hover {
+  background: rgba(255, 255, 255, 0.45);
 }

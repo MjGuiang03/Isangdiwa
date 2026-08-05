@@ -19,6 +19,7 @@ export default function AdminSidebar() {
   const navigate = useNavigate();
   const location = useLocation();
   const [unreadCount, setUnreadCount] = useState(0);
+  const [sidebarCounts, setSidebarCounts] = useState({ newMembers: 0, pendingDonations: 0 });
   const prevNotifIdsRef = useRef(new Set());
   const [showLogoutModal, setShowLogoutModal] = useState(false);
   const { theme, toggleTheme } = useTheme();
@@ -90,13 +91,31 @@ export default function AdminSidebar() {
       } catch { /* silent */ }
     };
 
+    const calcCounts = async () => {
+      try {
+        const res = await fetch(`${API}/api/admin/sidebar-counts`, {
+          headers: { Authorization: `Bearer ${token}` }
+        });
+        if (!res.ok) return;
+        const data = await res.json();
+        if (data.success && data.counts) {
+          setSidebarCounts(data.counts);
+        }
+      } catch { /* silent */ }
+    };
+
     calcUnread();
+    calcCounts();
 
-
-
-    const onUpdate = () => { calcUnread(); };
+    const onUpdate = () => {
+      calcUnread();
+      calcCounts();
+    };
     window.addEventListener('admin-notif-read-update', onUpdate);
-    const intervalId = setInterval(() => { calcUnread(); }, 60000);
+    const intervalId = setInterval(() => {
+      calcUnread();
+      calcCounts();
+    }, 30000);
     return () => {
       window.removeEventListener('admin-notif-read-update', onUpdate);
       clearInterval(intervalId);
@@ -195,6 +214,11 @@ export default function AdminSidebar() {
         >
           <span><Users size={18} className="w-[18px] h-[18px] flex items-center justify-center shrink-0" /></span>
           {!collapsed && <span className="font-inter text-sm">Member List</span>}
+          {sidebarCounts.newMembers > 0 && (
+            <span className={`ml-auto bg-red-500 text-white p-[1px_6px] rounded-[10px] text-xs font-inter font-bold leading-none min-w-[19px] h-[19px] flex items-center justify-center shrink-0 animate-badgePop ${collapsed ? 'md:absolute md:top-1 md:right-1 md:ml-0 md:text-[9px] md:h-3.5 md:min-w-[14px]' : ''}`}>
+              {sidebarCounts.newMembers > 99 ? '99+' : sidebarCounts.newMembers}
+            </span>
+          )}
         </button>
         <button
           onClick={() => handleNav('/admin/branches')}
@@ -217,6 +241,11 @@ export default function AdminSidebar() {
         >
           <span><CreditCard size={18} className="w-[18px] h-[18px] flex items-center justify-center shrink-0" /></span>
           {!collapsed && <span className="font-inter text-sm">Donations</span>}
+          {sidebarCounts.pendingDonations > 0 && (
+            <span className={`ml-auto bg-red-500 text-white p-[1px_6px] rounded-[10px] text-xs font-inter font-bold leading-none min-w-[19px] h-[19px] flex items-center justify-center shrink-0 animate-badgePop ${collapsed ? 'md:absolute md:top-1 md:right-1 md:ml-0 md:text-[9px] md:h-3.5 md:min-w-[14px]' : ''}`}>
+              {sidebarCounts.pendingDonations > 99 ? '99+' : sidebarCounts.pendingDonations}
+            </span>
+          )}
         </button>
 
         {/* ── Tools ── */}

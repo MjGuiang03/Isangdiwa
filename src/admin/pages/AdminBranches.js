@@ -152,15 +152,17 @@ function CommunityInfoModal({ branch, onClose, onEdit, totalAllDonations }) {
   const totalShare = sameCommunity + otherCommunities;
 
   const pieData = [
-    { name: 'Within Community', value: sameCommunity, fill: '#1E3A8A' },
+    { name: 'Within Community', value: sameCommunity, fill: '#2563EB' },
     { name: 'Outside Community', value: otherCommunities, fill: '#60A5FA' }
   ];
 
-  // Process Attendance History for Jan-Dec (Current Year)
   const attHistory = branch.attendanceHistory || [];
-  const monthNames = ['Jan', 'Feb', 'Mar', 'Apr', 'May', 'Jun', 'Jul', 'Aug', 'Sep', 'Oct', 'Nov', 'Dec'];
-  const currentYear = new Date().getFullYear();
-  
+  const allMonthNames = ['Jan', 'Feb', 'Mar', 'Apr', 'May', 'Jun', 'Jul', 'Aug', 'Sep', 'Oct', 'Nov', 'Dec'];
+  const now = new Date();
+  const currentYear = now.getFullYear();
+  const monthsCount = Math.max(now.getMonth() + 1, 6);
+  const monthNames = allMonthNames.slice(0, monthsCount);
+
   const barData = monthNames.map((name, index) => {
     const monthNum = index + 1;
     const match = attHistory.find(a => a.month === monthNum && a.year === currentYear);
@@ -170,124 +172,206 @@ function CommunityInfoModal({ branch, onClose, onEdit, totalAllDonations }) {
     };
   });
 
-  const hasAttendanceData = barData.some(d => d.attendance > 0);
-  const hasDonationData = totalShare > 0;
+  const isActive = (branch.members || 0) > 0;
 
   return (
-    <div className="fixed inset-0 bg-black/50 backdrop-blur-sm z-[1000] flex items-center justify-center p-4" onClick={onClose}>
-      <div className="bg-white dark:bg-[#1E2130] rounded-2xl w-full max-w-[900px] shadow-2xl border border-slate-200 dark:border-white/10 flex flex-col md:flex-row max-h-[90vh] overflow-hidden relative" onClick={e => e.stopPropagation()}>
-        <div className="flex items-center gap-4 p-5 border-b border-slate-200 dark:border-white/10 shrink-0 relative">
-           <div className="w-16 h-16 rounded-2xl bg-blue-100 text-blue-600 dark:bg-blue-500/20 dark:text-blue-400 flex items-center justify-center shadow-sm">
-             <MapPin size={20} />
-           </div>
-          <div className="flex flex-col">
-            <h2 className="m-0 font-inter text-lg font-bold text-slate-800 dark:text-white">{branch.name}</h2>
-            <p className="m-0 font-inter text-[13px] text-slate-500 dark:text-slate-400">{branch.province || 'Community Info'}</p>
+    <div className="fixed inset-0 bg-slate-900/60 backdrop-blur-sm z-[1000] flex items-center justify-center p-4 sm:p-6" onClick={onClose}>
+      <div 
+        className="bg-white dark:bg-[#1E2130] rounded-3xl w-full max-w-4xl shadow-2xl border border-slate-200 dark:border-white/10 flex flex-col max-h-[90vh] overflow-hidden" 
+        onClick={e => e.stopPropagation()}
+      >
+        {/* Modal Header */}
+        <div className="px-6 py-4 border-b border-slate-200/80 dark:border-white/10 flex items-center justify-between bg-slate-50/50 dark:bg-black/20 shrink-0">
+          <div className="flex items-center gap-3.5">
+            <div className="w-12 h-12 rounded-2xl bg-blue-600/10 text-blue-600 dark:bg-blue-500/20 dark:text-blue-400 flex items-center justify-center shrink-0 border border-blue-500/20 shadow-xs">
+              <MapPin size={22} strokeWidth={2.2} />
+            </div>
+            <div>
+              <div className="flex items-center gap-2">
+                <h2 className="m-0 font-inter text-xl font-bold text-slate-900 dark:text-white tracking-tight">{branch.name}</h2>
+                <span className={`px-2.5 py-0.5 rounded-full text-[10px] font-extrabold tracking-wider uppercase ${
+                  isActive 
+                    ? 'bg-emerald-500/10 text-emerald-600 dark:text-emerald-400 border border-emerald-500/20' 
+                    : 'bg-slate-100 text-slate-500 dark:bg-white/10 dark:text-slate-400'
+                }`}>
+                  {isActive ? 'Active Community' : 'Idle'}
+                </span>
+              </div>
+              <p className="m-0 font-inter text-xs text-slate-500 dark:text-slate-400 mt-0.5">{branch.province || branch.location || 'Branch Community Overview'}</p>
+            </div>
           </div>
-          <button className="absolute top-5 right-5 w-8 h-8 flex items-center justify-center rounded-lg bg-slate-100 dark:bg-white/5 text-slate-500 hover:bg-slate-200 dark:hover:bg-white/10 transition-colors cursor-pointer border-none" onClick={onClose}><XCircle size={20} color="#6B7280" /></button>
+
+          <div className="flex items-center gap-2">
+            <button 
+              onClick={() => onEdit(branch)} 
+              className="h-9 px-3.5 bg-white dark:bg-[#161922] border border-slate-200 dark:border-white/10 rounded-xl text-xs font-inter font-semibold text-slate-700 dark:text-slate-300 hover:bg-slate-50 dark:hover:bg-white/5 transition-colors cursor-pointer flex items-center gap-2 shadow-xs" 
+              title="Edit Details"
+            >
+              <Edit2 size={14} />
+              <span className="hidden sm:inline">Edit Details</span>
+            </button>
+            <button 
+              className="w-9 h-9 flex items-center justify-center rounded-xl bg-slate-100 dark:bg-white/5 text-slate-400 hover:text-slate-600 dark:hover:text-white transition-colors cursor-pointer border-none" 
+              onClick={onClose}
+            >
+              <XCircle size={20} />
+            </button>
+          </div>
         </div>
 
-        <div className="flex flex-col gap-4 mt-6">
-          <div className="h-[150px] w-full bg-slate-50 dark:bg-black/20 rounded-xl border border-slate-200 dark:border-white/10 p-4 flex items-end gap-2 justify-between">
-            <span className="flex items-center justify-between">Attendance Performance</span>
-            <div className="h-[200px] w-full bg-slate-50 dark:bg-black/20 rounded-xl border border-slate-200 dark:border-white/10 p-4">
-              <ResponsiveContainer width="100%" height="100%">
-                <BarChart data={barData} margin={{ top: 5, right: 0, left: -25, bottom: 0 }}>
-                  <CartesianGrid strokeDasharray="3 3" vertical={false} stroke="#E2E8F0" />
-                  <XAxis dataKey="name" axisLine={false} tickLine={false} tick={{ fontSize: 10, fill: '#64748B' }} />
-                  <YAxis axisLine={false} tickLine={false} tick={{ fontSize: 10, fill: '#64748B' }} allowDecimals={false} />
-                  <Tooltip cursor={{ fill: '#F1F5F9' }} contentStyle={{ fontSize: '12px', borderRadius: '6px', border: 'none', boxShadow: '0 4px 6px -1px rgba(0,0,0,0.1)' }} />
-                  <Bar dataKey="attendance" fill="#155DFC" radius={[4, 4, 0, 0]} maxBarSize={30} name="Attendees">
-                    <LabelList dataKey="attendance" position="top" style={{ fontSize: '9px', fill: '#64748B' }} formatter={(val) => val > 0 ? val : ''} />
-                  </Bar>
-                </BarChart>
-              </ResponsiveContainer>
-            </div>
-          </div>
-        </div>
-
-        <div className="flex flex-col md:flex-row w-full flex-1">
-          
-          {/* Left Column (Charts and Cards) */}
-          <div className="w-full md:w-1/3 bg-slate-50 dark:bg-black/20 border-r border-slate-200 dark:border-white/10 p-6 flex flex-col gap-6 overflow-y-auto custom-scrollbar">
-            {/* Main Stats */}
-            <div className="grid grid-cols-2 gap-4 mb-6">
-              <div className="p-4 rounded-xl border border-slate-200 dark:border-white/10 bg-slate-50 dark:bg-black/20 flex flex-col gap-1">
-                 <span className="font-inter text-[13px] font-semibold text-slate-500 dark:text-slate-400">Total Members</span>
-                 <span className="font-inter text-2xl font-bold text-blue-600 dark:text-blue-400">{branch.members || 0}</span>
+        {/* Modal Scrollable Content */}
+        <div className="p-6 overflow-y-auto custom-scrollbar flex flex-col gap-6 flex-1">
+          {/* Top Quick Stats Row */}
+          <div className="grid grid-cols-1 sm:grid-cols-3 gap-4">
+            <div className="p-4 rounded-2xl border border-slate-200/80 dark:border-white/10 bg-slate-50/60 dark:bg-black/20 flex items-center justify-between">
+              <div>
+                <span className="block font-inter text-xs font-semibold text-slate-500 dark:text-slate-400 uppercase tracking-wider">Total Members</span>
+                <span className="font-inter text-2xl font-extrabold text-slate-900 dark:text-white tracking-tight mt-1 block">
+                  {(branch.members || 0).toLocaleString()}
+                </span>
               </div>
-              <div className="p-4 rounded-xl border border-slate-200 dark:border-white/10 bg-slate-50 dark:bg-black/20 flex flex-col gap-1">
-                 <span className="font-inter text-[13px] font-semibold text-slate-500 dark:text-slate-400">Total Donations</span>
-                 <span className="font-inter text-2xl font-bold text-emerald-600 dark:text-emerald-400">₱{(branch.totalDonations || 0).toLocaleString(undefined, { minimumFractionDigits: 2, maximumFractionDigits: 2 })}</span>
+              <div className="w-10 h-10 rounded-xl bg-blue-500/10 text-blue-600 dark:bg-blue-500/20 dark:text-blue-400 flex items-center justify-center shrink-0">
+                <Users size={20} />
               </div>
             </div>
 
-            {/* Chart */}
-            <div className="h-[200px] w-full bg-slate-50 dark:bg-black/20 rounded-xl border border-slate-200 dark:border-white/10 p-4 mt-2">
-              <span className="font-inter text-sm font-bold text-slate-800 dark:text-white">Donation Share</span>
-              <div className="flex flex-col gap-4 mt-2">
-                <ResponsiveContainer width="100%" height="100%">
-                  <PieChart>
-                    <Pie 
-                      data={totalShare > 0 ? pieData : [{ name: 'No Data', value: 1, fill: '#E2E8F0' }]} 
-                      cx="50%" cy="45%" innerRadius={15} outerRadius={38} paddingAngle={2} dataKey="value" stroke="none"
-                      labelLine={false}
-                      label={totalShare > 0 ? ({ cx, cy, midAngle, innerRadius, outerRadius, percent }) => {
-                        if (percent < 0.05) return null;
-                        const RADIAN = Math.PI / 180;
-                        const radius = innerRadius + (outerRadius - innerRadius) * 0.55;
-                        const x = cx + radius * Math.cos(-midAngle * RADIAN);
-                        const y = cy + radius * Math.sin(-midAngle * RADIAN);
-                        return (
-                          <text x={x} y={y} fill="#fff" textAnchor="middle" dominantBaseline="central" fontSize={8} fontWeight={700}>
-                            {`${(percent * 100).toFixed(0)}%`}
-                          </text>
-                        );
-                      } : false}
-                    >
-                      {(totalShare > 0 ? pieData : [{ name: 'No Data', value: 1, fill: '#E2E8F0' }]).map((entry, index) => (
-                        <Cell key={`cell-${index}`} fill={entry.fill} />
-                      ))}
-                    </Pie>
-                    <Tooltip formatter={(value, name) => totalShare > 0 ? `₱${value.toLocaleString()}` : 'No donations'} />
-                    <Legend 
-                      payload={[
-                        { id: 'within', type: 'circle', value: 'Within Community', color: '#1E3A8A' },
-                        { id: 'outside', type: 'circle', value: 'Outside Community', color: '#60A5FA' }
-                      ]}
-                      verticalAlign="bottom" height={24} wrapperStyle={{ fontSize: '11px', color: '#64748B', marginTop: '10px' }} 
-                    />
-                  </PieChart>
-                </ResponsiveContainer>
+            <div className="p-4 rounded-2xl border border-slate-200/80 dark:border-white/10 bg-slate-50/60 dark:bg-black/20 flex items-center justify-between">
+              <div>
+                <span className="block font-inter text-xs font-semibold text-slate-500 dark:text-slate-400 uppercase tracking-wider">Total Donations</span>
+                <span className="font-inter text-2xl font-extrabold text-emerald-600 dark:text-emerald-400 tracking-tight mt-1 block">
+                  ₱{(branch.totalDonations || 0).toLocaleString(undefined, { minimumFractionDigits: 2, maximumFractionDigits: 2 })}
+                </span>
+              </div>
+              <div className="w-10 h-10 rounded-xl bg-emerald-500/10 text-emerald-600 dark:bg-emerald-500/20 dark:text-emerald-400 flex items-center justify-center shrink-0">
+                <TrendingUp size={20} />
+              </div>
+            </div>
+
+            <div className="p-4 rounded-2xl border border-slate-200/80 dark:border-white/10 bg-slate-50/60 dark:bg-black/20 flex items-center justify-between">
+              <div>
+                <span className="block font-inter text-xs font-semibold text-slate-500 dark:text-slate-400 uppercase tracking-wider">Lead Pastor</span>
+                <span className="font-inter text-sm font-bold text-slate-800 dark:text-white truncate mt-1 block max-w-[170px]">
+                  {branch.pastor || 'Not assigned'}
+                </span>
+              </div>
+              <div className="w-10 h-10 rounded-xl bg-purple-500/10 text-purple-600 dark:bg-purple-500/20 dark:text-purple-400 flex items-center justify-center shrink-0">
+                <Users size={20} />
               </div>
             </div>
           </div>
 
-          {/* Right Column (Info) */}
-          <div className="w-full md:w-2/3 p-6 flex flex-col overflow-y-auto custom-scrollbar">
-            <div className="flex items-center justify-between mb-6">
-              <span className="m-0 font-inter text-lg font-bold text-slate-800 dark:text-white">Community Details</span>
-              <button onClick={() => onEdit(branch)} className="h-9 px-3 bg-white dark:bg-[#161922] border border-slate-200 dark:border-white/10 rounded-lg text-sm font-inter font-semibold text-slate-700 dark:text-slate-300 hover:bg-slate-50 dark:hover:bg-white/5 transition-colors cursor-pointer flex items-center gap-2" title="Edit Details">
-                <Edit2 size={14} />
-              </button>
+          {/* Details & Charts Grid */}
+          <div className="grid grid-cols-1 lg:grid-cols-12 gap-6">
+            {/* Charts Column (7 cols) */}
+            <div className="lg:col-span-7 flex flex-col gap-6">
+              {/* Attendance Bar Chart */}
+              <div className="bg-slate-50/50 dark:bg-black/20 rounded-2xl border border-slate-200/80 dark:border-white/10 p-5 flex flex-col gap-4">
+                <div className="flex items-center justify-between">
+                  <div className="flex items-center gap-2">
+                    <CalendarDays size={16} className="text-blue-600 dark:text-blue-400" />
+                    <span className="font-inter text-sm font-bold text-slate-800 dark:text-white">Attendance Performance</span>
+                  </div>
+                  <span className="font-inter text-xs text-slate-500 dark:text-slate-400">{currentYear} Monthly</span>
+                </div>
+                <div className="h-[200px] w-full">
+                  <ResponsiveContainer width="100%" height="100%">
+                    <BarChart data={barData} margin={{ top: 15, right: 10, left: -25, bottom: 0 }}>
+                      <CartesianGrid strokeDasharray="3 3" vertical={false} stroke="#E2E8F0" opacity={0.5} />
+                      <XAxis dataKey="name" axisLine={false} tickLine={false} tick={{ fontSize: 11, fill: '#64748B' }} />
+                      <YAxis axisLine={false} tickLine={false} tick={{ fontSize: 11, fill: '#64748B' }} allowDecimals={false} />
+                      <Tooltip cursor={{ fill: '#F1F5F9' }} contentStyle={{ fontSize: '12px', borderRadius: '8px', border: 'none', boxShadow: '0 4px 12px rgba(0,0,0,0.1)' }} />
+                      <Bar dataKey="attendance" fill="#2563EB" radius={[6, 6, 0, 0]} maxBarSize={28} name="Attendees">
+                        <LabelList dataKey="attendance" position="top" style={{ fontSize: '10px', fill: '#64748B', fontWeight: 600 }} formatter={(val) => val > 0 ? val : ''} />
+                      </Bar>
+                    </BarChart>
+                  </ResponsiveContainer>
+                </div>
+              </div>
+
+              {/* Donation Share Chart */}
+              <div className="bg-slate-50/50 dark:bg-black/20 rounded-2xl border border-slate-200/80 dark:border-white/10 p-5 flex flex-col gap-4">
+                <div className="flex items-center justify-between">
+                  <div className="flex items-center gap-2">
+                    <TrendingUp size={16} className="text-emerald-600 dark:text-emerald-400" />
+                    <span className="font-inter text-sm font-bold text-slate-800 dark:text-white">Donation Share</span>
+                  </div>
+                  <span className="font-inter text-xs text-slate-500 dark:text-slate-400">Source Breakdown</span>
+                </div>
+                <div className="h-[180px] w-full flex items-center justify-center">
+                  <ResponsiveContainer width="100%" height="100%">
+                    <PieChart>
+                      <Pie 
+                        data={totalShare > 0 ? pieData : [{ name: 'No Data', value: 1, fill: '#E2E8F0' }]} 
+                        cx="50%" cy="45%" innerRadius={28} outerRadius={55} paddingAngle={3} dataKey="value" stroke="none"
+                        labelLine={false}
+                        label={totalShare > 0 ? ({ cx, cy, midAngle, innerRadius, outerRadius, percent }) => {
+                          if (percent < 0.05) return null;
+                          const RADIAN = Math.PI / 180;
+                          const radius = innerRadius + (outerRadius - innerRadius) * 0.55;
+                          const x = cx + radius * Math.cos(-midAngle * RADIAN);
+                          const y = cy + radius * Math.sin(-midAngle * RADIAN);
+                          return (
+                            <text x={x} y={y} fill="#fff" textAnchor="middle" dominantBaseline="central" fontSize={10} fontWeight={700}>
+                              {`${(percent * 100).toFixed(0)}%`}
+                            </text>
+                          );
+                        } : false}
+                      >
+                        {(totalShare > 0 ? pieData : [{ name: 'No Data', value: 1, fill: '#E2E8F0' }]).map((entry, index) => (
+                          <Cell key={`cell-${index}`} fill={entry.fill} />
+                        ))}
+                      </Pie>
+                      <Tooltip formatter={(value) => totalShare > 0 ? `₱${value.toLocaleString()}` : 'No donations'} />
+                      <Legend 
+                        payload={[
+                          { id: 'within', type: 'circle', value: `Within Community (₱${sameCommunity.toLocaleString()})`, color: '#2563EB' },
+                          { id: 'outside', type: 'circle', value: `Outside Community (₱${otherCommunities.toLocaleString()})`, color: '#60A5FA' }
+                        ]}
+                        verticalAlign="bottom" height={30} wrapperStyle={{ fontSize: '12px', color: '#64748B', marginTop: '10px' }} 
+                      />
+                    </PieChart>
+                  </ResponsiveContainer>
+                </div>
+              </div>
             </div>
-            
-            <div className="flex flex-col gap-3">
-              <div className="flex flex-col gap-1">
-                <span className="font-inter text-xs font-semibold text-slate-500 dark:text-slate-400 uppercase tracking-wide">Lead Pastor</span>
-                <span className="font-inter text-sm font-medium text-slate-800 dark:text-white">{branch.pastor || 'Not assigned'}</span>
-              </div>
-              <div className="flex flex-col gap-1">
-                <span className="font-inter text-xs font-semibold text-slate-500 dark:text-slate-400 uppercase tracking-wide">Address</span>
-                <span className="font-inter text-sm font-medium text-slate-800 dark:text-white">{branch.address || branch.location || 'No address provided'}</span>
-              </div>
-              <div className="flex flex-col gap-1">
-                <span className="font-inter text-xs font-semibold text-slate-500 dark:text-slate-400 uppercase tracking-wide">Status</span>
-                <span className={`inline-flex items-center px-2.5 py-1 rounded-full text-[11px] font-bold tracking-wide uppercase ${branch.members > 0 ? 'bg-emerald-100 text-emerald-700 dark:bg-emerald-500/20 dark:text-emerald-400' : 'bg-slate-100 text-slate-700 dark:bg-white/10 dark:text-slate-300'}`}>{branch.members > 0 ? 'Active Community' : 'Idle'}</span>
+
+            {/* Information Column (5 cols) */}
+            <div className="lg:col-span-5 bg-slate-50/50 dark:bg-black/20 rounded-2xl border border-slate-200/80 dark:border-white/10 p-5 flex flex-col justify-between gap-6">
+              <div>
+                <h3 className="m-0 font-inter text-base font-bold text-slate-800 dark:text-white mb-4">Community Details</h3>
+                
+                <div className="flex flex-col gap-4">
+                  <div className="p-3.5 rounded-xl bg-white dark:bg-[#1E2130] border border-slate-200/60 dark:border-white/5 flex flex-col gap-1">
+                    <span className="font-inter text-[11px] font-bold text-slate-400 dark:text-slate-500 uppercase tracking-wider">Lead Pastor</span>
+                    <span className="font-inter text-sm font-semibold text-slate-800 dark:text-white">{branch.pastor || 'Not assigned'}</span>
+                  </div>
+
+                  <div className="p-3.5 rounded-xl bg-white dark:bg-[#1E2130] border border-slate-200/60 dark:border-white/5 flex flex-col gap-1">
+                    <span className="font-inter text-[11px] font-bold text-slate-400 dark:text-slate-500 uppercase tracking-wider">Full Address</span>
+                    <span className="font-inter text-sm font-semibold text-slate-800 dark:text-white">{branch.address || branch.location || 'No address provided'}</span>
+                  </div>
+
+                  <div className="p-3.5 rounded-xl bg-white dark:bg-[#1E2130] border border-slate-200/60 dark:border-white/5 flex flex-col gap-1">
+                    <span className="font-inter text-[11px] font-bold text-slate-400 dark:text-slate-500 uppercase tracking-wider">Province / Region</span>
+                    <span className="font-inter text-sm font-semibold text-slate-800 dark:text-white">{branch.province || 'CAR'}</span>
+                  </div>
+
+                  <div className="p-3.5 rounded-xl bg-white dark:bg-[#1E2130] border border-slate-200/60 dark:border-white/5 flex flex-col gap-1">
+                    <span className="font-inter text-[11px] font-bold text-slate-400 dark:text-slate-500 uppercase tracking-wider">Status</span>
+                    <div>
+                      <span className={`inline-flex items-center px-2.5 py-1 rounded-full text-xs font-bold tracking-wide uppercase ${
+                        isActive 
+                          ? 'bg-emerald-100 text-emerald-700 dark:bg-emerald-500/20 dark:text-emerald-400' 
+                          : 'bg-slate-100 text-slate-700 dark:bg-white/10 dark:text-slate-300'
+                      }`}>
+                        {isActive ? 'Active Community' : 'Idle'}
+                      </span>
+                    </div>
+                  </div>
+                </div>
               </div>
             </div>
           </div>
-
         </div>
       </div>
     </div>

@@ -1,7 +1,7 @@
 import { useState, useEffect } from 'react';
 import { useAuth } from '../../context/AuthContext';
 import API from '../../utils/api';
-import { CheckCircle, X, ArrowDownRight, ArrowUpLeft, Repeat, History, CreditCard, Smartphone, Building2, Info, UploadCloud, FileCheck2, PiggyBank } from 'lucide-react';
+import { CheckCircle, X, ArrowDownRight, ArrowUpLeft, Repeat, History, CreditCard, Smartphone, Building2, Info, UploadCloud, FileCheck2, PiggyBank, ZoomIn } from 'lucide-react';
 import useSwipeToClose, { DragHandle } from '../hooks/useSwipeToClose';
 
 const fmt = (n) =>
@@ -41,6 +41,7 @@ function DepositModal({ goals, onClose }) {
     const [accountNumber, setAccountNumber] = useState('');
     const [proofFile, setProofFile] = useState(null);
     const [proofBase64, setProofBase64] = useState('');
+    const [previewImage, setPreviewImage] = useState(null);
     const [approvalMethod, setApprovalMethod] = useState('gateway');
     const [loading, setLoading] = useState(false);
     const [error, setError] = useState('');
@@ -273,21 +274,55 @@ function DepositModal({ goals, onClose }) {
                                       </div>
                                     </div>
 
-                                    <label className="mt-4 flex flex-col items-center justify-center p-4 border-2 border-dashed border-slate-300 dark:border-white/10 rounded-xl bg-slate-50 dark:bg-slate-800/40 hover:bg-slate-100 dark:hover:bg-slate-800/70 cursor-pointer transition-all text-center">
-                                      <input type="file" accept="image/*" onChange={handleFileChange} className="hidden" />
-                                      <div className="flex flex-col items-center gap-1">
-                                        <UploadCloud className="text-slate-400 dark:text-slate-300" size={28} />
-                                        <p className="text-xs font-semibold text-slate-700 dark:text-slate-300"><span className="text-blue-600 dark:text-blue-400 hover:underline">Click to upload</span> or drag and drop</p>
-                                        <p className="text-[11px] text-slate-400 m-0">PNG, JPG, JPEG up to 5MB</p>
+                                    {proofFile && proofBase64 ? (
+                                      <div className="mt-4 relative p-3 bg-slate-50 dark:bg-slate-800/80 border border-slate-200 dark:border-white/10 rounded-xl flex flex-col gap-2.5">
+                                        <div className="flex items-center justify-between gap-2">
+                                          <div className="flex items-center gap-2 text-xs font-bold text-slate-700 dark:text-slate-200 truncate pr-2">
+                                            <FileCheck2 size={16} className="text-emerald-500 shrink-0" />
+                                            <span className="truncate">{proofFile.name}</span>
+                                            {proofFile.size && (
+                                              <span className="text-[10px] font-normal text-slate-400 shrink-0">
+                                                ({(proofFile.size / 1024 / 1024).toFixed(2)} MB)
+                                              </span>
+                                            )}
+                                          </div>
+                                          <button
+                                            type="button"
+                                            onClick={() => {
+                                              setProofFile(null);
+                                              setProofBase64('');
+                                            }}
+                                            className="text-slate-400 hover:text-red-500 p-1 rounded-lg hover:bg-slate-200 dark:hover:bg-white/10 transition-colors cursor-pointer border-none bg-transparent flex items-center justify-center shrink-0"
+                                            title="Remove file"
+                                          >
+                                            <X size={16} />
+                                          </button>
+                                        </div>
+
+                                        <div 
+                                          className="relative w-full max-h-48 overflow-hidden rounded-lg border border-slate-200/80 dark:border-white/10 bg-slate-100 dark:bg-black/30 flex items-center justify-center p-2 cursor-pointer group transition-all"
+                                          onClick={() => setPreviewImage({ src: proofBase64, name: proofFile.name })}
+                                          title="Click to expand image"
+                                        >
+                                          <img
+                                            src={proofBase64}
+                                            alt="Proof of Payment Preview"
+                                            className="max-h-44 max-w-full object-contain rounded-md shadow-xs group-hover:scale-[1.02] transition-transform duration-200"
+                                          />
+                                          <div className="absolute inset-0 bg-slate-900/40 opacity-0 group-hover:opacity-100 transition-opacity flex items-center justify-center text-white text-xs font-bold gap-1.5 backdrop-blur-[2px] rounded-lg">
+                                            <ZoomIn size={18} /> Click to enlarge
+                                          </div>
+                                        </div>
                                       </div>
-                                    </label>
-                                    {proofFile && (
-                                      <div className="mt-2 flex items-center gap-2 p-2 bg-emerald-50 dark:bg-emerald-950/40 border border-emerald-200 dark:border-emerald-800/50 rounded-lg text-xs font-semibold text-emerald-600 dark:text-emerald-400">
-                                        <FileCheck2 size={16} />
-                                        <span className="truncate">
-                                          {proofFile.name}
-                                        </span>
-                                      </div>
+                                    ) : (
+                                      <label className="mt-4 flex flex-col items-center justify-center p-4 border-2 border-dashed border-slate-300 dark:border-white/10 rounded-xl bg-slate-50 dark:bg-slate-800/40 hover:bg-slate-100 dark:hover:bg-slate-800/70 cursor-pointer transition-all text-center">
+                                        <input type="file" accept="image/*" onChange={handleFileChange} className="hidden" />
+                                        <div className="flex flex-col items-center gap-1">
+                                          <UploadCloud className="text-slate-400 dark:text-slate-300" size={28} />
+                                          <p className="text-xs font-semibold text-slate-700 dark:text-slate-300"><span className="text-blue-600 dark:text-blue-400 hover:underline">Click to upload</span> or drag and drop</p>
+                                          <p className="text-[11px] text-slate-400 m-0">PNG, JPG, JPEG up to 5MB</p>
+                                        </div>
+                                      </label>
                                     )}
                                 </div>
                             ) : (
@@ -333,6 +368,41 @@ function DepositModal({ goals, onClose }) {
                         {loading ? <span className="btn-spinner" /> : 'Confirm deposit'}
                     </button>
                 </div>
+
+                {previewImage && (
+                    <div 
+                        className="fixed inset-0 z-50 bg-slate-950/80 backdrop-blur-sm flex items-center justify-center p-4"
+                        onClick={() => setPreviewImage(null)}
+                    >
+                        <div 
+                            className="relative max-w-3xl w-full bg-white dark:bg-[#1E2130] rounded-2xl p-4 shadow-2xl flex flex-col gap-3 overflow-hidden border border-slate-200 dark:border-white/10"
+                            onClick={(e) => e.stopPropagation()}
+                        >
+                            <div className="flex items-center justify-between pb-2 border-b border-slate-100 dark:border-white/10">
+                                <div className="flex items-center gap-2 min-w-0 pr-4">
+                                    <FileCheck2 size={18} className="text-emerald-500 shrink-0" />
+                                    <h3 className="text-sm font-bold text-slate-800 dark:text-white truncate font-inter">
+                                        {previewImage.name || 'Receipt Image Preview'}
+                                    </h3>
+                                </div>
+                                <button
+                                    type="button"
+                                    onClick={() => setPreviewImage(null)}
+                                    className="text-slate-400 hover:text-slate-700 dark:hover:text-white p-1 rounded-lg hover:bg-slate-100 dark:hover:bg-white/10 transition-colors cursor-pointer border-none bg-transparent flex items-center justify-center"
+                                >
+                                    <X size={18} />
+                                </button>
+                            </div>
+                            <div className="max-h-[70vh] overflow-auto flex items-center justify-center bg-slate-100 dark:bg-black/40 rounded-xl p-3 border border-slate-200/60 dark:border-white/5">
+                                <img
+                                    src={previewImage.src}
+                                    alt={previewImage.name || 'Receipt'}
+                                    className="max-h-[65vh] w-auto max-w-full object-contain rounded-lg shadow-md"
+                                />
+                            </div>
+                        </div>
+                    </div>
+                )}
             </div>
         </div>
     );
@@ -488,6 +558,7 @@ function QuickDepositModal({ goal, goals, onClose }) {
     const [accountNumber, setAccountNumber] = useState('');
     const [proofFile, setProofFile] = useState(null);
     const [proofBase64, setProofBase64] = useState('');
+    const [previewImage, setPreviewImage] = useState(null);
     const [approvalMethod, setApprovalMethod] = useState('gateway');
     const [loading, setLoading] = useState(false);
     const [error, setError] = useState('');
@@ -718,20 +789,49 @@ function QuickDepositModal({ goal, goals, onClose }) {
                                               </div>
                                             </div>
 
-                                            <label className="mt-4 p-3 flex flex-col items-center justify-center border-2 border-dashed border-slate-300 dark:border-white/10 rounded-xl bg-slate-50 dark:bg-slate-800/40 hover:bg-slate-100 dark:hover:bg-slate-800/70 cursor-pointer transition-all text-center">
-                                              <input type="file" accept="image/*" onChange={handleFileChange} className="hidden" />
-                                              <div className="flex flex-col items-center gap-1">
-                                                <UploadCloud className="text-slate-400 dark:text-slate-300" size={24} />
-                                                <p className="text-xs font-semibold text-slate-700 dark:text-slate-300"><span className="text-blue-600 dark:text-blue-400 hover:underline">Upload Receipt</span></p>
+                                            {proofFile && proofBase64 ? (
+                                              <div className="mt-4 relative p-3 bg-slate-50 dark:bg-slate-800/80 border border-slate-200 dark:border-white/10 rounded-xl flex flex-col gap-2">
+                                                <div className="flex items-center justify-between gap-2">
+                                                  <div className="flex items-center gap-2 text-xs font-bold text-slate-700 dark:text-slate-200 truncate pr-2">
+                                                    <FileCheck2 size={14} className="text-emerald-500 shrink-0" />
+                                                    <span className="truncate">{proofFile.name}</span>
+                                                  </div>
+                                                  <button
+                                                    type="button"
+                                                    onClick={() => {
+                                                      setProofFile(null);
+                                                      setProofBase64('');
+                                                    }}
+                                                    className="text-slate-400 hover:text-red-500 p-1 rounded-lg hover:bg-slate-200 dark:hover:bg-white/10 transition-colors cursor-pointer border-none bg-transparent flex items-center justify-center shrink-0"
+                                                    title="Remove file"
+                                                  >
+                                                    <X size={14} />
+                                                  </button>
+                                                </div>
+
+                                                <div 
+                                                  className="relative w-full max-h-40 overflow-hidden rounded-lg border border-slate-200/80 dark:border-white/10 bg-slate-100 dark:bg-black/30 flex items-center justify-center p-2 cursor-pointer group transition-all"
+                                                  onClick={() => setPreviewImage({ src: proofBase64, name: proofFile.name })}
+                                                  title="Click to expand image"
+                                                >
+                                                  <img
+                                                    src={proofBase64}
+                                                    alt="Proof of Payment Preview"
+                                                    className="max-h-36 max-w-full object-contain rounded-md shadow-xs group-hover:scale-[1.02] transition-transform duration-200"
+                                                  />
+                                                  <div className="absolute inset-0 bg-slate-900/40 opacity-0 group-hover:opacity-100 transition-opacity flex items-center justify-center text-white text-xs font-bold gap-1.5 backdrop-blur-[2px] rounded-lg">
+                                                    <ZoomIn size={16} /> Click to enlarge
+                                                  </div>
+                                                </div>
                                               </div>
-                                            </label>
-                                            {proofFile && (
-                                              <div className="mt-2 p-2 flex items-center gap-2 bg-emerald-50 dark:bg-emerald-950/40 border border-emerald-200 dark:border-emerald-800/50 rounded-lg text-xs font-semibold text-emerald-600 dark:text-emerald-400">
-                                                <FileCheck2 size={14} />
-                                                <span className="truncate">
-                                                  {proofFile.name}
-                                                </span>
-                                              </div>
+                                            ) : (
+                                              <label className="mt-4 p-3 flex flex-col items-center justify-center border-2 border-dashed border-slate-300 dark:border-white/10 rounded-xl bg-slate-50 dark:bg-slate-800/40 hover:bg-slate-100 dark:hover:bg-slate-800/70 cursor-pointer transition-all text-center">
+                                                <input type="file" accept="image/*" onChange={handleFileChange} className="hidden" />
+                                                <div className="flex flex-col items-center gap-1">
+                                                  <UploadCloud className="text-slate-400 dark:text-slate-300" size={24} />
+                                                  <p className="text-xs font-semibold text-slate-700 dark:text-slate-300"><span className="text-blue-600 dark:text-blue-400 hover:underline">Upload Receipt</span></p>
+                                                </div>
+                                              </label>
                                             )}
                                         </div>
                                     ) : (
@@ -760,6 +860,41 @@ function QuickDepositModal({ goal, goals, onClose }) {
                         <button className="svm-btn-submit" onClick={handleSubmit} disabled={loading} style={{ opacity: (!isFormComplete || loading) ? 0.6 : 1, cursor: (!isFormComplete || loading) ? 'not-allowed' : 'pointer' }}>
                             {loading ? <span className="btn-spinner" /> : `Deposit ${numAmt > 0 ? fmt(numAmt) : ''}`}
                         </button>
+                    </div>
+                )}
+
+                {previewImage && (
+                    <div 
+                        className="fixed inset-0 z-50 bg-slate-950/80 backdrop-blur-sm flex items-center justify-center p-4"
+                        onClick={() => setPreviewImage(null)}
+                    >
+                        <div 
+                            className="relative max-w-3xl w-full bg-white dark:bg-[#1E2130] rounded-2xl p-4 shadow-2xl flex flex-col gap-3 overflow-hidden border border-slate-200 dark:border-white/10"
+                            onClick={(e) => e.stopPropagation()}
+                        >
+                            <div className="flex items-center justify-between pb-2 border-b border-slate-100 dark:border-white/10">
+                                <div className="flex items-center gap-2 min-w-0 pr-4">
+                                    <FileCheck2 size={18} className="text-emerald-500 shrink-0" />
+                                    <h3 className="text-sm font-bold text-slate-800 dark:text-white truncate font-inter">
+                                        {previewImage.name || 'Receipt Image Preview'}
+                                    </h3>
+                                </div>
+                                <button
+                                    type="button"
+                                    onClick={() => setPreviewImage(null)}
+                                    className="text-slate-400 hover:text-slate-700 dark:hover:text-white p-1 rounded-lg hover:bg-slate-100 dark:hover:bg-white/10 transition-colors cursor-pointer border-none bg-transparent flex items-center justify-center"
+                                >
+                                    <X size={18} />
+                                </button>
+                            </div>
+                            <div className="max-h-[70vh] overflow-auto flex items-center justify-center bg-slate-100 dark:bg-black/40 rounded-xl p-3 border border-slate-200/60 dark:border-white/5">
+                                <img
+                                    src={previewImage.src}
+                                    alt={previewImage.name || 'Receipt'}
+                                    className="max-h-[65vh] w-auto max-w-full object-contain rounded-lg shadow-md"
+                                />
+                            </div>
+                        </div>
                     </div>
                 )}
             </div>

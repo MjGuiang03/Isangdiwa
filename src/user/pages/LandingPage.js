@@ -120,7 +120,6 @@ export default function LandingPage() {
             <div className="hidden md:flex items-center gap-8 text-sm font-medium">
               <a href="#features" onClick={(e) => scrollToSection(e, 'features')} className="no-underline text-white/80 hover:text-[#F5C800] transition-all duration-300 transform hover:scale-105">Features</a>
               <a href="#gallery" onClick={(e) => scrollToSection(e, 'gallery')} className="no-underline text-white/80 hover:text-[#F5C800] transition-all duration-300 transform hover:scale-105">Events</a>
-              <a href="#gallery" onClick={(e) => scrollToSection(e, 'gallery')} className="no-underline text-white/80 hover:text-[#F5C800] transition-all duration-300 transform hover:scale-105">Community</a>
             </div>
 
             <div className="flex items-center gap-3">
@@ -369,9 +368,9 @@ export default function LandingPage() {
           </div>
 
           {/* Bento Grid */}
-          <div className="grid grid-cols-1 md:grid-cols-3 gap-6">
+          <div className="grid grid-cols-1 md:grid-cols-3">
             
-            <div className="md:col-span-2 relative group rounded-3xl overflow-hidden min-h-[340px] bg-slate-800 border border-white/10">
+            <div className="md:col-span-2 relative group overflow-hidden min-h-[340px] bg-slate-800">
               <img src={puacCongregation} alt="PUAC Congregation" className="w-full h-full object-cover group-hover:scale-105 transition-transform duration-700 opacity-80" />
               <div className="absolute inset-0 bg-gradient-to-t from-black/90 via-black/30 to-transparent p-8 flex flex-col justify-end">
                 <span className="text-xs font-bold uppercase tracking-wider text-[#F5C800]">Main Assembly</span>
@@ -379,7 +378,7 @@ export default function LandingPage() {
               </div>
             </div>
 
-            <div className="relative group rounded-3xl overflow-hidden min-h-[340px] bg-slate-800 border border-white/10">
+            <div className="relative group overflow-hidden min-h-[340px] bg-slate-800">
               <img src={bentoImg1} alt="Sunday Worship" className="w-full h-full object-cover group-hover:scale-105 transition-transform duration-700 opacity-80" />
               <div className="absolute inset-0 bg-gradient-to-t from-black/90 via-black/30 to-transparent p-6 flex flex-col justify-end">
                 <span className="text-xs font-bold uppercase tracking-wider text-[#F5C800]">Worship Service</span>
@@ -387,7 +386,7 @@ export default function LandingPage() {
               </div>
             </div>
 
-            <div className="relative group rounded-3xl overflow-hidden min-h-[280px] bg-slate-800 border border-white/10">
+            <div className="relative group overflow-hidden min-h-[280px] bg-slate-800">
               <img src={missionImg} alt="Outreach Mission" className="w-full h-full object-cover group-hover:scale-105 transition-transform duration-700 opacity-80" />
               <div className="absolute inset-0 bg-gradient-to-t from-black/90 via-black/30 to-transparent p-6 flex flex-col justify-end">
                 <span className="text-xs font-bold uppercase tracking-wider text-[#F5C800]">Community Outreach</span>
@@ -395,7 +394,7 @@ export default function LandingPage() {
               </div>
             </div>
 
-            <div className="relative group rounded-3xl overflow-hidden min-h-[280px] bg-slate-800 border border-white/10">
+            <div className="relative group overflow-hidden min-h-[280px] bg-slate-800">
               <img src={summerYouthCamp} alt="Summer Youth Camp" className="w-full h-full object-cover group-hover:scale-105 transition-transform duration-700 opacity-80" />
               <div className="absolute inset-0 bg-gradient-to-t from-black/90 via-black/30 to-transparent p-6 flex flex-col justify-end">
                 <span className="text-xs font-bold uppercase tracking-wider text-[#F5C800]">Youth Ministry</span>
@@ -403,7 +402,7 @@ export default function LandingPage() {
               </div>
             </div>
 
-            <div className="relative group rounded-3xl overflow-hidden min-h-[280px] bg-slate-800 border border-white/10">
+            <div className="relative group overflow-hidden min-h-[280px] bg-slate-800">
               <img src={bentoImg2} alt="Water Baptism" className="w-full h-full object-cover group-hover:scale-105 transition-transform duration-700 opacity-80" />
               <div className="absolute inset-0 bg-gradient-to-t from-black/90 via-black/30 to-transparent p-6 flex flex-col justify-end">
                 <span className="text-xs font-bold uppercase tracking-wider text-[#F5C800]">Sacraments</span>

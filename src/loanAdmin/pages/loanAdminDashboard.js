@@ -178,17 +178,21 @@ export default function LoanAdminDashboard() {
       setTotalSavings(savingsData.totalSavings || 0);
       setCommunitySavings(savingsData.communitySavings || []);
       setSavingsSummary(savingsData.savingsSummary || {});
+      const now = new Date();
+      const monthsCount = currentYear === now.getFullYear() ? Math.max(now.getMonth() + 1, 6) : 12;
+
       // Use pre-aggregated monthlyTrend from server if available
       if (savingsData.monthlyTrend && savingsData.monthlyTrend.length > 0) {
-        setSavingsMonthly(savingsData.monthlyTrend);
+        setSavingsMonthly(savingsData.monthlyTrend.slice(0, monthsCount));
       } else {
         // Fallback: process raw transactions (backward compatibility)
-        const months = ['Jan','Feb','Mar','Apr','May','Jun','Jul','Aug','Sep','Oct','Nov','Dec'];
+        const allMonths = ['Jan','Feb','Mar','Apr','May','Jun','Jul','Aug','Sep','Oct','Nov','Dec'];
+        const months = allMonths.slice(0, monthsCount);
         const monthlyTrend = months.map(m => ({ month: m, savings: 0 }));
         if (savingsData.transactions) {
           savingsData.transactions.forEach(t => {
             const d = new Date(t.date || t.createdAt);
-            if (d.getFullYear() === currentYear) {
+            if (d.getFullYear() === currentYear && monthlyTrend[d.getMonth()]) {
               monthlyTrend[d.getMonth()].savings += Number(t.amount) || 0;
             }
           });
@@ -588,7 +592,7 @@ export default function LoanAdminDashboard() {
                     <div key={i} className="flex items-start gap-2.5">
                       <span className="w-2.5 h-2.5 rounded-full mt-1 shrink-0" style={{ background: CHART_COLORS[i % CHART_COLORS.length] }} />
                       <div className="flex-1">
-                        <div className="text-[13px] font-semibold text-slate-800 dark:text-white font-inter leading-tight">{d.count} loans · ₱{d.amount >= 1000 ? (d.amount / 1000).toFixed(1).replace(/\.0$/, '') + 'k' : d.amount.toLocaleString()}</div>
+                        <div className="text-[13px] font-semibold text-slate-800 dark:text-white font-inter leading-tight">{d.count} loans · ₱{d.amount >= 1000000 ? (d.amount / 1000000).toFixed(2).replace(/\.00$/, '').replace(/(\.\d)0$/, '$1') + 'M' : d.amount >= 1000 ? (d.amount / 1000).toFixed(1).replace(/\.0$/, '') + 'k' : d.amount.toLocaleString()}</div>
                         <div className="text-[11px] text-slate-500 dark:text-slate-400 font-inter mt-0.5">{d.label}</div>
                       </div>
                     </div>
@@ -773,32 +777,39 @@ export default function LoanAdminDashboard() {
         </div>
 
         {/* Row 5 — Recent Loan Applications */}
-        <div className="bg-white dark:bg-[#1E2130] rounded-2xl p-6 border border-slate-100 dark:border-white/5 shadow-[0_2px_12px_-4px_rgba(0,0,0,0.04)]">
-          <div className="flex items-start justify-between mb-6">
-            <h3 className="text-base font-bold text-slate-800 dark:text-white font-inter tracking-tight m-0">Recent Loan Applications</h3>
-            <button className="text-[13px] font-semibold text-blue-600 dark:text-blue-400 bg-transparent border-none cursor-pointer hover:underline p-0" onClick={() => navigate('/loan-admin/loan-management')}>View All</button>
+        <div className="bg-white dark:bg-[#1E2130] rounded-2xl p-5 border border-slate-100 dark:border-white/5 shadow-[0_2px_12px_-4px_rgba(0,0,0,0.04)]">
+          <div className="flex items-center justify-between mb-3.5">
+            <div className="flex items-center gap-2">
+              <h3 className="text-sm font-bold text-slate-800 dark:text-white font-inter tracking-tight m-0">Recent Loan Applications</h3>
+              <span className="text-[10px] font-semibold text-slate-400 dark:text-slate-500 bg-slate-100 dark:bg-white/5 px-2 py-0.5 rounded-md">
+                5 max
+              </span>
+            </div>
+            <button className="text-xs font-semibold text-blue-600 dark:text-blue-400 bg-transparent border-none cursor-pointer hover:underline p-0" onClick={() => navigate('/loan-admin/loan-management')}>View All</button>
           </div>
-          <div className="flex flex-col gap-3 mt-4">
+          <div className="flex flex-col gap-2">
             {recentLoans.length === 0 ? (
-              <p className="text-center text-slate-400 dark:text-slate-500 text-[13px] font-inter py-6">No recent loan applications.</p>
+              <p className="text-center text-slate-400 dark:text-slate-500 text-xs font-inter py-4 m-0">No recent loan applications.</p>
             ) : (
-              recentLoans.map(loan => (
-                <div className="flex items-center justify-between p-4 bg-slate-50 dark:bg-[#252836] rounded-xl border border-slate-100 dark:border-white/5 hover:bg-slate-100 dark:hover:bg-white/10 transition-colors" key={loan._id}>
-                  <div className="flex items-center gap-3">
-                    <div className="w-10 h-10 rounded-lg flex items-center justify-center shrink-0" style={{ background: loan.status === 'pending' ? '#FEF3C7' : '#EFF6FF' }}>
-                      <Banknote size={18} />
+              recentLoans.slice(0, 5).map(loan => (
+                <div className="flex items-center justify-between p-2.5 sm:px-3.5 sm:py-2 bg-slate-50 dark:bg-[#252836] rounded-xl border border-slate-100 dark:border-white/5 hover:bg-slate-100 dark:hover:bg-white/10 transition-colors" key={loan._id}>
+                  <div className="flex items-center gap-2.5">
+                    <div className="w-8 h-8 rounded-lg flex items-center justify-center shrink-0" style={{ background: loan.status === 'pending' ? '#FEF3C7' : '#EFF6FF' }}>
+                      <Banknote size={15} className={loan.status === 'pending' ? 'text-amber-600' : 'text-blue-600'} />
                     </div>
                     <div className="flex flex-col">
-                      <p className="text-sm font-bold text-slate-800 dark:text-white font-inter m-0">{loan.memberName}</p>
-                      <p className="text-[11px] text-slate-500 dark:text-slate-400 font-inter m-0">{loan.loanId}</p>
-                      <p className="text-[11px] text-slate-400 font-inter mt-0.5 m-0">Applied: {fmtDate(loan.appliedDate)}</p>
+                      <div className="flex items-center gap-2">
+                        <span className="text-xs font-bold text-slate-800 dark:text-white font-inter leading-tight">{loan.memberName}</span>
+                        <span className="text-[10px] font-medium text-slate-400 dark:text-slate-500">· {loan.loanId}</span>
+                      </div>
+                      <span className="text-[10px] text-slate-400 dark:text-slate-500 font-inter mt-0.5">Applied: {fmtDate(loan.appliedDate)}</span>
                     </div>
                   </div>
-                  <div className="flex flex-col items-end gap-1">
-                    <p className="text-sm font-bold text-slate-800 dark:text-white font-inter m-0">{fmt(loan.amount)}</p>
-                    <p className={`text-sm font-semibold ${loan.status === 'pending' ? 'text-amber-500' : 'text-blue-600 dark:text-blue-400'}`}>
-                      {loan.status.charAt(0).toUpperCase() + loan.status.slice(1)}
-                    </p>
+                  <div className="flex items-center gap-3">
+                    <span className="text-xs font-black text-slate-800 dark:text-white font-inter">{fmt(loan.amount)}</span>
+                    <span className={`px-2 py-0.5 rounded-md text-[10px] font-bold capitalize ${loan.status === 'pending' ? 'bg-amber-100 dark:bg-amber-950/60 text-amber-700 dark:text-amber-300' : 'bg-blue-100 dark:bg-blue-950/60 text-blue-700 dark:text-blue-300'}`}>
+                      {loan.status}
+                    </span>
                   </div>
                 </div>
               ))

@@ -55,7 +55,14 @@ export default function LoanAdminDelinquency() {
   }, [loadingLoans, loansData]);
 
   const flagged = loans.map(l => {
-    const daysLate = getDaysLate(l.nextDueDate || l.approvedDate);
+    let dueDate = l.nextDueDate;
+    if (!dueDate) {
+      // No nextDueDate set — calculate first due date as 1 month after disbursement/approval
+      const baseDate = new Date(l.disbursementDate || l.approvedDate);
+      baseDate.setMonth(baseDate.getMonth() + 1);
+      dueDate = baseDate;
+    }
+    const daysLate = getDaysLate(dueDate);
     if (daysLate < 1) return null;
     const info = getDelinquencyInfo(daysLate);
     return { ...l, daysLate, delinquency: info };
@@ -172,53 +179,78 @@ export default function LoanAdminDelinquency() {
           </div>
         </div>
 
-        {/* Flagged Accounts */}
-        <h3 className="font-inter text-[13px] font-semibold text-slate-700 dark:text-slate-300 m-0">Flagged Accounts</h3>
+        {/* Flagged Accounts Card */}
+        <div className="bg-white dark:bg-[#1E2130] border border-slate-200 dark:border-white/10 rounded-xl overflow-hidden shadow-sm mt-6">
+          <div className="flex flex-wrap items-center justify-between gap-3 p-4 border-b border-slate-200 dark:border-white/10 bg-white dark:bg-[#1E2130]">
+            <div className="flex items-center gap-2">
+              <h3 className="font-inter text-sm font-bold text-slate-800 dark:text-white m-0">Flagged Accounts</h3>
+              <span className="inline-flex items-center px-2.5 py-0.5 rounded-full text-xs font-bold bg-amber-100 dark:bg-amber-950/60 text-amber-700 dark:text-amber-300">
+                {filtered.length} flagged
+              </span>
+            </div>
+            <div className="relative max-w-[320px] w-full flex items-center">
+              <Search size={16} className="absolute left-3 top-1/2 -translate-y-1/2 text-slate-400 pointer-events-none z-10" />
+              <input 
+                type="text" 
+                placeholder="Search flagged accounts..." 
+                value={searchQuery} 
+                onChange={(e) => setSearchQuery(e.target.value)} 
+                className="w-full h-9 pl-9 pr-3 bg-slate-50 dark:bg-[#161922] border border-slate-200 dark:border-white/10 rounded-lg text-xs font-inter text-slate-800 dark:text-white placeholder:text-slate-400 focus:outline-none focus:border-blue-500 transition-colors shadow-xs"
+              />
+            </div>
+          </div>
 
-        <div className="relative w-full max-w-[400px]">
-          <Search size={20} color="#9CA3AF" />
-          <input type="text" placeholder="Search flagged accounts..." value={searchQuery} onChange={(e) => setSearchQuery(e.target.value)} />
-        </div>
+          <div className="overflow-x-auto">
+            <table className="w-full text-left border-collapse min-w-[700px]">
+              <thead>
+                <tr>
+                  <th className="bg-slate-50 dark:bg-black/20 border-b border-slate-200 dark:border-white/10 px-4 py-3 font-inter font-semibold text-[11px] tracking-wider uppercase text-slate-500 dark:text-slate-400">Loan ID</th>
+                  <th className="bg-slate-50 dark:bg-black/20 border-b border-slate-200 dark:border-white/10 px-4 py-3 font-inter font-semibold text-[11px] tracking-wider uppercase text-slate-500 dark:text-slate-400">Member</th>
+                  <th className="bg-slate-50 dark:bg-black/20 border-b border-slate-200 dark:border-white/10 px-4 py-3 font-inter font-semibold text-[11px] tracking-wider uppercase text-slate-500 dark:text-slate-400">Amount</th>
+                  <th className="bg-slate-50 dark:bg-black/20 border-b border-slate-200 dark:border-white/10 px-4 py-3 font-inter font-semibold text-[11px] tracking-wider uppercase text-slate-500 dark:text-slate-400">Days Late</th>
+                  <th className="bg-slate-50 dark:bg-black/20 border-b border-slate-200 dark:border-white/10 px-4 py-3 font-inter font-semibold text-[11px] tracking-wider uppercase text-slate-500 dark:text-slate-400">Status</th>
+                  <th className="bg-slate-50 dark:bg-black/20 border-b border-slate-200 dark:border-white/10 px-4 py-3 font-inter font-semibold text-[11px] tracking-wider uppercase text-slate-500 dark:text-slate-400">Flag</th>
+                </tr>
+              </thead>
+              <tbody>
+                {loading ? (
+                  <tr><td colSpan={6} className="text-center p-8 text-slate-400">Loading...</td></tr>
+                ) : filtered.length === 0 ? (
+                  <tr><td colSpan={6} className="text-center p-8 text-slate-400 font-inter text-xs">No flagged accounts found</td></tr>
+                ) : (
+                  filtered.map(loan => (
+                    <tr key={loan._id} className="border-b border-slate-100 dark:border-white/5 hover:bg-slate-50 dark:hover:bg-white/5 transition-colors">
+                      <td className="px-4 py-3 font-inter text-xs font-semibold text-blue-600 dark:text-blue-400 whitespace-nowrap">{loan.loanId}</td>
+                      <td className="px-4 py-3 whitespace-nowrap font-inter text-xs text-slate-700 dark:text-slate-300">
+                        <div className="flex flex-col">
+                          <p className="font-inter text-xs font-semibold text-slate-800 dark:text-white m-0">{loan.memberName}</p>
+                          <p className="font-inter text-[10.5px] text-slate-500 dark:text-slate-400 m-0 mt-0.5">{loan.email}</p>
+                        </div>
+                      </td>
+                      <td className="px-4 py-3 whitespace-nowrap font-inter text-xs font-bold text-slate-800 dark:text-white">{fmt(loan.amount)}</td>
+                      <td className="px-4 py-3 whitespace-nowrap font-inter text-xs font-bold text-rose-600 dark:text-rose-400">{loan.daysLate} days</td>
+                      <td className="px-4 py-3 whitespace-nowrap font-inter text-xs">
+                        <span className={`inline-block px-2.5 py-1 rounded-md text-[10.5px] font-bold tracking-wide uppercase ${loan.delinquency.cls === 'reminder' ? 'bg-amber-100 text-amber-700 dark:bg-amber-500/20 dark:text-amber-400' : loan.delinquency.cls === 'delinquent' ? 'bg-orange-100 text-orange-700 dark:bg-orange-500/20 dark:text-orange-400' : loan.delinquency.cls === 'high-risk' ? 'bg-rose-100 text-rose-700 dark:bg-rose-500/20 dark:text-rose-400' : 'bg-red-900 text-white dark:bg-red-900 dark:text-red-100'}`}>
+                          {loan.delinquency.status}
+                        </span>
+                      </td>
+                      <td className="px-4 py-3 whitespace-nowrap font-inter text-xs">
+                        {loan.delinquency.flag && (
+                          <span className={`inline-block px-2 py-0.5 rounded text-[10px] font-bold uppercase tracking-wider ${loan.delinquency.cls === 'high-risk' ? 'bg-rose-100 text-rose-700 dark:bg-rose-500/20 dark:text-rose-400' : 'bg-red-900 text-white'}`}>
+                            {loan.delinquency.flag}
+                          </span>
+                        )}
+                      </td>
+                    </tr>
+                  ))
+                )}
+              </tbody>
+            </table>
+          </div>
 
-        <div className="bg-white dark:bg-[#1E2130] border border-slate-200 dark:border-white/10 rounded-xl overflow-x-auto shadow-sm">
-          <table className="w-full text-left border-collapse min-w-[700px] text-[13px]">
-            <thead>
-              <tr>
-                <th className="bg-slate-50 dark:bg-black/20 border-b border-slate-200 dark:border-white/10 px-4 py-3 font-inter font-semibold text-[11px] tracking-wider uppercase text-slate-500 dark:text-slate-400">Loan ID</th>
-                <th className="bg-slate-50 dark:bg-black/20 border-b border-slate-200 dark:border-white/10 px-4 py-3 font-inter font-semibold text-[11px] tracking-wider uppercase text-slate-500 dark:text-slate-400">Member</th>
-                <th className="bg-slate-50 dark:bg-black/20 border-b border-slate-200 dark:border-white/10 px-4 py-3 font-inter font-semibold text-[11px] tracking-wider uppercase text-slate-500 dark:text-slate-400">Amount</th>
-                <th className="bg-slate-50 dark:bg-black/20 border-b border-slate-200 dark:border-white/10 px-4 py-3 font-inter font-semibold text-[11px] tracking-wider uppercase text-slate-500 dark:text-slate-400">Days Late</th>
-                <th className="bg-slate-50 dark:bg-black/20 border-b border-slate-200 dark:border-white/10 px-4 py-3 font-inter font-semibold text-[11px] tracking-wider uppercase text-slate-500 dark:text-slate-400">Status</th>
-                <th className="bg-slate-50 dark:bg-black/20 border-b border-slate-200 dark:border-white/10 px-4 py-3 font-inter font-semibold text-[11px] tracking-wider uppercase text-slate-500 dark:text-slate-400">Flag</th>
-              </tr>
-            </thead>
-            <tbody>
-              {loading ? (
-                <tr><td colSpan={6} style={{ textAlign: 'center', padding: '40px', color: '#9CA3AF' }}>Loading...</td></tr>
-              ) : filtered.length === 0 ? (
-                <tr><td colSpan={6} style={{ textAlign: 'center', padding: '40px', color: '#9CA3AF' }}>No flagged accounts</td></tr>
-              ) : (
-                filtered.map(loan => (
-                  <tr key={loan._id}>
-                    <td className="px-4 py-3 font-inter text-sm font-semibold text-blue-600 dark:text-blue-400 whitespace-nowrap">{loan.loanId}</td>
-                    <td className="px-4 py-3 whitespace-nowrap font-inter text-[13px] text-slate-700 dark:text-slate-300">
-                      <div className="flex flex-col">
-                        <p className="font-inter text-sm font-semibold text-slate-800 dark:text-white m-0">{loan.memberName}</p>
-                        <p className="font-inter text-[11px] text-slate-500 dark:text-slate-400 m-0 mt-0.5">{loan.email}</p>
-                      </div>
-                    </td>
-                    <td className="px-4 py-3 whitespace-nowrap font-inter text-sm font-bold text-slate-800 dark:text-white">{fmt(loan.amount)}</td>
-                    <td style={{ fontWeight: 600, color: '#DC2626' }}>{loan.daysLate} days</td>
-                    <td className="px-4 py-3 whitespace-nowrap font-inter text-[13px] text-slate-700 dark:text-slate-300"><span className={`inline-block px-2.5 py-1 rounded-md text-[11px] font-bold tracking-wide uppercase ${loan.delinquency.cls === 'reminder' ? 'bg-amber-100 text-amber-700 dark:bg-amber-500/20 dark:text-amber-400' : loan.delinquency.cls === 'delinquent' ? 'bg-orange-100 text-orange-700 dark:bg-orange-500/20 dark:text-orange-400' : loan.delinquency.cls === 'high-risk' ? 'bg-rose-100 text-rose-700 dark:bg-rose-500/20 dark:text-rose-400' : 'bg-red-900 text-white dark:bg-red-900 dark:text-red-100'}`}>{loan.delinquency.status}</span></td>
-                    <td className="px-4 py-3 whitespace-nowrap font-inter text-[13px] text-slate-700 dark:text-slate-300">{loan.delinquency.flag && <span className={`inline-block px-2 py-0.5 rounded text-[10px] font-bold uppercase tracking-wider ${loan.delinquency.cls === 'high-risk' ? 'bg-rose-100 text-rose-700 dark:bg-rose-500/20 dark:text-rose-400' : 'bg-red-900 text-white'}`}>{loan.delinquency.flag}</span>}</td>
-                  </tr>
-                ))
-              )}
-            </tbody>
-          </table>
-        </div>
-        <div className="flex items-center justify-between mt-4 p-[12px_16px] bg-white dark:bg-[#1E2130] rounded-xl border border-slate-200 dark:border-white/10">
-          <p className="font-inter text-[13px] text-slate-500 dark:text-slate-400 m-0">Showing {filtered.length} flagged accounts</p>
+          <div className="flex items-center justify-between p-3.5 px-4 bg-slate-50/50 dark:bg-black/10 border-t border-slate-200 dark:border-white/10">
+            <p className="font-inter text-xs text-slate-500 dark:text-slate-400 m-0">Showing {filtered.length} flagged accounts</p>
+          </div>
         </div>
       </div>
     </div>

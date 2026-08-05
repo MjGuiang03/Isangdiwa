@@ -94,7 +94,7 @@ router.post('/reset-password-request',
       const { allowed, remaining } = await checkDailyOtpLimit(email);
       if (!allowed) {
         return res.status(429).json({
-          message: 'You have reached the daily limit for password reset requests. Please try again tomorrow.',
+          message: 'For security reasons, password reset requests are limited. Please try again tomorrow.',
           dailyLimitReached: true
         });
       }
@@ -160,7 +160,7 @@ router.post('/reset-password-update',
       const { allowed } = await checkDailyResetLimit(email);
       if (!allowed) {
         return res.status(429).json({
-          message: 'You have already changed your password today. Please try again tomorrow.',
+          message: 'For security reasons, password updates are limited to once per day. Please try again tomorrow.',
           dailyLimitReached: true
         });
       }

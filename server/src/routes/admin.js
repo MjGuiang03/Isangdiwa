@@ -54,6 +54,51 @@ router.post('/login',
   }
 );
 
+/* ================== GET SIDEBAR BADGE COUNTS ================== */
+router.get('/sidebar-counts', authenticateAdmin, async (req, res) => {
+  try {
+    const now = new Date();
+    const startOfMonth = new Date(now.getFullYear(), now.getMonth(), 1);
+
+    const [pendingLoansCount, pendingLoanPaymentsCount, pendingSavingsCount, activeLoans, newMembersCount, pendingDonationsCount] = await Promise.all([
+      loans.countDocuments({ status: { $in: ['pending', 'awaiting_member_approval'] } }),
+      loanPayments.countDocuments({ status: 'pending' }),
+      savingsTransactions.countDocuments({ status: 'pending' }),
+      loans.find({ status: 'active' }).project({ nextPaymentDate: 1, nextDueDate: 1, approvedDate: 1, disbursementDate: 1 }).toArray(),
+      users.countDocuments({ createdAt: { $gte: startOfMonth }, isDeleted: { $ne: true } }),
+      donations.countDocuments({ $or: [{ status: 'pending' }, { status: { $exists: false } }] })
+    ]);
+
+    const flaggedAccountsCount = activeLoans.filter(l => {
+      let dueDate = l.nextPaymentDate || l.nextDueDate;
+      if (!dueDate) {
+        // No due date set — first payment due 1 month after disbursement/approval
+        const baseDate = new Date(l.disbursementDate || l.approvedDate);
+        baseDate.setMonth(baseDate.getMonth() + 1);
+        dueDate = baseDate;
+      }
+      if (!dueDate) return false;
+      const diff = Math.floor((now - new Date(dueDate)) / (1000 * 60 * 60 * 24));
+      return diff >= 1;
+    }).length;
+
+    res.json({
+      success: true,
+      counts: {
+        pendingLoans: pendingLoansCount,
+        pendingLoanPayments: pendingLoanPaymentsCount,
+        pendingSavings: pendingSavingsCount,
+        flaggedAccounts: flaggedAccountsCount,
+        newMembers: newMembersCount,
+        pendingDonations: pendingDonationsCount
+      }
+    });
+  } catch (err) {
+    console.error('Error fetching sidebar counts:', err);
+    res.status(500).json({ success: false, message: 'Failed to fetch sidebar counts' });
+  }
+});
+
 /* ================== GET ALL MEMBERS ================== */
 router.get('/members', authenticateAdmin, async (req, res) => {
   try {

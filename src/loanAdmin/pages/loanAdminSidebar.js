@@ -17,6 +17,12 @@ export default function LoanAdminSidebar() {
   const location  = useLocation();
   const { theme, toggleTheme } = useTheme();
   const [unreadCount, setUnreadCount] = useState(0);
+  const [sidebarCounts, setSidebarCounts] = useState({
+    pendingLoans: 0,
+    pendingLoanPayments: 0,
+    pendingSavings: 0,
+    flaggedAccounts: 0
+  });
   const prevNotifIdsRef = useRef(new Set());
   const [showLogoutModal, setShowLogoutModal] = useState(false);
   const [adminName, setAdminName] = useState(localStorage.getItem('adminName') || 'Loan Admin');
@@ -87,11 +93,31 @@ export default function LoanAdminSidebar() {
       } catch { /* silent */ }
     };
 
-    calcUnread();
+    const calcCounts = async () => {
+      try {
+        const res = await fetch(`${API}/api/admin/sidebar-counts`, {
+          headers: { Authorization: `Bearer ${token}` }
+        });
+        if (!res.ok) return;
+        const data = await res.json();
+        if (data.success && data.counts) {
+          setSidebarCounts(data.counts);
+        }
+      } catch { /* silent */ }
+    };
 
-    const onUpdate = () => calcUnread();
+    calcUnread();
+    calcCounts();
+
+    const onUpdate = () => {
+      calcUnread();
+      calcCounts();
+    };
     window.addEventListener('admin-notif-read-update', onUpdate);
-    const intervalId = setInterval(calcUnread, 60000);
+    const intervalId = setInterval(() => {
+      calcUnread();
+      calcCounts();
+    }, 30000);
     
     return () => {
       window.removeEventListener('admin-notif-read-update', onUpdate);
@@ -194,6 +220,11 @@ export default function LoanAdminSidebar() {
         >
           <span><FileText size={18} className="w-[18px] h-[18px] flex items-center justify-center shrink-0" /></span>
           {!collapsed && <span className="font-inter text-sm">Loan Management</span>}
+          {sidebarCounts.pendingLoans > 0 && (
+            <span className={`ml-auto bg-red-500 text-white p-[1px_6px] rounded-[10px] text-xs font-inter font-bold leading-none min-w-[19px] h-[19px] flex items-center justify-center shrink-0 animate-badgePop ${collapsed ? 'md:absolute md:top-1 md:right-1 md:ml-0 md:text-[9px] md:h-3.5 md:min-w-[14px]' : ''}`}>
+              {sidebarCounts.pendingLoans > 99 ? '99+' : sidebarCounts.pendingLoans}
+            </span>
+          )}
         </button>
 
         <button
@@ -203,6 +234,11 @@ export default function LoanAdminSidebar() {
         >
           <span><CreditCard size={18} className="w-[18px] h-[18px] flex items-center justify-center shrink-0" /></span>
           {!collapsed && <span className="font-inter text-sm">Payments</span>}
+          {sidebarCounts.pendingLoanPayments > 0 && (
+            <span className={`ml-auto bg-red-500 text-white p-[1px_6px] rounded-[10px] text-xs font-inter font-bold leading-none min-w-[19px] h-[19px] flex items-center justify-center shrink-0 animate-badgePop ${collapsed ? 'md:absolute md:top-1 md:right-1 md:ml-0 md:text-[9px] md:h-3.5 md:min-w-[14px]' : ''}`}>
+              {sidebarCounts.pendingLoanPayments > 99 ? '99+' : sidebarCounts.pendingLoanPayments}
+            </span>
+          )}
         </button>
 
         <button
@@ -212,6 +248,11 @@ export default function LoanAdminSidebar() {
         >
           <span><PiggyBank size={18} className="w-[18px] h-[18px] flex items-center justify-center shrink-0" /></span>
           {!collapsed && <span className="font-inter text-sm">Savings</span>}
+          {sidebarCounts.pendingSavings > 0 && (
+            <span className={`ml-auto bg-red-500 text-white p-[1px_6px] rounded-[10px] text-xs font-inter font-bold leading-none min-w-[19px] h-[19px] flex items-center justify-center shrink-0 animate-badgePop ${collapsed ? 'md:absolute md:top-1 md:right-1 md:ml-0 md:text-[9px] md:h-3.5 md:min-w-[14px]' : ''}`}>
+              {sidebarCounts.pendingSavings > 99 ? '99+' : sidebarCounts.pendingSavings}
+            </span>
+          )}
         </button>
 
         {!collapsed ? (
@@ -227,6 +268,11 @@ export default function LoanAdminSidebar() {
         >
           <span><AlertTriangle size={18} className="w-[18px] h-[18px] flex items-center justify-center shrink-0" /></span>
           {!collapsed && <span className="font-inter text-sm">Delinquency Reports</span>}
+          {sidebarCounts.flaggedAccounts > 0 && (
+            <span className={`ml-auto bg-rose-500 text-white p-[1px_6px] rounded-[10px] text-xs font-inter font-bold leading-none min-w-[19px] h-[19px] flex items-center justify-center shrink-0 animate-badgePop ${collapsed ? 'md:absolute md:top-1 md:right-1 md:ml-0 md:text-[9px] md:h-3.5 md:min-w-[14px]' : ''}`}>
+              {sidebarCounts.flaggedAccounts > 99 ? '99+' : sidebarCounts.flaggedAccounts}
+            </span>
+          )}
         </button>
 
         <button

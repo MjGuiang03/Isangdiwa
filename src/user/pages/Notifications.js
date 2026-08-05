@@ -2,7 +2,7 @@ import { useState, useEffect, useMemo } from 'react';
 import useSWR from 'swr';
 
 import API from '../../utils/api';
-import { Banknote, Bell, CalendarDays, Heart, ChevronDown, ChevronUp, Check, CircleCheck, AlertCircle, PiggyBank, BadgeCheck, Landmark, X } from 'lucide-react';
+import { Banknote, Bell, CalendarDays, Heart, ChevronDown, ChevronUp, Check, CircleCheck, AlertCircle, PiggyBank, BadgeCheck, Landmark, X, ShieldCheck, Lock } from 'lucide-react';
 
 const fmt = (n) =>
   n != null ? `₱${Number(n).toLocaleString('en-PH', { minimumFractionDigits: 2 })}` : '₱0.00';
@@ -77,13 +77,16 @@ export default function Notifications() {
 
   const [prefs] = useState(() => {
     const saved = localStorage.getItem('notif_prefs');
-    return saved ? JSON.parse(saved) : {
+    const parsed = saved ? JSON.parse(saved) : {};
+    return {
       loan: true,
       payment_pending: true,
       announcement: true,
       attendance: true,
       savings: true,
-      donation: true
+      donation: true,
+      security: true,
+      ...parsed
     };
   });
 
@@ -108,9 +111,10 @@ export default function Notifications() {
   const { data: aData } = useSWR(`${API}/api/attendance/my-attendance`, fetcherSingle, { revalidateOnFocus: false, dedupingInterval: 5000 });
   const { data: sData } = useSWR(`${API}/api/savings/transactions`, fetcherSingle, { revalidateOnFocus: false, dedupingInterval: 5000 });
   const { data: ppData } = useSWR(`${API}/api/loans/my-payments`, fetcherSingle, { revalidateOnFocus: false, dedupingInterval: 5000 });
+  const { data: feedData } = useSWR(`${API}/api/notifications/feed`, fetcherSingle, { revalidateOnFocus: true, dedupingInterval: 3000 });
   const { data: readData, mutate: mutateRead } = useSWR(`${API}/api/read-notifications`, fetcherSingle, { revalidateOnFocus: false, dedupingInterval: 5000 });
 
-  const loading = !lData && !dData && !aData && !sData && !ppData && !readData;
+  const loading = !lData && !dData && !aData && !sData && !ppData && !readData && !feedData;
 
   useEffect(() => {
     if (readData && readData.readIds) {
@@ -246,6 +250,17 @@ export default function Notifications() {
             category: d.category,
             donationId: d.donationId
           });
+        } else if (d.status === 'pending') {
+          items.push({
+            id: `donation-pending-${d._id}`,
+            type: 'donation',
+            timestamp: d.createdAt || d.date,
+            title: 'Donation Submitted — Under Approval',
+            message: `Your donation of ₱${Number(d.amount).toLocaleString()} for ${d.category} has been submitted and is currently pending manual administrator approval.`,
+            amount: d.amount,
+            category: d.category,
+            donationId: d.donationId
+          });
         } else if (d.status === 'rejected') {
           items.push({
             id: `donation-rejected-${d._id}`,
@@ -294,9 +309,22 @@ export default function Notifications() {
       });
     }
 
+    /* Security → notifications */
+    if (feedData && feedData.securityNotifications) {
+      feedData.securityNotifications.forEach((s) => {
+        items.push({
+          id: s.id,
+          type: 'security',
+          timestamp: s.timestamp,
+          title: s.title,
+          message: s.message,
+        });
+      });
+    }
+
     items.sort((a, b) => new Date(b.timestamp) - new Date(a.timestamp));
     return items;
-  }, [lData, ppData, dData, sData, aData]);
+  }, [lData, ppData, dData, sData, aData, feedData]);
 
   /* ── Derived state ── */
   const notifications = rawItems
@@ -307,7 +335,7 @@ export default function Notifications() {
     let base = notifications;
     if (activeFilter === 'unread') return base.filter(n => !n.isRead);
     if (activeFilter === 'loans_payments') return base.filter(n => ['loan', 'payment_pending'].includes(n.type));
-    if (activeFilter === 'activity') return base.filter(n => ['attendance', 'savings', 'donation'].includes(n.type));
+    if (activeFilter === 'activity') return base.filter(n => ['attendance', 'savings', 'donation', 'security'].includes(n.type));
     return base;
   };
 
@@ -317,7 +345,7 @@ export default function Notifications() {
     if (tabKey === 'all') return notifications.filter(n => !n.isRead).length;
     if (tabKey === 'unread') return notifications.filter(n => !n.isRead).length;
     if (tabKey === 'loans_payments') return notifications.filter(n => !n.isRead && ['loan', 'payment_pending'].includes(n.type)).length;
-    if (tabKey === 'activity') return notifications.filter(n => !n.isRead && ['attendance', 'savings', 'donation'].includes(n.type)).length;
+    if (tabKey === 'activity') return notifications.filter(n => !n.isRead && ['attendance', 'savings', 'donation', 'security'].includes(n.type)).length;
     return 0;
   };
 
@@ -372,6 +400,7 @@ export default function Notifications() {
     if (type === 'savings') return wrap('bg-[#F0D89A]/30 dark:bg-amber-950/60', 'text-amber-700 dark:text-amber-300', PiggyBank);
     if (type === 'donation') return wrap('bg-pink-100 dark:bg-pink-950/60', 'text-pink-600 dark:text-pink-400', Heart);
     if (type === 'attendance') return wrap('bg-teal-100 dark:bg-teal-950/60', 'text-teal-600 dark:text-teal-400', CalendarDays);
+    if (type === 'security') return wrap('bg-amber-100 dark:bg-amber-950/60', 'text-amber-600 dark:text-amber-400', ShieldCheck);
     return wrap('bg-blue-100 dark:bg-blue-950/60', 'text-blue-600 dark:text-blue-400', Bell);
   };
 
@@ -380,7 +409,8 @@ export default function Notifications() {
       : type === 'donation' ? 'bg-pink-100 dark:bg-pink-950/60 text-pink-700 dark:text-pink-300'
         : type === 'savings' ? 'bg-amber-100 dark:bg-amber-950/60 text-amber-700 dark:text-amber-300'
           : type === 'payment_pending' ? 'bg-emerald-100 dark:bg-emerald-950/60 text-emerald-700 dark:text-emerald-300'
-            : 'bg-teal-100 dark:bg-teal-950/60 text-teal-700 dark:text-teal-300';
+            : type === 'security' ? 'bg-amber-100 dark:bg-amber-950/60 text-amber-700 dark:text-amber-300'
+              : 'bg-teal-100 dark:bg-teal-950/60 text-teal-700 dark:text-teal-300';
 
 
 

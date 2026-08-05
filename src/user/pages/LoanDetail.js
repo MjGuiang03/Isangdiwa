@@ -1,5 +1,6 @@
 import { useNavigate, useParams, useSearchParams } from 'react-router-dom';
 import { useState, useEffect } from 'react';
+import { createPortal } from 'react-dom';
 import useSWR from 'swr';
 import { useAuth } from '../../context/AuthContext';
 
@@ -8,13 +9,17 @@ import {
   ArrowLeft, 
   Banknote, 
   CheckCircle, 
+  CheckCircle2,
   Printer, 
   Settings, 
   X, 
   UploadCloud, 
   FileCheck2,
   CreditCard,
-  AlertCircle
+  AlertCircle,
+  ZoomIn,
+  Trash2,
+  History
 } from 'lucide-react';
 
 const fileToBase64 = (file) =>
@@ -48,18 +53,18 @@ const STATUS_TEXT = {
   completed: 'Completed',
   rejected: 'Rejected',
   overdue: 'Overdue',
-  awaiting_member_approval: 'Review Requested',
+  awaiting_member_approval: 'Awaiting Signature',
 };
 
-/* ════════════════════════════════════════════════════════════
-   PAY NOW MODAL
-   ════════════════════════════════════════════════════════════ */
 const PAYMENT_TYPES = [
   { id: 'regular', name: 'Regular Payment', desc: 'Pay the current monthly installment' },
-  { id: 'advance', name: 'Custom Payment', desc: 'Enter any amount — months covered are computed automatically' },
-  { id: 'full', name: 'Full Payment', desc: 'Settle the entire remaining balance at once' },
+  { id: 'advance', name: 'Custom / Advance Payment', desc: 'Enter any amount or select multiple months to pay ahead' },
+  { id: 'full', name: 'Full Loan Payoff', desc: 'Pay off the remaining balance in full' }
 ];
 
+/* ════════════════════════════════════════════════════════════
+   PAYMENT MODAL
+   ════════════════════════════════════════════════════════════ */
 function PayNowModal({ loan, onClose, onSuccess }) {
   const [method, setMethod] = useState('cash');
   const [subMethod, setSubMethod] = useState('');
@@ -67,12 +72,26 @@ function PayNowModal({ loan, onClose, onSuccess }) {
   const [accountNumber, setAccountNumber] = useState('');
   const [uploading, setUploading] = useState(false);
   const [receipt, setReceipt] = useState(null);
+  const [receiptPreview, setReceiptPreview] = useState(null);
+  const [enlargedImage, setEnlargedImage] = useState(null);
   const [error, setError] = useState('');
   const [submitted, setSubmitted] = useState(false);
   const [approvalMethod, setApprovalMethod] = useState('gateway');
   const [paymentType, setPaymentType] = useState('regular');
   const [customAmount, setCustomAmount] = useState('');
   const [selectedMonths, setSelectedMonths] = useState(0);
+
+  const [touched, setTouched] = useState({
+    subMethod: false,
+    accountName: false,
+    accountNumber: false,
+    receipt: false,
+    customAmount: false,
+  });
+
+  const handleBlur = (field) => {
+    setTouched((prev) => ({ ...prev, [field]: true }));
+  };
 
   const monthlyAmt = loan?.upcomingPaymentAmount || loan?.monthlyPayment || 0;
   const remaining = loan?.remainingBalance || 0;
@@ -111,6 +130,20 @@ function PayNowModal({ loan, onClose, onSuccess }) {
     fetchSettings();
   }, []);
 
+  useEffect(() => {
+    if (!receipt) {
+      setReceiptPreview(null);
+      return;
+    }
+    if (receipt.type && receipt.type.startsWith('image/')) {
+      const url = URL.createObjectURL(receipt);
+      setReceiptPreview(url);
+      return () => URL.revokeObjectURL(url);
+    } else {
+      setReceiptPreview(null);
+    }
+  }, [receipt]);
+
   const METHODS = [
     {
       id: 'cash',
@@ -123,6 +156,7 @@ function PayNowModal({ loan, onClose, onSuccess }) {
         `Present your Loan ID: ${loan?.loanId} to the cashier.`,
         `Pay the exact amount of ${fmt(loan?.upcomingPaymentAmount || loan?.monthlyPayment)} and keep your receipt.`,
       ],
+      needsReceipt: false,
     },
     {
       id: 'bank',
@@ -156,27 +190,78 @@ function PayNowModal({ loan, onClose, onSuccess }) {
 
   const selected = METHODS.find(m => m.id === method);
 
+  const digitsOnly = accountNumber.replace(/\D/g, '');
+
+  const isAccountNameValid = accountName.trim().length >= 2;
+  const isAccountNumValid = method === 'e-wallet'
+    ? (digitsOnly.length === 11 && digitsOnly.startsWith('09'))
+    : (digitsOnly.length >= 10 && digitsOnly.length <= 16);
+
+  const accountNameError = touched.accountName && (
+    !accountName.trim() 
+      ? 'Sender Account Name is required' 
+      : !isAccountNameValid 
+      ? 'Name must be at least 2 characters' 
+      : null
+  );
+
+  const accountNumberError = touched.accountNumber && (
+    !digitsOnly 
+      ? 'Sender Account Number is required' 
+      : method === 'e-wallet'
+      ? !digitsOnly.startsWith('09')
+        ? 'E-Wallet number must start with 09 (e.g. 09123456789)'
+        : digitsOnly.length !== 11 
+        ? 'E-Wallet number must be exactly 11 digits' 
+        : null
+      : digitsOnly.length < 10
+      ? 'Bank account number must be at least 10 digits'
+      : digitsOnly.length > 16
+      ? 'Bank account number cannot exceed 16 digits'
+      : null
+  );
+
+  const subMethodError = touched.subMethod && !subMethod 
+    ? `Please select a ${method === 'e-wallet' ? 'E-Wallet' : 'Bank'} option` 
+    : null;
+
+  const receiptError = touched.receipt && !receipt ? 'Proof of payment image is required' : null;
+
   const isFormComplete = (() => {
     if (computedAmount <= 0) return false;
     if (paymentType === 'advance' && computedAmount < 500) return false;
     if (selected?.needsReceipt) {
       if (!subMethod) return false;
-      if (!accountName.trim()) return false;
-      if (accountNumber.trim().length !== 11) return false;
+      if (!isAccountNameValid) return false;
+      if (!isAccountNumValid) return false;
       if (!receipt) return false;
     }
     return true;
   })();
 
   const handleConfirm = async () => {
+    setTouched({
+      subMethod: true,
+      accountName: true,
+      accountNumber: true,
+      receipt: true,
+      customAmount: true,
+    });
+
     if (paymentType === 'advance' && computedAmount < 500) return setError('Minimum advance payment is ₱500.');
     if (computedAmount <= 0) return setError('Payment amount must be greater than zero.');
     if (selected?.needsReceipt) {
       if (!subMethod) return setError(`Please select a ${method === 'e-wallet' ? 'E-Wallet' : 'Bank'} option.`);
-      if (!accountName.trim()) return setError('Please provide your Account Name.');
-      if (accountNumber.trim().length !== 11) return setError('Sender Account Number must be exactly 11 digits.');
-      if (!receipt) return setError('Please upload your proof of payment before confirming.');
+      if (!isAccountNameValid) return setError('Please provide a valid Account Name (min 2 letters).');
+      if (!isAccountNumValid) {
+        return setError(method === 'e-wallet' 
+          ? 'Sender E-Wallet Number must start with 09 and be 11 digits.' 
+          : 'Bank Account Number must be between 10 and 16 digits.'
+        );
+      }
+      if (!receipt) return setError('Please upload your proof of payment image before confirming.');
     }
+
     setError('');
     setUploading(true);
     try {
@@ -193,7 +278,7 @@ function PayNowModal({ loan, onClose, onSuccess }) {
           monthsCovered,
           subMethod: selected?.needsReceipt ? subMethod : undefined,
           accountName: selected?.needsReceipt ? accountName : undefined,
-          accountNumber: selected?.needsReceipt ? accountNumber : undefined,
+          accountNumber: selected?.needsReceipt ? accountNumber.replace(/\s+/g, '') : undefined,
           proofData,
           proofFileName: receipt?.name || null,
         }),
@@ -219,12 +304,15 @@ function PayNowModal({ loan, onClose, onSuccess }) {
     }
   };
 
-  return (
-    <div className="fixed inset-0 z-[100010] bg-black/75 backdrop-blur-sm flex items-center justify-center p-4" onClick={(e) => e.target === e.currentTarget && onClose()}>
-      <div className="relative w-full max-w-lg bg-white dark:bg-slate-900 rounded-3xl p-6 shadow-2xl border border-slate-200 dark:border-white/10 max-h-[90vh] overflow-y-auto text-left font-inter animate-in fade-in zoom-in-95 duration-200">
+  return createPortal(
+    <div className="fixed inset-0 z-[100010] bg-black/75 backdrop-blur-sm flex items-end sm:items-center justify-center p-0 sm:p-4 transition-all" onClick={(e) => e.target === e.currentTarget && onClose()}>
+      <div className="relative w-full max-w-lg bg-white dark:bg-slate-900 rounded-t-[2.25rem] sm:rounded-3xl shadow-2xl border border-slate-200 dark:border-white/10 flex flex-col max-h-[92vh] sm:max-h-[90vh] overflow-hidden text-left font-inter animate-in fade-in slide-in-from-bottom-8 sm:slide-in-from-bottom-0 sm:zoom-in-95 duration-200">
         
+        {/* Mobile Drag Indicator */}
+        <div className="w-10 h-1 rounded-full bg-slate-300 dark:bg-slate-700 mx-auto mt-2.5 mb-0.5 sm:hidden shrink-0" />
+
         {/* Header */}
-        <div className="flex items-center justify-between pb-4 border-b border-slate-100 dark:border-white/10">
+        <div className="flex items-center justify-between p-5 sm:p-6 pb-4 border-b border-slate-100 dark:border-white/10 shrink-0">
           <div>
             <h3 className="text-lg font-black text-slate-900 dark:text-white">Pay Now</h3>
             <p className="text-xs text-slate-500 dark:text-slate-400 mt-0.5">{loan?.loanId} · Payment due {fmtDate(loan?.nextPaymentDate)}</p>
@@ -234,262 +322,456 @@ function PayNowModal({ loan, onClose, onSuccess }) {
           </button>
         </div>
 
-        {submitted ? (
-          <div className="py-10 text-center flex flex-col items-center justify-center">
-            <div className="w-16 h-16 rounded-full bg-emerald-100 dark:bg-emerald-950/80 text-emerald-600 dark:text-emerald-400 flex items-center justify-center mb-4">
-              <CheckCircle size={36} />
-            </div>
-            <h4 className="text-xl font-black text-slate-900 dark:text-white">Payment Submitted!</h4>
-            <p className="text-xs text-slate-500 dark:text-slate-400 mt-1 max-w-xs">Your payment is being processed. You'll be notified once confirmed.</p>
-          </div>
-        ) : (
-          <div className="py-4 space-y-5">
-            {/* Payment Type Selector */}
-            <div>
-              <label className="text-xs font-bold text-slate-700 dark:text-slate-300 uppercase tracking-wider block mb-2">Select Payment Type</label>
-              <div className="space-y-2">
-                {PAYMENT_TYPES.map((pt) => (
-                  <div
-                    key={pt.id}
-                    className={`p-3.5 rounded-2xl border transition-all cursor-pointer flex items-center justify-between ${paymentType === pt.id ? 'bg-emerald-50/60 dark:bg-emerald-950/30 border-emerald-500/60 ring-2 ring-emerald-500/20' : 'bg-slate-50 dark:bg-slate-800/40 border-slate-200 dark:border-white/10 hover:border-slate-300'}`}
-                    onClick={() => { setPaymentType(pt.id); setCustomAmount(''); setSelectedMonths(0); setError(''); }}
-                  >
-                    <div>
-                      <div className="text-xs font-bold text-slate-900 dark:text-white">{pt.name}</div>
-                      <div className="text-[11px] text-slate-500 dark:text-slate-400 mt-0.5">{pt.desc}</div>
-                    </div>
-                    <div className={`w-4 h-4 rounded-full border flex items-center justify-center ${paymentType === pt.id ? 'border-emerald-600 bg-emerald-600 dark:border-emerald-500 dark:bg-emerald-500' : 'border-slate-300 dark:border-slate-600'}`}>
-                      {paymentType === pt.id && <div className="w-1.5 h-1.5 rounded-full bg-white" />}
-                    </div>
-                  </div>
-                ))}
+        {/* Body */}
+        <div className="flex-1 overflow-y-auto p-5 sm:p-6 custom-scrollbar">
+          {submitted ? (
+            <div className="py-10 text-center flex flex-col items-center justify-center">
+              <div className="w-16 h-16 rounded-full bg-emerald-100 dark:bg-emerald-950/80 text-emerald-600 dark:text-emerald-400 flex items-center justify-center mb-4">
+                <CheckCircle size={36} />
               </div>
+              <h4 className="text-xl font-black text-slate-900 dark:text-white">Payment Submitted!</h4>
+              <p className="text-xs text-slate-500 dark:text-slate-400 mt-1 max-w-xs">Your payment is being processed. You'll be notified once confirmed.</p>
             </div>
-
-            {/* Custom Amount Input (Advance) */}
-            {paymentType === 'advance' && (
-              <div className="space-y-3 p-4 rounded-2xl bg-slate-50 dark:bg-slate-800/40 border border-slate-200 dark:border-white/10">
-                <label className="text-xs font-bold text-slate-700 dark:text-slate-300 block">How many months do you want to pay?</label>
-                <select
-                  value={selectedMonths}
-                  onChange={(e) => {
-                    const m = Number(e.target.value);
-                    setSelectedMonths(m);
-                    if (m > 0) {
-                      const amt = Math.min(monthlyAmt * m, remaining);
-                      setCustomAmount(Math.round(amt).toLocaleString('en-PH'));
-                    } else {
-                      setCustomAmount('');
-                    }
-                    setError('');
-                  }}
-                  className="w-full px-3.5 py-2.5 rounded-xl border border-slate-300 dark:border-slate-700 bg-white dark:bg-slate-900 text-slate-900 dark:text-white text-xs font-semibold outline-none focus:ring-2 focus:ring-emerald-500"
-                >
-                  <option value={0}>— Select months or enter custom amount —</option>
-                  {Array.from({ length: remainingMonths }, (_, i) => i + 1).map(m => (
-                    <option key={m} value={m}>
-                      {m} month{m > 1 ? 's' : ''} — {fmt(Math.min(monthlyAmt * m, remaining))}
-                    </option>
-                  ))}
-                </select>
-
-                <label className="text-xs font-bold text-slate-700 dark:text-slate-300 block pt-1">Or enter a custom amount (min ₱500)</label>
-                <input
-                  type="text"
-                  inputMode="numeric"
-                  placeholder="e.g. 5,000"
-                  value={customAmount}
-                  onChange={(e) => {
-                    const raw = e.target.value.replace(/[^0-9]/g, '');
-                    if (raw === '') { setCustomAmount(''); setSelectedMonths(0); setError(''); return; }
-                    let num = parseInt(raw, 10);
-                    if (num > remaining) num = remaining;
-                    setCustomAmount(num.toLocaleString('en-PH'));
-                    setSelectedMonths(0);
-                    if (num > 0 && num < 500) setError('');
-                  }}
-                  className="w-full px-3.5 py-2.5 rounded-xl border border-slate-300 dark:border-slate-700 bg-white dark:bg-slate-900 text-slate-900 dark:text-white text-sm font-bold outline-none focus:ring-2 focus:ring-emerald-500"
-                />
-                {computedAmount > 0 && computedAmount < 500 && (
-                  <p className="text-xs text-rose-500 font-bold flex items-center gap-1">
-                    <AlertCircle size={13} /> Minimum payment is ₱500.
-                  </p>
-                )}
-              </div>
-            )}
-
-            {/* Amount Summary Box */}
-            <div className="p-4 rounded-2xl bg-gradient-to-r from-emerald-600 to-teal-700 text-white flex items-center justify-between shadow-md">
+          ) : (
+            <div className="space-y-5">
+              {/* Payment Type Selector */}
               <div>
-                <span className="text-[11px] font-bold uppercase tracking-wider text-emerald-100 block">
-                  {paymentType === 'regular' ? 'Amount Due' : paymentType === 'full' ? 'Full Payoff Amount' : 'Payment Amount'}
-                </span>
-                <span className="text-2xl font-black block mt-0.5">{fmt(computedAmount)}</span>
-                <span className="text-[11px] text-emerald-100 block mt-0.5">
-                  {paymentType === 'regular' && `Due ${fmtDate(loan?.nextPaymentDate)}`}
-                  {paymentType === 'advance' && monthsCovered > 0 && `Covers ${monthsCovered} month${monthsCovered > 1 ? 's' : ''} ahead`}
-                  {paymentType === 'full' && `Settles entire loan balance`}
-                </span>
+                <label className="text-xs font-bold text-slate-700 dark:text-slate-300 uppercase tracking-wider block mb-2">
+                  Select Payment Type <span className="text-red-500">*</span>
+                </label>
+                <div className="space-y-2">
+                  {PAYMENT_TYPES.map((pt) => (
+                    <div
+                      key={pt.id}
+                      className={`p-3.5 rounded-2xl border transition-all cursor-pointer flex items-center justify-between ${paymentType === pt.id ? 'bg-emerald-50/60 dark:bg-emerald-950/30 border-emerald-500/60 ring-2 ring-emerald-500/20' : 'bg-slate-50 dark:bg-slate-800/40 border-slate-200 dark:border-white/10 hover:border-slate-300'}`}
+                      onClick={() => { setPaymentType(pt.id); setCustomAmount(''); setSelectedMonths(0); setError(''); }}
+                    >
+                      <div>
+                        <div className="text-xs font-bold text-slate-900 dark:text-white">{pt.name}</div>
+                        <div className="text-[11px] text-slate-500 dark:text-slate-400 mt-0.5">{pt.desc}</div>
+                      </div>
+                      <div className={`w-4 h-4 rounded-full border flex items-center justify-center ${paymentType === pt.id ? 'border-emerald-600 bg-emerald-600 dark:border-emerald-500 dark:bg-emerald-500' : 'border-slate-300 dark:border-slate-600'}`}>
+                        {paymentType === pt.id && <div className="w-1.5 h-1.5 rounded-full bg-white" />}
+                      </div>
+                    </div>
+                  ))}
+                </div>
               </div>
-              {paymentType === 'full' && (
-                <span className="px-3 py-1 rounded-full bg-white/20 text-white text-[11px] font-extrabold backdrop-blur-sm">
-                  Full Payoff
-                </span>
-              )}
-            </div>
 
-            {/* Method Label */}
-            <div>
-              <label className="text-xs font-bold text-slate-700 dark:text-slate-300 uppercase tracking-wider block mb-2">Select Payment Method</label>
-              <div className="space-y-2">
-                {METHODS.map((m) => (
-                  <div
-                    key={m.id}
-                    className={`p-3.5 rounded-2xl border transition-all cursor-pointer flex items-center gap-3.5 ${method === m.id ? 'bg-emerald-50/60 dark:bg-emerald-950/30 border-emerald-500/60 ring-2 ring-emerald-500/20' : 'bg-slate-50 dark:bg-slate-800/40 border-slate-200 dark:border-white/10 hover:border-slate-300'}`}
-                    onClick={() => { setMethod(m.id); setError(''); }}
+              {/* Custom Amount Input (Advance) */}
+              {paymentType === 'advance' && (
+                <div className="space-y-3 p-4 rounded-2xl bg-slate-50 dark:bg-slate-800/40 border border-slate-200 dark:border-white/10">
+                  <label className="text-xs font-bold text-slate-700 dark:text-slate-300 block">
+                    How many months do you want to pay? <span className="text-red-500">*</span>
+                  </label>
+                  <select
+                    value={selectedMonths}
+                    onChange={(e) => {
+                      const m = Number(e.target.value);
+                      setSelectedMonths(m);
+                      if (m > 0) {
+                        const amt = Math.min(monthlyAmt * m, remaining);
+                        setCustomAmount(Math.round(amt).toLocaleString('en-PH'));
+                      } else {
+                        setCustomAmount('');
+                      }
+                      setError('');
+                    }}
+                    className="w-full px-3.5 py-2.5 rounded-xl border border-slate-300 dark:border-slate-700 bg-white dark:bg-slate-900 text-slate-900 dark:text-white text-xs font-semibold outline-none focus:ring-2 focus:ring-emerald-500"
                   >
-                    <div className={`w-9 h-9 rounded-xl flex items-center justify-center shrink-0 ${m.iconBg}`}>
-                      {m.icon}
-                    </div>
-                    <div className="flex-1 min-w-0">
-                      <div className="text-xs font-bold text-slate-900 dark:text-white">{m.name}</div>
-                      <div className="text-[11px] text-slate-500 dark:text-slate-400 mt-0.5">{m.desc}</div>
-                    </div>
-                    <div className={`w-4 h-4 rounded-full border flex items-center justify-center ${method === m.id ? 'border-emerald-600 bg-emerald-600 dark:border-emerald-500 dark:bg-emerald-500' : 'border-slate-300 dark:border-slate-600'}`}>
-                      {method === m.id && <div className="w-1.5 h-1.5 rounded-full bg-white" />}
-                    </div>
-                  </div>
-                ))}
-              </div>
-            </div>
+                    <option value={0}>— Select months or enter custom amount —</option>
+                    {Array.from({ length: remainingMonths }, (_, i) => i + 1).map(m => (
+                      <option key={m} value={m}>
+                        {m} month{m > 1 ? 's' : ''} — {fmt(Math.min(monthlyAmt * m, remaining))}
+                      </option>
+                    ))}
+                  </select>
 
-            {/* Instructions */}
-            <div className="p-4 rounded-2xl bg-slate-50 dark:bg-slate-800/40 border border-slate-200 dark:border-white/10 space-y-2">
-              <span className="text-xs font-bold text-slate-800 dark:text-slate-200 block">How to pay via {selected?.name}</span>
-              {selected?.instructions.map((step, i) => (
-                <div key={i} className="flex items-start gap-2.5 text-xs text-slate-600 dark:text-slate-400">
-                  <span className="w-4 h-4 rounded-full bg-slate-200 dark:bg-slate-700 text-slate-700 dark:text-slate-300 text-[10px] font-bold flex items-center justify-center shrink-0 mt-0.5">{i + 1}</span>
-                  <span>{step}</span>
-                </div>
-              ))}
-
-              {selected?.id === 'bank' && approvalMethod === 'manual' && (
-                <div className="mt-3 p-3.5 rounded-xl bg-blue-50 dark:bg-blue-950/40 border border-blue-200 dark:border-blue-800/50">
-                  <span className="text-[10px] font-black uppercase text-blue-600 dark:text-blue-400 block tracking-wider">Bank Details</span>
-                  <p className="text-xs font-extrabold text-slate-900 dark:text-white mt-1">BDO Unibank</p>
-                  <p className="text-xs text-slate-600 dark:text-slate-300 mt-0.5">Account Name: <strong>Philippine United Apostolic Church</strong></p>
-                  <p className="text-sm font-black text-blue-600 dark:text-blue-400 mt-1 tracking-wider">0012 3456 7890</p>
-                </div>
-              )}
-
-              {selected?.id === 'e-wallet' && approvalMethod === 'manual' && (
-                <div className="mt-3 p-3.5 rounded-xl bg-purple-50 dark:bg-purple-950/40 border border-purple-200 dark:border-purple-800/50 space-y-2">
-                  <div>
-                    <span className="text-[10px] font-black uppercase text-purple-600 dark:text-purple-400 block tracking-wider">GCash Details</span>
-                    <p className="text-xs text-slate-600 dark:text-slate-300 mt-0.5">Name: <strong>IsangDiwa Church</strong></p>
-                    <p className="text-sm font-black text-purple-600 dark:text-purple-400 tracking-wider">0912 345 6789</p>
-                  </div>
-                  <div className="pt-2 border-t border-purple-200/60 dark:border-purple-800/40">
-                    <span className="text-[10px] font-black uppercase text-purple-600 dark:text-purple-400 block tracking-wider">Maya Details</span>
-                    <p className="text-xs text-slate-600 dark:text-slate-300 mt-0.5">Name: <strong>IsangDiwa Church</strong></p>
-                    <p className="text-sm font-black text-purple-600 dark:text-purple-400 tracking-wider">0998 765 4321</p>
-                  </div>
-                </div>
-              )}
-            </div>
-
-            {/* Manual Approval Info Fields */}
-            {selected?.needsReceipt && (
-              <div className="space-y-3 p-4 rounded-2xl bg-slate-50 dark:bg-slate-800/40 border border-slate-200 dark:border-white/10">
-                <div>
-                  <label className="text-xs font-semibold text-slate-700 dark:text-slate-300 block mb-1">{method === 'e-wallet' ? 'E-Wallet' : 'Bank'} Option</label>
-                  {method === 'e-wallet' ? (
-                    <select className="w-full px-3.5 py-2.5 rounded-xl border border-slate-300 dark:border-slate-700 bg-white dark:bg-slate-900 text-slate-900 dark:text-white text-xs font-semibold" value={subMethod} onChange={(e) => setSubMethod(e.target.value)}>
-                      <option value="">Select E-Wallet</option>
-                      <option value="GCash">GCash</option>
-                      <option value="Maya">Maya</option>
-                    </select>
-                  ) : (
-                    <select className="w-full px-3.5 py-2.5 rounded-xl border border-slate-300 dark:border-slate-700 bg-white dark:bg-slate-900 text-slate-900 dark:text-white text-xs font-semibold" value={subMethod} onChange={(e) => setSubMethod(e.target.value)}>
-                      <option value="">Select Bank</option>
-                      <optgroup label="Card Payments">
-                        <option value="Master Card">Master Card</option>
-                        <option value="Visa">Visa</option>
-                      </optgroup>
-                      <optgroup label="Online Bank">
-                        <option value="BPI">BPI</option>
-                        <option value="BDO">BDO</option>
-                        <option value="PNB">PNB</option>
-                        <option value="Metrobank">Metrobank</option>
-                        <option value="Unionbank">Unionbank</option>
-                        <option value="Instapay">Instapay</option>
-                        <option value="RCBC">RCBC</option>
-                      </optgroup>
-                    </select>
+                  <label className="text-xs font-bold text-slate-700 dark:text-slate-300 block pt-1">
+                    Or enter a custom amount (min ₱500) <span className="text-red-500">*</span>
+                  </label>
+                  <input
+                    type="text"
+                    inputMode="numeric"
+                    placeholder="e.g. 5,000"
+                    value={customAmount}
+                    onBlur={() => handleBlur('customAmount')}
+                    onChange={(e) => {
+                      const raw = e.target.value.replace(/[^0-9]/g, '');
+                      if (raw === '') { setCustomAmount(''); setSelectedMonths(0); setError(''); return; }
+                      let num = parseInt(raw, 10);
+                      if (num > remaining) num = remaining;
+                      setCustomAmount(num.toLocaleString('en-PH'));
+                      setSelectedMonths(0);
+                      if (num > 0 && num < 500) setError('');
+                    }}
+                    className="w-full px-3.5 py-2.5 rounded-xl border border-slate-300 dark:border-slate-700 bg-white dark:bg-slate-900 text-slate-900 dark:text-white text-sm font-bold outline-none focus:ring-2 focus:ring-emerald-500"
+                  />
+                  {computedAmount > 0 && computedAmount < 500 && (
+                    <p className="text-xs text-rose-500 font-bold flex items-center gap-1">
+                      <AlertCircle size={13} /> Minimum payment is ₱500.
+                    </p>
                   )}
                 </div>
+              )}
 
+              {/* Amount Summary Box */}
+              <div className="p-4 rounded-2xl bg-gradient-to-r from-emerald-600 to-teal-700 text-white flex items-center justify-between shadow-md">
                 <div>
-                  <label className="text-xs font-semibold text-slate-700 dark:text-slate-300 block mb-1">Sender Account Name</label>
-                  <input 
-                    type="text" 
-                    className="w-full px-3.5 py-2 rounded-xl border border-slate-300 dark:border-slate-700 bg-white dark:bg-slate-900 text-slate-900 dark:text-white text-xs font-semibold" 
-                    placeholder="Juan Dela Cruz"
-                    value={accountName}
-                    onChange={(e) => setAccountName(e.target.value)}
-                  />
+                  <span className="text-[11px] font-bold uppercase tracking-wider text-emerald-100 block">
+                    {paymentType === 'regular' ? 'Amount Due' : paymentType === 'full' ? 'Full Payoff Amount' : 'Payment Amount'}
+                  </span>
+                  <span className="text-2xl font-black block mt-0.5">{fmt(computedAmount)}</span>
+                  <span className="text-[11px] text-emerald-100 block mt-0.5">
+                    {paymentType === 'regular' && `Due ${fmtDate(loan?.nextPaymentDate)}`}
+                    {paymentType === 'advance' && monthsCovered > 0 && `Covers ${monthsCovered} month${monthsCovered > 1 ? 's' : ''} ahead`}
+                    {paymentType === 'full' && `Settles entire loan balance`}
+                  </span>
                 </div>
+                {paymentType === 'full' && (
+                  <span className="px-3 py-1 rounded-full bg-white/20 text-white text-[11px] font-extrabold backdrop-blur-sm">
+                    Full Payoff
+                  </span>
+                )}
+              </div>
 
-                <div>
-                  <label className="text-xs font-semibold text-slate-700 dark:text-slate-300 block mb-1">Sender Account Number (11 digits)</label>
-                  <input 
-                    type="text" 
-                    className="w-full px-3.5 py-2 rounded-xl border border-slate-300 dark:border-slate-700 bg-white dark:bg-slate-900 text-slate-900 dark:text-white text-xs font-semibold" 
-                    placeholder="09123456789"
-                    maxLength={11}
-                    value={accountNumber}
-                    onChange={(e) => setAccountNumber(e.target.value.replace(/\D/g, '').slice(0, 11))}
-                  />
+              {/* Method Label */}
+              <div>
+                <label className="text-xs font-bold text-slate-700 dark:text-slate-300 uppercase tracking-wider block mb-2">
+                  Select Payment Method <span className="text-red-500">*</span>
+                </label>
+                <div className="space-y-2">
+                  {METHODS.map((m) => (
+                    <div
+                      key={m.id}
+                      className={`p-3.5 rounded-2xl border transition-all cursor-pointer flex items-center gap-3.5 ${method === m.id ? 'bg-emerald-50/60 dark:bg-emerald-950/30 border-emerald-500/60 ring-2 ring-emerald-500/20' : 'bg-slate-50 dark:bg-slate-800/40 border-slate-200 dark:border-white/10 hover:border-slate-300'}`}
+                      onClick={() => { 
+                        setMethod(m.id); 
+                        setSubMethod('');
+                        setAccountName('');
+                        setAccountNumber('');
+                        setReceipt(null);
+                        setReceiptPreview(null);
+                        setTouched({ subMethod: false, accountName: false, accountNumber: false, receipt: false, customAmount: false });
+                        setError(''); 
+                      }}
+                    >
+                      <div className={`w-9 h-9 rounded-xl flex items-center justify-center shrink-0 ${m.iconBg}`}>
+                        {m.icon}
+                      </div>
+                      <div className="flex-1 min-w-0">
+                        <div className="text-xs font-bold text-slate-900 dark:text-white">{m.name}</div>
+                        <div className="text-[11px] text-slate-500 dark:text-slate-400 mt-0.5">{m.desc}</div>
+                      </div>
+                      <div className={`w-4 h-4 rounded-full border flex items-center justify-center ${method === m.id ? 'border-emerald-600 bg-emerald-600 dark:border-emerald-500 dark:bg-emerald-500' : 'border-slate-300 dark:border-slate-600'}`}>
+                        {method === m.id && <div className="w-1.5 h-1.5 rounded-full bg-white" />}
+                      </div>
+                    </div>
+                  ))}
                 </div>
               </div>
-            )}
 
-            {/* Receipt Upload */}
-            {selected?.needsReceipt && (
-              <div className="space-y-2">
-                <label className="text-xs font-bold text-slate-700 dark:text-slate-300 uppercase tracking-wider block">Upload Proof of Payment</label>
-                <label className="border-2 border-dashed border-slate-300 dark:border-slate-700 hover:border-emerald-500 dark:hover:border-emerald-500 rounded-2xl p-4 flex flex-col items-center justify-center cursor-pointer bg-slate-50 dark:bg-slate-800/40 transition-colors">
-                  <input
-                    type="file"
-                    accept="image/*,application/pdf"
-                    className="hidden"
-                    onChange={(e) => { setReceipt(e.target.files[0]); setError(''); }}
-                  />
-                  <UploadCloud className="text-slate-400 mb-1" size={24} />
-                  <p className="text-xs text-slate-700 dark:text-slate-300 font-semibold"><span className="text-emerald-600 dark:text-emerald-400">Click to upload</span> receipt image</p>
-                  <p className="text-[10px] text-slate-400 mt-0.5">PNG, JPG, PDF up to 5MB</p>
-                </label>
-                {receipt && (
-                  <div className="flex items-center gap-2 p-2.5 rounded-xl bg-emerald-50 dark:bg-emerald-950/40 text-emerald-700 dark:text-emerald-300 text-xs font-semibold border border-emerald-200 dark:border-emerald-800/50">
-                    <FileCheck2 size={16} />
-                    <span className="truncate">{receipt.name}</span>
+              {/* Instructions */}
+              <div className="p-4 rounded-2xl bg-slate-50 dark:bg-slate-800/40 border border-slate-200 dark:border-white/10 space-y-2">
+                <span className="text-xs font-bold text-slate-800 dark:text-slate-200 block">How to pay via {selected?.name}</span>
+                {selected?.instructions.map((step, i) => (
+                  <div key={i} className="flex items-start gap-2.5 text-xs text-slate-600 dark:text-slate-400">
+                    <span className="w-4 h-4 rounded-full bg-slate-200 dark:bg-slate-700 text-slate-700 dark:text-slate-300 text-[10px] font-bold flex items-center justify-center shrink-0 mt-0.5">{i + 1}</span>
+                    <span>{step}</span>
+                  </div>
+                ))}
+
+                {selected?.id === 'bank' && approvalMethod === 'manual' && (
+                  <div className="mt-3 p-3.5 rounded-xl bg-blue-50 dark:bg-blue-950/40 border border-blue-200 dark:border-blue-800/50">
+                    <span className="text-[10px] font-black uppercase text-blue-600 dark:text-blue-400 block tracking-wider">Bank Details</span>
+                    <p className="text-xs font-extrabold text-slate-900 dark:text-white mt-1">BDO Unibank</p>
+                    <p className="text-xs text-slate-600 dark:text-slate-300 mt-0.5">Account Name: <strong>Philippine United Apostolic Church</strong></p>
+                    <p className="text-sm font-black text-blue-600 dark:text-blue-400 mt-1 tracking-wider">0012 3456 7890</p>
+                  </div>
+                )}
+
+                {selected?.id === 'e-wallet' && approvalMethod === 'manual' && (
+                  <div className="mt-3 p-3.5 rounded-xl bg-purple-50 dark:bg-purple-950/40 border border-purple-200 dark:border-purple-800/50 space-y-2">
+                    <div>
+                      <span className="text-[10px] font-black uppercase text-purple-600 dark:text-purple-400 block tracking-wider">GCash Details</span>
+                      <p className="text-xs text-slate-600 dark:text-slate-300 mt-0.5">Name: <strong>IsangDiwa Church</strong></p>
+                      <p className="text-sm font-black text-purple-600 dark:text-purple-400 tracking-wider">0912 345 6789</p>
+                    </div>
+                    <div className="pt-2 border-t border-purple-200/60 dark:border-purple-800/40">
+                      <span className="text-[10px] font-black uppercase text-purple-600 dark:text-purple-400 block tracking-wider">Maya Details</span>
+                      <p className="text-xs text-slate-600 dark:text-slate-300 mt-0.5">Name: <strong>IsangDiwa Church</strong></p>
+                      <p className="text-sm font-black text-purple-600 dark:text-purple-400 tracking-wider">0998 765 4321</p>
+                    </div>
                   </div>
                 )}
               </div>
-            )}
 
-            {error && (
-              <div className="p-3 rounded-xl bg-rose-50 dark:bg-rose-950/50 border border-rose-200 dark:border-rose-800/50 text-rose-600 dark:text-rose-300 text-xs font-bold flex items-center gap-2">
-                <AlertCircle size={14} />
-                {error}
-              </div>
-            )}
-          </div>
-        )}
+              {/* Manual Approval Info Fields with Real-Time Validation */}
+              {selected?.needsReceipt && (
+                <div className="space-y-3.5 p-4 rounded-2xl bg-slate-50 dark:bg-slate-800/40 border border-slate-200 dark:border-white/10">
+                  <div className="space-y-1">
+                    <label className="text-xs font-semibold text-slate-700 dark:text-slate-300 block">
+                      {method === 'e-wallet' ? 'E-Wallet' : 'Bank'} Option <span className="text-red-500">*</span>
+                    </label>
+                    {method === 'e-wallet' ? (
+                      <select 
+                        className={`w-full px-3.5 py-2.5 rounded-xl border bg-white dark:bg-slate-900 text-slate-900 dark:text-white text-xs font-semibold outline-none transition-all ${
+                          subMethodError 
+                            ? 'border-red-500 focus:ring-2 focus:ring-red-500/20' 
+                            : 'border-slate-300 dark:border-slate-700 focus:ring-2 focus:ring-emerald-500'
+                        }`} 
+                        value={subMethod}
+                        onBlur={() => handleBlur('subMethod')}
+                        onChange={(e) => {
+                          setSubMethod(e.target.value);
+                          setTouched(prev => ({ ...prev, subMethod: true }));
+                        }}
+                      >
+                        <option value="">Select E-Wallet</option>
+                        <option value="GCash">GCash</option>
+                        <option value="Maya">Maya</option>
+                      </select>
+                    ) : (
+                      <select 
+                        className={`w-full px-3.5 py-2.5 rounded-xl border bg-white dark:bg-slate-900 text-slate-900 dark:text-white text-xs font-semibold outline-none transition-all ${
+                          subMethodError 
+                            ? 'border-red-500 focus:ring-2 focus:ring-red-500/20' 
+                            : 'border-slate-300 dark:border-slate-700 focus:ring-2 focus:ring-emerald-500'
+                        }`} 
+                        value={subMethod} 
+                        onBlur={() => handleBlur('subMethod')}
+                        onChange={(e) => {
+                          setSubMethod(e.target.value);
+                          setTouched(prev => ({ ...prev, subMethod: true }));
+                        }}
+                      >
+                        <option value="">Select Bank</option>
+                        <optgroup label="Card Payments">
+                          <option value="Master Card">Master Card</option>
+                          <option value="Visa">Visa</option>
+                        </optgroup>
+                        <optgroup label="Online Bank">
+                          <option value="BPI">BPI</option>
+                          <option value="BDO">BDO</option>
+                          <option value="PNB">PNB</option>
+                          <option value="Metrobank">Metrobank</option>
+                          <option value="Unionbank">Unionbank</option>
+                          <option value="Instapay">Instapay</option>
+                          <option value="RCBC">RCBC</option>
+                        </optgroup>
+                      </select>
+                    )}
+                    {subMethodError && (
+                      <p className="text-[11px] font-semibold text-red-500 dark:text-red-400 flex items-center gap-1 mt-1">
+                        <AlertCircle size={12} /> {subMethodError}
+                      </p>
+                    )}
+                  </div>
+
+                  <div className="space-y-1">
+                    <div className="flex items-center justify-between">
+                      <label className="text-xs font-semibold text-slate-700 dark:text-slate-300 block">
+                        Sender Account Name <span className="text-red-500">*</span>
+                      </label>
+                      {touched.accountName && isAccountNameValid && !accountNameError && (
+                        <span className="text-[11px] font-bold text-emerald-600 dark:text-emerald-400 flex items-center gap-1">
+                          <CheckCircle2 size={12} /> Valid
+                        </span>
+                      )}
+                    </div>
+                    <input 
+                      type="text" 
+                      className={`w-full px-3.5 py-2 rounded-xl border bg-white dark:bg-slate-900 text-slate-900 dark:text-white text-xs font-semibold outline-none transition-all ${
+                        accountNameError 
+                          ? 'border-red-500 focus:ring-2 focus:ring-red-500/20' 
+                          : touched.accountName && isAccountNameValid 
+                          ? 'border-emerald-500' 
+                          : 'border-slate-300 dark:border-slate-700 focus:ring-2 focus:ring-emerald-500'
+                      }`} 
+                      placeholder="Juan Dela Cruz"
+                      value={accountName}
+                      onBlur={() => handleBlur('accountName')}
+                      onChange={(e) => {
+                        setAccountName(e.target.value);
+                        setTouched(prev => ({ ...prev, accountName: true }));
+                      }}
+                    />
+                    {accountNameError && (
+                      <p className="text-[11px] font-semibold text-red-500 dark:text-red-400 flex items-center gap-1 mt-1">
+                        <AlertCircle size={12} /> {accountNameError}
+                      </p>
+                    )}
+                  </div>
+
+                  <div className="space-y-1">
+                    <div className="flex items-center justify-between">
+                      <label className="text-xs font-semibold text-slate-700 dark:text-slate-300 block">
+                        Sender {method === 'e-wallet' ? 'E-Wallet' : 'Bank Account'} Number <span className="text-red-500">*</span>
+                      </label>
+                      <span className={`text-[11px] font-bold flex items-center gap-1 ${
+                        isAccountNumValid 
+                          ? 'text-emerald-600 dark:text-emerald-400' 
+                          : accountNumberError
+                          ? 'text-red-500'
+                          : 'text-slate-400 dark:text-slate-500'
+                      }`}>
+                        {isAccountNumValid && <CheckCircle2 size={12} />}
+                        {method === 'e-wallet' ? `${digitsOnly.length}/11 digits` : `${digitsOnly.length} digits (10-16)`}
+                      </span>
+                    </div>
+                    <input 
+                      type="text" 
+                      className={`w-full px-3.5 py-2 rounded-xl border bg-white dark:bg-slate-900 text-slate-900 dark:text-white text-xs font-semibold outline-none transition-all ${
+                        accountNumberError 
+                          ? 'border-red-500 focus:ring-2 focus:ring-red-500/20' 
+                          : isAccountNumValid 
+                          ? 'border-emerald-500' 
+                          : 'border-slate-300 dark:border-slate-700 focus:ring-2 focus:ring-emerald-500'
+                      }`} 
+                      placeholder={method === 'e-wallet' ? "09123456789" : "0012 3456 7890"}
+                      maxLength={method === 'e-wallet' ? 11 : 19}
+                      value={accountNumber}
+                      onBlur={() => handleBlur('accountNumber')}
+                      onChange={(e) => {
+                        const raw = e.target.value;
+                        if (method === 'e-wallet') {
+                          setAccountNumber(raw.replace(/\D/g, '').slice(0, 11));
+                        } else {
+                          const digits = raw.replace(/\D/g, '').slice(0, 16);
+                          const formatted = digits.replace(/(.{4})/g, '$1 ').trim();
+                          setAccountNumber(formatted);
+                        }
+                        setTouched(prev => ({ ...prev, accountNumber: true }));
+                      }}
+                    />
+                    {accountNumberError && (
+                      <p className="text-[11px] font-semibold text-red-500 dark:text-red-400 flex items-center gap-1 mt-1">
+                        <AlertCircle size={12} /> {accountNumberError}
+                      </p>
+                    )}
+                  </div>
+                </div>
+              )}
+
+              {/* Receipt Upload Box with Image Preview Container */}
+              {selected?.needsReceipt && (
+                <div className="space-y-2">
+                  <label className="text-xs font-bold text-slate-700 dark:text-slate-300 uppercase tracking-wider block">
+                    Upload Proof of Payment <span className="text-red-500">*</span>
+                  </label>
+
+                  {receipt ? (
+                    <div className="relative p-3 bg-slate-50 dark:bg-slate-800/80 border border-slate-200 dark:border-white/10 rounded-2xl flex flex-col gap-2.5">
+                      <div className="flex items-center justify-between gap-2">
+                        <div className="flex items-center gap-2 text-xs font-bold text-slate-700 dark:text-slate-200 truncate pr-2">
+                          <FileCheck2 size={16} className="text-emerald-500 shrink-0" />
+                          <span className="truncate">{receipt.name}</span>
+                          {receipt.size && (
+                            <span className="text-[10px] font-normal text-slate-400 shrink-0">
+                              ({(receipt.size / 1024 / 1024).toFixed(2)} MB)
+                            </span>
+                          )}
+                        </div>
+                        <button
+                          type="button"
+                          onClick={() => {
+                            setReceipt(null);
+                            setReceiptPreview(null);
+                            setTouched((prev) => ({ ...prev, receipt: true }));
+                          }}
+                          className="text-slate-400 hover:text-red-500 p-1.5 rounded-lg hover:bg-slate-200 dark:hover:bg-white/10 transition-colors cursor-pointer border-none bg-transparent flex items-center justify-center shrink-0"
+                          title="Remove image"
+                        >
+                          <Trash2 size={16} />
+                        </button>
+                      </div>
+
+                      {/* Image Preview Container */}
+                      {receiptPreview ? (
+                        <div 
+                          className="relative w-full max-h-52 overflow-hidden rounded-xl border border-slate-200/80 dark:border-white/10 bg-slate-100 dark:bg-black/40 flex items-center justify-center p-2 cursor-pointer group transition-all"
+                          onClick={() => setEnlargedImage({ src: receiptPreview, name: receipt.name })}
+                          title="Click to expand image"
+                        >
+                          <img
+                            src={receiptPreview}
+                            alt="Proof of Payment Preview"
+                            className="max-h-48 max-w-full object-contain rounded-md shadow-xs group-hover:scale-[1.02] transition-transform duration-200"
+                          />
+                          <div className="absolute inset-0 bg-slate-900/50 opacity-0 group-hover:opacity-100 transition-opacity flex items-center justify-center text-white text-xs font-bold gap-1.5 backdrop-blur-[2px] rounded-xl">
+                            <ZoomIn size={18} /> Click to enlarge
+                          </div>
+                        </div>
+                      ) : (
+                        <div className="p-3 bg-white dark:bg-slate-900 rounded-xl border border-slate-200 dark:border-white/10 text-xs text-slate-500 flex items-center gap-2">
+                          <FileCheck2 size={18} className="text-emerald-500" />
+                          <span>Document attached: <strong>{receipt.name}</strong></span>
+                        </div>
+                      )}
+                    </div>
+                  ) : (
+                    <div>
+                      <label className={`flex flex-col items-center justify-center p-5 border-2 border-dashed rounded-2xl bg-white dark:bg-slate-800/40 hover:bg-slate-50 dark:hover:bg-slate-800 cursor-pointer transition-all text-center ${receiptError ? 'border-red-500 bg-red-50/30 dark:bg-red-950/20' : 'border-slate-300 dark:border-slate-700 hover:border-emerald-500 dark:hover:border-emerald-500'}`}>
+                        <input
+                          type="file"
+                          accept="image/png, image/jpeg, image/jpg, image/webp, application/pdf"
+                          className="hidden"
+                          onChange={(e) => {
+                            const file = e.target.files?.[0];
+                            if (!file) return;
+
+                            const allowedMimes = ['image/png', 'image/jpeg', 'image/jpg', 'image/webp', 'application/pdf'];
+                            const allowedExts = ['.png', '.jpg', '.jpeg', '.webp', '.pdf'];
+                            const ext = '.' + file.name.split('.').pop().toLowerCase();
+
+                            if (!allowedMimes.includes(file.type) && !allowedExts.includes(ext)) {
+                              setReceipt(null);
+                              setReceiptPreview(null);
+                              setTouched(prev => ({ ...prev, receipt: true }));
+                              return setError('Security Alert: Invalid file format. Only PNG, JPG, JPEG, WEBP, or PDF files are allowed.');
+                            }
+
+                            if (file.size > 5 * 1024 * 1024) {
+                              setReceipt(null);
+                              setReceiptPreview(null);
+                              setTouched(prev => ({ ...prev, receipt: true }));
+                              return setError('File size exceeds the 5MB maximum limit. Please upload a smaller file.');
+                            }
+
+                            setReceipt(file);
+                            setTouched((prev) => ({ ...prev, receipt: true }));
+                            setError('');
+                          }}
+                        />
+                        <UploadCloud className={receiptError ? "text-red-500 mb-1" : "text-slate-400 mb-1"} size={28} />
+                        <p className="text-xs text-slate-700 dark:text-slate-300 font-semibold">
+                          <span className="text-emerald-600 dark:text-emerald-400 hover:underline">Click to upload receipt image</span>
+                        </p>
+                        <p className="text-[10px] text-slate-400 mt-0.5 m-0">PNG, JPG, JPEG, WEBP or PDF up to 5MB</p>
+                      </label>
+                      {receiptError && (
+                        <p className="text-[11px] font-semibold text-red-500 dark:text-red-400 flex items-center gap-1 mt-1.5">
+                          <AlertCircle size={12} /> {receiptError}
+                        </p>
+                      )}
+                    </div>
+                  )}
+                </div>
+              )}
+
+              {error && (
+                <div className="p-3 rounded-xl bg-rose-50 dark:bg-rose-950/50 border border-rose-200 dark:border-rose-800/50 text-rose-600 dark:text-rose-300 text-xs font-bold flex items-center gap-2">
+                  <AlertCircle size={14} />
+                  {error}
+                </div>
+              )}
+            </div>
+          )}
+        </div>
 
         {/* Footer */}
         {!submitted && (
-          <div className="flex items-center justify-end gap-3 pt-4 border-t border-slate-100 dark:border-white/10">
+          <div className="flex items-center justify-end gap-3 p-4 sm:p-5 border-t border-slate-100 dark:border-white/10 shrink-0 bg-white dark:bg-slate-900 rounded-b-3xl">
             <button className="px-4 py-2.5 rounded-xl border border-slate-300 dark:border-white/10 text-xs font-semibold text-slate-700 dark:text-slate-300 hover:bg-slate-100 dark:hover:bg-slate-800 transition-colors cursor-pointer" onClick={onClose}>
               Cancel
             </button>
@@ -502,8 +784,32 @@ function PayNowModal({ loan, onClose, onSuccess }) {
             </button>
           </div>
         )}
+
+        {/* Lightbox / Enlarged Receipt Preview Modal */}
+        {enlargedImage && (
+          <div 
+            className="fixed inset-0 z-[100020] bg-black/85 backdrop-blur-md flex items-center justify-center p-4"
+            onClick={() => setEnlargedImage(null)}
+          >
+            <div className="relative max-w-4xl max-h-[90vh] flex flex-col items-center">
+              <button 
+                className="absolute -top-10 right-0 text-white hover:text-rose-400 transition-colors p-1"
+                onClick={() => setEnlargedImage(null)}
+              >
+                <X size={24} />
+              </button>
+              <img 
+                src={enlargedImage.src} 
+                alt={enlargedImage.name} 
+                className="max-h-[85vh] max-w-full object-contain rounded-xl shadow-2xl border border-white/10"
+              />
+              <p className="text-xs text-white/80 mt-2 font-medium">{enlargedImage.name}</p>
+            </div>
+          </div>
+        )}
       </div>
-    </div>
+    </div>,
+    document.body
   );
 }
 
@@ -514,12 +820,15 @@ function ScheduleModal({ loan, schedule, onClose, onPayNow }) {
   const totalInterest = schedule.reduce((s, r) => s + (r.interest || 0), 0);
   const totalRepayment = schedule.reduce((s, r) => s + (r.payment || 0), 0);
 
-  return (
-    <div className="fixed inset-0 z-[100010] bg-black/75 backdrop-blur-sm flex items-center justify-center p-4" onClick={(e) => e.target === e.currentTarget && onClose()}>
-      <div className="relative w-full max-w-2xl bg-white dark:bg-slate-900 rounded-3xl p-6 shadow-2xl border border-slate-200 dark:border-white/10 max-h-[90vh] overflow-y-auto text-left font-inter animate-in fade-in zoom-in-95 duration-200">
+  return createPortal(
+    <div className="fixed inset-0 z-[100010] bg-black/75 backdrop-blur-sm flex items-end sm:items-center justify-center p-0 sm:p-4 transition-all" onClick={(e) => e.target === e.currentTarget && onClose()}>
+      <div className="relative w-full max-w-2xl bg-white dark:bg-slate-900 rounded-t-[2.25rem] sm:rounded-3xl shadow-2xl border border-slate-200 dark:border-white/10 flex flex-col max-h-[92vh] sm:max-h-[90vh] overflow-hidden text-left font-inter animate-in fade-in slide-in-from-bottom-8 sm:slide-in-from-bottom-0 sm:zoom-in-95 duration-200">
         
+        {/* Mobile Drag Indicator */}
+        <div className="w-10 h-1 rounded-full bg-slate-300 dark:bg-slate-700 mx-auto mt-2.5 mb-0.5 sm:hidden shrink-0" />
+
         {/* Header */}
-        <div className="flex items-center justify-between pb-4 border-b border-slate-100 dark:border-white/10">
+        <div className="flex items-center justify-between p-5 sm:p-6 pb-4 border-b border-slate-100 dark:border-white/10 shrink-0">
           <div>
             <h3 className="text-lg font-black text-slate-900 dark:text-white">Payment Schedule</h3>
             <p className="text-xs text-slate-500 dark:text-slate-400 mt-0.5">{loan?.loanId} · {loan?.termMonths} monthly payments · {(loan?.interestRate < 1 ? loan?.interestRate * 100 : loan?.interestRate) || 0}% / mo</p>
@@ -529,67 +838,70 @@ function ScheduleModal({ loan, schedule, onClose, onPayNow }) {
           </button>
         </div>
 
-        {/* Summary Strip */}
-        <div className="grid grid-cols-3 gap-3 my-4 p-4 rounded-2xl bg-slate-50 dark:bg-slate-800/40 border border-slate-200/80 dark:border-white/10">
-          <div>
-            <span className="text-[10px] font-bold text-slate-400 uppercase tracking-wider block">Principal</span>
-            <span className="text-sm font-black text-slate-900 dark:text-white block mt-0.5">{fmt(loan?.amount)}</span>
+        {/* Body (Scrollable inside padding) */}
+        <div className="flex-1 overflow-y-auto p-5 sm:p-6 custom-scrollbar space-y-4">
+          {/* Summary Strip */}
+          <div className="grid grid-cols-3 gap-3 p-4 rounded-2xl bg-slate-50 dark:bg-slate-800/40 border border-slate-200/80 dark:border-white/10">
+            <div>
+              <span className="text-[10px] font-bold text-slate-400 uppercase tracking-wider block">Principal</span>
+              <span className="text-sm font-black text-slate-900 dark:text-white block mt-0.5">{fmt(loan?.amount)}</span>
+            </div>
+            <div>
+              <span className="text-[10px] font-bold text-slate-400 uppercase tracking-wider block">Total Interest</span>
+              <span className="text-sm font-black text-slate-900 dark:text-white block mt-0.5">{fmt(totalInterest)}</span>
+            </div>
+            <div>
+              <span className="text-[10px] font-bold text-slate-400 uppercase tracking-wider block">Total Repayment</span>
+              <span className="text-sm font-black text-emerald-600 dark:text-emerald-400 block mt-0.5">{fmt(totalRepayment)}</span>
+            </div>
           </div>
-          <div>
-            <span className="text-[10px] font-bold text-slate-400 uppercase tracking-wider block">Total Interest</span>
-            <span className="text-sm font-black text-slate-900 dark:text-white block mt-0.5">{fmt(totalInterest)}</span>
-          </div>
-          <div>
-            <span className="text-[10px] font-bold text-slate-400 uppercase tracking-wider block">Total Repayment</span>
-            <span className="text-sm font-black text-emerald-600 dark:text-emerald-400 block mt-0.5">{fmt(totalRepayment)}</span>
-          </div>
-        </div>
 
-        {/* Schedule Table */}
-        <div className="overflow-x-auto rounded-2xl border border-slate-200 dark:border-white/10">
-          <table className="w-full text-left text-xs">
-            <thead className="bg-slate-100 dark:bg-slate-800 text-slate-500 dark:text-slate-400 uppercase font-bold text-[10px] tracking-wider">
-              <tr>
-                <th className="py-3 px-3.5">#</th>
-                <th className="py-3 px-3.5">Due Date</th>
-                <th className="py-3 px-3.5">Principal</th>
-                <th className="py-3 px-3.5">Interest</th>
-                <th className="py-3 px-3.5">Payment</th>
-                <th className="py-3 px-3.5 text-right">Status</th>
-              </tr>
-            </thead>
-            <tbody className="divide-y divide-slate-100 dark:divide-white/5 font-medium text-slate-800 dark:text-slate-200">
-              {schedule.map((row, i) => {
-                const isPaid = row.status === 'paid';
-                const isDue = !isPaid && row.isNext;
-                const isMissed = row.status === 'missed';
+          {/* Schedule Table */}
+          <div className="overflow-x-auto rounded-2xl border border-slate-200 dark:border-white/10">
+            <table className="w-full text-left text-xs">
+              <thead className="bg-slate-100 dark:bg-slate-800 text-slate-500 dark:text-slate-400 uppercase font-bold text-[10px] tracking-wider">
+                <tr>
+                  <th className="py-3 px-3.5">#</th>
+                  <th className="py-3 px-3.5">Due Date</th>
+                  <th className="py-3 px-3.5">Principal</th>
+                  <th className="py-3 px-3.5">Interest</th>
+                  <th className="py-3 px-3.5">Payment</th>
+                  <th className="py-3 px-3.5 text-right">Status</th>
+                </tr>
+              </thead>
+              <tbody className="divide-y divide-slate-100 dark:divide-white/5 font-medium text-slate-800 dark:text-slate-200">
+                {schedule.map((row, i) => {
+                  const isPaid = row.status === 'paid';
+                  const isDue = !isPaid && row.isNext;
+                  const isMissed = row.status === 'missed';
 
-                return (
-                  <tr key={i} className={isDue ? 'bg-amber-50/60 dark:bg-amber-950/20' : isPaid ? 'bg-slate-50/40 dark:bg-slate-900/40 opacity-75' : ''}>
-                    <td className="py-3 px-3.5 font-bold">
-                      {isPaid ? <span className="text-emerald-600 dark:text-emerald-400">✓</span> : i + 1}
-                    </td>
-                    <td className="py-3 px-3.5">{fmtDate(row.dueDate)}</td>
-                    <td className="py-3 px-3.5">{fmt(row.principal)}</td>
-                    <td className="py-3 px-3.5">{fmt(row.interest)}</td>
-                    <td className={`py-3 px-3.5 font-bold ${isDue ? 'text-amber-600 dark:text-amber-400' : isPaid ? 'text-emerald-600 dark:text-emerald-400' : ''}`}>
-                      {fmt(row.payment)}
-                    </td>
-                    <td className="py-3 px-3.5 text-right">
-                      {isPaid && <span className="px-2 py-0.5 rounded-md bg-emerald-100 text-emerald-700 dark:bg-emerald-950 dark:text-emerald-300 font-extrabold text-[10px]">Paid</span>}
-                      {isDue && <span className="px-2 py-0.5 rounded-md bg-amber-100 text-amber-700 dark:bg-amber-950 dark:text-amber-300 font-extrabold text-[10px]">Due Soon</span>}
-                      {isMissed && <span className="px-2 py-0.5 rounded-md bg-rose-100 text-rose-700 dark:bg-rose-950 dark:text-rose-300 font-extrabold text-[10px]">Missed</span>}
-                      {!isPaid && !isDue && !isMissed && <span className="px-2 py-0.5 rounded-md bg-slate-100 text-slate-600 dark:bg-slate-800 dark:text-slate-400 font-extrabold text-[10px]">Upcoming</span>}
-                    </td>
-                  </tr>
-                );
-              })}
-            </tbody>
-          </table>
+                  return (
+                    <tr key={i} className={isDue ? 'bg-amber-50/60 dark:bg-amber-950/20' : isPaid ? 'bg-slate-50/40 dark:bg-slate-900/40 opacity-75' : ''}>
+                      <td className="py-3 px-3.5 font-bold">
+                        {isPaid ? <span className="text-emerald-600 dark:text-emerald-400">✓</span> : i + 1}
+                      </td>
+                      <td className="py-3 px-3.5">{fmtDate(row.dueDate)}</td>
+                      <td className="py-3 px-3.5">{fmt(row.principal)}</td>
+                      <td className="py-3 px-3.5">{fmt(row.interest)}</td>
+                      <td className={`py-3 px-3.5 font-bold ${isDue ? 'text-amber-600 dark:text-amber-400' : isPaid ? 'text-emerald-600 dark:text-emerald-400' : ''}`}>
+                        {fmt(row.payment)}
+                      </td>
+                      <td className="py-3 px-3.5 text-right">
+                        {isPaid && <span className="px-2 py-0.5 rounded-md bg-emerald-100 text-emerald-700 dark:bg-emerald-950 dark:text-emerald-300 font-extrabold text-[10px]">Paid</span>}
+                        {isDue && <span className="px-2 py-0.5 rounded-md bg-amber-100 text-amber-700 dark:bg-amber-950 dark:text-amber-300 font-extrabold text-[10px]">Due Soon</span>}
+                        {isMissed && <span className="px-2 py-0.5 rounded-md bg-rose-100 text-rose-700 dark:bg-rose-950 dark:text-rose-300 font-extrabold text-[10px]">Missed</span>}
+                        {!isPaid && !isDue && !isMissed && <span className="px-2 py-0.5 rounded-md bg-slate-100 text-slate-600 dark:bg-slate-800 dark:text-slate-400 font-extrabold text-[10px]">Upcoming</span>}
+                      </td>
+                    </tr>
+                  );
+                })}
+              </tbody>
+            </table>
+          </div>
         </div>
 
         {/* Footer */}
-        <div className="flex items-center justify-end gap-3 pt-4 mt-4 border-t border-slate-100 dark:border-white/10">
+        <div className="flex items-center justify-end gap-3 p-4 sm:p-5 border-t border-slate-100 dark:border-white/10 shrink-0 bg-white dark:bg-slate-900 rounded-b-3xl">
           <button className="px-4 py-2.5 rounded-xl border border-slate-300 dark:border-white/10 text-xs font-semibold text-slate-700 dark:text-slate-300 hover:bg-slate-100 dark:hover:bg-slate-800 transition-colors cursor-pointer" onClick={onClose}>
             Close
           </button>
@@ -600,7 +912,8 @@ function ScheduleModal({ loan, schedule, onClose, onPayNow }) {
           )}
         </div>
       </div>
-    </div>
+    </div>,
+    document.body
   );
 }
 
@@ -900,12 +1213,17 @@ export default function LoanDetail() {
               </div>
             )}
 
-            {/* Payment History */}
-            {paymentHistory.length > 0 && (
-              <div className="p-5 rounded-2xl bg-white dark:bg-[#1E2130] border border-slate-200/80 dark:border-white/10 shadow-xs space-y-4">
-                <div className="flex items-center justify-between pb-3 border-b border-slate-100 dark:border-white/5">
-                  <h3 className="text-xs font-bold text-slate-900 dark:text-white uppercase tracking-wider">Payment History</h3>
-                </div>
+            {/* Payment History Card (Right Column) */}
+            <div className="p-5 rounded-2xl bg-white dark:bg-[#1E2130] border border-slate-200/80 dark:border-white/10 shadow-xs space-y-4">
+              <div className="flex items-center justify-between pb-3 border-b border-slate-100 dark:border-white/5">
+                <h3 className="text-xs font-bold text-slate-900 dark:text-white uppercase tracking-wider">Payment History</h3>
+                {paymentHistory.length > 0 && (
+                  <span className="text-[11px] font-bold text-emerald-600 dark:text-emerald-400 bg-emerald-50 dark:bg-emerald-950/60 px-2 py-0.5 rounded-full border border-emerald-200 dark:border-emerald-800">
+                    {paymentHistory.length} paid
+                  </span>
+                )}
+              </div>
+              {paymentHistory.length > 0 ? (
                 <div className="space-y-2.5">
                   {paymentHistory.slice(0, 4).map((p, i) => (
                     <div key={i} className="p-3.5 rounded-xl bg-slate-50 dark:bg-slate-800/40 border border-slate-100 dark:border-white/5 flex items-center justify-between cursor-pointer hover:bg-slate-100 dark:hover:bg-slate-800/60 transition-colors" onClick={() => setHistoryDetail(p)}>
@@ -923,8 +1241,16 @@ export default function LoanDetail() {
                     </div>
                   ))}
                 </div>
-              </div>
-            )}
+              ) : (
+                <div className="py-8 flex flex-col items-center justify-center text-center">
+                  <div className="w-10 h-10 rounded-2xl bg-slate-100 dark:bg-slate-800/60 flex items-center justify-center text-slate-400 dark:text-slate-500 mb-2">
+                    <History size={20} />
+                  </div>
+                  <p className="text-xs font-bold text-slate-700 dark:text-slate-300 m-0">No payment history yet</p>
+                  <p className="text-[11px] text-slate-400 dark:text-slate-500 m-0 mt-0.5">Confirmed payments for this loan will appear here.</p>
+                </div>
+              )}
+            </div>
           </div>
 
         </>

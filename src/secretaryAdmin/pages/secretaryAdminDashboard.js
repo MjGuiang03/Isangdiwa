@@ -147,12 +147,15 @@ export default function SecretaryAdminDashboard() {
       { name: 'Cash', value: cashAmt, percentage: totalAmt > 0 ? Math.round((cashAmt / totalAmt) * 100) : 0 }
     ];
 
-    const months = ['Jan', 'Feb', 'Mar', 'Apr', 'May', 'Jun', 'Jul', 'Aug', 'Sep', 'Oct', 'Nov', 'Dec'];
+    const allMonths = ['Jan', 'Feb', 'Mar', 'Apr', 'May', 'Jun', 'Jul', 'Aug', 'Sep', 'Oct', 'Nov', 'Dec'];
+    const now = new Date();
+    const monthsCount = chartYear === now.getFullYear() ? Math.max(now.getMonth() + 1, 6) : 12;
+    const months = allMonths.slice(0, monthsCount);
     const moneyFlowData = months.map(m => ({ month: m, released: 0 }));
     disbursedL.forEach(l => {
       if (!l.disbursementDate) return;
       const d = new Date(l.disbursementDate);
-      if (d.getFullYear() === chartYear) {
+      if (d.getFullYear() === chartYear && moneyFlowData[d.getMonth()]) {
         moneyFlowData[d.getMonth()].released += Number(l.amount) || 0;
       }
     });
@@ -397,7 +400,7 @@ export default function SecretaryAdminDashboard() {
                       <BarChart data={chartData} margin={{ top: 4, right: 8, left: -10, bottom: 0 }}>
                         <CartesianGrid strokeDasharray="3 3" stroke="#F3F4F6" />
                         <XAxis dataKey="month" stroke="#9CA3AF" fontSize={12} />
-                        <YAxis stroke="#9CA3AF" fontSize={12} tickFormatter={v => v >= 1000 ? `${(v / 1000).toFixed(0)}k` : v} />
+                        <YAxis stroke="#9CA3AF" fontSize={12} tickFormatter={v => v >= 1000000 ? `${(v / 1000000).toFixed(1).replace(/\.0$/, '')}M` : v >= 1000 ? `${(v / 1000).toFixed(0)}k` : v} />
                         <Tooltip cursor={{ fill: '#F9FAFB' }} contentStyle={{ borderRadius: '8px', border: '1px solid #E5E7EB' }} formatter={(v, n, props) => props.payload.released === maxReleased * 0.01 ? '₱0' : '₱' + Math.round(v).toLocaleString()} />
                         <Bar dataKey="released" name="Disbursed" radius={[4, 4, 0, 0]}>
                           {chartData.map((entry, index) => (
@@ -440,7 +443,7 @@ export default function SecretaryAdminDashboard() {
                                   <Cell key={`cell-${index}`} fill={PIE_COLORS[index % PIE_COLORS.length]} />
                                 ))}
                                 {/* Centered label for recharts Pie */}
-                                <Label value={`₱${totalVal >= 1000 ? (totalVal / 1000).toFixed(1).replace(/\\.0$/, '') + 'k' : totalVal}`} position="center" fill="#1e3a5f" className="text-sm font-bold font-inter" />
+                                <Label value={`₱${totalVal >= 1000000 ? (totalVal / 1000000).toFixed(2).replace(/\.00$/, '').replace(/(\.\d)0$/, '$1') + 'M' : totalVal >= 1000 ? (totalVal / 1000).toFixed(1).replace(/\.0$/, '') + 'k' : totalVal}`} position="center" fill="#1e3a5f" className="text-sm font-bold font-inter" />
                                 <Label value="Total" position="center" dy={16} fill="#6B7280" className="text-[10px] font-inter uppercase tracking-wider" />
                               </Pie>
                               <Tooltip formatter={(value) => '₱' + value.toLocaleString()} />
@@ -452,7 +455,7 @@ export default function SecretaryAdminDashboard() {
                             <div key={i} className="flex items-center gap-1.5 text-[11px] font-inter">
                               <div className="w-2 h-2 rounded-full shrink-0" style={{ backgroundColor: PIE_COLORS[i % PIE_COLORS.length] }} />
                               <span className="flex-1 text-gray-700 dark:text-gray-400">{entry.name}</span>
-                              <span className="font-semibold text-gray-900 dark:text-gray-100">₱{entry.value >= 1000 ? (entry.value / 1000).toFixed(0) + 'k' : entry.value} ({entry.percentage}%)</span>
+                              <span className="font-semibold text-gray-900 dark:text-gray-100">₱{entry.value >= 1000000 ? (entry.value / 1000000).toFixed(2).replace(/\.00$/, '').replace(/(\.\d)0$/, '$1') + 'M' : entry.value >= 1000 ? (entry.value / 1000).toFixed(0) + 'k' : entry.value} ({entry.percentage}%)</span>
                             </div>
                           ))}
                         </div>
@@ -765,7 +768,10 @@ export default function SecretaryAdminDashboard() {
                     <div className="h-[260px]">
                       <ResponsiveContainer width="100%" height="100%">
                         <LineChart data={(() => {
-                          return MONTH_NAMES.map((month, idx) => {
+                          const now = new Date();
+                          const monthsCount = chartYear === now.getFullYear() ? Math.max(now.getMonth() + 1, 6) : 12;
+                          const visibleMonths = MONTH_NAMES.slice(0, monthsCount);
+                          return visibleMonths.map((month, idx) => {
                             const mLoans = yearLoans.filter(l => new Date(l.disbursementDate).getMonth() === idx);
                             let ew = 0, bk = 0, ca = 0;
                             mLoans.forEach(l => {
@@ -780,7 +786,7 @@ export default function SecretaryAdminDashboard() {
                         })()} margin={{ top: 10, right: 30, left: 10, bottom: 10 }}>
                           <CartesianGrid strokeDasharray="3 3" stroke="#F3F4F6" />
                           <XAxis dataKey="month" stroke="#9CA3AF" fontSize={12} />
-                          <YAxis stroke="#9CA3AF" fontSize={12} tickFormatter={v => v >= 1000 ? `₱${(v / 1000).toFixed(0)}k` : `₱${v}`} />
+                          <YAxis stroke="#9CA3AF" fontSize={12} tickFormatter={v => v >= 1000000 ? `₱${(v / 1000000).toFixed(1).replace(/\.0$/, '')}M` : v >= 1000 ? `₱${(v / 1000).toFixed(0)}k` : `₱${v}`} />
                           <Tooltip formatter={v => fmt(v)} />
                           <Legend iconType="circle" iconSize={8} />
                           <Line type="monotone" dataKey="Bank Transfer" stroke="#1e3a5f" strokeWidth={3} dot={{ r: 5, fill: '#1e3a5f' }} activeDot={{ r: 7 }} />

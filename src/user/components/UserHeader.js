@@ -1,7 +1,7 @@
 import { useState, useEffect, useCallback, useRef } from 'react';
 import { useNavigate } from 'react-router';
 import { useAuth } from '../../context/AuthContext';
-import { Bell, Banknote, Heart, CalendarDays, Circle, X, Menu } from 'lucide-react';
+import { Bell, Banknote, Heart, CalendarDays, Circle, X, Menu, Lock } from 'lucide-react';
 import API from '../../utils/api';
 
 export default function UserHeader({ toggleSidebar, collapsed }) {
@@ -31,7 +31,7 @@ export default function UserHeader({ toggleSidebar, collapsed }) {
       const data = await res.json();
       if (!data.success) throw new Error(data.message || 'Failed to fetch feed');
 
-      const { readIds: readIdsFromData, payments, loans: loansDataFeed, donations: donationsDataFeed, attendance: attendanceDataFeed, savings: savingsDataFeed } = data;
+      const { readIds: readIdsFromData, payments, loans: loansDataFeed, donations: donationsDataFeed, attendance: attendanceDataFeed, savings: savingsDataFeed, securityNotifications: secDataFeed } = data;
 
       const currentReadIds = new Set(readIdsFromData || []);
       setReadIds(currentReadIds);
@@ -87,8 +87,12 @@ export default function UserHeader({ toggleSidebar, collapsed }) {
         });
       }
       if (donationsDataFeed) {
-        donationsDataFeed.filter(d => d.status === 'confirmed').forEach(d => {
-          items.push({ id: `don-${d._id}`, type: 'donation', title: 'Donation Received', message: `₱${d.amount.toLocaleString()} donation confirmed.`, timestamp: d.updatedAt || d.date || d.createdAt });
+        donationsDataFeed.forEach(d => {
+          if (d.status === 'pending') {
+            items.push({ id: `don-pending-${d._id}`, type: 'donation', title: 'Donation Under Approval', message: `₱${Number(d.amount).toLocaleString()} donation pending manual review.`, timestamp: d.createdAt || d.date });
+          } else if (d.status === 'confirmed') {
+            items.push({ id: `don-${d._id}`, type: 'donation', title: 'Donation Received', message: `₱${Number(d.amount).toLocaleString()} donation confirmed.`, timestamp: d.updatedAt || d.date || d.createdAt });
+          }
         });
       }
       if (attendanceDataFeed) {
@@ -113,6 +117,17 @@ export default function UserHeader({ toggleSidebar, collapsed }) {
             title: 'Withdrawal Successful', 
             message: `Your withdrawal of ₱${s.amount.toLocaleString()} from ${s.goalName || 'your savings'} has been approved.`, 
             timestamp: s.confirmedAt || s.date || s.createdAt 
+          });
+        });
+      }
+      if (secDataFeed) {
+        secDataFeed.forEach(s => {
+          items.push({
+            id: s.id,
+            type: 'security',
+            title: s.title,
+            message: s.message,
+            timestamp: s.timestamp
           });
         });
       }
@@ -255,6 +270,7 @@ export default function UserHeader({ toggleSidebar, collapsed }) {
                        item.type === 'attendance' ? <CalendarDays size={15} className="text-blue-600 dark:text-blue-400" /> :
                        item.type === 'savings' ? <Banknote size={15} className="text-emerald-600 dark:text-emerald-400" /> :
                        item.type === 'savings_withdrawal' ? <Banknote size={15} className="text-emerald-600 dark:text-emerald-400" /> :
+                       item.type === 'security' ? <Lock size={15} className="text-amber-500 dark:text-amber-400" /> :
                        <Circle size={8} className="text-blue-600 dark:text-blue-400" />}
                     </div>
                     <div className="flex-1 min-w-0">
