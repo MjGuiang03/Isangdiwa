@@ -26,7 +26,6 @@ const formatYAxis = (num) => {
   return num === 0 ? '₱0' : `₱${num}`;
 };
 
-const CHART_TICKS = [0, 100000, 200000, 300000, 400000, 500000];
 const PIE_COLORS = ['#0D1F45', '#1E3A8A', '#2563EB', '#3B82F6', '#60A5FA', '#93C5FD', '#BFDBFE'];
 const STATUS_COLORS = {
   Active: '#10B981', Completed: '#0D1F45', Pending: '#2563EB',
@@ -1291,7 +1290,6 @@ export default function LoanAdminDashboard() {
 
               {expandedChart === 'statusDist' && (() => {
                 const STATUS_COLORS = { Active: '#10B981', Completed: '#0D1F45', Pending: '#2563EB', Rejected: '#EF4444', Cancelled: '#F59E0B', Approved: '#60A5FA' };
-                const total = statusDistribution.reduce((s, d) => s + d.value, 0);
                 return (
                 <>
                   {/* Section 1 — Loan Status Distribution Bar Graph */}
