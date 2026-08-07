@@ -263,12 +263,42 @@ export default function LoanAdminDashboard() {
     setShowDisbursedModal(true);
   }, []);
 
+  const visibleMonthlyData = useMemo(() => {
+    const now = new Date();
+    const maxMonth = currentYear === now.getFullYear() ? now.getMonth() + 1 : 12;
+    return monthlyData.slice(0, maxMonth);
+  }, [monthlyData, currentYear]);
+
+  const visibleMonthlyApplications = useMemo(() => {
+    const now = new Date();
+    const maxMonth = currentYear === now.getFullYear() ? now.getMonth() + 1 : 12;
+    return monthlyApplications.slice(0, maxMonth);
+  }, [monthlyApplications, currentYear]);
+
+  const visibleDelinquencyRate = useMemo(() => {
+    const now = new Date();
+    const maxMonth = currentYear === now.getFullYear() ? now.getMonth() + 1 : 12;
+    return delinquencyRate.slice(0, maxMonth);
+  }, [delinquencyRate, currentYear]);
+
+  const visibleMonthlyStatusTrend = useMemo(() => {
+    const now = new Date();
+    const maxMonth = currentYear === now.getFullYear() ? now.getMonth() + 1 : 12;
+    return monthlyStatusTrend.slice(0, maxMonth);
+  }, [monthlyStatusTrend, currentYear]);
+
+  const visibleMonthlyRepayment = useMemo(() => {
+    const now = new Date();
+    const maxMonth = currentYear === now.getFullYear() ? now.getMonth() + 1 : 12;
+    return monthlyRepayment.slice(0, maxMonth);
+  }, [monthlyRepayment, currentYear]);
+
   const moneyInVsOutSummary = useMemo(() => {
-    const totalIn = monthlyData.reduce((sum, d) => sum + (d.received || 0), 0);
-    const totalOut = monthlyData.reduce((sum, d) => sum + (d.disbursed || 0), 0);
+    const totalIn = visibleMonthlyData.reduce((sum, d) => sum + (d.received || 0), 0);
+    const totalOut = visibleMonthlyData.reduce((sum, d) => sum + (d.disbursed || 0), 0);
     const net = totalIn - totalOut;
     return { totalIn, totalOut, net };
-  }, [monthlyData]);
+  }, [visibleMonthlyData]);
 
   const disbursementSummary = useMemo(() => {
     const total = disbursementByType.reduce((s, d) => s + (d.amount || 0), 0);
@@ -280,7 +310,9 @@ export default function LoanAdminDashboard() {
   // Monthly disbursement trend per loan type (for expanded view)
   const disbursementMonthlyTrend = useMemo(() => {
     const LOAN_TYPE_LABELS = { 'personal': 'Personal Loan', 'emergency': 'Emergency Loan', 'short-term': 'Short-Term Loan' };
-    return MONTH_NAMES.map((month, idx) => {
+    const now = new Date();
+    const maxMonth = currentYear === now.getFullYear() ? now.getMonth() + 1 : 12;
+    return MONTH_NAMES.slice(0, maxMonth).map((month, idx) => {
       const monthLoans = allDisbursedLoans.filter(l => {
         const d = new Date(l.disbursementDate);
         return d.getMonth() === idx && d.getFullYear() === currentYear;
@@ -319,11 +351,11 @@ export default function LoanAdminDashboard() {
   }, [repaymentPerformance]);
 
   const delinquencyRateSummary = useMemo(() => {
-    const totalPayments = delinquencyRate.reduce((s, d) => s + (d.total || 0), 0);
-    const totalLate = delinquencyRate.reduce((s, d) => s + (d.late || 0), 0);
+    const totalPayments = visibleDelinquencyRate.reduce((s, d) => s + (d.total || 0), 0);
+    const totalLate = visibleDelinquencyRate.reduce((s, d) => s + (d.late || 0), 0);
     const avgRate = totalPayments > 0 ? ((totalLate / totalPayments) * 100).toFixed(1) : 0;
     return { totalPayments, totalLate, avgRate };
-  }, [delinquencyRate]);
+  }, [visibleDelinquencyRate]);
 
   const monthModalTotal = useMemo(() => {
     return filteredMonthLoans.reduce((s, l) => s + (Number(l.amount) || 0), 0);
@@ -493,17 +525,17 @@ export default function LoanAdminDashboard() {
           </div>
         </div>
 
-        {/* Row 2 — Charts */}
-        <div className="grid grid-cols-1 lg:grid-cols-2 gap-5 mb-5">
+        {/* Row 2 — Money In vs Money Out (60%) + Loan Status Distribution (40%) */}
+        <div className="grid grid-cols-1 lg:grid-cols-[3fr_2fr] gap-5 mb-5">
           {/* Money In vs Money Out */}
           <div className="group relative bg-white dark:bg-[#1E2130] rounded-2xl p-6 border border-slate-100 dark:border-white/5 shadow-[0_2px_12px_-4px_rgba(0,0,0,0.04)] overflow-hidden">
             <div className="absolute top-0 right-0 w-32 h-32 bg-blue-500/5 rounded-full blur-3xl -mr-10 -mt-10 pointer-events-none transition-transform duration-500 group-hover:scale-125"></div>
             <div className="relative z-10">
-            <div className="flex items-start justify-between mb-6">
+            <div className="flex items-start justify-between mb-4">
               <div>
                 <h3 className="text-base font-bold text-slate-800 dark:text-white font-inter tracking-tight m-0">Money In vs Money Out</h3>
                 <span className="text-[13px] text-slate-500 dark:text-slate-400 font-inter mt-1 block">Monthly comparison of received funds and loan disbursements</span>
-                <div className="mt-4">
+                <div className="mt-3">
                   <div className="flex flex-wrap items-center gap-2">
                     <span className="px-2.5 py-1 rounded-md text-xs font-semibold bg-emerald-50 dark:bg-emerald-500/10 text-emerald-600 dark:text-emerald-400">Total In: ₱{(moneyInVsOutSummary.totalIn/1000).toFixed(1)}k</span>
                     <span className="px-2.5 py-1 rounded-md text-xs font-semibold bg-blue-50 dark:bg-blue-500/10 text-blue-600 dark:text-blue-400">Total Out: ₱{(moneyInVsOutSummary.totalOut/1000).toFixed(1)}k</span>
@@ -518,12 +550,12 @@ export default function LoanAdminDashboard() {
               </button>
             </div>
             <ResponsiveContainer width="100%" height={240}>
-              <BarChart data={monthlyData} margin={{ top: 20, right: 8, left: -25, bottom: 5 }}>
+              <BarChart data={visibleMonthlyData} margin={{ top: 15, right: 8, left: -25, bottom: 5 }}>
                 <CartesianGrid strokeDasharray="3 3" stroke="#F3F4F6" vertical={false} />
                 <XAxis dataKey="month" stroke="#9CA3AF" fontSize={11} fontFamily="DM Sans, sans-serif" fontWeight={400} axisLine={false} tickLine={false} />
-                <YAxis stroke="#9CA3AF" fontSize={11} fontFamily="DM Mono, monospace" fontWeight={500} axisLine={false} tickLine={false} tickFormatter={formatYAxis} width={55} ticks={CHART_TICKS} domain={[0, 500000]} />
+                <YAxis stroke="#9CA3AF" fontSize={11} fontFamily="DM Mono, monospace" fontWeight={500} axisLine={false} tickLine={false} tickFormatter={formatYAxis} width={55} />
                 <Tooltip cursor={{ fill: '#F9FAFB' }} contentStyle={{ borderRadius: '8px', border: '1px solid #E5E7EB' }} formatter={(v) => '₱' + v.toLocaleString()} />
-                <Legend iconType="circle" wrapperStyle={{ paddingTop: '12px' }} />
+                <Legend iconType="circle" wrapperStyle={{ paddingTop: '8px' }} />
                 <Bar dataKey="received" fill="#0D1F45" name="Money Received" radius={[4, 4, 0, 0]} />
                 <Bar dataKey="disbursed" fill="#60A5FA" name="Money Released" radius={[4, 4, 0, 0]} />
               </BarChart>
@@ -531,109 +563,6 @@ export default function LoanAdminDashboard() {
             </div>
           </div>
 
-          {/* Disbursements by Type */}
-          <div className="group relative bg-white dark:bg-[#1E2130] rounded-2xl p-6 border border-slate-100 dark:border-white/5 shadow-[0_2px_12px_-4px_rgba(0,0,0,0.04)] overflow-hidden">
-            <div className="absolute top-0 right-0 w-32 h-32 bg-indigo-500/5 rounded-full blur-3xl -mr-10 -mt-10 pointer-events-none transition-transform duration-500 group-hover:scale-125"></div>
-            <div className="relative z-10">
-            <div className="flex items-start justify-between mb-6">
-              <div>
-                <h3 className="text-base font-bold text-slate-800 dark:text-white font-inter tracking-tight m-0">Disbursements by Type</h3>
-                <span className="text-[13px] text-slate-500 dark:text-slate-400 font-inter mt-1 block">Funds allocated by loan type</span>
-                <div className="flex items-center gap-4 mt-4">
-                  <div className="bg-slate-50 dark:bg-[#252836] p-[8px_12px] rounded-lg border border-slate-100 dark:border-white/5 min-w-[100px]">
-                    <div className="text-sm font-bold text-slate-800 dark:text-white font-inter">₱{disbursementSummary.total >= 1000000 ? (disbursementSummary.total/1000000).toFixed(1).replace(/\.0$/, '') + 'M' : disbursementSummary.total >= 1000 ? (disbursementSummary.total/1000).toFixed(1).replace(/\.0$/, '') + 'k' : disbursementSummary.total.toLocaleString()}</div>
-                    <div className="text-[10px] text-slate-500 dark:text-slate-400 font-inter uppercase tracking-wider mt-0.5">Total Disbursed</div>
-                  </div>
-                  <div className="bg-slate-50 dark:bg-[#252836] p-[8px_12px] rounded-lg border border-slate-100 dark:border-white/5 min-w-[100px]">
-                    <div className="text-sm font-bold text-slate-800 dark:text-white font-inter">{disbursementByTypeDetail.reduce((s, d) => s + (d.count || 0), 0)}</div>
-                    <div className="text-[10px] text-slate-500 dark:text-slate-400 font-inter uppercase tracking-wider mt-0.5">Total Loans</div>
-                  </div>
-                </div>
-              </div>
-              <button className="w-8 h-8 rounded-lg bg-slate-50 dark:bg-white/5 flex items-center justify-center cursor-pointer transition-colors hover:bg-slate-100 dark:hover:bg-white/10 border-none shrink-0" onClick={() => setExpandedChart('disbursements')} title="Expand Chart">
-                <Expand size={18} color="#4B5563" strokeWidth={2.5} />
-              </button>
-            </div>
-            <div className="flex items-center mt-2 max-md:flex-col">
-              <div className="w-[45%] max-md:w-full">
-                <ResponsiveContainer width="100%" height={220}>
-                  <PieChart>
-                    <Pie
-                      data={disbursementSummary.activeDisbursements.map(d => ({ name: d.type, value: d.amount }))}
-                      cx="55%"
-                      cy="50%"
-                      innerRadius={38}
-                      outerRadius={78}
-                      paddingAngle={2}
-                      dataKey="value"
-                      label={renderSliceLabel}
-                      labelLine={false}
-                    >
-                      {disbursementSummary.activeDisbursements.map((_, index) => {
-                        const CHART_COLORS = ['#0D1F45', '#1E3A8A', '#2563EB', '#3B82F6', '#60A5FA'];
-                        return <Cell key={`cell-${index}`} fill={CHART_COLORS[index % CHART_COLORS.length]} />;
-                      })}
-                      <Label
-                        value={`₱${disbursementSummary.total >= 1000000 ? (disbursementSummary.total/1000000).toFixed(1).replace(/\.0$/, '') + 'M' : disbursementSummary.total >= 1000 ? (disbursementSummary.total/1000).toFixed(1).replace(/\.0$/, '') + 'k' : disbursementSummary.total}`}
-                        position="center"
-                        fill="#1e3a5f"
-                        style={{ fontSize: '13px', fontWeight: 'bold' }}
-                      />
-                      <Label value="Total" position="center" dy={15} fill="#6B7280" style={{ fontSize: '9px' }} />
-                    </Pie>
-                    <Tooltip formatter={(v) => '₱' + v.toLocaleString()} />
-                  </PieChart>
-                </ResponsiveContainer>
-              </div>
-              <div className="w-[55%] flex flex-col gap-3 pl-4 max-md:w-full max-md:pl-0 max-md:mt-4">
-                {(() => {
-                  const CHART_COLORS = ['#0D1F45', '#1E3A8A', '#2563EB', '#3B82F6', '#60A5FA'];
-                  return disbursementByTypeDetail.map((d, i) => (
-                    <div key={i} className="flex items-start gap-2.5">
-                      <span className="w-2.5 h-2.5 rounded-full mt-1 shrink-0" style={{ background: CHART_COLORS[i % CHART_COLORS.length] }} />
-                      <div className="flex-1">
-                        <div className="text-[13px] font-semibold text-slate-800 dark:text-white font-inter leading-tight">{d.count} loans · ₱{d.amount >= 1000000 ? (d.amount / 1000000).toFixed(2).replace(/\.00$/, '').replace(/(\.\d)0$/, '$1') + 'M' : d.amount >= 1000 ? (d.amount / 1000).toFixed(1).replace(/\.0$/, '') + 'k' : d.amount.toLocaleString()}</div>
-                        <div className="text-[11px] text-slate-500 dark:text-slate-400 font-inter mt-0.5">{d.label}</div>
-                      </div>
-                    </div>
-                  ));
-                })()}
-                {disbursementSummary.zeroDisbursements.length > 0 && (
-                  <div className="text-[11px] text-slate-400 dark:text-slate-500 italic mt-2">
-                    {disbursementSummary.zeroDisbursements.map(d => d.type).join(', ')}: ₱0
-                  </div>
-                )}
-              </div>
-            </div>
-          </div>
-        </div>
-
-        {/* Savings Trend */}
-        <div className="bg-white dark:bg-[#1E2130] rounded-xl p-6 border border-slate-200 dark:border-white/5 shadow-sm">
-          <div className="flex items-start justify-between mb-6">
-            <div>
-              <h3 className="text-base font-bold text-slate-800 dark:text-white font-inter tracking-tight m-0">Savings Trend</h3>
-              <span className="text-[13px] text-slate-500 dark:text-slate-400 font-inter mt-1 block">Monthly member savings deposits this year</span>
-            </div>
-            <button className="w-8 h-8 rounded-lg bg-slate-50 dark:bg-white/5 flex items-center justify-center cursor-pointer transition-colors hover:bg-slate-100 dark:hover:bg-white/10 border-none shrink-0" onClick={() => setExpandedChart('savings')} title="Expand Chart">
-              <Expand size={18} color="#4B5563" strokeWidth={2.5} />
-            </button>
-          </div>
-          <ResponsiveContainer width="100%" height={220}>
-            <LineChart data={enhancedSavingsData} margin={{ top: 20, right: 8, left: -25, bottom: 5 }}>
-              <CartesianGrid strokeDasharray="3 3" stroke="#F3F4F6" vertical={false} />
-              <XAxis dataKey="month" stroke="#9CA3AF" fontSize={11} fontFamily="DM Sans, sans-serif" fontWeight={400} axisLine={false} tickLine={false} />
-              <YAxis stroke="#9CA3AF" fontSize={11} fontFamily="DM Mono, monospace" fontWeight={500} axisLine={false} tickLine={false} tickFormatter={formatYAxis} width={50} ticks={CHART_TICKS} domain={[0, 500000]} />
-              <Tooltip contentStyle={{ borderRadius: '8px', border: '1px solid #E5E7EB' }} formatter={(v, name) => [v != null ? '₱' + v.toLocaleString() : 'No data', name === 'zeroSavings' ? 'No Data' : 'Savings']} labelFormatter={(label) => label} />
-              <Line type="monotone" dataKey="zeroSavings" stroke="#D1D5DB" strokeDasharray="5 5" strokeWidth={2} dot={false} name="No Data" connectNulls isAnimationActive={false} />
-              <Line type="monotone" dataKey="actualSavings" stroke="#0D1F45" strokeWidth={2} dot={({ cx, cy, payload }) => payload.actualSavings != null ? <circle cx={cx} cy={cy} r={3} fill="#0D1F45" /> : null} name="Savings" connectNulls />
-            </LineChart>
-          </ResponsiveContainer>
-          </div>
-        </div>
-
-        {/* Row 3 — New Analytics Charts */}
-        <div className="grid grid-cols-1 lg:grid-cols-2 gap-5 mb-5">
           {/* Loan Status Distribution (Donut) */}
           <div className="group relative bg-white dark:bg-[#1E2130] rounded-2xl p-6 border border-slate-100 dark:border-white/5 shadow-[0_2px_12px_-4px_rgba(0,0,0,0.04)] overflow-hidden">
             <div className="absolute top-0 right-0 w-32 h-32 bg-emerald-500/5 rounded-full blur-3xl -mr-10 -mt-10 pointer-events-none transition-transform duration-500 group-hover:scale-125"></div>
@@ -680,55 +609,25 @@ export default function LoanAdminDashboard() {
             </div>
             </div>
           </div>
-
-          {/* Repayment Performance */}
-          <div className="group relative bg-white dark:bg-[#1E2130] rounded-2xl p-6 border border-slate-100 dark:border-white/5 shadow-[0_2px_12px_-4px_rgba(0,0,0,0.04)] overflow-hidden">
-            <div className="absolute top-0 right-0 w-32 h-32 bg-rose-500/5 rounded-full blur-3xl -mr-10 -mt-10 pointer-events-none transition-transform duration-500 group-hover:scale-125"></div>
-            <div className="relative z-10">
-            <div className="flex items-start justify-between mb-6">
-              <div>
-                <h3 className="text-base font-bold text-slate-800 dark:text-white font-inter tracking-tight m-0">Repayment Performance</h3>
-                <span className="text-[13px] text-slate-500 dark:text-slate-400 font-inter mt-1 block">On-time vs late payment ratio this year</span>
-                <div className={`mt-3 inline-block px-3 py-1 rounded-full text-xs font-bold font-inter ${repaymentPerformanceSummary.pct >= 80 ? 'bg-emerald-50 dark:bg-emerald-500/10 text-emerald-600 dark:text-emerald-400' : 'bg-amber-50 dark:bg-amber-500/10 text-amber-600 dark:text-amber-400'}`}>{repaymentPerformanceSummary.pct}% On-Time Rate</div>
-              </div>
-              <button className="w-8 h-8 rounded-lg bg-slate-50 dark:bg-white/5 flex items-center justify-center cursor-pointer transition-colors hover:bg-slate-100 dark:hover:bg-white/10 border-none shrink-0" onClick={() => setExpandedChart('repayment')} title="Expand Chart">
-                <Expand size={18} color="#4B5563" strokeWidth={2.5} />
-              </button>
-            </div>
-            <ResponsiveContainer width="100%" height={240}>
-              <BarChart data={repaymentPerformance} margin={{ top: 20, right: 8, left: -25, bottom: 5 }}>
-                <CartesianGrid strokeDasharray="3 3" stroke="#F3F4F6" vertical={false} />
-                <XAxis dataKey="name" stroke="#9CA3AF" fontSize={11} fontFamily="DM Sans, sans-serif" fontWeight={400} axisLine={false} tickLine={false} />
-                <YAxis stroke="#9CA3AF" fontSize={11} fontFamily="DM Mono, monospace" fontWeight={500} axisLine={false} tickLine={false} allowDecimals={false} />
-                <Tooltip formatter={(v) => v + ' payments'} />
-                <Bar dataKey="value" radius={[6, 6, 0, 0]} barSize={60}>
-                  <LabelList dataKey="value" position="top" fontSize={13} fontWeight={600} fill="#374151" />
-                  <Cell fill="#10B981" />
-                  <Cell fill="#EF4444" />
-                </Bar>
-              </BarChart>
-            </ResponsiveContainer>
-            </div>
-          </div>
         </div>
 
-        {/* Row 4 — Applications Trend + Delinquency */}
-        <div className="grid grid-cols-1 lg:grid-cols-2 gap-5 mb-5">
-          {/* Monthly Loan Applications Trend */}
+        {/* Row 3 — 50 / 30 / 20 Split: Loan Applications Trend (50%), Disbursements by Type (30%), Repayment Performance (20%) */}
+        <div className="grid grid-cols-1 lg:grid-cols-[5fr_3fr_2fr] gap-5 mb-5">
+          {/* Monthly Loan Applications Trend (50%) */}
           <div className="group relative bg-white dark:bg-[#1E2130] rounded-2xl p-6 border border-slate-100 dark:border-white/5 shadow-[0_2px_12px_-4px_rgba(0,0,0,0.04)] overflow-hidden">
             <div className="absolute top-0 right-0 w-32 h-32 bg-blue-500/5 rounded-full blur-3xl -mr-10 -mt-10 pointer-events-none transition-transform duration-500 group-hover:scale-125"></div>
             <div className="relative z-10">
-            <div className="flex items-start justify-between mb-6">
+            <div className="flex items-start justify-between mb-4">
               <div>
                 <h3 className="text-base font-bold text-slate-800 dark:text-white font-inter tracking-tight m-0">Loan Applications Trend</h3>
-                <span className="text-[13px] text-slate-500 dark:text-slate-400 font-inter mt-1 block">YTD {new Date().getFullYear()} — Monthly applications with approval/rejection breakdown</span>
+                <span className="text-[12px] text-slate-500 dark:text-slate-400 font-inter mt-0.5 block">YTD {new Date().getFullYear()} — Monthly breakdown</span>
               </div>
               <button className="w-8 h-8 rounded-lg bg-slate-50 dark:bg-white/5 flex items-center justify-center cursor-pointer transition-colors hover:bg-slate-100 dark:hover:bg-white/10 border-none shrink-0" onClick={() => setExpandedChart('appTrend')} title="Expand Chart">
                 <Expand size={18} color="#4B5563" strokeWidth={2.5} />
               </button>
             </div>
             <ResponsiveContainer width="100%" height={240}>
-              <AreaChart data={monthlyApplications} margin={{ top: 20, right: 8, left: -25, bottom: 5 }}>
+              <AreaChart data={visibleMonthlyApplications} margin={{ top: 15, right: 8, left: -25, bottom: 5 }}>
                 <defs>
                   <linearGradient id="colorApps" x1="0" y1="0" x2="0" y2="1">
                     <stop offset="5%" stopColor="#3B82F6" stopOpacity={0.3} />
@@ -748,6 +647,124 @@ export default function LoanAdminDashboard() {
             </div>
           </div>
 
+          {/* Disbursements by Type (30%) */}
+          <div className="group relative bg-white dark:bg-[#1E2130] rounded-2xl p-6 border border-slate-100 dark:border-white/5 shadow-[0_2px_12px_-4px_rgba(0,0,0,0.04)] overflow-hidden">
+            <div className="absolute top-0 right-0 w-32 h-32 bg-indigo-500/5 rounded-full blur-3xl -mr-10 -mt-10 pointer-events-none transition-transform duration-500 group-hover:scale-125"></div>
+            <div className="relative z-10">
+            <div className="flex items-start justify-between mb-4">
+              <div>
+                <h3 className="text-base font-bold text-slate-800 dark:text-white font-inter tracking-tight m-0">Disbursements by Type</h3>
+                <span className="text-[12px] text-slate-500 dark:text-slate-400 font-inter mt-0.5 block">Funds allocated by loan type</span>
+              </div>
+              <button className="w-8 h-8 rounded-lg bg-slate-50 dark:bg-white/5 flex items-center justify-center cursor-pointer transition-colors hover:bg-slate-100 dark:hover:bg-white/10 border-none shrink-0" onClick={() => setExpandedChart('disbursements')} title="Expand Chart">
+                <Expand size={18} color="#4B5563" strokeWidth={2.5} />
+              </button>
+            </div>
+            <div className="flex flex-col items-center">
+              <ResponsiveContainer width="100%" height={160}>
+                <PieChart>
+                  <Pie
+                    data={disbursementSummary.activeDisbursements.map(d => ({ name: d.type, value: d.amount }))}
+                    cx="50%"
+                    cy="50%"
+                    innerRadius={32}
+                    outerRadius={62}
+                    paddingAngle={2}
+                    dataKey="value"
+                    label={renderSliceLabel}
+                    labelLine={false}
+                  >
+                    {disbursementSummary.activeDisbursements.map((_, index) => {
+                      const CHART_COLORS = ['#0D1F45', '#1E3A8A', '#2563EB', '#3B82F6', '#60A5FA'];
+                      return <Cell key={`cell-${index}`} fill={CHART_COLORS[index % CHART_COLORS.length]} />;
+                    })}
+                    <Label
+                      value={`₱${disbursementSummary.total >= 1000000 ? (disbursementSummary.total/1000000).toFixed(1).replace(/\.0$/, '') + 'M' : disbursementSummary.total >= 1000 ? (disbursementSummary.total/1000).toFixed(1).replace(/\.0$/, '') + 'k' : disbursementSummary.total}`}
+                      position="center"
+                      fill="#1e3a5f"
+                      style={{ fontSize: '11px', fontWeight: 'bold' }}
+                    />
+                  </Pie>
+                  <Tooltip formatter={(v) => '₱' + v.toLocaleString()} />
+                </PieChart>
+              </ResponsiveContainer>
+              <div className="w-full flex flex-col gap-1.5 mt-1">
+                {(() => {
+                  const CHART_COLORS = ['#0D1F45', '#1E3A8A', '#2563EB', '#3B82F6', '#60A5FA'];
+                  return disbursementByTypeDetail.slice(0, 4).map((d, i) => (
+                    <div key={i} className="flex items-center justify-between text-xs font-inter">
+                      <div className="flex items-center gap-1.5 truncate">
+                        <span className="w-2 h-2 rounded-full shrink-0" style={{ background: CHART_COLORS[i % CHART_COLORS.length] }} />
+                        <span className="text-slate-600 dark:text-slate-300 truncate text-[11px]">{d.label}</span>
+                      </div>
+                      <span className="font-semibold text-slate-800 dark:text-white text-[11px]">₱{d.amount >= 1000000 ? (d.amount / 1000000).toFixed(1).replace(/\.0$/, '') + 'M' : d.amount >= 1000 ? (d.amount / 1000).toFixed(1).replace(/\.0$/, '') + 'k' : d.amount}</span>
+                    </div>
+                  ));
+                })()}
+              </div>
+            </div>
+            </div>
+          </div>
+
+          {/* Repayment Performance (20%) */}
+          <div className="group relative bg-white dark:bg-[#1E2130] rounded-2xl p-6 border border-slate-100 dark:border-white/5 shadow-[0_2px_12px_-4px_rgba(0,0,0,0.04)] overflow-hidden">
+            <div className="absolute top-0 right-0 w-32 h-32 bg-rose-500/5 rounded-full blur-3xl -mr-10 -mt-10 pointer-events-none transition-transform duration-500 group-hover:scale-125"></div>
+            <div className="relative z-10">
+            <div className="flex items-start justify-between mb-3">
+              <div>
+                <h3 className="text-sm font-bold text-slate-800 dark:text-white font-inter tracking-tight m-0">Repayment</h3>
+                <span className="text-[11px] text-slate-500 dark:text-slate-400 font-inter mt-0.5 block">On-time ratio</span>
+                <div className={`mt-2 inline-block px-2 py-0.5 rounded-full text-[11px] font-bold font-inter ${repaymentPerformanceSummary.pct >= 80 ? 'bg-emerald-50 dark:bg-emerald-500/10 text-emerald-600 dark:text-emerald-400' : 'bg-amber-50 dark:bg-amber-500/10 text-amber-600 dark:text-amber-400'}`}>{repaymentPerformanceSummary.pct}% On-Time</div>
+              </div>
+              <button className="w-7 h-7 rounded-lg bg-slate-50 dark:bg-white/5 flex items-center justify-center cursor-pointer transition-colors hover:bg-slate-100 dark:hover:bg-white/10 border-none shrink-0" onClick={() => setExpandedChart('repayment')} title="Expand Chart">
+                <Expand size={16} color="#4B5563" strokeWidth={2.5} />
+              </button>
+            </div>
+            <ResponsiveContainer width="100%" height={210}>
+              <BarChart data={repaymentPerformance} margin={{ top: 20, right: 4, left: -25, bottom: 5 }}>
+                <CartesianGrid strokeDasharray="3 3" stroke="#F3F4F6" vertical={false} />
+                <XAxis dataKey="name" stroke="#9CA3AF" fontSize={10} fontFamily="DM Sans, sans-serif" fontWeight={400} axisLine={false} tickLine={false} />
+                <YAxis stroke="#9CA3AF" fontSize={10} fontFamily="DM Mono, monospace" fontWeight={500} axisLine={false} tickLine={false} allowDecimals={false} />
+                <Tooltip formatter={(v) => v + ' payments'} />
+                <Bar dataKey="value" radius={[6, 6, 0, 0]} barSize={36}>
+                  <LabelList dataKey="value" position="top" fontSize={11} fontWeight={600} fill="#374151" />
+                  <Cell fill="#10B981" />
+                  <Cell fill="#EF4444" />
+                </Bar>
+              </BarChart>
+            </ResponsiveContainer>
+            </div>
+          </div>
+        </div>
+
+        {/* Row 4 — Savings Trend (60%) + Delinquency Rate (40%) */}
+        <div className="grid grid-cols-1 lg:grid-cols-[3fr_2fr] gap-5 mb-5">
+          {/* Savings Trend */}
+          <div className="group relative bg-white dark:bg-[#1E2130] rounded-2xl p-6 border border-slate-100 dark:border-white/5 shadow-[0_2px_12px_-4px_rgba(0,0,0,0.04)] overflow-hidden">
+            <div className="absolute top-0 right-0 w-32 h-32 bg-purple-500/5 rounded-full blur-3xl -mr-10 -mt-10 pointer-events-none transition-transform duration-500 group-hover:scale-125"></div>
+            <div className="relative z-10">
+            <div className="flex items-start justify-between mb-6">
+              <div>
+                <h3 className="text-base font-bold text-slate-800 dark:text-white font-inter tracking-tight m-0">Savings Trend</h3>
+                <span className="text-[13px] text-slate-500 dark:text-slate-400 font-inter mt-1 block">Monthly member savings deposits this year</span>
+              </div>
+              <button className="w-8 h-8 rounded-lg bg-slate-50 dark:bg-white/5 flex items-center justify-center cursor-pointer transition-colors hover:bg-slate-100 dark:hover:bg-white/10 border-none shrink-0" onClick={() => setExpandedChart('savings')} title="Expand Chart">
+                <Expand size={18} color="#4B5563" strokeWidth={2.5} />
+              </button>
+            </div>
+            <ResponsiveContainer width="100%" height={240}>
+              <LineChart data={enhancedSavingsData} margin={{ top: 20, right: 8, left: -25, bottom: 5 }}>
+                <CartesianGrid strokeDasharray="3 3" stroke="#F3F4F6" vertical={false} />
+                <XAxis dataKey="month" stroke="#9CA3AF" fontSize={11} fontFamily="DM Sans, sans-serif" fontWeight={400} axisLine={false} tickLine={false} />
+                <YAxis stroke="#9CA3AF" fontSize={11} fontFamily="DM Mono, monospace" fontWeight={500} axisLine={false} tickLine={false} tickFormatter={formatYAxis} width={50} />
+                <Tooltip contentStyle={{ borderRadius: '8px', border: '1px solid #E5E7EB' }} formatter={(v, name) => [v != null ? '₱' + v.toLocaleString() : 'No data', name === 'zeroSavings' ? 'No Data' : 'Savings']} labelFormatter={(label) => label} />
+                <Line type="monotone" dataKey="zeroSavings" stroke="#D1D5DB" strokeDasharray="5 5" strokeWidth={2} dot={false} name="No Data" connectNulls isAnimationActive={false} />
+                <Line type="monotone" dataKey="actualSavings" stroke="#0D1F45" strokeWidth={2} dot={({ cx, cy, payload }) => payload.actualSavings != null ? <circle cx={cx} cy={cy} r={3} fill="#0D1F45" /> : null} name="Savings" connectNulls />
+              </LineChart>
+            </ResponsiveContainer>
+            </div>
+          </div>
+
           {/* Delinquency Rate */}
           <div className="group relative bg-white dark:bg-[#1E2130] rounded-2xl p-6 border border-slate-100 dark:border-white/5 shadow-[0_2px_12px_-4px_rgba(0,0,0,0.04)] overflow-hidden">
             <div className="absolute top-0 right-0 w-32 h-32 bg-rose-500/5 rounded-full blur-3xl -mr-10 -mt-10 pointer-events-none transition-transform duration-500 group-hover:scale-125"></div>
@@ -763,7 +780,7 @@ export default function LoanAdminDashboard() {
               </button>
             </div>
             <ResponsiveContainer width="100%" height={240}>
-              <LineChart data={delinquencyRate} margin={{ top: 20, right: 8, left: -25, bottom: 5 }}>
+              <LineChart data={visibleDelinquencyRate} margin={{ top: 20, right: 8, left: -25, bottom: 5 }}>
                 <CartesianGrid strokeDasharray="3 3" stroke="#F3F4F6" vertical={false} />
                 <XAxis dataKey="month" stroke="#9CA3AF" fontSize={11} fontFamily="DM Sans, sans-serif" fontWeight={400} axisLine={false} tickLine={false} />
                 <YAxis stroke="#9CA3AF" fontSize={11} fontFamily="DM Mono, monospace" fontWeight={500} axisLine={false} tickLine={false} tickFormatter={v => v + '%'} domain={[0, 100]} />
@@ -779,12 +796,7 @@ export default function LoanAdminDashboard() {
         {/* Row 5 — Recent Loan Applications */}
         <div className="bg-white dark:bg-[#1E2130] rounded-2xl p-5 border border-slate-100 dark:border-white/5 shadow-[0_2px_12px_-4px_rgba(0,0,0,0.04)]">
           <div className="flex items-center justify-between mb-3.5">
-            <div className="flex items-center gap-2">
-              <h3 className="text-sm font-bold text-slate-800 dark:text-white font-inter tracking-tight m-0">Recent Loan Applications</h3>
-              <span className="text-[10px] font-semibold text-slate-400 dark:text-slate-500 bg-slate-100 dark:bg-white/5 px-2 py-0.5 rounded-md">
-                5 max
-              </span>
-            </div>
+            <h3 className="text-sm font-bold text-slate-800 dark:text-white font-inter tracking-tight m-0">Recent Loan Applications</h3>
             <button className="text-xs font-semibold text-blue-600 dark:text-blue-400 bg-transparent border-none cursor-pointer hover:underline p-0" onClick={() => navigate('/loan-admin/loan-management')}>View All</button>
           </div>
           <div className="flex flex-col gap-2">
@@ -940,10 +952,10 @@ export default function LoanAdminDashboard() {
 
       {/* ── Expanded Chart View ── */}
       {expandedChart && (
-        <div className="adm-expand-overlay">
-          <div className="adm-expand-modal">
-            <div className="adm-expand-header">
-              <h2 className="adm-expand-title">
+        <div className="fixed inset-0 bg-black/50 backdrop-blur-sm flex items-center justify-center z-[1000] p-4 sm:p-6 animate-fadeIn" onClick={() => setExpandedChart(null)}>
+          <div className="bg-white dark:bg-[#1E2130] rounded-2xl w-full max-w-[900px] max-h-[90vh] flex flex-col shadow-2xl border border-slate-200 dark:border-white/10 overflow-hidden animate-slideUp" onClick={e => e.stopPropagation()}>
+            <div className="flex items-center justify-between p-5 sm:px-6 sm:py-5 border-b border-slate-100 dark:border-white/10 shrink-0 bg-white dark:bg-[#1E2130]">
+              <h2 className="text-lg font-bold text-slate-900 dark:text-white font-inter tracking-tight m-0">
                 {expandedChart === 'moneyIn' && 'Money In vs Money Out — Detailed View'}
                 {expandedChart === 'disbursements' && 'Disbursements by Type — Detailed Analysis'}
                 {expandedChart === 'savings' && 'Savings Trend — Detailed View'}
@@ -952,13 +964,15 @@ export default function LoanAdminDashboard() {
                 {expandedChart === 'appTrend' && 'Loan Applications Trend — Detailed View'}
                 {expandedChart === 'delinquency' && 'Delinquency Rate — Detailed View'}
               </h2>
-              <button className="adm-expand-close" onClick={() => setExpandedChart(null)}><X size={20} /></button>
+              <button className="w-8 h-8 flex items-center justify-center rounded-lg bg-slate-50 dark:bg-white/5 text-slate-500 dark:text-slate-400 cursor-pointer border-none hover:bg-slate-100 dark:hover:bg-white/10 transition-colors" onClick={() => setExpandedChart(null)}>
+                <X size={20} />
+              </button>
             </div>
-            <div className="adm-expand-body">
+            <div className="p-6 overflow-y-auto flex-1 custom-scrollbar text-slate-800 dark:text-slate-200">
               {expandedChart === 'moneyIn' && (() => {
-                const netData = monthlyData.map((d, idx) => {
+                const netData = visibleMonthlyData.map((d, idx) => {
                   const net = (d.received || 0) - (d.disbursed || 0);
-                  const prevNet = idx > 0 ? (monthlyData[idx-1].received || 0) - (monthlyData[idx-1].disbursed || 0) : null;
+                  const prevNet = idx > 0 ? (visibleMonthlyData[idx-1].received || 0) - (visibleMonthlyData[idx-1].disbursed || 0) : null;
                   const momChange = prevNet !== null && prevNet !== 0 ? (((net - prevNet) / Math.abs(prevNet)) * 100).toFixed(1) : null;
                   return { ...d, net, momChange };
                 });
@@ -1280,22 +1294,24 @@ export default function LoanAdminDashboard() {
                 const total = statusDistribution.reduce((s, d) => s + d.value, 0);
                 return (
                 <>
-                  {/* Section 1 — Stacked Status Bar */}
-                  <div className="mb-5">
-                    <div className="font-inter text-[13px] text-slate-600 dark:text-slate-300">
-                      {statusDistribution.filter(d => d.value > 0).map((d, i) => (
-                        <div key={i} style={{ width: `${(d.value / total) * 100}%`, background: STATUS_COLORS[d.name] || '#9CA3AF', display: 'flex', alignItems: 'center', justifyContent: 'center', color: '#fff', fontSize: '11px', fontWeight: 600, minWidth: '30px' }}>
-                          {d.value}
-                        </div>
-                      ))}
-                    </div>
-                    <div className="font-inter text-[13px] text-slate-600 dark:text-slate-300">
-                      {statusDistribution.map((d, i) => (
-                        <span key={i} className="font-inter text-[13px] text-slate-600 dark:text-slate-300">
-                          <span className="font-inter text-[13px] text-slate-600 dark:text-slate-300" style={{ background: STATUS_COLORS[d.name] || '#9CA3AF' }} />
-                          {d.name}: {d.value} ({total > 0 ? ((d.value / total) * 100).toFixed(1) : 0}%)
-                        </span>
-                      ))}
+                  {/* Section 1 — Loan Status Distribution Bar Graph */}
+                  <div className="mb-6 bg-slate-50 dark:bg-[#252836] p-5 rounded-2xl border border-slate-100 dark:border-white/5">
+                    <h4 className="font-inter text-[13px] font-semibold text-slate-700 dark:text-slate-200 m-0 mb-4 uppercase tracking-wider">Loan Status Distribution Breakdown</h4>
+                    <div className="h-[220px]">
+                      <ResponsiveContainer width="100%" height="100%">
+                        <BarChart data={statusDistribution} margin={{ top: 20, right: 10, left: -20, bottom: 5 }}>
+                          <CartesianGrid strokeDasharray="3 3" stroke="#F3F4F6" vertical={false} />
+                          <XAxis dataKey="name" stroke="#9CA3AF" fontSize={11} fontFamily="DM Sans, sans-serif" fontWeight={500} axisLine={false} tickLine={false} />
+                          <YAxis stroke="#9CA3AF" fontSize={11} fontFamily="DM Mono, monospace" fontWeight={500} axisLine={false} tickLine={false} allowDecimals={false} />
+                          <Tooltip formatter={(v) => [v + ' loans', 'Count']} />
+                          <Bar dataKey="value" radius={[6, 6, 0, 0]} barSize={48}>
+                            <LabelList dataKey="value" position="top" fontSize={12} fontWeight={700} fill="#374151" formatter={(v) => v > 0 ? v : ''} />
+                            {statusDistribution.map((entry, index) => (
+                              <Cell key={`cell-${index}`} fill={STATUS_COLORS[entry.name] || '#9CA3AF'} />
+                            ))}
+                          </Bar>
+                        </BarChart>
+                      </ResponsiveContainer>
                     </div>
                   </div>
 
@@ -1346,7 +1362,7 @@ export default function LoanAdminDashboard() {
                     <h4 className="font-inter text-[13px] font-semibold text-gray-700 dark:text-gray-100 m-0 mb-2 uppercase tracking-[0.03em]">Monthly Status Trend</h4>
                     <div className="h-[260px]">
                       <ResponsiveContainer width="100%" height="100%">
-                        <AreaChart data={monthlyStatusTrend} margin={{ top: 10, right: 30, left: 10, bottom: 10 }}>
+                        <AreaChart data={visibleMonthlyStatusTrend} margin={{ top: 10, right: 30, left: 10, bottom: 10 }}>
                           <CartesianGrid strokeDasharray="3 3" stroke="#F3F4F6" />
                           <XAxis dataKey="month" stroke="#9CA3AF" fontSize={12} />
                           <YAxis stroke="#9CA3AF" fontSize={12} allowDecimals={false} />
@@ -1434,7 +1450,7 @@ export default function LoanAdminDashboard() {
                     <h4 className="font-inter text-[13px] font-semibold text-gray-700 dark:text-gray-100 m-0 mb-2 uppercase tracking-[0.03em]">Monthly Repayment Trend</h4>
                     <div className="h-[250px]">
                       <ResponsiveContainer width="100%" height="100%">
-                        <BarChart data={monthlyRepayment} margin={{ top: 10, right: 30, left: 10, bottom: 10 }}>
+                        <BarChart data={visibleMonthlyRepayment} margin={{ top: 10, right: 30, left: 10, bottom: 10 }}>
                           <CartesianGrid strokeDasharray="3 3" stroke="#F3F4F6" vertical={false} />
                           <XAxis dataKey="month" stroke="#9CA3AF" fontSize={12} />
                           <YAxis stroke="#9CA3AF" fontSize={12} allowDecimals={false} />
@@ -1455,7 +1471,7 @@ export default function LoanAdminDashboard() {
               })()}
 
               {expandedChart === 'appTrend' && (() => {
-                const rateData = monthlyApplications.map(d => ({
+                const rateData = visibleMonthlyApplications.map(d => ({
                   month: d.month,
                   approvalRate: d.applications > 0 ? Math.round((d.approved / d.applications) * 100) : 0,
                   rejectionRate: d.applications > 0 ? Math.round((d.rejected / d.applications) * 100) : 0,
@@ -1477,7 +1493,7 @@ export default function LoanAdminDashboard() {
                         </tr>
                       </thead>
                       <tbody className="divide-y divide-slate-100 dark:divide-white/5">
-                        {monthlyApplications.map((d, i) => {
+                        {visibleMonthlyApplications.map((d, i) => {
                           const pending = d.applications - d.approved - d.rejected;
                           const rate = d.applications > 0 ? Math.round((d.approved / d.applications) * 100) : 0;
                           const rejRate = d.applications > 0 ? Math.round((d.rejected / d.applications) * 100) : 0;
@@ -1566,10 +1582,10 @@ export default function LoanAdminDashboard() {
               })()}
 
               {expandedChart === 'delinquency' && (() => {
-                const totalLate = delinquencyRate.reduce((s, d) => s + d.late, 0);
-                const totalPaymentsAll = delinquencyRate.reduce((s, d) => s + d.total, 0);
+                const totalLate = visibleDelinquencyRate.reduce((s, d) => s + d.late, 0);
+                const totalPaymentsAll = visibleDelinquencyRate.reduce((s, d) => s + d.total, 0);
                 const currentRate = totalPaymentsAll > 0 ? Math.round((totalLate / totalPaymentsAll) * 100 * 10) / 10 : 0;
-                const allZero = delinquencyRate.every(d => d.rate === 0);
+                const allZero = visibleDelinquencyRate.every(d => d.rate === 0);
                 const rColor = currentRate > 15 ? '#EF4444' : currentRate > 10 ? '#F59E0B' : '#10B981';
                 return (
                 <>
@@ -1632,13 +1648,13 @@ export default function LoanAdminDashboard() {
                     <h4 className="font-inter text-[13px] font-semibold text-gray-700 dark:text-gray-100 m-0 mb-2 uppercase tracking-[0.03em]">Delinquency Rate Trend</h4>
                     <div className="h-[250px] relative">
                       {allZero && (
-                        <div className="font-inter text-[13px] text-slate-600 dark:text-slate-300">
-                          <div className="font-inter text-[13px] text-slate-600 dark:text-slate-300">✓ No delinquencies recorded</div>
-                          <div className="font-inter text-[13px] text-slate-600 dark:text-slate-300">Healthy portfolio — all payments are on time</div>
+                        <div className="absolute inset-0 z-10 flex flex-col items-center justify-center bg-white/80 dark:bg-[#1E2130]/80 backdrop-blur-xs rounded-xl p-4 text-center pointer-events-none">
+                          <div className="text-emerald-600 dark:text-emerald-400 font-bold text-sm font-inter flex items-center gap-1.5">✓ No delinquencies recorded</div>
+                          <div className="text-slate-500 dark:text-slate-400 text-xs font-inter mt-1">Healthy portfolio — all payments are on time</div>
                         </div>
                       )}
                       <ResponsiveContainer width="100%" height="100%">
-                        <AreaChart data={delinquencyRate} margin={{ top: 10, right: 30, left: 10, bottom: 10 }}>
+                        <AreaChart data={visibleDelinquencyRate} margin={{ top: 10, right: 30, left: 10, bottom: 10 }}>
                           <defs>
                             <linearGradient id="colorDelq2" x1="0" y1="0" x2="0" y2="1">
                               <stop offset="5%" stopColor="#EF4444" stopOpacity={0.2} />

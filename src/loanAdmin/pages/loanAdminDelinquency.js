@@ -2,6 +2,7 @@ import { useState, useEffect } from 'react';
 import useSWR from 'swr';
 import LoanAdminSidebar from './loanAdminSidebar';
 import PageHeader from '../components/PageHeader';
+import useDebounce from '../../hooks/useDebounce';
 
 
 import API from '../../utils/api';
@@ -33,6 +34,7 @@ const POLICY_TABLE = [
 export default function LoanAdminDelinquency() {
   const [loans, setLoans] = useState([]);
   const [searchQuery, setSearchQuery] = useState('');
+  const debouncedSearch = useDebounce(searchQuery, 400);
   const [loading, setLoading] = useState(true);
 
   const token = localStorage.getItem('adminToken');
@@ -69,8 +71,8 @@ export default function LoanAdminDelinquency() {
   }).filter(Boolean);
 
   const filtered = flagged.filter(l =>
-    (l.memberName || '').toLowerCase().includes(searchQuery.toLowerCase()) ||
-    (l.loanId || '').toLowerCase().includes(searchQuery.toLowerCase())
+    (l.memberName || '').toLowerCase().includes(debouncedSearch.toLowerCase()) ||
+    (l.loanId || '').toLowerCase().includes(debouncedSearch.toLowerCase())
   );
 
   const counts = {

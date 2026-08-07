@@ -15,7 +15,12 @@ export default function SecApprovedLoanDetailsModal({ loan, onClose, onProcess }
                         </div>
                         <div>
                             <h2 className="font-bold text-[16px] text-slate-900 dark:text-white m-0 leading-tight">Approved Loan Details</h2>
-                            <p className="text-[12px] text-slate-500 dark:text-slate-400 m-0 mt-0.5">Loan ID: {loan.id}</p>
+                            <div className="flex items-center gap-1.5 mt-1">
+                                <span className="font-inter text-[12px] font-medium text-slate-500 dark:text-slate-400">Loan ID:</span>
+                                <span className="inline-flex items-center px-2 py-0.5 rounded-md bg-slate-100 dark:bg-blue-500/10 text-navy dark:text-blue-400 font-mono text-[11.5px] font-bold border border-slate-200/80 dark:border-blue-500/20">
+                                    {loan.id}
+                                </span>
+                            </div>
                         </div>
                     </div>
                     <button

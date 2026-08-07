@@ -1559,13 +1559,13 @@ router.put('/donations/:id/reject', authenticateAdmin, async (req, res) => {
   }
 });
 
-/* ================== MANUAL APPROVAL - SAVINGS DEPOSITS ================== */
+/* ================== MANUAL APPROVAL - SAVINGS DEPOSITS & WITHDRAWALS ================== */
 router.put('/savings/deposits/:id/approve', authenticateAdmin, async (req, res) => {
   try {
     const { ObjectId } = await import('mongodb');
     const { savingsTransactions, savingsGoals } = await import('../config/db.js');
     const txn = await savingsTransactions.findOne({ _id: new ObjectId(req.params.id), status: 'pending' });
-    if (!txn) return res.status(404).json({ success: false, message: 'Deposit not found or not pending' });
+    if (!txn) return res.status(404).json({ success: false, message: 'Transaction not found or not pending' });
 
     // Update Transaction
     await savingsTransactions.updateOne(
@@ -1573,17 +1573,35 @@ router.put('/savings/deposits/:id/approve', authenticateAdmin, async (req, res) 
       { $set: { status: 'confirmed', confirmedAt: new Date(), confirmedBy: req.admin.email } }
     );
 
-    // Update Goal Balance
+    // Update Goal Balance according to transaction type
     const goal = await savingsGoals.findOne({ _id: txn.goalId });
     if (goal) {
-      const newSaved = (goal.savedAmount || 0) + txn.amount;
-      const updates = { savedAmount: newSaved, updatedAt: new Date() };
-      if (newSaved >= goal.targetAmount) updates.status = 'completed';
+      let newSaved;
+      const updates = { updatedAt: new Date() };
+
+      if (txn.type === 'withdrawal') {
+        newSaved = Math.max(0, (goal.savedAmount || 0) - txn.amount);
+        if (goal.status === 'completed' && newSaved < goal.targetAmount) {
+          updates.status = 'active';
+        }
+      } else { // deposit
+        newSaved = (goal.savedAmount || 0) + txn.amount;
+        if (newSaved >= goal.targetAmount) {
+          updates.status = 'completed';
+        }
+      }
+
+      updates.savedAmount = newSaved;
       await savingsGoals.updateOne({ _id: txn.goalId }, { $set: updates });
     }
-    res.json({ success: true, message: 'Deposit approved successfully' });
+
+    res.json({
+      success: true,
+      message: `${txn.type === 'withdrawal' ? 'Withdrawal' : 'Deposit'} approved successfully`
+    });
   } catch (err) {
-    res.status(500).json({ success: false, message: 'Failed to approve deposit' });
+    console.error('Approve savings error:', err);
+    res.status(500).json({ success: false, message: 'Failed to approve transaction' });
   }
 });
 
@@ -1596,10 +1614,10 @@ router.put('/savings/deposits/:id/reject', authenticateAdmin, async (req, res) =
       { _id: new ObjectId(req.params.id), status: 'pending' },
       { $set: { status: 'rejected', rejectReason: reason || 'Admin review', rejectedAt: new Date(), rejectedBy: req.admin.email } }
     );
-    if (result.matchedCount === 0) return res.status(404).json({ success: false, message: 'Deposit not found or not pending' });
-    res.json({ success: true, message: 'Deposit rejected successfully' });
+    if (result.matchedCount === 0) return res.status(404).json({ success: false, message: 'Transaction not found or not pending' });
+    res.json({ success: true, message: 'Transaction rejected successfully' });
   } catch (err) {
-    res.status(500).json({ success: false, message: 'Failed to reject deposit' });
+    res.status(500).json({ success: false, message: 'Failed to reject transaction' });
   }
 });
 

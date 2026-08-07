@@ -362,23 +362,37 @@ router.post('/savings/withdraw', authenticateUser, async (req, res) => {
 
     const withdrawAmount = Number(amount);
 
-    if ((goal.savedAmount || 0) < withdrawAmount) {
-      return res.status(400).json({ success: false, message: 'Insufficient savings balance for this withdrawal' });
+    // Calculate total pending withdrawals for this goal to prevent double-withdrawing
+    const pendingTxns = await savingsTransactions.aggregate([
+      { $match: { goalId: new ObjectId(goalId), type: 'withdrawal', status: 'pending' } },
+      { $group: { _id: null, totalPending: { $sum: '$amount' } } }
+    ]).toArray();
+    const pendingWithdrawalAmount = pendingTxns[0]?.totalPending || 0;
+    const availableBalance = (goal.savedAmount || 0) - pendingWithdrawalAmount;
+
+    if (availableBalance < withdrawAmount) {
+      return res.status(400).json({
+        success: false,
+        message: pendingWithdrawalAmount > 0
+          ? `Insufficient available balance. You have ₱${pendingWithdrawalAmount.toLocaleString()} in pending withdrawal requests.`
+          : 'Insufficient savings balance for this withdrawal'
+      });
     }
 
     const user = await users.findOne({ email });
 
-    // Immediately deduct from goal balance
-    const newSaved = Math.max(0, (goal.savedAmount || 0) - withdrawAmount);
-    const goalUpdates = { savedAmount: newSaved, updatedAt: new Date() };
-    // If deducting brings it below target, mark as active again
-    if (goal.status === 'completed' && newSaved < goal.targetAmount) {
-      goalUpdates.status = 'active';
-    }
-    await savingsGoals.updateOne({ _id: new ObjectId(goalId) }, { $set: goalUpdates });
+    // Generate reference ID for withdrawal
+    const year = new Date().getFullYear();
+    const counterDoc = await counters.findOneAndUpdate(
+      { _id: `withdrawal-${year}` },
+      { $inc: { seq: 1 } },
+      { upsert: true, returnDocument: 'after' }
+    );
+    const savingsRefId = `WD-${year}-${String(counterDoc.seq || 1).padStart(3, '0')}`;
 
-    // Create withdrawal transaction (immediately confirmed)
+    // Create withdrawal transaction with status 'pending' (Awaiting Loan Admin approval)
     const txn = {
+      savingsRefId,
       email,
       memberName: user?.fullName || 'Unknown Member',
       goalId: new ObjectId(goalId),
@@ -390,19 +404,19 @@ router.post('/savings/withdraw', authenticateUser, async (req, res) => {
       accountNumber: accountNumber || '',
       accountName: accountName || user?.fullName || '',
       source: 'Manual',
-      status: 'confirmed',
+      status: 'pending',
       date: new Date(),
-      confirmedAt: new Date(),
+      createdAt: new Date(),
     };
     await savingsTransactions.insertOne(txn);
 
     res.json({
       success: true,
-      message: `₱${withdrawAmount.toLocaleString()} withdrawn successfully from ${goal.name}`,
+      message: `Withdrawal request of ₱${withdrawAmount.toLocaleString()} submitted for ${goal.name}. Awaiting Loan Admin confirmation.`,
     });
   } catch (err) {
     console.error('Withdraw error:', err);
-    res.status(500).json({ success: false, message: 'Failed to process withdrawal' });
+    res.status(500).json({ success: false, message: 'Failed to process withdrawal request' });
   }
 });
 

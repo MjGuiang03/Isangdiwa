@@ -6,6 +6,7 @@ import PageHeader from '../components/PageHeader';
 import SecApprovedLoanDetailsModal from '../components/secApprovedLoanDetailsModal';
 import SecProcessLoanModal from '../components/secProcessLoanModal';
 import SecLoanReceiptModal from '../components/SecLoanReceiptModal';
+import useDebounce from '../../hooks/useDebounce';
 
 
 import API from '../../utils/api';
@@ -13,6 +14,7 @@ import { Banknote, Search } from 'lucide-react';
 
 export default function SecretaryLoanProcess() {
     const [searchQuery, setSearchQuery] = useState('');
+    const debouncedSearch = useDebounce(searchQuery, 400);
     const [showDetailsModal, setShowDetailsModal] = useState(false);
     const [showProcessModal, setShowProcessModal] = useState(false);
     const [showReceiptModal, setShowReceiptModal] = useState(false);
@@ -162,9 +164,6 @@ export default function SecretaryLoanProcess() {
             const data = await res.json();
 
             if (data.success) {
-                toast.success('Loan disbursed successfully');
-                setShowProcessModal(false);
-                // Keep selectedLoan but update it with disbursement info for the receipt
                 const updatedLoan = {
                     ...selectedLoan,
                     paymentMethod,
@@ -172,20 +171,20 @@ export default function SecretaryLoanProcess() {
                     referenceNumber: data.referenceNumber
                 };
                 setSelectedLoan(updatedLoan);
-                setShowReceiptModal(true);
                 fetchLoans(); // Refresh the list
+                return { success: true, referenceNumber: data.referenceNumber, updatedLoan };
             } else {
-                toast.error(data.message || 'Failed to process loan');
+                throw new Error(data.message || 'Failed to process loan');
             }
         } catch (err) {
             console.error(err);
-            toast.error('Failed to process loan');
+            throw err;
         }
     };
 
     const filteredLoans = loans.filter(loan =>
-        (loan.memberName || '').toLowerCase().includes(searchQuery.toLowerCase()) ||
-        (loan.loanId || '').toLowerCase().includes(searchQuery.toLowerCase())
+        (loan.memberName || '').toLowerCase().includes(debouncedSearch.toLowerCase()) ||
+        (loan.loanId || '').toLowerCase().includes(debouncedSearch.toLowerCase())
     );
 
     if (loading) {
@@ -355,6 +354,10 @@ export default function SecretaryLoanProcess() {
                     loan={selectedLoan}
                     onClose={() => setShowProcessModal(false)}
                     onProcess={handleProcessLoan}
+                    onShowReceipt={() => {
+                        setShowProcessModal(false);
+                        setShowReceiptModal(true);
+                    }}
                 />
             )}
 

@@ -7,6 +7,7 @@ import PageHeader from '../components/PageHeader';
 
 
 import API from '../../utils/api';
+import useDebounce from '../../hooks/useDebounce';
 import Pagination from '../../components/Pagination';
 import { PiggyBank, Search, X, Loader2, CreditCard } from 'lucide-react';
 import { PieChart, Pie, Cell, Tooltip as RechartsTooltip, ResponsiveContainer, Label } from 'recharts';
@@ -47,6 +48,7 @@ export default function LoanAdminPaymentStatus() {
   const isSavingsRoute = location.pathname.includes('/savings');
 
   const [searchQuery, setSearchQuery] = useState('');
+  const debouncedSearch = useDebounce(searchQuery, 400);
   const [loading, setLoading] = useState(true);
   const [activeTab, setActiveTab] = useState(isSavingsRoute ? 'savings' : 'loans');
   const [selectedLoan, setSelectedLoan] = useState(null);
@@ -147,6 +149,20 @@ export default function LoanAdminPaymentStatus() {
 
   const pendingSavings = useMemo(() => pendingSavData?.deposits || [], [pendingSavData]);
   const pendingLoanPayments = useMemo(() => pendingLoanData?.payments || [], [pendingLoanData]);
+
+  const filteredPendingDeposits = useMemo(() => {
+    return pendingSavings.filter(t => t.type !== 'withdrawal' && (
+      (t.memberName || t.email || '').toLowerCase().includes(debouncedSearch.toLowerCase()) ||
+      (t.goalName || t.goalId || '').toLowerCase().includes(debouncedSearch.toLowerCase())
+    ));
+  }, [pendingSavings, debouncedSearch]);
+
+  const filteredPendingWithdrawals = useMemo(() => {
+    return pendingSavings.filter(t => t.type === 'withdrawal' && (
+      (t.memberName || t.email || '').toLowerCase().includes(debouncedSearch.toLowerCase()) ||
+      (t.goalName || t.goalId || '').toLowerCase().includes(debouncedSearch.toLowerCase())
+    ));
+  }, [pendingSavings, debouncedSearch]);
 
   // Payment History
   const { data: loanHistoryData } = useSWR(
@@ -335,10 +351,10 @@ export default function LoanAdminPaymentStatus() {
 
   const filtered = useMemo(() => {
     return enriched.filter(l =>
-      (l.memberName || '').toLowerCase().includes(searchQuery.toLowerCase()) ||
-      (l.loanId || '').toLowerCase().includes(searchQuery.toLowerCase())
+      (l.memberName || '').toLowerCase().includes(debouncedSearch.toLowerCase()) ||
+      (l.loanId || '').toLowerCase().includes(debouncedSearch.toLowerCase())
     );
-  }, [enriched, searchQuery]);
+  }, [enriched, debouncedSearch]);
 
   const counts = useMemo(() => {
     return {
@@ -627,9 +643,8 @@ export default function LoanAdminPaymentStatus() {
         </div>
 
         {activeTab === 'savings' && isSavingsRoute && (
-          <div className="flex flex-col gap-2 mb-2">
-            {/* Table */}
-            <div className="bg-white dark:bg-[#1E2130] border border-slate-200 dark:border-white/10 rounded-xl overflow-x-auto shadow-sm" >
+          <div className="bg-white dark:bg-[#1E2130] border border-slate-200 dark:border-white/10 rounded-xl overflow-hidden shadow-sm mb-2">
+            <div className="overflow-x-auto">
               <table className="w-full text-left border-collapse min-w-[700px]">
                 <thead>
                   <tr>
@@ -646,7 +661,7 @@ export default function LoanAdminPaymentStatus() {
                     <tr><td colSpan={6} className="text-center p-8 text-slate-400">Loading...</td></tr>
                   ) : (() => {
                     const filteredSavingsList = confirmedSavings.filter(s => {
-                      const matchesSearch = (s.memberName || '').toLowerCase().includes(searchQuery.toLowerCase()) || (s.goalName || s.goalId || '').toLowerCase().includes(searchQuery.toLowerCase());
+                      const matchesSearch = (s.memberName || '').toLowerCase().includes(debouncedSearch.toLowerCase()) || (s.goalName || s.goalId || '').toLowerCase().includes(debouncedSearch.toLowerCase());
                       const matchesType = savingsTypeFilter === 'all' || s.type === savingsTypeFilter;
                       return matchesSearch && matchesType;
                     });
@@ -691,7 +706,7 @@ export default function LoanAdminPaymentStatus() {
 
             {(() => {
               const filteredSavingsList = confirmedSavings.filter(s => {
-                const matchesSearch = (s.memberName || '').toLowerCase().includes(searchQuery.toLowerCase()) || (s.goalName || s.goalId || '').toLowerCase().includes(searchQuery.toLowerCase());
+                const matchesSearch = (s.memberName || '').toLowerCase().includes(debouncedSearch.toLowerCase()) || (s.goalName || s.goalId || '').toLowerCase().includes(debouncedSearch.toLowerCase());
                 const matchesType = savingsTypeFilter === 'all' || s.type === savingsTypeFilter;
                 return matchesSearch && matchesType;
               });
@@ -704,6 +719,7 @@ export default function LoanAdminPaymentStatus() {
                   totalItems={filteredSavingsList.length}
                   itemsPerPage={SAVINGS_PER_PAGE}
                   itemName="savings records"
+                  embedded={true}
                 />
               );
             })()}
@@ -711,8 +727,8 @@ export default function LoanAdminPaymentStatus() {
         )}
 
         {activeTab === 'loans' && !isSavingsRoute && (
-          <div className="flex flex-col gap-2">
-            <div className="bg-white dark:bg-[#1E2130] border border-slate-200 dark:border-white/10 rounded-xl overflow-x-auto shadow-sm">
+          <div className="bg-white dark:bg-[#1E2130] border border-slate-200 dark:border-white/10 rounded-xl overflow-hidden shadow-sm">
+            <div className="overflow-x-auto">
               <table className="w-full text-left border-collapse min-w-[700px]">
                 <thead>
                   <tr>
@@ -765,88 +781,209 @@ export default function LoanAdminPaymentStatus() {
               totalItems={filtered.length}
               itemsPerPage={LOANS_PER_PAGE}
               itemName="active loans"
+              embedded={true}
             />
           </div>
         )}
 
         {/* Pending Approvals Tab */}
         {activeTab === 'pending' && (
-          <div className="flex flex-col gap-2">
-            <div className="bg-white dark:bg-[#1E2130] border border-slate-200 dark:border-white/10 rounded-xl overflow-x-auto shadow-sm">
-              <table className="w-full text-left border-collapse min-w-[700px]">
-                <thead>
-                  <tr>
-                    <th className="bg-slate-50 dark:bg-black/20 border-b border-slate-200 dark:border-white/10 px-4 py-3 font-inter font-semibold text-[11px] tracking-wider uppercase text-slate-500 dark:text-slate-400">Date</th>
-                    <th className="bg-slate-50 dark:bg-black/20 border-b border-slate-200 dark:border-white/10 px-4 py-3 font-inter font-semibold text-[11px] tracking-wider uppercase text-slate-500 dark:text-slate-400">Member</th>
-                    <th className="bg-slate-50 dark:bg-black/20 border-b border-slate-200 dark:border-white/10 px-4 py-3 font-inter font-semibold text-[11px] tracking-wider uppercase text-slate-500 dark:text-slate-400">Type</th>
-                    <th className="bg-slate-50 dark:bg-black/20 border-b border-slate-200 dark:border-white/10 px-4 py-3 font-inter font-semibold text-[11px] tracking-wider uppercase text-slate-500 dark:text-slate-400">Amount</th>
-                    <th className="bg-slate-50 dark:bg-black/20 border-b border-slate-200 dark:border-white/10 px-4 py-3 font-inter font-semibold text-[11px] tracking-wider uppercase text-slate-500 dark:text-slate-400">Method</th>
-                    <th className="bg-slate-50 dark:bg-black/20 border-b border-slate-200 dark:border-white/10 px-4 py-3 font-inter font-semibold text-[11px] tracking-wider uppercase text-slate-500 dark:text-slate-400">Reference</th>
-                    <th className="bg-slate-50 dark:bg-black/20 border-b border-slate-200 dark:border-white/10 px-4 py-3 font-inter font-semibold text-[11px] tracking-wider uppercase text-slate-500 dark:text-slate-400">Proof</th>
-                    <th className="bg-slate-50 dark:bg-black/20 border-b border-slate-200 dark:border-white/10 px-4 py-3 font-inter font-semibold text-[11px] tracking-wider uppercase text-slate-500 dark:text-slate-400">Actions</th>
-                  </tr>
-                </thead>
-                <tbody>
-                  {pendingLoading ? (
-                    <tr><td colSpan={8} className="text-center p-10 text-slate-400">Loading...</td></tr>
-                  ) : (isSavingsRoute ? pendingSavings : pendingLoanPayments).length === 0 ? (
-                    <tr><td colSpan={8} className="text-center p-10 text-slate-400">No pending approvals</td></tr>
-                  ) : (
-                    (isSavingsRoute ? pendingSavings : pendingLoanPayments).slice((pendingPage - 1) * PENDING_PER_PAGE, pendingPage * PENDING_PER_PAGE).map(txn => (
-                      <tr key={txn._id} className="border-b border-slate-100 dark:border-white/5 hover:bg-slate-50 dark:hover:bg-white/5 transition-colors cursor-pointer">
-                        <td className="px-4 py-3 whitespace-nowrap font-inter text-[13px] text-slate-700 dark:text-slate-300">{fmtDate(txn.submittedAt || txn.createdAt || txn.date)}</td>
-                        <td className="px-4 py-3 whitespace-nowrap font-inter text-[13px] text-slate-700 dark:text-slate-300">
-                          <div className="flex flex-col">
-                            <p className="font-inter text-sm font-semibold text-slate-800 dark:text-white m-0">{txn.memberName || txn.email}</p>
-                            <p className="font-inter text-[11px] text-slate-500 dark:text-slate-400 m-0 mt-0.5">{isSavingsRoute ? `Goal: ${txn.goalId}` : `Loan: ${txn.loanId}`}</p>
-                          </div>
-                        </td>
-                        <td className="px-4 py-3 whitespace-nowrap font-inter text-[13px] text-slate-700 dark:text-slate-300">
-                          <span className={`inline-block px-2 py-0.5 rounded-md text-[11px] font-bold font-inter capitalize ${txn.paymentType === 'full' ? 'bg-emerald-100 text-emerald-800 dark:bg-emerald-500/20 dark:text-emerald-400' : txn.paymentType === 'advance' ? 'bg-blue-100 text-blue-800 dark:bg-blue-500/20 dark:text-blue-400' : 'bg-slate-100 text-slate-700 dark:bg-white/10 dark:text-slate-300'}`}>
-                            {txn.paymentType || 'regular'}
-                            {txn.monthsCovered > 1 && ` (${txn.monthsCovered}mo)`}
-                          </span>
-                        </td>
-                        <td className="px-4 py-3 whitespace-nowrap font-inter text-sm font-bold text-slate-800 dark:text-white text-orange-600 dark:text-orange-400">{fmt(txn.amount)}</td>
-                        <td className="capitalize">{txn.paymentMethod || 'cash'}</td>
-                        <td className="px-4 py-3 whitespace-nowrap font-inter text-[13px] text-slate-700 dark:text-slate-300">{txn.referenceNumber || '—'}</td>
-                        <td className="px-4 py-3 whitespace-nowrap font-inter text-[13px] text-slate-700 dark:text-slate-300">
-                          {(txn.proofData || txn.proofOfPayment) ? (
-                            <img
-                              src={txn.proofData || txn.proofOfPayment}
-                              alt="Proof"
-                              className="w-8 h-8 object-cover rounded shadow-sm cursor-pointer border border-slate-200 dark:border-white/10"
-                              onClick={(e) => { e.stopPropagation(); const win = window.open(); win.document.write(`<img src="${txn.proofData || txn.proofOfPayment}" style="max-width:100%;" />`); }}
-                            />
-                          ) : (
-                            <span className="text-xs text-slate-400">No Proof</span>
-                          )}
-                        </td>
-                        <td className="px-4 py-3 whitespace-nowrap font-inter text-[13px] text-slate-700 dark:text-slate-300">
-                          <button onClick={() => { setPendingDetail(txn); setShowRejectInput(false); }} className="px-3 py-1.5 rounded-md font-semibold text-xs border-none cursor-pointer transition-colors bg-blue-100 text-blue-800 hover:bg-blue-200 dark:bg-blue-500/20 dark:text-blue-400 dark:hover:bg-blue-500/30">Review</button>
-                        </td>
+          isSavingsRoute ? (
+            <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
+              {/* Pending Deposits Table */}
+              <div className="flex flex-col gap-3">
+                <div className="flex items-center justify-between px-1">
+                  <div className="flex items-center gap-2 font-inter font-bold text-sm text-slate-800 dark:text-white">
+                    <span className="w-2.5 h-2.5 rounded-full bg-emerald-500"></span>
+                    Pending Deposits
+                    <span className="px-2 py-0.5 rounded-full bg-emerald-100 dark:bg-emerald-500/20 text-emerald-700 dark:text-emerald-400 text-xs font-bold">
+                      {filteredPendingDeposits.length}
+                    </span>
+                  </div>
+                </div>
+                <div className="bg-white dark:bg-[#1E2130] border border-slate-200 dark:border-white/10 rounded-xl overflow-x-auto shadow-sm">
+                  <table className="w-full text-left border-collapse min-w-[480px]">
+                    <thead>
+                      <tr>
+                        <th className="bg-slate-50 dark:bg-black/20 border-b border-slate-200 dark:border-white/10 px-3.5 py-3 font-inter font-semibold text-[11px] tracking-wider uppercase text-slate-500 dark:text-slate-400">Date</th>
+                        <th className="bg-slate-50 dark:bg-black/20 border-b border-slate-200 dark:border-white/10 px-3.5 py-3 font-inter font-semibold text-[11px] tracking-wider uppercase text-slate-500 dark:text-slate-400">Member</th>
+                        <th className="bg-slate-50 dark:bg-black/20 border-b border-slate-200 dark:border-white/10 px-3.5 py-3 font-inter font-semibold text-[11px] tracking-wider uppercase text-slate-500 dark:text-slate-400">Amount</th>
+                        <th className="bg-slate-50 dark:bg-black/20 border-b border-slate-200 dark:border-white/10 px-3.5 py-3 font-inter font-semibold text-[11px] tracking-wider uppercase text-slate-500 dark:text-slate-400">Method</th>
+                        <th className="bg-slate-50 dark:bg-black/20 border-b border-slate-200 dark:border-white/10 px-3.5 py-3 font-inter font-semibold text-[11px] tracking-wider uppercase text-slate-500 dark:text-slate-400">Proof</th>
+                        <th className="bg-slate-50 dark:bg-black/20 border-b border-slate-200 dark:border-white/10 px-3.5 py-3 font-inter font-semibold text-[11px] tracking-wider uppercase text-slate-500 dark:text-slate-400">Actions</th>
                       </tr>
-                    ))
-                  )}
-                </tbody>
-              </table>
-            </div>
+                    </thead>
+                    <tbody>
+                      {pendingLoading ? (
+                        <tr><td colSpan={6} className="text-center p-8 text-slate-400">Loading...</td></tr>
+                      ) : filteredPendingDeposits.length === 0 ? (
+                        <tr><td colSpan={6} className="text-center p-8 text-slate-400 text-xs font-inter">No pending deposits</td></tr>
+                      ) : (
+                        filteredPendingDeposits.map(txn => (
+                          <tr key={txn._id} className="border-b border-slate-100 dark:border-white/5 hover:bg-slate-50 dark:hover:bg-white/5 transition-colors cursor-pointer">
+                            <td className="px-3.5 py-3 whitespace-nowrap font-inter text-xs text-slate-700 dark:text-slate-300">{fmtDate(txn.submittedAt || txn.createdAt || txn.date)}</td>
+                            <td className="px-3.5 py-3 whitespace-nowrap font-inter text-xs text-slate-700 dark:text-slate-300">
+                              <div className="flex flex-col">
+                                <p className="font-inter text-xs font-semibold text-slate-800 dark:text-white m-0">{txn.memberName || txn.email}</p>
+                                <p className="font-inter text-[10.5px] text-slate-500 dark:text-slate-400 m-0 mt-0.5">Goal: {txn.goalName || txn.goalId || 'General'}</p>
+                              </div>
+                            </td>
+                            <td className="px-3.5 py-3 whitespace-nowrap font-inter text-xs font-bold text-emerald-600 dark:text-emerald-400">{fmt(txn.amount)}</td>
+                            <td className="px-3.5 py-3 whitespace-nowrap font-inter text-xs capitalize text-slate-700 dark:text-slate-300">{txn.paymentMethod || 'e-wallet'}</td>
+                            <td className="px-3.5 py-3 whitespace-nowrap font-inter text-xs text-slate-700 dark:text-slate-300">
+                              {(txn.proofData || txn.proofOfPayment) ? (
+                                <img
+                                  src={txn.proofData || txn.proofOfPayment}
+                                  alt="Proof"
+                                  className="w-7 h-7 object-cover rounded shadow-xs cursor-pointer border border-slate-200 dark:border-white/10"
+                                  onClick={(e) => { e.stopPropagation(); const win = window.open(); win.document.write(`<img src="${txn.proofData || txn.proofOfPayment}" style="max-width:100%;" />`); }}
+                                />
+                              ) : (
+                                <span className="text-[11px] text-slate-400">No Proof</span>
+                              )}
+                            </td>
+                            <td className="px-3.5 py-3 whitespace-nowrap font-inter text-xs">
+                              <button onClick={() => { setPendingDetail(txn); setShowRejectInput(false); }} className="px-2.5 py-1 rounded-md font-semibold text-[11px] border-none cursor-pointer transition-colors bg-blue-100 text-blue-800 hover:bg-blue-200 dark:bg-blue-500/20 dark:text-blue-400 dark:hover:bg-blue-500/30">Review</button>
+                            </td>
+                          </tr>
+                        ))
+                      )}
+                    </tbody>
+                  </table>
+                </div>
+              </div>
 
-            <Pagination
-              currentPage={pendingPage}
-              totalPages={Math.ceil((isSavingsRoute ? pendingSavings : pendingLoanPayments).length / PENDING_PER_PAGE)}
-              onPageChange={(newPage) => setPendingPage(newPage)}
-              totalItems={(isSavingsRoute ? pendingSavings : pendingLoanPayments).length}
-              itemsPerPage={PENDING_PER_PAGE}
-              itemName="pending approvals"
-            />
-          </div>
+              {/* Pending Withdrawals Table */}
+              <div className="flex flex-col gap-3">
+                <div className="flex items-center justify-between px-1">
+                  <div className="flex items-center gap-2 font-inter font-bold text-sm text-slate-800 dark:text-white">
+                    <span className="w-2.5 h-2.5 rounded-full bg-rose-500"></span>
+                    Pending Withdrawals
+                    <span className="px-2 py-0.5 rounded-full bg-rose-100 dark:bg-rose-500/20 text-rose-700 dark:text-rose-400 text-xs font-bold">
+                      {filteredPendingWithdrawals.length}
+                    </span>
+                  </div>
+                </div>
+                <div className="bg-white dark:bg-[#1E2130] border border-slate-200 dark:border-white/10 rounded-xl overflow-x-auto shadow-sm">
+                  <table className="w-full text-left border-collapse min-w-[480px]">
+                    <thead>
+                      <tr>
+                        <th className="bg-slate-50 dark:bg-black/20 border-b border-slate-200 dark:border-white/10 px-3.5 py-3 font-inter font-semibold text-[11px] tracking-wider uppercase text-slate-500 dark:text-slate-400">Date</th>
+                        <th className="bg-slate-50 dark:bg-black/20 border-b border-slate-200 dark:border-white/10 px-3.5 py-3 font-inter font-semibold text-[11px] tracking-wider uppercase text-slate-500 dark:text-slate-400">Member</th>
+                        <th className="bg-slate-50 dark:bg-black/20 border-b border-slate-200 dark:border-white/10 px-3.5 py-3 font-inter font-semibold text-[11px] tracking-wider uppercase text-slate-500 dark:text-slate-400">Amount</th>
+                        <th className="bg-slate-50 dark:bg-black/20 border-b border-slate-200 dark:border-white/10 px-3.5 py-3 font-inter font-semibold text-[11px] tracking-wider uppercase text-slate-500 dark:text-slate-400">Payout Method</th>
+                        <th className="bg-slate-50 dark:bg-black/20 border-b border-slate-200 dark:border-white/10 px-3.5 py-3 font-inter font-semibold text-[11px] tracking-wider uppercase text-slate-500 dark:text-slate-400">Reason</th>
+                        <th className="bg-slate-50 dark:bg-black/20 border-b border-slate-200 dark:border-white/10 px-3.5 py-3 font-inter font-semibold text-[11px] tracking-wider uppercase text-slate-500 dark:text-slate-400">Actions</th>
+                      </tr>
+                    </thead>
+                    <tbody>
+                      {pendingLoading ? (
+                        <tr><td colSpan={6} className="text-center p-8 text-slate-400">Loading...</td></tr>
+                      ) : filteredPendingWithdrawals.length === 0 ? (
+                        <tr><td colSpan={6} className="text-center p-8 text-slate-400 text-xs font-inter">No pending withdrawals</td></tr>
+                      ) : (
+                        filteredPendingWithdrawals.map(txn => (
+                          <tr key={txn._id} className="border-b border-slate-100 dark:border-white/5 hover:bg-slate-50 dark:hover:bg-white/5 transition-colors cursor-pointer">
+                            <td className="px-3.5 py-3 whitespace-nowrap font-inter text-xs text-slate-700 dark:text-slate-300">{fmtDate(txn.submittedAt || txn.createdAt || txn.date)}</td>
+                            <td className="px-3.5 py-3 whitespace-nowrap font-inter text-xs text-slate-700 dark:text-slate-300">
+                              <div className="flex flex-col">
+                                <p className="font-inter text-xs font-semibold text-slate-800 dark:text-white m-0">{txn.memberName || txn.email}</p>
+                                <p className="font-inter text-[10.5px] text-slate-500 dark:text-slate-400 m-0 mt-0.5">Goal: {txn.goalName || txn.goalId || 'General'}</p>
+                              </div>
+                            </td>
+                            <td className="px-3.5 py-3 whitespace-nowrap font-inter text-xs font-bold text-rose-600 dark:text-rose-400">{fmt(txn.amount)}</td>
+                            <td className="px-3.5 py-3 whitespace-nowrap font-inter text-xs capitalize text-slate-700 dark:text-slate-300">{txn.sendMethod || txn.paymentMethod || 'e-wallet'}</td>
+                            <td className="px-3.5 py-3 whitespace-nowrap font-inter text-xs text-slate-700 dark:text-slate-300 max-w-[140px] truncate" title={txn.description}>{txn.description || 'Withdrawal'}</td>
+                            <td className="px-3.5 py-3 whitespace-nowrap font-inter text-xs">
+                              <button onClick={() => { setPendingDetail(txn); setShowRejectInput(false); }} className="px-2.5 py-1 rounded-md font-semibold text-[11px] border-none cursor-pointer transition-colors bg-rose-100 text-rose-800 hover:bg-rose-200 dark:bg-rose-500/20 dark:text-rose-400 dark:hover:bg-rose-500/30">Review</button>
+                            </td>
+                          </tr>
+                        ))
+                      )}
+                    </tbody>
+                  </table>
+                </div>
+              </div>
+            </div>
+          ) : (
+            <div className="bg-white dark:bg-[#1E2130] border border-slate-200 dark:border-white/10 rounded-xl overflow-hidden shadow-sm">
+              <div className="overflow-x-auto">
+                <table className="w-full text-left border-collapse min-w-[700px]">
+                  <thead>
+                    <tr>
+                      <th className="bg-slate-50 dark:bg-black/20 border-b border-slate-200 dark:border-white/10 px-4 py-3 font-inter font-semibold text-[11px] tracking-wider uppercase text-slate-500 dark:text-slate-400">Date</th>
+                      <th className="bg-slate-50 dark:bg-black/20 border-b border-slate-200 dark:border-white/10 px-4 py-3 font-inter font-semibold text-[11px] tracking-wider uppercase text-slate-500 dark:text-slate-400">Member</th>
+                      <th className="bg-slate-50 dark:bg-black/20 border-b border-slate-200 dark:border-white/10 px-4 py-3 font-inter font-semibold text-[11px] tracking-wider uppercase text-slate-500 dark:text-slate-400">Type</th>
+                      <th className="bg-slate-50 dark:bg-black/20 border-b border-slate-200 dark:border-white/10 px-4 py-3 font-inter font-semibold text-[11px] tracking-wider uppercase text-slate-500 dark:text-slate-400">Amount</th>
+                      <th className="bg-slate-50 dark:bg-black/20 border-b border-slate-200 dark:border-white/10 px-4 py-3 font-inter font-semibold text-[11px] tracking-wider uppercase text-slate-500 dark:text-slate-400">Method</th>
+                      <th className="bg-slate-50 dark:bg-black/20 border-b border-slate-200 dark:border-white/10 px-4 py-3 font-inter font-semibold text-[11px] tracking-wider uppercase text-slate-500 dark:text-slate-400">Reference</th>
+                      <th className="bg-slate-50 dark:bg-black/20 border-b border-slate-200 dark:border-white/10 px-4 py-3 font-inter font-semibold text-[11px] tracking-wider uppercase text-slate-500 dark:text-slate-400">Proof</th>
+                      <th className="bg-slate-50 dark:bg-black/20 border-b border-slate-200 dark:border-white/10 px-4 py-3 font-inter font-semibold text-[11px] tracking-wider uppercase text-slate-500 dark:text-slate-400">Actions</th>
+                    </tr>
+                  </thead>
+                  <tbody>
+                    {pendingLoading ? (
+                      <tr><td colSpan={8} className="text-center p-10 text-slate-400">Loading...</td></tr>
+                    ) : pendingLoanPayments.length === 0 ? (
+                      <tr><td colSpan={8} className="text-center p-10 text-slate-400">No pending approvals</td></tr>
+                    ) : (
+                      pendingLoanPayments.slice((pendingPage - 1) * PENDING_PER_PAGE, pendingPage * PENDING_PER_PAGE).map(txn => (
+                        <tr key={txn._id} className="border-b border-slate-100 dark:border-white/5 hover:bg-slate-50 dark:hover:bg-white/5 transition-colors cursor-pointer">
+                          <td className="px-4 py-3 whitespace-nowrap font-inter text-[13px] text-slate-700 dark:text-slate-300">{fmtDate(txn.submittedAt || txn.createdAt || txn.date)}</td>
+                          <td className="px-4 py-3 whitespace-nowrap font-inter text-[13px] text-slate-700 dark:text-slate-300">
+                            <div className="flex flex-col">
+                              <p className="font-inter text-sm font-semibold text-slate-800 dark:text-white m-0">{txn.memberName || txn.email}</p>
+                              <p className="font-inter text-[11px] text-slate-500 dark:text-slate-400 m-0 mt-0.5">{`Loan: ${txn.loanId}`}</p>
+                            </div>
+                          </td>
+                          <td className="px-4 py-3 whitespace-nowrap font-inter text-[13px] text-slate-700 dark:text-slate-300">
+                            <span className={`inline-block px-2 py-0.5 rounded-md text-[11px] font-bold font-inter capitalize ${txn.paymentType === 'full' ? 'bg-emerald-100 text-emerald-800 dark:bg-emerald-500/20 dark:text-emerald-400' : txn.paymentType === 'advance' ? 'bg-blue-100 text-blue-800 dark:bg-blue-500/20 dark:text-blue-400' : 'bg-slate-100 text-slate-700 dark:bg-white/10 dark:text-slate-300'}`}>
+                              {txn.paymentType || 'regular'}
+                              {txn.monthsCovered > 1 && ` (${txn.monthsCovered}mo)`}
+                            </span>
+                          </td>
+                          <td className="px-4 py-3 whitespace-nowrap font-inter text-sm font-bold text-orange-600 dark:text-orange-400">{fmt(txn.amount)}</td>
+                          <td className="capitalize">{txn.paymentMethod || 'cash'}</td>
+                          <td className="px-4 py-3 whitespace-nowrap font-inter text-[13px] text-slate-700 dark:text-slate-300">{txn.referenceNumber || '—'}</td>
+                          <td className="px-4 py-3 whitespace-nowrap font-inter text-[13px] text-slate-700 dark:text-slate-300">
+                            {(txn.proofData || txn.proofOfPayment) ? (
+                              <img
+                                src={txn.proofData || txn.proofOfPayment}
+                                alt="Proof"
+                                className="w-8 h-8 object-cover rounded shadow-sm cursor-pointer border border-slate-200 dark:border-white/10"
+                                onClick={(e) => { e.stopPropagation(); const win = window.open(); win.document.write(`<img src="${txn.proofData || txn.proofOfPayment}" style="max-width:100%;" />`); }}
+                              />
+                            ) : (
+                              <span className="text-xs text-slate-400">No Proof</span>
+                            )}
+                          </td>
+                          <td className="px-4 py-3 whitespace-nowrap font-inter text-[13px] text-slate-700 dark:text-slate-300">
+                            <button onClick={() => { setPendingDetail(txn); setShowRejectInput(false); }} className="px-3 py-1.5 rounded-md font-semibold text-xs border-none cursor-pointer transition-colors bg-blue-100 text-blue-800 hover:bg-blue-200 dark:bg-blue-500/20 dark:text-blue-400 dark:hover:bg-blue-500/30">Review</button>
+                          </td>
+                        </tr>
+                      ))
+                    )}
+                  </tbody>
+                </table>
+              </div>
+
+              <Pagination
+                currentPage={pendingPage}
+                totalPages={Math.ceil(pendingLoanPayments.length / PENDING_PER_PAGE)}
+                onPageChange={(newPage) => setPendingPage(newPage)}
+                totalItems={pendingLoanPayments.length}
+                itemsPerPage={PENDING_PER_PAGE}
+                itemName="pending approvals"
+                embedded={true}
+              />
+            </div>
+          )
         )}
 
         {/* Payment History Tab (Loans Only) */}
         {activeTab === 'history' && !isSavingsRoute && (
-          <div className="flex flex-col gap-4">
-            <div className="bg-white dark:bg-[#1E2130] border border-slate-200 dark:border-white/10 rounded-xl overflow-x-auto shadow-sm">
+          <div className="bg-white dark:bg-[#1E2130] border border-slate-200 dark:border-white/10 rounded-xl overflow-hidden shadow-sm">
+            <div className="overflow-x-auto">
               <table className="w-full text-left border-collapse min-w-[700px]">
                 <thead>
                   <tr>
@@ -902,6 +1039,7 @@ export default function LoanAdminPaymentStatus() {
               totalItems={historyTotalCount}
               itemsPerPage={HISTORY_PER_PAGE}
               itemName="payment records"
+              embedded={true}
             />
           </div>
         )}
@@ -1062,7 +1200,7 @@ export default function LoanAdminPaymentStatus() {
                     {pendingDetail.status === 'pending' ? 'Review Transaction' : 'Transaction Detail'}
                   </h2>
                   <p className="font-inter text-[11px] text-slate-500 dark:text-slate-400 m-0 mt-0.5">
-                    {isSavingsRoute ? `Goal: ${pendingDetail.goalId || 'General'}` : `Loan: ${pendingDetail.loanId || '—'}`}
+                    {isSavingsRoute ? `Goal: ${pendingDetail.goalName || pendingDetail.goalId || 'General'}` : `Loan: ${pendingDetail.loanId || '—'}`}
                   </p>
                 </div>
               </div>
@@ -1078,7 +1216,17 @@ export default function LoanAdminPaymentStatus() {
             <div className="overflow-y-auto flex-1 p-5 px-6 flex flex-col gap-3">
               {/* Info — single container with rows */}
               <div className="rounded-xl border border-slate-200 dark:border-white/10 overflow-hidden">
-                {[
+                {(isSavingsRoute ? [
+                  { label: 'Member', value: pendingDetail.memberName || pendingDetail.email },
+                  { label: 'Transaction Type', badge: pendingDetail.type || 'deposit' },
+                  { label: 'Goal Name', value: pendingDetail.goalName || 'General Savings' },
+                  { label: 'Amount', value: fmt(pendingDetail.amount), highlight: true },
+                  { label: 'Payout Method', value: `${pendingDetail.sendMethod || pendingDetail.paymentMethod || 'e-wallet'}` },
+                  ...(pendingDetail.accountName ? [{ label: 'Account Holder', value: pendingDetail.accountName }] : []),
+                  ...(pendingDetail.accountNumber ? [{ label: 'Account Number', value: pendingDetail.accountNumber }] : []),
+                  ...(pendingDetail.description ? [{ label: 'Reason', value: pendingDetail.description }] : []),
+                  { label: 'Date Requested', value: fmtDate(pendingDetail.date || pendingDetail.submittedAt || pendingDetail.createdAt) },
+                ] : [
                   { label: 'Member', value: pendingDetail.memberName || pendingDetail.email },
                   { label: 'Reference #', value: pendingDetail.referenceNumber || pendingDetail.loanId || 'N/A' },
                   { label: 'Amount', value: fmt(pendingDetail.amount), highlight: true },
@@ -1087,15 +1235,15 @@ export default function LoanAdminPaymentStatus() {
                   { label: 'Method', value: `${pendingDetail.paymentMethod || 'cash'}${pendingDetail.subMethod ? ` (${pendingDetail.subMethod})` : ''}` },
                   ...(pendingDetail.accountName ? [{ label: 'Sender Name', value: pendingDetail.accountName }] : []),
                   ...(pendingDetail.accountNumber ? [{ label: 'Sender Account', value: pendingDetail.accountNumber }] : []),
-                ].map((item, i, arr) => (
+                ]).map((item, i, arr) => (
                   <div key={i} className={`flex items-center justify-between px-4 py-2.5 ${i < arr.length - 1 ? 'border-b border-slate-100 dark:border-white/5' : ''}`}>
                     <span className="font-inter text-xs text-slate-500 dark:text-slate-400">{item.label}</span>
                     {item.badge ? (
-                      <span className={`inline-block px-2 py-0.5 rounded text-[10px] font-bold tracking-wide uppercase ${item.badge === 'full' ? 'bg-emerald-100 text-emerald-700 dark:bg-emerald-500/20 dark:text-emerald-400' : item.badge === 'advance' ? 'bg-blue-100 text-blue-700 dark:bg-blue-500/20 dark:text-blue-400' : 'bg-slate-200 text-slate-700 dark:bg-white/10 dark:text-slate-300'}`}>
+                      <span className={`inline-block px-2 py-0.5 rounded text-[10px] font-bold tracking-wide uppercase ${item.badge === 'withdrawal' ? 'bg-rose-100 text-rose-700 dark:bg-rose-500/20 dark:text-rose-400' : item.badge === 'deposit' || item.badge === 'full' ? 'bg-emerald-100 text-emerald-700 dark:bg-emerald-500/20 dark:text-emerald-400' : item.badge === 'advance' ? 'bg-blue-100 text-blue-700 dark:bg-blue-500/20 dark:text-blue-400' : 'bg-slate-200 text-slate-700 dark:bg-white/10 dark:text-slate-300'}`}>
                         {item.badge}
                       </span>
                     ) : (
-                      <span className={`font-inter text-sm font-semibold ${item.highlight ? 'text-amber-600 dark:text-amber-400' : 'text-slate-800 dark:text-white'} capitalize`}>{item.value}</span>
+                      <span className={`font-inter text-sm font-semibold ${item.highlight ? 'text-amber-600 dark:text-amber-400' : 'text-slate-800 dark:text-white'}`}>{item.value}</span>
                     )}
                   </div>
                 ))}

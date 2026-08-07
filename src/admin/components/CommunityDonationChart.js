@@ -4,6 +4,8 @@ import {
 } from 'recharts';
 import { Filter } from 'lucide-react';
 
+import useDebounce from '../../hooks/useDebounce';
+
 const BASE_COMMUNITIES = [
   'Tabuk', 'Zapote', 'Bliss', 'Libanon', 'Batong Buhay', 'Balatoc', 'Lat-nog',
   'Lamao', 'Lingey', 'Cabaruyan', 'Ducligan', 'Gangal', 'Bila-Bila', 'Naguillian',
@@ -82,6 +84,7 @@ export default function CommunityDonationChart({ communityBreakdown = {} }) {
   const [selectedProvinces, setSelectedProvinces] = useState(() => new Set(allProvinces));
   const [dropdownOpen, setDropdownOpen] = useState(false);
   const [searchQuery, setSearchQuery] = useState('');
+  const debouncedSearch = useDebounce(searchQuery, 400);
   
   const dropdownRef = useRef(null);
 
@@ -97,8 +100,8 @@ export default function CommunityDonationChart({ communityBreakdown = {} }) {
   }, []);
 
   const filteredProvinces = useMemo(() => {
-    return allProvinces.filter(p => p.toLowerCase().includes(searchQuery.toLowerCase()));
-  }, [searchQuery, allProvinces]);
+    return allProvinces.filter(p => p.toLowerCase().includes(debouncedSearch.toLowerCase()));
+  }, [debouncedSearch, allProvinces]);
 
   const toggleProvince = (prov) => {
     const next = new Set(selectedProvinces);

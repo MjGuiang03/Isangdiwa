@@ -19,7 +19,8 @@ export default function Pagination({
     onPageChange,
     totalItems = 0,
     itemsPerPage = 10,
-    itemName = 'items'
+    itemName = 'items',
+    embedded = false
 }) {
     if (totalItems === 0 && (!totalPages || totalPages < 1)) return null;
 
@@ -27,8 +28,12 @@ export default function Pagination({
     const startItem = totalItems > 0 ? (currentPage - 1) * itemsPerPage + 1 : 0;
     const endItem = Math.min(currentPage * itemsPerPage, totalItems);
 
+    const containerClasses = embedded
+        ? "flex flex-col sm:flex-row justify-between items-center gap-3 px-4 py-3 bg-white dark:bg-[#1E2130] border-t border-slate-200/80 dark:border-white/10 shrink-0"
+        : "flex flex-col sm:flex-row justify-between items-center gap-3 mt-1 px-4 py-2 bg-white dark:bg-[#1E2130] rounded-xl border border-slate-200/80 dark:border-white/10 shadow-sm shrink-0";
+
     return (
-        <div className="flex flex-col sm:flex-row justify-between items-center gap-3 mt-1 px-4 py-2 bg-white dark:bg-[#1E2130] rounded-xl border border-slate-200/80 dark:border-white/10 shadow-sm shrink-0">
+        <div className={containerClasses}>
             {totalItems > 0 ? (
                 <span className="text-[13px] font-medium text-slate-500 dark:text-slate-400 font-inter">
                     Showing {startItem}–{endItem} of {totalItems} {itemName}

@@ -718,7 +718,7 @@ export default function AdminDashboard() {
               disabled={aiInsightsLoading}
               title="Refresh insights"
             >
-              <RefreshCw size={14} className={aiInsightsLoading ? 'spinning' : ''} />
+              <RefreshCw size={14} className={aiInsightsLoading ? 'animate-spin' : ''} />
             </button>
           </div>
         </div>

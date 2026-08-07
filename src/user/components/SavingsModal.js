@@ -1709,7 +1709,7 @@ function WithdrawModal({ goals, onClose, onOpenDeposit }) {
                     {success ? (
                         <div className="svm-success">
                             <CheckCircle size={20} color="#fff" />
-                            Withdrawal of {fmt(numAmt)} — Successful!
+                            Withdrawal request of {fmt(numAmt)} submitted! Pending Loan Admin approval.
                         </div>
                     ) : (
                         <>
