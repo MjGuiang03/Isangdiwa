@@ -19,17 +19,19 @@ function allRulesPass(p) { return RULES.every(r => r.test(p)); }
 /* ── Password rules checklist ── */
 function PasswordRules({ password }) {
   return (
-    <ul className="user-reset-rules-list">
-      {RULES.map(rule => {
-        const ok = rule.test(password);
-        return (
-          <li key={rule.key} className={`user-reset-rule ${ok ? "user-reset-rule-pass" : "user-reset-rule-fail"}`}>
-            <span className="user-reset-rule-icon">{ok ? "✓" : "✗"}</span>
-            {rule.label}
-          </li>
-        );
-      })}
-    </ul>
+    <div className="p-3 rounded-xl bg-slate-50 dark:bg-slate-800/40 border border-slate-200 dark:border-white/10 space-y-1.5 mt-3">
+      <p className="text-[11px] font-bold text-slate-700 dark:text-slate-300">Password must include:</p>
+      <ul className="grid grid-cols-1 sm:grid-cols-2 gap-1 text-[11px]">
+        {RULES.map(rule => {
+          const ok = rule.test(password);
+          return (
+            <li key={rule.key} className={ok ? 'text-emerald-600 dark:text-emerald-400 font-bold' : 'text-red-500'}>
+              ✓ {rule.label}
+            </li>
+          );
+        })}
+      </ul>
+    </div>
   );
 }
 

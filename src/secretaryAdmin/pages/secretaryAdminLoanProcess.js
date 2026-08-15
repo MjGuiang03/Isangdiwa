@@ -30,7 +30,7 @@ export default function SecretaryLoanProcess() {
     });
 
     const { data: loansData, error: loansError, isValidating: loadingLoans, mutate: fetchLoans } = useSWR(
-        token ? `${API}/api/admin/loans` : null,
+        token ? `${API}/api/admin/loans?limit=10000&status=non_completed` : null,
         fetcherSingle,
         { revalidateOnFocus: false, revalidateIfStale: true }
     );

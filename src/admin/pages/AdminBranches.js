@@ -3,7 +3,7 @@ import { useState, useEffect, useMemo } from 'react';
 import useSWR from 'swr';
 import { useNavigate } from 'react-router';
 import { toast } from 'sonner';
-import { CalendarDays, Circle, MapPin, Search, Users, TrendingUp , Loader2} from 'lucide-react';
+import { CalendarDays, Circle, MapPin, Search, Users, TrendingUp , Loader2, AlertTriangle} from 'lucide-react';
 import { PieChart, Pie, Cell, Tooltip, ResponsiveContainer, Legend, BarChart, Bar, XAxis, YAxis, CartesianGrid, LabelList } from 'recharts';
 import useDebounce from '../../hooks/useDebounce';
 
@@ -72,6 +72,93 @@ function EditCommunityModal({ branch, onClose, onSave }) {
             {saving ? <Loader2 className="animate-spin" size={16} /> : 'Save Changes'}
           </button>
         </div>
+      </div>
+    </div>
+  );
+}
+
+function DeleteCommunityModal({ branch, onClose, onConfirm }) {
+  const [step, setStep] = useState(1);
+  const [confirmText, setConfirmText] = useState('');
+  const [deleting, setDeleting] = useState(false);
+
+  const handleFinalDelete = async () => {
+    if (confirmText !== 'Delete Community') return;
+    setDeleting(true);
+    try {
+      await onConfirm(branch._id);
+    } finally {
+      setDeleting(false);
+    }
+  };
+
+  return (
+    <div className="fixed inset-0 bg-black/50 backdrop-blur-sm z-[1000] flex items-center justify-center p-4" onClick={onClose}>
+      <div className="bg-white dark:bg-[#1E2130] rounded-2xl w-full max-w-[420px] shadow-2xl border border-slate-200 dark:border-white/10 flex flex-col overflow-hidden" onClick={e => e.stopPropagation()}>
+        {step === 1 ? (
+          <>
+            {/* Step 1: Confirmation */}
+            <div className="flex flex-col items-center gap-4 p-6 pt-8">
+              <div className="w-14 h-14 rounded-2xl bg-rose-100 dark:bg-rose-500/20 text-rose-600 dark:text-rose-400 flex items-center justify-center shrink-0">
+                <AlertTriangle size={28} strokeWidth={2.2} />
+              </div>
+              <div className="text-center">
+                <h2 className="m-0 font-inter text-lg font-bold text-slate-800 dark:text-white">Remove Community</h2>
+                <p className="m-0 font-inter text-[13px] text-slate-500 dark:text-slate-400 mt-2 leading-relaxed">
+                  Are you sure you want to remove <span className="font-bold text-slate-700 dark:text-slate-200">{branch.name}</span>? This will not delete the members associated with it.
+                </p>
+              </div>
+            </div>
+            <div className="p-5 border-t border-slate-200 dark:border-white/10 bg-slate-50 dark:bg-black/20 flex items-center justify-end gap-3">
+              <button type="button" className="h-10 px-4 rounded-lg font-inter text-sm font-semibold transition-all border border-slate-300 dark:border-white/10 bg-white dark:bg-[#1E2130] text-slate-700 dark:text-slate-300 hover:bg-slate-50 dark:hover:bg-white/5 cursor-pointer flex-1 sm:flex-none" onClick={onClose}>Cancel</button>
+              <button type="button" className="h-10 px-6 rounded-lg font-inter text-sm font-semibold transition-all border-none bg-rose-600 text-white hover:bg-rose-700 cursor-pointer flex items-center justify-center min-w-[100px] flex-1 sm:flex-none" onClick={() => setStep(2)}>Continue</button>
+            </div>
+          </>
+        ) : (
+          <>
+            {/* Step 2: Type to confirm */}
+            <div className="flex flex-col gap-4 p-6 pt-8">
+              <div className="flex items-center gap-3">
+                <div className="w-12 h-12 rounded-xl bg-rose-100 dark:bg-rose-500/20 text-rose-600 dark:text-rose-400 flex items-center justify-center shrink-0">
+                  <Trash2 size={20} />
+                </div>
+                <div className="flex flex-col">
+                  <h2 className="m-0 font-inter text-lg font-bold text-slate-800 dark:text-white">Confirm Deletion</h2>
+                  <p className="m-0 font-inter text-[13px] text-slate-500 dark:text-slate-400">This action cannot be undone</p>
+                </div>
+              </div>
+              <div className="p-3.5 rounded-xl bg-rose-50 dark:bg-rose-500/10 border border-rose-200 dark:border-rose-500/20">
+                <p className="m-0 font-inter text-[13px] text-rose-700 dark:text-rose-300 leading-relaxed">
+                  You are about to permanently remove <span className="font-bold">{branch.name}</span>. To confirm, type <span className="font-mono font-bold bg-rose-100 dark:bg-rose-500/20 px-1.5 py-0.5 rounded text-rose-800 dark:text-rose-200">Delete Community</span> below.
+                </p>
+              </div>
+              <div className="flex flex-col gap-1.5">
+                <label className="font-inter text-[13px] font-semibold text-slate-700 dark:text-slate-300">Type to confirm</label>
+                <input
+                  type="text"
+                  className="h-10 px-3 bg-white dark:bg-[#161922] border border-slate-300 dark:border-white/10 rounded-lg text-sm font-inter text-slate-800 dark:text-white outline-none focus:border-rose-500 focus:ring-1 focus:ring-rose-500 transition-all w-full"
+                  placeholder="Delete Community"
+                  value={confirmText}
+                  onChange={e => setConfirmText(e.target.value)}
+                  autoFocus
+                />
+              </div>
+            </div>
+            <div className="p-5 border-t border-slate-200 dark:border-white/10 bg-slate-50 dark:bg-black/20 flex items-center justify-end gap-3">
+              <button type="button" className="h-10 px-4 rounded-lg font-inter text-sm font-semibold transition-all border border-slate-300 dark:border-white/10 bg-white dark:bg-[#1E2130] text-slate-700 dark:text-slate-300 hover:bg-slate-50 dark:hover:bg-white/5 cursor-pointer flex-1 sm:flex-none" onClick={onClose} disabled={deleting}>Cancel</button>
+              <button
+                type="button"
+                className={`h-10 px-6 rounded-lg font-inter text-sm font-semibold transition-all border-none text-white cursor-pointer flex items-center justify-center min-w-[140px] flex-1 sm:flex-none ${
+                  confirmText === 'Delete Community' ? 'bg-rose-600 hover:bg-rose-700' : 'bg-slate-300 dark:bg-slate-600 cursor-not-allowed'
+                }`}
+                onClick={handleFinalDelete}
+                disabled={confirmText !== 'Delete Community' || deleting}
+              >
+                {deleting ? <Loader2 className="animate-spin" size={16} /> : 'Delete Community'}
+              </button>
+            </div>
+          </>
+        )}
       </div>
     </div>
   );
@@ -391,6 +478,7 @@ export default function AdminBranches() {
   const [editingBranch, setEditingBranch] = useState(null);
   const [viewingBranch, setViewingBranch] = useState(null);
   const [openMenuId, setOpenMenuId] = useState(null);
+  const [deletingBranch, setDeletingBranch] = useState(null);
   
   // Track visible count per province for "View More" pagination
   const [visibleCounts, setVisibleCounts] = useState({});
@@ -431,7 +519,6 @@ export default function AdminBranches() {
   }, [loadingBranches]);
 
   const handleDeleteBranch = async (id) => {
-    if (!window.confirm('Are you sure you want to remove this community? This will not delete the members associated with it.')) return;
     try {
       const token = localStorage.getItem('adminToken');
       const res = await fetch(`${API}/api/admin/branches/${id}`, {
@@ -441,6 +528,7 @@ export default function AdminBranches() {
       const data = await res.json();
       if (data.success) {
         toast.success('Community removed');
+        setDeletingBranch(null);
         fetchBranches();
       }
     } catch (err) { toast.error('Failed to remove community'); }
@@ -768,7 +856,7 @@ export default function AdminBranches() {
                                 </button>
                                 <button 
                                   className="w-full flex items-center gap-2.5 px-3.5 py-2 text-xs font-medium text-rose-600 hover:bg-rose-50 dark:hover:bg-rose-500/10 transition-colors border-none bg-transparent cursor-pointer" 
-                                  onClick={() => { setOpenMenuId(null); handleDeleteBranch(branch._id); }}
+                                  onClick={() => { setOpenMenuId(null); setDeletingBranch(branch); }}
                                 >
                                   <Trash2 size={14} /> Remove Branch
                                 </button>
@@ -809,6 +897,13 @@ export default function AdminBranches() {
             setViewingBranch(null);
             setEditingBranch(b);
           }}
+        />
+      )}
+      {deletingBranch && (
+        <DeleteCommunityModal
+          branch={deletingBranch}
+          onClose={() => setDeletingBranch(null)}
+          onConfirm={handleDeleteBranch}
         />
       )}
     </div>

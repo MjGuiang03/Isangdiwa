@@ -2,7 +2,7 @@ import { useState, useEffect } from 'react';
 import useSWR from 'swr';
 import { useNavigate } from 'react-router-dom';
 import { toast } from 'sonner';
-import { Calendar, Clock, Edit, Globe, MapPin, Megaphone, Trash2 , Loader2} from 'lucide-react';
+import { Calendar, Clock, Edit, Globe, MapPin, Megaphone, Trash2 , Loader2, AlertTriangle, XCircle} from 'lucide-react';
 import API from '../../utils/api';
 
 const fmtDate = (d) =>
@@ -20,6 +20,7 @@ export default function AdminAnnouncements() {
   const [items, setItems] = useState([]);
   const [branches, setBranches] = useState([]);
   const [categoryFilter, setCategoryFilter] = useState('All');
+  const [deletingAnnouncement, setDeletingAnnouncement] = useState(null);
   const [editingId, setEditingId] = useState(null);
   const [template, setTemplate] = useState('banner');
   const [form, setForm] = useState({
@@ -228,7 +229,6 @@ export default function AdminAnnouncements() {
   };
 
   const handleDelete = async (id) => {
-    if (!window.confirm('Delete this announcement?')) return;
     try {
       const token = localStorage.getItem('adminToken');
       const res = await fetch(`${API}/api/admin/announcements/${id}`, {
@@ -238,6 +238,7 @@ export default function AdminAnnouncements() {
       const data = await res.json();
       if (res.ok && data.success) {
         toast.success('Announcement deleted');
+        setDeletingAnnouncement(null);
         setItems(prev => prev.filter(a => a._id !== id));
       } else {
         toast.error(data.message || 'Failed to delete');
@@ -638,7 +639,7 @@ export default function AdminAnnouncements() {
                       <button className="w-8 h-8 rounded-lg bg-white dark:bg-[#1E2130] border border-slate-200 dark:border-white/10 flex items-center justify-center text-blue-600 hover:bg-blue-50 dark:hover:bg-blue-500/20 cursor-pointer shadow-xs transition-colors" onClick={() => handleEdit(a)} title="Edit">
                         <Edit size={14} />
                       </button>
-                      <button className="w-8 h-8 rounded-lg bg-white dark:bg-[#1E2130] border border-slate-200 dark:border-white/10 flex items-center justify-center text-rose-600 hover:bg-rose-50 dark:hover:bg-rose-500/20 cursor-pointer shadow-xs transition-colors" onClick={() => handleDelete(a._id)} title="Delete">
+                      <button className="w-8 h-8 rounded-lg bg-white dark:bg-[#1E2130] border border-slate-200 dark:border-white/10 flex items-center justify-center text-rose-600 hover:bg-rose-50 dark:hover:bg-rose-500/20 cursor-pointer shadow-xs transition-colors" onClick={() => setDeletingAnnouncement(a)} title="Delete">
                         <Trash2 size={14} />
                       </button>
                     </div>
@@ -650,6 +651,50 @@ export default function AdminAnnouncements() {
 
         </div>
 
+      </div>
+      {deletingAnnouncement && (
+        <DeleteAnnouncementModal
+          announcement={deletingAnnouncement}
+          onClose={() => setDeletingAnnouncement(null)}
+          onConfirm={handleDelete}
+        />
+      )}
+    </div>
+  );
+}
+
+function DeleteAnnouncementModal({ announcement, onClose, onConfirm }) {
+  const [deleting, setDeleting] = useState(false);
+
+  const handleConfirm = async () => {
+    setDeleting(true);
+    try {
+      await onConfirm(announcement._id);
+    } finally {
+      setDeleting(false);
+    }
+  };
+
+  return (
+    <div className="fixed inset-0 bg-black/50 backdrop-blur-sm z-[1000] flex items-center justify-center p-4" onClick={onClose}>
+      <div className="bg-white dark:bg-[#1E2130] rounded-2xl w-full max-w-[400px] shadow-2xl border border-slate-200 dark:border-white/10 flex flex-col overflow-hidden" onClick={e => e.stopPropagation()}>
+        <div className="flex flex-col items-center gap-4 p-6 pt-8">
+          <div className="w-14 h-14 rounded-2xl bg-rose-100 dark:bg-rose-500/20 text-rose-600 dark:text-rose-400 flex items-center justify-center shrink-0">
+            <AlertTriangle size={28} strokeWidth={2.2} />
+          </div>
+          <div className="text-center">
+            <h2 className="m-0 font-inter text-lg font-bold text-slate-800 dark:text-white">Delete Announcement</h2>
+            <p className="m-0 font-inter text-[13px] text-slate-500 dark:text-slate-400 mt-2 leading-relaxed">
+              Are you sure you want to delete <span className="font-bold text-slate-700 dark:text-slate-200">"{announcement.title}"</span>? This action cannot be undone.
+            </p>
+          </div>
+        </div>
+        <div className="p-5 border-t border-slate-200 dark:border-white/10 bg-slate-50 dark:bg-black/20 flex items-center justify-end gap-3">
+          <button type="button" className="h-10 px-4 rounded-lg font-inter text-sm font-semibold transition-all border border-slate-300 dark:border-white/10 bg-white dark:bg-[#1E2130] text-slate-700 dark:text-slate-300 hover:bg-slate-50 dark:hover:bg-white/5 cursor-pointer flex-1 sm:flex-none" onClick={onClose} disabled={deleting}>Cancel</button>
+          <button type="button" className="h-10 px-6 rounded-lg font-inter text-sm font-semibold transition-all border-none bg-rose-600 text-white hover:bg-rose-700 cursor-pointer flex items-center justify-center min-w-[100px] flex-1 sm:flex-none" onClick={handleConfirm} disabled={deleting}>
+            {deleting ? <Loader2 className="animate-spin" size={16} /> : 'Delete'}
+          </button>
+        </div>
       </div>
     </div>
   );
