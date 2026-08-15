@@ -2,7 +2,7 @@ import { useState, useEffect } from 'react';
 import useSWR from 'swr';
 import { useNavigate } from 'react-router-dom';
 import { toast } from 'sonner';
-import { Calendar, Clock, Edit, Globe, MapPin, Megaphone, Trash2 , Loader2, AlertTriangle, XCircle} from 'lucide-react';
+import { Calendar, Clock, Edit, Globe, MapPin, Megaphone, Trash2, Loader2, AlertTriangle } from 'lucide-react';
 import API from '../../utils/api';
 
 const fmtDate = (d) =>
