@@ -2,7 +2,7 @@ import { useNavigate, useLocation } from 'react-router';
 import { useAuth } from '../../context/AuthContext';
 import { useState, useEffect, useCallback } from 'react';
 import { Building2, Calendar, FileText, Heart, LayoutGrid, Menu, Settings, Wallet, X, LogOut, Bell } from 'lucide-react';
-import puacLogo from '../../assets/puaclogo.png';
+import puacLogo from '../../assets/optimized/puaclogo.webp';
 import API from '../../utils/api';
 
 import { isOfficerPosition } from '../../utils/officerPositions';

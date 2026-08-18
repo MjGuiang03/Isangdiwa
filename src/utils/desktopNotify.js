@@ -3,7 +3,7 @@
  * Uses the Web Notifications API to show native browser notifications.
  */
 
-import puacLogo from '../assets/puaclogo.png';
+import puacLogo from '../assets/optimized/puaclogo.webp';
 
 const PERMISSION_KEY = 'faithly_notif_permission';
 const DISMISSED_KEY  = 'faithly_notif_dismissed';

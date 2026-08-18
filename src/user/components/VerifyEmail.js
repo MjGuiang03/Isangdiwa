@@ -3,7 +3,7 @@ import { useNavigate } from 'react-router';
 import { useAuth } from '../../context/AuthContext';
 import { CheckCircle, AlertCircle, X } from 'lucide-react';
 import { toast } from 'sonner';
-import puacLogo from '../../assets/puaclogo.png';
+import puacLogo from '../../assets/optimized/puaclogo.webp';
 import useSwipeDownToClose from '../hooks/useSwipeDownToClose';
 
 // Change the function signature to accept optional override props:

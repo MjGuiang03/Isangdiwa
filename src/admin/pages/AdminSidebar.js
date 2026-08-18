@@ -9,7 +9,7 @@ import {
   Megaphone, MapPin, Calendar, UserCog, BarChart,
   CreditCard, CalendarCheck, FileText, Shield, X, Menu
 } from 'lucide-react';
-import puacLogo from '../../assets/puaclogo.png';
+import puacLogo from '../../assets/optimized/puaclogo.webp';
 import { useTheme } from '../../context/ThemeContext';
 
 import API from '../../utils/api';

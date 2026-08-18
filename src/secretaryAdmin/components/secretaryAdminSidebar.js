@@ -6,7 +6,7 @@ import {
     LayoutGrid, Bell, FileText, FolderOpen,
     Settings, LogOut, BarChart, X, Menu
 } from 'lucide-react';
-import puacLogo from '../../assets/puaclogo.png';
+import puacLogo from '../../assets/optimized/puaclogo.webp';
 import API from '../../utils/api';
 import { processNewNotifications } from '../../utils/desktopNotify';
 import NotificationPrompt from '../../components/NotificationPrompt';

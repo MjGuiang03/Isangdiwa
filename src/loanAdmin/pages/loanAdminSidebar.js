@@ -6,7 +6,7 @@ import { toast } from 'sonner';
 import {
   LayoutGrid, Bell, FileText, CreditCard, AlertTriangle, Settings, LogOut, PiggyBank, BarChart, X, Menu
 } from 'lucide-react';
-import puacLogo from '../../assets/puaclogo.png';
+import puacLogo from '../../assets/optimized/puaclogo.webp';
 import { useTheme } from '../../context/ThemeContext';
 import API from '../../utils/api';
 import { processNewNotifications } from '../../utils/desktopNotify';

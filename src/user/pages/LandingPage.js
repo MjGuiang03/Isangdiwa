@@ -9,16 +9,16 @@ import LoginModal from '../components/LoginModal';
 import SignupModal from '../components/SignupModal';
 import ResetPassword from '../components/ResetPassword';
 
-import puacLogo from '../../assets/puaclogo.png';
-import puacCongregation from '../../assets/IMG_8437.JPG';
-import summerYouthCamp from '../../assets/summer youth camp.png';
-import bentoImg1 from '../../assets/events/IMG_8439.JPG';
-import bentoImg2 from '../../assets/events/pic4.jfif';
-import missionImg from '../../assets/events/pic5.jfif';
+import puacLogo from '../../assets/optimized/puaclogo.webp';
+import puacCongregation from '../../assets/optimized/IMG_8437.webp';
+import summerYouthCamp from '../../assets/optimized/summer_youth_camp.webp';
+import bentoImg1 from '../../assets/optimized/events/IMG_8439.webp';
+import bentoImg2 from '../../assets/optimized/events/pic4.webp';
+import missionImg from '../../assets/optimized/events/pic5.webp';
 
-import featureSavings from '../../assets/features/savings.jpg';
-import featureChatbot from '../../assets/features/chatbot1.JPG';
-import featureAttendance from '../../assets/features/attendance.jpg';
+import featureSavings from '../../assets/optimized/features/savings.webp';
+import featureChatbot from '../../assets/optimized/features/chatbot1.webp';
+import featureAttendance from '../../assets/optimized/features/attendance.webp';
 
 export default function LandingPage() {
   const location = useLocation();
@@ -28,7 +28,6 @@ export default function LandingPage() {
   const [showSignupModal, setShowSignupModal] = useState(false);
   const [showResetModal, setShowResetModal] = useState(false);
 
-  const [loading, setLoading] = useState(true);
   const [scrolled, setScrolled] = useState(false);
 
   const revealRefs = useRef([]);
@@ -42,7 +41,6 @@ export default function LandingPage() {
   }, [location.pathname]);
 
   useEffect(() => {
-    const timer = setTimeout(() => setLoading(false), 1500);
     const handleScroll = () => setScrolled(window.scrollY > 20);
     window.addEventListener('scroll', handleScroll);
 
@@ -58,7 +56,6 @@ export default function LandingPage() {
     revealRefs.current.forEach(el => { if (el) observer.observe(el); });
 
     return () => {
-      clearTimeout(timer);
       window.removeEventListener('scroll', handleScroll);
       observer.disconnect();
     };
@@ -89,19 +86,7 @@ export default function LandingPage() {
   return (
     <div className="font-inter bg-[#F8FAFC] text-[#0D1F45] min-h-screen selection:bg-[#F5C800] selection:text-[#0D1F45] overflow-x-hidden scroll-smooth">
       
-      {/* LOADER */}
-      <div className={`fixed inset-0 bg-[#0D1F45] flex flex-col items-center justify-center z-[9999] transition-all duration-700 ${
-        !loading ? 'opacity-0 invisible pointer-events-none' : 'opacity-100 visible'
-      }`}>
-        <img src={puacLogo} alt="IsangDiwa Logo" className="w-28 h-auto object-contain mb-6 animate-pulse" />
-        <div className="text-3xl sm:text-4xl font-extrabold text-white text-center mb-1 tracking-tight font-dm">
-          <span>Isang</span><span className="text-[#F5C800]">Diwa</span>
-        </div>
-        <div className="text-xs text-white/60 tracking-widest text-center uppercase font-medium">Philippine United Apostolic Church</div>
-        <div className="w-36 h-1 bg-white/10 mt-6 rounded-full overflow-hidden">
-          <div className="h-full bg-[#F5C800] rounded-full w-full animate-shimmer"></div>
-        </div>
-      </div>
+
 
       {/* NAVBAR */}
       <nav className={`fixed top-2 sm:top-4 left-0 right-0 z-[100] transition-all duration-300 ${scrolled ? 'top-0' : 'top-2 sm:top-4'}`}>
@@ -110,7 +95,7 @@ export default function LandingPage() {
             scrolled ? 'bg-[#09172E]/95 backdrop-blur-md border border-white/10 shadow-xl text-white rounded-none sm:rounded-2xl mt-0' : 'bg-[#0E254A]/80 backdrop-blur-md border border-white/10 shadow-sm text-white'
           }`}>
             <a href="#" onClick={(e) => { e.preventDefault(); window.scrollTo({ top: 0, behavior: 'smooth' }); }} className="flex items-center gap-3 no-underline">
-              <img src={puacLogo} alt="IsangDiwa Logo" className="w-9 h-9 object-contain shrink-0" />
+              <img src={puacLogo} alt="IsangDiwa Logo" className="w-9 h-9 object-contain shrink-0" width="36" height="36" />
               <div className="font-dm text-xl font-bold tracking-tight">
                 <span className="text-white">Isang</span>
                 <span className="text-[#F5C800]">Diwa</span>
@@ -298,6 +283,7 @@ export default function LandingPage() {
                 src={featureSavings} 
                 alt="Savings and Stewardship UI" 
                 className="w-full h-auto rounded-2xl object-cover object-top" 
+                loading="lazy" width="800" height="400"
               />
             </div>
           </div>
@@ -321,7 +307,7 @@ export default function LandingPage() {
           </div>
           <div className="lg:col-span-6 lg:order-1">
             <div className="bg-white p-2 rounded-3xl shadow-xl border border-slate-200 overflow-hidden">
-              <img src={featureChatbot} alt="AI Assistant &amp; Chatbot UI" className="w-full h-auto rounded-2xl object-cover object-top" />
+              <img src={featureChatbot} alt="AI Assistant &amp; Chatbot UI" className="w-full h-auto rounded-2xl object-cover object-top" loading="lazy" width="800" height="400" />
             </div>
           </div>
         </div>
@@ -344,7 +330,7 @@ export default function LandingPage() {
           </div>
           <div className="lg:col-span-6">
             <div className="bg-white p-2 rounded-3xl shadow-xl border border-slate-200 overflow-hidden">
-              <img src={featureAttendance} alt="Attendance Tracker UI" className="w-full h-auto rounded-2xl object-cover object-top" />
+              <img src={featureAttendance} alt="Attendance Tracker UI" className="w-full h-auto rounded-2xl object-cover object-top" loading="lazy" width="800" height="400" />
             </div>
           </div>
         </div>
@@ -371,7 +357,7 @@ export default function LandingPage() {
           <div className="grid grid-cols-1 md:grid-cols-3">
             
             <div className="md:col-span-2 relative group overflow-hidden min-h-[340px] bg-slate-800">
-              <img src={puacCongregation} alt="PUAC Congregation" className="w-full h-full object-cover group-hover:scale-105 transition-transform duration-700 opacity-80" />
+              <img src={puacCongregation} alt="PUAC Congregation" className="w-full h-full object-cover group-hover:scale-105 transition-transform duration-700 opacity-80" loading="lazy" width="1200" height="600" />
               <div className="absolute inset-0 bg-gradient-to-t from-black/90 via-black/30 to-transparent p-8 flex flex-col justify-end">
                 <span className="text-xs font-bold uppercase tracking-wider text-[#F5C800]">Main Assembly</span>
                 <h3 className="font-dm text-2xl font-bold text-white mt-1">National Apostolic Convention</h3>
@@ -379,7 +365,7 @@ export default function LandingPage() {
             </div>
 
             <div className="relative group overflow-hidden min-h-[340px] bg-slate-800">
-              <img src={bentoImg1} alt="Sunday Worship" className="w-full h-full object-cover group-hover:scale-105 transition-transform duration-700 opacity-80" />
+              <img src={bentoImg1} alt="Sunday Worship" className="w-full h-full object-cover group-hover:scale-105 transition-transform duration-700 opacity-80" loading="lazy" width="800" height="600" />
               <div className="absolute inset-0 bg-gradient-to-t from-black/90 via-black/30 to-transparent p-6 flex flex-col justify-end">
                 <span className="text-xs font-bold uppercase tracking-wider text-[#F5C800]">Worship Service</span>
                 <h3 className="font-dm text-xl font-bold text-white mt-1">Sunday Praise &amp; Prayer</h3>
@@ -387,7 +373,7 @@ export default function LandingPage() {
             </div>
 
             <div className="relative group overflow-hidden min-h-[280px] bg-slate-800">
-              <img src={missionImg} alt="Outreach Mission" className="w-full h-full object-cover group-hover:scale-105 transition-transform duration-700 opacity-80" />
+              <img src={missionImg} alt="Outreach Mission" className="w-full h-full object-cover group-hover:scale-105 transition-transform duration-700 opacity-80" loading="lazy" width="800" height="600" />
               <div className="absolute inset-0 bg-gradient-to-t from-black/90 via-black/30 to-transparent p-6 flex flex-col justify-end">
                 <span className="text-xs font-bold uppercase tracking-wider text-[#F5C800]">Community Outreach</span>
                 <h3 className="font-dm text-xl font-bold text-white mt-1">Medical &amp; Feeding Mission</h3>
@@ -395,7 +381,7 @@ export default function LandingPage() {
             </div>
 
             <div className="relative group overflow-hidden min-h-[280px] bg-slate-800">
-              <img src={summerYouthCamp} alt="Summer Youth Camp" className="w-full h-full object-cover group-hover:scale-105 transition-transform duration-700 opacity-80" />
+              <img src={summerYouthCamp} alt="Summer Youth Camp" className="w-full h-full object-cover group-hover:scale-105 transition-transform duration-700 opacity-80" loading="lazy" width="900" height="600" />
               <div className="absolute inset-0 bg-gradient-to-t from-black/90 via-black/30 to-transparent p-6 flex flex-col justify-end">
                 <span className="text-xs font-bold uppercase tracking-wider text-[#F5C800]">Youth Ministry</span>
                 <h3 className="font-dm text-xl font-bold text-white mt-1">Summer Youth Camp</h3>
@@ -403,7 +389,7 @@ export default function LandingPage() {
             </div>
 
             <div className="relative group overflow-hidden min-h-[280px] bg-slate-800">
-              <img src={bentoImg2} alt="Water Baptism" className="w-full h-full object-cover group-hover:scale-105 transition-transform duration-700 opacity-80" />
+              <img src={bentoImg2} alt="Water Baptism" className="w-full h-full object-cover group-hover:scale-105 transition-transform duration-700 opacity-80" loading="lazy" width="800" height="600" />
               <div className="absolute inset-0 bg-gradient-to-t from-black/90 via-black/30 to-transparent p-6 flex flex-col justify-end">
                 <span className="text-xs font-bold uppercase tracking-wider text-[#F5C800]">Sacraments</span>
                 <h3 className="font-dm text-xl font-bold text-white mt-1">Water Baptism Services</h3>
@@ -449,7 +435,7 @@ export default function LandingPage() {
         <div className="max-w-7xl mx-auto grid grid-cols-1 md:grid-cols-4 gap-10 pb-12 border-b border-white/10">
           <div className="space-y-4 md:col-span-1">
             <div className="flex items-center gap-3">
-              <img src={puacLogo} alt="IsangDiwa Logo" className="w-8 h-8 object-contain" />
+              <img src={puacLogo} alt="IsangDiwa Logo" className="w-8 h-8 object-contain" loading="lazy" width="32" height="32" />
               <span className="font-dm text-lg font-bold text-white">Isang<span className="text-[#F5C800]">Diwa</span></span>
             </div>
             <p className="leading-relaxed text-white/60">

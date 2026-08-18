@@ -205,7 +205,7 @@ router.post('/verify-email-change', authenticateUser, async (req, res) => {
     await users.updateOne({ email: currentEmail }, { $set: { email: newEmail, lastEmailChangeAt: new Date() } });
     await otps.deleteMany({ email: currentEmail, type: 'change-email' });
 
-    const newToken = jwt.sign({ email: newEmail }, JWT_SECRET, { expiresIn: '1h' });
+    const newToken = jwt.sign({ email: newEmail, role: 'user' }, JWT_SECRET, { expiresIn: '1h', issuer: 'faithly-api', audience: 'faithly-users' });
 
     res.json({ success: true, message: 'Email updated successfully', newEmail, token: newToken });
   } catch (err) {

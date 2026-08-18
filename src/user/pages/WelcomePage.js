@@ -5,7 +5,7 @@ import LoginModal from '../components/LoginModal';
 import SignupModal from '../components/SignupModal';
 import ResetPassword from '../components/ResetPassword';
 import DonationInfoModal from '../components/DonationInfoModal';
-import puacLogo from '../../assets/puaclogo.png';
+import puacLogo from '../../assets/optimized/puaclogo.webp';
 import puacCongregation from '../../assets/IMG_8437.JPG';
 import puacCommunity from '../../assets/IMG_8443.JPG';
 import thanksgiving from '../../assets/events/thanksgiving.png';
