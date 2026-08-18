@@ -338,6 +338,7 @@ export default function LoanAdminDashboard() {
   }, [savingsMonthly]);
 
   const statusDistributionSummary = useMemo(() => {
+    // eslint-disable-next-line no-unused-vars
     const total = statusDistribution.reduce((s, d) => s + (d.value || 0), 0);
     return { total };
   }, [statusDistribution]);

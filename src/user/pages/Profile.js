@@ -193,10 +193,11 @@ export default function Profile() {
   const donationTrend = useMemo(() => {
     const now = new Date();
     const year = now.getFullYear();
-    const monthData = MONTHS_SHORT.map((label, i) => ({ label, amount: 0, month: i }));
+    const currentMonth = now.getMonth(); // 0-indexed
+    const monthData = MONTHS_SHORT.slice(0, currentMonth + 1).map((label, i) => ({ label, amount: 0, month: i }));
     donations.forEach(d => {
       const dt = new Date(d.createdAt);
-      if (dt.getFullYear() === year) {
+      if (dt.getFullYear() === year && dt.getMonth() <= currentMonth) {
         monthData[dt.getMonth()].amount += Number(d.amount) || 0;
       }
     });
@@ -209,10 +210,11 @@ export default function Profile() {
   const attendanceByMonth = useMemo(() => {
     const now = new Date();
     const year = now.getFullYear();
-    const monthCounts = MONTHS_SHORT.map((label, i) => ({ label, count: 0, month: i }));
+    const currentMonth = now.getMonth();
+    const monthCounts = MONTHS_SHORT.slice(0, currentMonth + 1).map((label, i) => ({ label, count: 0, month: i }));
     attendance.forEach(a => {
       const dt = new Date(a.createdAt);
-      if (dt.getFullYear() === year) {
+      if (dt.getFullYear() === year && dt.getMonth() <= currentMonth) {
         monthCounts[dt.getMonth()].count += 1;
       }
     });

@@ -1037,7 +1037,7 @@ export default function AdminFinancialReport() {
                     <div style={{ display: "flex", flexWrap: "wrap", alignItems: "center", gap: "8px", marginTop: "8px", paddingTop: "8px", borderTop: "1px solid #f1f5f9" }}>
                       {report.donations.byCategory.map((cat, i) => (
                         <div key={i} style={{ display: "flex", alignItems: "center", gap: "4px", fontSize: "10px", color: "#4b5563" }}>
-                          <span style={{ width: "8px", height: "8px", borderRadius: "50%", flexShrink: 0 }} style={{ background: PIE_COLORS[i % PIE_COLORS.length] }} />
+                          <span style={{ width: "8px", height: "8px", borderRadius: "50%", flexShrink: 0, background: PIE_COLORS[i % PIE_COLORS.length] }} />
                           <span style={{ fontSize: "10px", color: "#4b5563" }}>{cat.name}</span>
                           <span style={{ fontWeight: 700, color: "#0f172a", marginLeft: "4px" }}>{fmt(cat.value)} · {report.donations.total > 0 ? ((cat.value / report.donations.total) * 100).toFixed(0) : 0}%</span>
                         </div>
@@ -1208,7 +1208,7 @@ export default function AdminFinancialReport() {
 
                 return (
                   <div style={{ gridTemplateColumns: '1fr', marginTop: '16px' }}>
-                    <div style={{ border: "1px solid #e2e8f0", padding: "12px", background: "#ffffff", display: "flex", flexDirection: "column", justifyContent: "space-between" }} style={{ width: '100%' }}>
+                    <div style={{ border: "1px solid #e2e8f0", padding: "12px", background: "#ffffff", display: "flex", flexDirection: "column", justifyContent: "space-between", width: '100%' }}>
                       <h3 style={{ margin: 0, fontSize: "13px", fontWeight: 700, color: "#1e293b" }}>Monthly Donation Trend (By Community)</h3>
                       <p style={{ margin: "2px 0 4px", fontSize: "11px", color: "#6b7280" }}>
                         Detailed Community Breakdown · Total: <strong>{fmt(totalDon)}</strong> · Highest: <strong>{highestMon?.month}</strong>
@@ -1258,7 +1258,7 @@ export default function AdminFinancialReport() {
                                 <div style={{ fontSize: "10px", fontWeight: 700, color: "#374151", textTransform: "uppercase", letterSpacing: "0.05em", borderBottom: "1px solid #f1f5f9", paddingBottom: "3px", marginBottom: "3px" }}>{prov}</div>
                                 {seriesList.map(s => (
                                   <div key={s.name} style={{ margin: 0 }}>
-                                    <span style={{ width: "8px", height: "8px", borderRadius: "50%", flexShrink: 0 }} style={{ background: COMMUNITY_COLORS[s.index % COMMUNITY_COLORS.length] }} />
+                                    <span style={{ width: "8px", height: "8px", borderRadius: "50%", flexShrink: 0, background: COMMUNITY_COLORS[s.index % COMMUNITY_COLORS.length] }} />
                                     <span style={{ fontSize: "10px", color: "#4b5563" }}>{s.name}</span>
                                     <span style={{ fontSize: '10px', color: '#4B5563', marginLeft: '4px' }}>({fmt(s.total)})</span>
                                   </div>
@@ -1269,7 +1269,7 @@ export default function AdminFinancialReport() {
                               <div style={{ display: "flex", flexDirection: "column", gap: "4px" }}>
                                 <div style={{ fontSize: "10px", fontWeight: 700, color: "#374151", textTransform: "uppercase", letterSpacing: "0.05em", borderBottom: "1px solid #f1f5f9", paddingBottom: "3px", marginBottom: "3px" }}>Others</div>
                                 <div style={{ margin: 0 }}>
-                                  <span style={{ width: "8px", height: "8px", borderRadius: "50%", flexShrink: 0 }} style={{ background: '#d1d5db' }} />
+                                  <span style={{ width: "8px", height: "8px", borderRadius: "50%", flexShrink: 0, background: '#d1d5db' }} />
                                   <span style={{ fontSize: "10px", color: "#4b5563" }}>{otherSeries.length} more communities</span>
                                   <span style={{ fontSize: '10px', color: '#4B5563', marginLeft: '4px' }}>
                                     ({fmt(otherSeries.reduce((s, k) => s + totals[k], 0))})
@@ -1347,7 +1347,7 @@ export default function AdminFinancialReport() {
                     <div style={{ display: "flex", flexWrap: "wrap", alignItems: "center", gap: "8px", marginTop: "8px", paddingTop: "6px", borderTop: "1px solid #f1f5f9" }}>
                       {topDonors.slice(0, 5).map((d, i) => (
                         <div key={i} style={{ display: "flex", alignItems: "center", gap: "4px", fontSize: "10px", color: "#4b5563" }}>
-                          <span style={{ width: "8px", height: "8px", borderRadius: "50%", flexShrink: 0 }} style={{ background: i === 0 ? '#2563eb' : '#0D1F45' }} />
+                          <span style={{ width: "8px", height: "8px", borderRadius: "50%", flexShrink: 0, background: i === 0 ? '#2563eb' : '#0D1F45' }} />
                           <span style={{ fontSize: "10px", color: "#4b5563" }}>{d.donor}</span>
                           <span style={{ fontWeight: 700, color: "#0f172a", marginLeft: "4px" }}>{fmt(d.value)} · {report.donations.total > 0 ? ((d.value / report.donations.total) * 100).toFixed(0) : 0}%</span>
                         </div>
@@ -1364,7 +1364,7 @@ export default function AdminFinancialReport() {
                 <div style={{ gridTemplateColumns: '1fr', marginTop: '16px' }}>
                   <div style={{ border: "1px solid #e2e8f0", padding: "12px", background: "#ffffff", display: "flex", flexDirection: "column" }}>
                     <h3 style={{ margin: 0, fontSize: "13px", fontWeight: 700, color: "#1e293b" }}>Donations Breakdown By Community</h3>
-                    <div style={{ width: "100%", overflow: "hidden" }} style={{ maxHeight: '400px' }}>
+                    <div style={{ width: "100%", overflow: "hidden", maxHeight: '400px' }}>
                       <table style={{ width: "100%", textAlign: "left", borderCollapse: "collapse" }}>
                         <thead>
                           <tr>
@@ -1478,7 +1478,7 @@ export default function AdminFinancialReport() {
                                 <div style={{ fontSize: "10px", fontWeight: 700, color: "#374151", textTransform: "uppercase", letterSpacing: "0.05em", borderBottom: "1px solid #f1f5f9", paddingBottom: "3px", marginBottom: "3px" }}>{prov}</div>
                                 {comms.map(c => (
                                   <div key={c.name} style={{ margin: 0 }}>
-                                    <span style={{ width: "8px", height: "8px", borderRadius: "50%", flexShrink: 0 }} style={{ background: COMMUNITY_COLORS[c.index % COMMUNITY_COLORS.length] }} />
+                                    <span style={{ width: "8px", height: "8px", borderRadius: "50%", flexShrink: 0, background: COMMUNITY_COLORS[c.index % COMMUNITY_COLORS.length] }} />
                                     <span style={{ fontSize: "10px", color: "#4b5563" }}>{c.name}</span>
                                     <span style={{ fontSize: '10px', color: '#4B5563', marginLeft: '4px' }}>({c.total} attendees)</span>
                                   </div>
@@ -1489,7 +1489,7 @@ export default function AdminFinancialReport() {
                               <div style={{ display: "flex", flexDirection: "column", gap: "4px" }}>
                                 <div style={{ fontSize: "10px", fontWeight: 700, color: "#374151", textTransform: "uppercase", letterSpacing: "0.05em", borderBottom: "1px solid #f1f5f9", paddingBottom: "3px", marginBottom: "3px" }}>Others</div>
                                 <div style={{ margin: 0 }}>
-                                  <span style={{ width: "8px", height: "8px", borderRadius: "50%", flexShrink: 0 }} style={{ background: '#d1d5db' }} />
+                                  <span style={{ width: "8px", height: "8px", borderRadius: "50%", flexShrink: 0, background: '#d1d5db' }} />
                                   <span style={{ fontSize: "10px", color: "#4b5563" }}>{otherSeries.length} more communities</span>
                                   <span style={{ fontSize: '10px', color: '#4B5563', marginLeft: '4px' }}>
                                     ({otherSeries.reduce((s, k) => s + totals[k], 0)} attendees)
