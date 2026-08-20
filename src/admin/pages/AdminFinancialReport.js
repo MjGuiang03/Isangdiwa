@@ -749,36 +749,148 @@ export default function AdminFinancialReport() {
         </div>
       )}
 
-      {/* ÃƒÂ¢Ã¢â‚¬ÂÃ¢â€šÂ¬ÃƒÂ¢Ã¢â‚¬ÂÃ¢â€šÂ¬ Skeleton Loading State ÃƒÂ¢Ã¢â‚¬ÂÃ¢â€šÂ¬ÃƒÂ¢Ã¢â‚¬ÂÃ¢â€šÂ¬ */}
-      {loading && (
-        <div className="flex flex-col gap-6 animate-pulse">
-          {/* Executive Summary Skeleton */}
-          <div className="bg-white dark:bg-[#1E2130] rounded-xl border border-slate-200 dark:border-white/10 shadow-sm p-6 flex flex-col gap-4">
-            <div className="flex items-center justify-between pb-4 border-b border-slate-200 dark:border-white/10">
-              <div className="h-6 w-48 bg-slate-200 dark:bg-slate-700/80 rounded-md"></div>
-              <div className="h-4 w-28 bg-slate-200 dark:bg-slate-700/80 rounded"></div>
-            </div>
-            <div className="space-y-3">
-              <div className="h-4 w-full bg-slate-200 dark:bg-slate-700/80 rounded"></div>
-              <div className="h-4 w-5/6 bg-slate-200 dark:bg-slate-700/80 rounded"></div>
-              <div className="h-4 w-4/5 bg-slate-200 dark:bg-slate-700/80 rounded"></div>
-              <div className="h-4 w-2/3 bg-slate-200 dark:bg-slate-700/80 rounded"></div>
-            </div>
-          </div>
+      {/* ── Skeleton Loading State ── */}
+      {loading && (() => {
+        const skelW = typeof window !== 'undefined' ? window.innerWidth : 794;
+        const skelScale = Math.min(1, (skelW - 48) / 794);
+        const skelPageStyle = { ...a4Style, background: '#fff' };
+        const shimmer = 'bg-slate-200 dark:bg-slate-700/80 rounded';
+        const shimmerLg = 'bg-slate-100 dark:bg-slate-800/50 rounded-lg';
 
-          {/* Charts Grid Skeleton */}
-          <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
-            <div className="bg-white dark:bg-[#1E2130] rounded-xl border border-slate-200 dark:border-white/10 p-5 h-[340px] flex flex-col justify-between">
-              <div className="h-5 w-48 bg-slate-200 dark:bg-slate-700/80 rounded"></div>
-              <div className="flex-1 bg-slate-100 dark:bg-slate-800/50 rounded-xl my-4"></div>
+        return (
+          <div style={{ display: 'flex', flexDirection: 'column', alignItems: 'center', gap: '32px', transform: skelScale < 1 ? `scale(${skelScale})` : 'none', transformOrigin: 'top center', width: skelScale < 1 ? '794px' : 'auto', margin: skelScale < 1 ? '0 auto' : undefined }} className="animate-pulse">
+
+            {/* PAGE 1 Skeleton — Executive Summary / YoY */}
+            <div style={skelPageStyle}>
+              <div style={{ flex: 1, display: 'flex', flexDirection: 'column', gap: '12px' }}>
+                {/* Header */}
+                <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', borderBottom: '2px solid #e2e8f0', paddingBottom: '8px' }}>
+                  <div className={`h-5 w-56 ${shimmer}`}></div>
+                  <div className={`h-4 w-32 ${shimmer}`}></div>
+                </div>
+
+                {/* AI Summary block */}
+                <div style={{ border: '1px solid #e2e8f0', borderRadius: '6px', padding: '14px' }}>
+                  <div className={`h-3 w-32 ${shimmer} mb-3`}></div>
+                  <div className="space-y-2">
+                    <div className={`h-3 w-full ${shimmer}`}></div>
+                    <div className={`h-3 w-11/12 ${shimmer}`}></div>
+                    <div className={`h-3 w-4/5 ${shimmer}`}></div>
+                    <div className={`h-3 w-3/4 ${shimmer}`}></div>
+                  </div>
+                </div>
+
+                {/* 3 Stat Cards */}
+                <div style={{ display: 'grid', gridTemplateColumns: 'repeat(3, 1fr)', gap: '8px' }}>
+                  {[1,2,3].map(i => (
+                    <div key={i} style={{ border: '1px solid #e2e8f0', padding: '10px' }}>
+                      <div className={`h-2.5 w-20 ${shimmer} mb-2`}></div>
+                      <div className={`h-6 w-24 ${shimmer}`}></div>
+                    </div>
+                  ))}
+                </div>
+
+                {/* 2 Charts side by side */}
+                <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '8px' }}>
+                  {[1,2].map(i => (
+                    <div key={i} style={{ border: '1px solid #e2e8f0', padding: '12px' }}>
+                      <div className={`h-3.5 w-40 ${shimmer} mb-1`}></div>
+                      <div className={`h-3 w-56 ${shimmer} mb-3`}></div>
+                      <div className={`h-52 w-full ${shimmerLg}`}></div>
+                    </div>
+                  ))}
+                </div>
+              </div>
             </div>
-            <div className="bg-white dark:bg-[#1E2130] rounded-xl border border-slate-200 dark:border-white/10 p-5 h-[340px] flex flex-col justify-between">
-              <div className="h-5 w-48 bg-slate-200 dark:bg-slate-700/80 rounded"></div>
-              <div className="flex-1 bg-slate-100 dark:bg-slate-800/50 rounded-xl my-4"></div>
+
+            {/* PAGE 2 Skeleton — Attendance Overview */}
+            <div style={skelPageStyle}>
+              <div style={{ flex: 1, display: 'flex', flexDirection: 'column', gap: '12px' }}>
+                <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', borderBottom: '2px solid #e2e8f0', paddingBottom: '8px' }}>
+                  <div className={`h-5 w-44 ${shimmer}`}></div>
+                  <div className={`h-4 w-28 ${shimmer}`}></div>
+                </div>
+
+                {/* Full width chart */}
+                <div style={{ border: '1px solid #e2e8f0', padding: '12px' }}>
+                  <div className={`h-3.5 w-64 ${shimmer} mb-1`}></div>
+                  <div className={`h-3 w-80 ${shimmer} mb-3`}></div>
+                  <div className={`h-64 w-full ${shimmerLg}`}></div>
+                  {/* Legend dots */}
+                  <div className="flex flex-wrap gap-4 mt-3 pt-3" style={{ borderTop: '1px solid #f1f5f9' }}>
+                    {[1,2,3,4,5].map(i => (
+                      <div key={i} className="flex items-center gap-2">
+                        <div className={`h-2 w-2 rounded-full ${shimmer}`}></div>
+                        <div className={`h-2.5 w-16 ${shimmer}`}></div>
+                      </div>
+                    ))}
+                  </div>
+                </div>
+
+                {/* 2 Charts row */}
+                <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '8px' }}>
+                  {[1,2].map(i => (
+                    <div key={i} style={{ border: '1px solid #e2e8f0', padding: '12px' }}>
+                      <div className={`h-3.5 w-36 ${shimmer} mb-1`}></div>
+                      <div className={`h-3 w-48 ${shimmer} mb-3`}></div>
+                      <div className={`h-48 w-full ${shimmerLg}`}></div>
+                    </div>
+                  ))}
+                </div>
+              </div>
             </div>
+
+            {/* PAGE 3 Skeleton — Donations Overview */}
+            <div style={skelPageStyle}>
+              <div style={{ flex: 1, display: 'flex', flexDirection: 'column', gap: '12px' }}>
+                <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', borderBottom: '2px solid #e2e8f0', paddingBottom: '8px' }}>
+                  <div className={`h-5 w-40 ${shimmer}`}></div>
+                  <div className={`h-4 w-28 ${shimmer}`}></div>
+                </div>
+
+                {/* 3 Stat Cards */}
+                <div style={{ display: 'grid', gridTemplateColumns: 'repeat(3, 1fr)', gap: '8px' }}>
+                  {[1,2,3].map(i => (
+                    <div key={i} style={{ border: '1px solid #e2e8f0', padding: '10px' }}>
+                      <div className={`h-2.5 w-24 ${shimmer} mb-2`}></div>
+                      <div className={`h-6 w-20 ${shimmer}`}></div>
+                    </div>
+                  ))}
+                </div>
+
+                {/* Pie + Bar side by side */}
+                <div style={{ display: 'grid', gridTemplateColumns: '4fr 6fr', gap: '8px' }}>
+                  <div style={{ border: '1px solid #e2e8f0', padding: '12px' }}>
+                    <div className={`h-3.5 w-36 ${shimmer} mb-3`}></div>
+                    <div className={`h-44 w-44 rounded-full mx-auto ${shimmerLg}`}></div>
+                  </div>
+                  <div style={{ border: '1px solid #e2e8f0', padding: '12px' }}>
+                    <div className={`h-3.5 w-40 ${shimmer} mb-1`}></div>
+                    <div className={`h-3 w-56 ${shimmer} mb-3`}></div>
+                    <div className={`h-52 w-full ${shimmerLg}`}></div>
+                  </div>
+                </div>
+
+                {/* Table skeleton */}
+                <div style={{ border: '1px solid #e2e8f0', padding: '12px' }}>
+                  <div className={`h-3.5 w-48 ${shimmer} mb-3`}></div>
+                  <div className="space-y-2">
+                    {[1,2,3,4,5].map(i => (
+                      <div key={i} className="flex gap-4">
+                        <div className={`h-3 w-32 ${shimmer}`}></div>
+                        <div className={`h-3 w-20 ${shimmer}`}></div>
+                        <div className={`h-3 w-16 ${shimmer}`}></div>
+                      </div>
+                    ))}
+                  </div>
+                </div>
+              </div>
+            </div>
+
           </div>
-        </div>
-      )}
+        );
+      })()}
+
 
       {/* ÃƒÂ¢Ã¢â‚¬ÂÃ¢â€šÂ¬ÃƒÂ¢Ã¢â‚¬ÂÃ¢â€šÂ¬ Error ÃƒÂ¢Ã¢â‚¬ÂÃ¢â€šÂ¬ÃƒÂ¢Ã¢â‚¬ÂÃ¢â€šÂ¬ */}
       {error && !loading && (
@@ -977,6 +1089,7 @@ export default function AdminFinancialReport() {
                         <span style={{ fontSize: '10px', color: '#4B5563', marginLeft: '6px' }}>({fmt(report.comparison.disbursements.current)})</span>
                       </div>
                       <div className="flex items-center gap-1.5 font-inter text-[11px] font-medium text-slate-600 dark:text-slate-400">
+                        <span className="w-2.5 h-2.5 rounded-full" style={{ background: '#93c5fd' }} />
                         <span className="font-inter text-[11px] font-medium text-slate-600 dark:text-slate-400">{report.comparison.prevPeriod}</span>
                         <span style={{ fontSize: '10px', color: '#4B5563', marginLeft: '6px' }}>({fmt(report.comparison.disbursements.previous)})</span>
                       </div>
@@ -1517,283 +1630,8 @@ export default function AdminFinancialReport() {
           </div>
         )}
 
-          {/* PAGE 3: Attendance Overview — A4 Paper Format */}
-          {report.attendance && adminRole === 'admin' && (report.reportType === 'all' || report.reportType === 'attendance') && (
-            <div className="a4-page a4-page-break" style={a4Style}>
-              <div style={{ flex: 1, display: 'flex', flexDirection: 'column', gap: '8px' }}>
-                <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', borderBottom: '2px solid #0D1F45', paddingBottom: '8px', marginBottom: '4px' }}>
-                  <h2 style={{ margin: 0, fontSize: '16px', fontWeight: 800, color: '#0D1F45' }}>Attendance Overview</h2>
-                  <span style={{ fontSize: '11px', fontWeight: 600, color: '#6b7280' }}>{report.period}</span>
-                </div>
-
-              {/* Attendance Trends */}
-              {report.attendance?.byMonth?.length > 0 && (() => {
-                const byMonthMap = {};
-                (report.attendance.byMonth || []).forEach(d => { byMonthMap[d.month] = d.count; });
-                const { from, to } = getChartMonthRange();
-                const bmc = report.attendance.byMonthByCommunity || {};
-                const allCommunities = [...new Set(Object.values(bmc).flatMap(obj => Object.keys(obj)))].sort();
-                const isMulti = allCommunities.length >= 2;
-
-                if (!isMulti) return null; // handled by the row-1 chart
-
-                const { topSeries, otherSeries, fullMonthData, totals, hasOthers } = buildTopNSeriesData({
-                  seriesKeys: allCommunities,
-                  dataMap: bmc,
-                  reportYear,
-                  from,
-                  to,
-                  maxSeries: 10,
-                });
-
-                const totalAtt = fullMonthData.reduce((s, d) =>
-                  s + topSeries.reduce((sum, k) => sum + (d[k] || 0), 0) + (d['Others'] || 0), 0);
-                const highestMon = fullMonthData.reduce((a, b) => {
-                  const aVal = topSeries.reduce((s, k) => s + (a[k] || 0), 0) + (a['Others'] || 0);
-                  const bVal = topSeries.reduce((s, k) => s + (b[k] || 0), 0) + (b['Others'] || 0);
-                  return bVal > aVal ? b : a;
-                }, fullMonthData[0]);
-
-                return fullMonthData.some(d => topSeries.some(k => d[k] > 0)) ? (
-                  <div style={{ gridTemplateColumns: '1fr', marginTop: '16px' }}>
-                    <div style={{ border: "1px solid #e2e8f0", padding: "12px", background: "#ffffff", display: "flex", flexDirection: "column", justifyContent: "space-between", width: "100%" }}>
-                      <h3 style={{ margin: 0, fontSize: "13px", fontWeight: 700, color: "#1e293b" }}>Monthly Attendance Trend (By Community)</h3>
-                      <p style={{ margin: "2px 0 4px", fontSize: "11px", color: "#6b7280" }}>
-                        Detailed Community Breakdown · Total: <strong>{totalAtt} attendees</strong> · Highest: <strong>{highestMon?.month}</strong>
-                        {hasOthers && <> · Showing top 10 of {allCommunities.length} communities</>}
-                      </p>
-
-                      <ResponsiveContainer width="100%" height={300}>
-                        <BarChart data={fullMonthData} margin={{ top: 15, right: 10, left: -10, bottom: 0 }}>
-                          <CartesianGrid strokeDasharray="3 3" stroke="#f1f5f9" vertical={false} />
-                          <XAxis dataKey="month" tick={{ fontSize: 10 }} />
-                          <YAxis tick={{ fontSize: 10 }} allowDecimals={false}>
-                            <Label value="Attendees" angle={-90} position="insideLeft" offset={20} style={{ fontSize: 9, fill: '#9CA3AF' }} />
-                          </YAxis>
-                          <Tooltip content={<CustomNonZeroTooltip formatter={(v, name) => [
-                            `${v} attendees`,
-                            name === 'Others' ? `Others (${otherSeries.length} communities)` : name
-                          ]} />} />
-                          {topSeries.map((s, i) => (
-                            <Bar key={s} dataKey={s} stackId="a" fill={COMMUNITY_COLORS[i % COMMUNITY_COLORS.length]} />
-                          ))}
-                          {hasOthers && (
-                            <Bar key="Others" dataKey="Others" stackId="a" fill="#d1d5db" name="Others" />
-                          )}
-                        </BarChart>
-                      </ResponsiveContainer>
-
-                      {/* Legend grouped by province */}
-                      {(() => {
-                        const branchToProv = {};
-                        branchesData.forEach(b => { branchToProv[b.name] = b.province || 'Unknown'; });
-                        const seriesByProv = {};
-                        topSeries.forEach((s, i) => {
-                          const totalVal = totals[s] || 0;
-                          if (totalVal > 0) {
-                            const prov = branchToProv[s] || 'Unknown';
-                            if (!seriesByProv[prov]) seriesByProv[prov] = [];
-                            seriesByProv[prov].push({ name: s, index: i, total: totalVal });
-                          }
-                        });
-                        return (
-                          <div style={{ display: "flex", flexWrap: "wrap", gap: "16px", marginTop: "8px", paddingTop: "8px", borderTop: "1px solid #f1f5f9" }}>
-                            {Object.entries(seriesByProv).map(([prov, comms]) => (
-                              <div key={prov} style={{ display: "flex", flexDirection: "column", gap: "4px" }}>
-                                <div style={{ fontSize: "10px", fontWeight: 700, color: "#374151", textTransform: "uppercase", letterSpacing: "0.05em", borderBottom: "1px solid #f1f5f9", paddingBottom: "3px", marginBottom: "3px" }}>{prov}</div>
-                                {comms.map(c => (
-                                  <div key={c.name} style={{ margin: 0 }}>
-                                    <span style={{ width: "8px", height: "8px", borderRadius: "50%", flexShrink: 0, background: COMMUNITY_COLORS[c.index % COMMUNITY_COLORS.length] }} />
-                                    <span style={{ fontSize: "10px", color: "#4b5563" }}>{c.name}</span>
-                                    <span style={{ fontSize: '10px', color: '#4B5563', marginLeft: '4px' }}>({c.total} attendees)</span>
-                                  </div>
-                                ))}
-                              </div>
-                            ))}
-                            {hasOthers && (
-                              <div style={{ display: "flex", flexDirection: "column", gap: "4px" }}>
-                                <div style={{ fontSize: "10px", fontWeight: 700, color: "#374151", textTransform: "uppercase", letterSpacing: "0.05em", borderBottom: "1px solid #f1f5f9", paddingBottom: "3px", marginBottom: "3px" }}>Others</div>
-                                <div style={{ margin: 0 }}>
-                                  <span style={{ width: "8px", height: "8px", borderRadius: "50%", flexShrink: 0, background: '#d1d5db' }} />
-                                  <span style={{ fontSize: "10px", color: "#4b5563" }}>{otherSeries.length} more communities</span>
-                                  <span style={{ fontSize: '10px', color: '#4B5563', marginLeft: '4px' }}>
-                                    ({otherSeries.reduce((s, k) => s + totals[k], 0)} attendees)
-                                  </span>
-                                </div>
-                              </div>
-                            )}
-                          </div>
-                        );
-                      })()}
-
-                      {hasOthers && (
-                        <p style={{ display: "block", fontSize: "10px", color: "#94a3b8", marginTop: "6px", textAlign: "center" }}>
-                          ℹ️ Chart shows top 10 communities by total attendance. {otherSeries.length} smaller
-                          communities are merged into "Others" for readability.
-                        </p>
-                      )}
-
-                      <ChartFooter period={report.period} location={getLocationLabel()} />
-                    </div>
-                  </div>
-                ) : null;
-              })()}
-              </div>
-              <ChartFooter period={report.period} location={getLocationLabel()} />
-            </div>
-        )}
-
-          {/* Member Growth & Attendance - Only for Super Admin */}
-          {(report.memberGrowth || report.attendance) && (report.reportType === 'all' || report.reportType === 'attendance') && (
-            <React.Fragment>
-
-              {/* PAGE 1 — Membership & Engagement */}
-              <div className="a4-page a4-page-break" style={a4Style}>
-                <div style={{ flex: 1, display: 'flex', flexDirection: 'column', gap: '8px' }}>
-                  <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', borderBottom: '2px solid #0D1F45', paddingBottom: '8px', marginBottom: '4px' }}>
-                    <h2 style={{ margin: 0, fontSize: '16px', fontWeight: 800, color: '#0D1F45' }}>Membership &amp; Engagement</h2>
-                    <span style={{ fontSize: '11px', fontWeight: 600, color: '#6b7280' }}>{report.period}</span>
-                  </div>
-
-                  {/* KPI Grid */}
-                  <div style={{ display: 'grid', gridTemplateColumns: 'repeat(4, 1fr)', gap: '6px', marginBottom: '6px' }}>
-                    {report.memberGrowth && (
-                      <>
-                        <div style={{ background: '#f8fafc', border: '1px solid #e2e8f0', padding: '7px 10px' }}>
-                          <div style={{ fontSize: '9px', fontWeight: 700, color: '#6b7280', textTransform: 'uppercase', letterSpacing: '0.05em' }}>New Members</div>
-                          <div style={{ fontSize: '22px', fontWeight: 800, color: '#2563eb', marginTop: '2px' }}>{report.memberGrowth.newMembers}</div>
-                        </div>
-                        <div style={{ background: '#f8fafc', border: '1px solid #e2e8f0', padding: '7px 10px' }}>
-                          <div style={{ fontSize: '9px', fontWeight: 700, color: '#6b7280', textTransform: 'uppercase', letterSpacing: '0.05em' }}>Total Members</div>
-                          <div style={{ fontSize: '22px', fontWeight: 800, color: '#0f172a', marginTop: '2px' }}>{report.memberGrowth.totalMembers}</div>
-                        </div>
-                      </>
-                    )}
-                    {report.attendance && (
-                      <>
-                        <div style={{ background: '#f8fafc', border: '1px solid #e2e8f0', padding: '7px 10px' }}>
-                          <div style={{ fontSize: '9px', fontWeight: 700, color: '#6b7280', textTransform: 'uppercase', letterSpacing: '0.05em' }}>Attendance Records</div>
-                          <div style={{ fontSize: '22px', fontWeight: 800, color: '#059669', marginTop: '2px' }}>{report.attendance.totalRecords}</div>
-                        </div>
-                        <div style={{ background: '#f8fafc', border: '1px solid #e2e8f0', padding: '7px 10px' }}>
-                          <div style={{ fontSize: '9px', fontWeight: 700, color: '#6b7280', textTransform: 'uppercase', letterSpacing: '0.05em' }}>Communities</div>
-                          <div style={{ fontSize: '22px', fontWeight: 800, color: '#0f172a', marginTop: '2px' }}>{report.attendance.byBranch?.length || 0}</div>
-                        </div>
-                      </>
-                    )}
-                  </div>
-
-                  {/* Attendance Charts Row */}
-                  <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '8px' }}>
-                    {/* Attendance By Community Chart */}
-                    {report.attendance?.byBranch?.length > 0 && (
-                      <div style={{ border: '1px solid #e2e8f0', padding: '12px', display: 'flex', flexDirection: 'column', gap: '4px' }}>
-                        <h3 style={{ margin: 0, fontSize: '13px', fontWeight: 700, color: '#1e293b' }}>Attendance By Community</h3>
-                        <p style={{ margin: '2px 0 4px', fontSize: '11px', color: '#6b7280' }}>Top: <strong>{report.attendance.byBranch[0]?.name}</strong> · {report.attendance.byBranch[0]?.value} attendees</p>
-                        <ResponsiveContainer width="100%" height={320}>
-                          <BarChart data={report.attendance.byBranch.slice(0, 8)} margin={{ top: 12, right: 10, left: -10, bottom: 40 }}>
-                            <CartesianGrid strokeDasharray="3 3" stroke="#f1f5f9" />
-                            <XAxis dataKey="name" tick={{ fontSize: 9, angle: -35, textAnchor: 'end' }} interval={0} height={50} />
-                            <YAxis tick={{ fontSize: 10 }} allowDecimals={false} />
-                            <Tooltip />
-                            <Bar dataKey="value" fill="#0D1F45" radius={[4, 4, 0, 0]} barSize={24}>
-                              <LabelList dataKey="value" position="top" style={{ fontSize: 10, fill: '#6B7280' }} />
-                            </Bar>
-                          </BarChart>
-                        </ResponsiveContainer>
-                      </div>
-                    )}
-
-                    {/* Top Services Chart */}
-                    {report.attendance?.attendees?.length > 0 && (() => {
-                      const serviceMap = {};
-                      report.attendance.attendees.forEach(a => {
-                        const svc = a.service || 'Unknown';
-                        serviceMap[svc] = (serviceMap[svc] || 0) + 1;
-                      });
-                      const serviceData = Object.keys(serviceMap).map(svc => ({ service: svc, count: serviceMap[svc] })).sort((a, b) => b.count - a.count).slice(0, 5);
-                      return serviceData.length > 0 ? (
-                        <div style={{ border: '1px solid #e2e8f0', padding: '12px', display: 'flex', flexDirection: 'column', gap: '4px' }}>
-                          <h3 style={{ margin: 0, fontSize: '13px', fontWeight: 700, color: '#1e293b' }}>Top Services By Attendance</h3>
-                          <p style={{ margin: '2px 0 4px', fontSize: '11px', color: '#6b7280' }}>Top: <strong>{serviceData[0].service}</strong> · {serviceData[0].count} attendees</p>
-                          <ResponsiveContainer width="100%" height={320}>
-                            <BarChart data={serviceData} layout="vertical" margin={{ top: 12, right: 30, left: 10, bottom: 0 }}>
-                              <CartesianGrid strokeDasharray="3 3" stroke="#f1f5f9" horizontal={false} />
-                              <XAxis type="number" hide />
-                              <YAxis type="category" dataKey="service" tick={{ fontSize: 10 }} width={90} />
-                              <Tooltip formatter={v => [v, 'Attendees']} />
-                              <Bar dataKey="count" radius={[0, 4, 4, 0]} barSize={22}>
-                                {serviceData.map((_, i) => (<Cell key={i} fill={i === 0 ? '#2563eb' : '#0D1F45'} />))}
-                                <LabelList dataKey="count" position="right" style={{ fontSize: 10, fill: '#6B7280' }} />
-                              </Bar>
-                            </BarChart>
-                          </ResponsiveContainer>
-                        </div>
-                      ) : null;
-                    })()}
-                  </div>
-
-                  {/* Monthly Attendance Trend */}
-                  {(() => {
-                    const byMonthMap = {};
-                    (report.attendance?.byMonth || []).forEach(d => { byMonthMap[d.month] = d.count; });
-                    const { from, to } = getChartMonthRange();
-                    const bmp = report.attendance?.byMonthByProvince || {};
-                    const bmc = report.attendance?.byMonthByCommunity || {};
-                    const availProvinces = [...new Set(Object.values(bmp).flatMap(obj => Object.keys(obj)))].sort();
-                    const showProvinceTrend = availProvinces.length >= 2;
-                    let allSeries = showProvinceTrend ? availProvinces : [...new Set(Object.values(bmc).flatMap(obj => Object.keys(obj)))].sort();
-                    const dataMap = showProvinceTrend ? bmp : bmc;
-                    const chartTitle = `Monthly Attendance Trend${allSeries.length >= 2 ? (showProvinceTrend ? ' (By Province)' : ' (By Community)') : ''}`;
-                    const isMulti = allSeries.length >= 2;
-                    const seriesWithData = allSeries.filter(s => Object.values(dataMap).some(m => (m[s] || 0) > 0));
-                    const fullMonthData = MONTH_SHORT.slice(from, to + 1).map((label, idx) => {
-                      const i = from + idx;
-                      const key = `${reportYear}-${String(i+1).padStart(2,'0')}`;
-                      const row = { month: label, value: byMonthMap[key] || 0 };
-                      if (isMulti && dataMap[key]) allSeries.forEach(s => { row[s] = dataMap[key][s] || 0; });
-                      return row;
-                    });
-                    const totalAtt = fullMonthData.reduce((s, d) => s + d.value, 0);
-                    const highestMon = fullMonthData.reduce((a, b) => b.value > a.value ? b : a, fullMonthData[0]);
-                    if (!fullMonthData.some(d => d.value > 0)) return null;
-                    return (
-                      <div style={{ border: '1px solid #e2e8f0', padding: '12px', display: 'flex', flexDirection: 'column', gap: '4px', marginTop: '8px' }}>
-                        <h3 style={{ margin: 0, fontSize: '13px', fontWeight: 700, color: '#1e293b' }}>{chartTitle}</h3>
-                        <p style={{ margin: '2px 0 4px', fontSize: '11px', color: '#6b7280' }}>Total: <strong>{totalAtt}</strong> attendees · Highest: <strong>{highestMon?.month}</strong> ({highestMon?.value})</p>
-                        <ResponsiveContainer width="100%" height={isMulti ? 180 : 160}>
-                          {isMulti ? (
-                            <BarChart data={fullMonthData} margin={{ top: 12, right: 10, left: -10, bottom: 0 }}>
-                              <CartesianGrid strokeDasharray="3 3" stroke="#f1f5f9" />
-                              <XAxis dataKey="month" tick={{ fontSize: 10 }} />
-                              <YAxis tick={{ fontSize: 10 }} allowDecimals={false} />
-                              <Tooltip />
-                              {seriesWithData.map((s) => { const oi = allSeries.indexOf(s); return <Bar key={s} dataKey={s} fill={COMMUNITY_COLORS[oi % COMMUNITY_COLORS.length]} />; })}
-                            </BarChart>
-                          ) : (
-                            <BarChart data={fullMonthData} margin={{ top: 12, right: 10, left: -10, bottom: 0 }}>
-                              <CartesianGrid strokeDasharray="3 3" stroke="#f1f5f9" />
-                              <XAxis dataKey="month" tick={{ fontSize: 10 }} />
-                              <YAxis tick={{ fontSize: 10 }} allowDecimals={false} />
-                              <Tooltip />
-                              <Bar dataKey="value" fill="#0D1F45" radius={[4, 4, 0, 0]}><LabelList dataKey="value" position="top" style={{ fontSize: 10, fill: '#6B7280' }} /></Bar>
-                            </BarChart>
-                          )}
-                        </ResponsiveContainer>
-                        {isMulti && (
-                          <div style={{ display: 'flex', flexWrap: 'wrap', gap: '4px 12px', paddingTop: '6px', borderTop: '1px solid #f1f5f9' }}>
-                            {seriesWithData.map((s) => { const oi = allSeries.indexOf(s); const tv = fullMonthData.reduce((sum, r) => sum + (r[s] || 0), 0); return (<div key={s} style={{ display: 'flex', alignItems: 'center', gap: '4px', fontSize: '10px', color: '#4b5563' }}><span style={{ width: '7px', height: '7px', borderRadius: '50%', background: COMMUNITY_COLORS[oi % COMMUNITY_COLORS.length], display: 'inline-block' }} /><span>{s}</span><strong style={{ color: '#0f172a' }}> ({tv})</strong></div>); })}
-                          </div>
-                        )}
-                      </div>
-                    );
-                  })()}
-                </div>{/* end page 1 flex */}
-                <ChartFooter period={report.period} location={getLocationLabel()} generatedAt={report.generatedAt} />
-              </div>{/* end page 1 a4 */}
-
-              {/* Attendee List Pages */}
-              {report.attendance?.attendees?.length > 0 && (() => {
+          {/* Attendee List Pages */}
+          {report.attendance?.attendees?.length > 0 && adminRole === 'admin' && (report.reportType === 'all' || report.reportType === 'attendance') && (() => {
                 const ROWS_PER_PAGE = 50;
                 const pages = [];
                 for (let i = 0; i < report.attendance.attendees.length; i += ROWS_PER_PAGE) {
@@ -1834,10 +1672,7 @@ export default function AdminFinancialReport() {
                     <ChartFooter period={report.period} location={getLocationLabel()} generatedAt={report.generatedAt} />
                   </div>
                 ));
-
               })()}
-            </React.Fragment>
-          )}
 
           {/* Close Main Admin A4 Layout Wrapper */}
               </div>
