@@ -1102,13 +1102,27 @@ export default function AdminFinancialReport() {
           </div>
         )}
 
-          {/* PAGE 2: Attendance Overview — A4 Paper Format */}
+          {/* PAGE 1: AI Summary + Attendance Overview — A4 Paper Format */}
           {report.attendance && adminRole === 'admin' && (report.reportType === 'all' || report.reportType === 'attendance') && (
             <div className="a4-page a4-page-break" style={a4Style}>
               <div style={{ flex: 1, display: 'flex', flexDirection: 'column', gap: '8px' }}>
+
+                {/* Section 1: AI Summary */}
+                {report.executiveSummary && (
+                  <>
+                    <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', borderBottom: '2px solid #0D1F45', paddingBottom: '8px', marginBottom: '4px' }}>
+                      <h2 style={{ margin: 0, fontSize: '16px', fontWeight: 800, color: '#0D1F45' }}>AI Summary</h2>
+                      <span style={{ fontSize: '11px', fontWeight: 600, color: '#6b7280' }}>{report.period}</span>
+                    </div>
+                    <div style={{ border: '1px solid #e2e8f0', padding: '10px 14px', marginBottom: '8px' }}>
+                      {renderFormattedSummary(report.executiveSummary, true)}
+                    </div>
+                  </>
+                )}
+
+                {/* Section 2: Attendance Overview */}
                 <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', borderBottom: '2px solid #0D1F45', paddingBottom: '8px', marginBottom: '4px' }}>
                   <h2 style={{ margin: 0, fontSize: '16px', fontWeight: 800, color: '#0D1F45' }}>Attendance Overview</h2>
-                  <span style={{ fontSize: '11px', fontWeight: 600, color: '#6b7280' }}>{report.period}</span>
                 </div>
 
               {/* Attendance Trends */}
@@ -1262,9 +1276,9 @@ export default function AdminFinancialReport() {
                   <div style={{ border: "1px solid #e2e8f0", padding: "12px", background: "#ffffff", display: "flex", flexDirection: "column", justifyContent: "space-between" }}>
                     <h3 style={{ margin: 0, fontSize: "13px", fontWeight: 700, color: "#1e293b" }}>Donations By Category</h3>
                     <p style={{ margin: "2px 0 4px", fontSize: "11px", color: "#6b7280" }}>Total: <strong>{fmt(report.donations.total)}</strong> · {report.donations.byCategory.length} categories</p>
-                    <ResponsiveContainer width="100%" height={220}>
+                    <ResponsiveContainer width="100%" height={180}>
                       <PieChart>
-                        <Pie data={report.donations.byCategory} cx="50%" cy="45%" innerRadius={38} outerRadius={82} paddingAngle={2} dataKey="value" nameKey="name" label={renderSliceLabel} labelLine={false}>
+                        <Pie data={report.donations.byCategory} cx="50%" cy="48%" innerRadius={34} outerRadius={72} paddingAngle={2} dataKey="value" nameKey="name" label={renderSliceLabel} labelLine={false}>
                           {report.donations.byCategory.map((_, i) => (
                             <Cell key={i} fill={PIE_COLORS[i % PIE_COLORS.length]} />
                           ))}
@@ -1272,7 +1286,7 @@ export default function AdminFinancialReport() {
                         <Tooltip formatter={(v, name) => [fmt(v), name === 'value' ? 'Amount' : name]} />
                       </PieChart>
                     </ResponsiveContainer>
-                    <div style={{ display: "flex", flexWrap: "wrap", alignItems: "center", gap: "8px", marginTop: "8px", paddingTop: "8px", borderTop: "1px solid #f1f5f9" }}>
+                    <div style={{ display: "flex", flexWrap: "wrap", alignItems: "center", gap: "6px", marginTop: "4px", paddingTop: "6px", borderTop: "1px solid #f1f5f9" }}>
                       {report.donations.byCategory.map((cat, i) => (
                         <div key={i} style={{ display: "flex", alignItems: "center", gap: "4px", fontSize: "10px", color: "#4b5563" }}>
                           <span style={{ width: "8px", height: "8px", borderRadius: "50%", flexShrink: 0, background: PIE_COLORS[i % PIE_COLORS.length] }} />
@@ -1341,9 +1355,9 @@ export default function AdminFinancialReport() {
                     <div style={{ border: "1px solid #e2e8f0", padding: "12px", background: "#ffffff", display: "flex", flexDirection: "column", justifyContent: "space-between" }}>
                       <h3 style={{ margin: 0, fontSize: "13px", fontWeight: 700, color: "#1e293b" }}>{chartTitle}</h3>
                       <p style={{ margin: "2px 0 4px", fontSize: "11px", color: "#6b7280" }}>Total: <strong>{fmt(totalDon)}</strong> · Highest: <strong>{highestMon?.month} ({fmt(highestMon?.value || 0)})</strong>{topDonCommName ? <> · Top Community: <strong>{topDonCommName} ({fmt(topDonCommVal)})</strong></> : null}</p>
-                      <ResponsiveContainer width="100%" height={isMulti ? 280 : 265}>
+                      <ResponsiveContainer width="100%" height={isMulti ? 260 : 245}>
                         {isMulti ? (
-                          <BarChart data={fullMonthData} margin={{ top: 15, right: 10, left: -10, bottom: 0 }}>
+                          <BarChart data={fullMonthData} margin={{ top: 10, right: 10, left: -10, bottom: 0 }}>
                             <CartesianGrid strokeDasharray="3 3" stroke="#f1f5f9" />
                             <XAxis dataKey="month" tick={{ fontSize: 10 }} />
                             <YAxis tick={{ fontSize: 10 }} tickFormatter={v => `₱${(v/1000).toFixed(0)}k`} allowDecimals={false}>
@@ -1355,7 +1369,7 @@ export default function AdminFinancialReport() {
                             ))}
                           </BarChart>
                         ) : (
-                          <BarChart data={fullMonthData} margin={{ top: 15, right: 10, left: -10, bottom: 0 }}>
+                          <BarChart data={fullMonthData} margin={{ top: 10, right: 10, left: -10, bottom: 0 }}>
                             <CartesianGrid strokeDasharray="3 3" stroke="#f1f5f9" />
                             <XAxis dataKey="month" tick={{ fontSize: 10 }} />
                             <YAxis tick={{ fontSize: 10 }} tickFormatter={v => `₱${(v/1000).toFixed(0)}k`} allowDecimals={false}>
@@ -1673,7 +1687,7 @@ export default function AdminFinancialReport() {
                   {report.attendance?.byBranch?.length > 0 && (
                     <div style={{ border: '1px solid #e2e8f0', padding: '12px', display: 'flex', flexDirection: 'column', gap: '4px' }}>
                       <h3 style={{ margin: 0, fontSize: '13px', fontWeight: 700, color: '#1e293b' }}>Attendance By Community</h3>
-                      <p style={{ margin: '2px 0 4px', fontSize: '11px', color: '#6b7280' }}>Top: <strong>{report.attendance.byBranch[0]?.name}</strong> · {report.attendance.byBranch[0]?.value} attendees</p>
+                      <p style={{ margin: '2px 0 4px', fontSize: '11px', color: '#6b7280' }}>Top 8 Communities · Highest: <strong>{report.attendance.byBranch[0]?.name}</strong> · {report.attendance.byBranch[0]?.value} attendees</p>
                       <ResponsiveContainer width="100%" height={240}>
                         <BarChart data={report.attendance.byBranch.slice(0, 8)} margin={{ top: 12, right: 10, left: -10, bottom: 5 }}>
                           <CartesianGrid strokeDasharray="3 3" stroke="#f1f5f9" />
