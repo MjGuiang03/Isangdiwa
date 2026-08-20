@@ -81,8 +81,8 @@ router.post('/register',
       console.log('📝 Registration payload:', req.body);
       const { email, password, fullName, phone, branch, position, gender, birthday, role, churchId } = req.body;
 
-      // Determine position based on role selection
-      const finalPosition = (role === 'officer' && position) ? position : 'Member';
+      // All new users start as Member — admin will assign officer positions manually
+      const finalPosition = 'Member';
 
       const existingUser = await users.findOne({ email });
       if (existingUser) {

@@ -1,6 +1,6 @@
 import { useState, useEffect } from 'react';
 import API from '../../utils/api';
-import { ArrowLeft, CalendarDays, ChevronDown, Eye, EyeOff, Phone, User, Briefcase } from 'lucide-react';
+import { ArrowLeft, CalendarDays, ChevronDown, Eye, EyeOff, Phone } from 'lucide-react';
 import { toast } from 'sonner';
 
 import VerifyEmailModal from '../components/VerifyEmail';
@@ -120,36 +120,7 @@ const validators = {
     if (value !== password) return 'Passwords do not match';
     return '';
   },
-  officerPosition(value) {
-    if (!value) return 'Please select your position';
-    return '';
-  },
-  churchId(value, position) {
-    if (!value) return 'Church ID is required';
-    if (!/^\d{2}-\d{2}-\d{2}$/.test(value)) return 'Format must be XX-XX-XX (e.g. 00-00-01)';
-    const POSITION_RANGES = {
-      'Deacon':              { prefix: '00-00' },
-      'Local Evangelist':    { prefix: '00-01' },
-      'District Evangelist': { prefix: '00-02' },
-      'National Evangelist': { prefix: '00-03' },
-      'Assistant Priest':    { prefix: '00-04' },
-      'Priest':              { prefix: '00-05' },
-      'Elder':               { prefix: '00-06' },
-      'District Elder':      { prefix: '00-06' },
-      'Bishop':              { prefix: '00-07' },
-      'District Bishop':     { prefix: '00-08' },
-      'National Bishop':     { prefix: '00-09' },
-      'Apostle':             { prefix: '00-10' },
-    };
-    const range = POSITION_RANGES[position];
-    if (!range) return 'Select a valid position first';
-    const parts = value.split('-');
-    const idPrefix = parts[0] + '-' + parts[1];
-    if (idPrefix !== range.prefix) {
-      return `Church ID must start with ${range.prefix} for ${position}`;
-    }
-    return '';
-  }
+
 };
 
 /* ─── Communities ───────────────────────────────────────────── */
@@ -200,8 +171,7 @@ export default function SignupModal({ isOpen, onClose, onSwitchToLogin }) {
   const [formData, setFormData] = useState({
     firstName: '', lastName: '', email: '', phone: '',
     gender: '', birthday: '', community: '',
-    password: '', confirmPassword: '',
-    role: 'member', officerPosition: '', churchId: ''
+    password: '', confirmPassword: ''
   });
   const [errors, setErrors] = useState({});
   const [touched, setTouched] = useState({});
@@ -231,8 +201,6 @@ export default function SignupModal({ isOpen, onClose, onSwitchToLogin }) {
       error = validators.confirmPassword(value, password);
     } else if (name === 'firstName' || name === 'lastName') {
       error = validators.name(value, name === 'firstName' ? 'First name' : 'Last name');
-    } else if (name === 'churchId') {
-      error = validators.churchId(value, formData.officerPosition);
     } else if (validators[name]) {
       error = validators[name](value);
     }
@@ -251,9 +219,7 @@ export default function SignupModal({ isOpen, onClose, onSwitchToLogin }) {
     if (name === 'phone') {
       sanitized = value.replace(/\D/g, '').slice(0, 10);
     }
-    if (name === 'churchId') {
-      sanitized = value.replace(/[^\d-]/g, '').slice(0, 8);
-    }
+
     if (name === 'birthday' && sanitized) {
       const age = calculateAge(sanitized);
       setCalculatedAge(age >= 0 && age <= MAX_AGE ? age : null);
@@ -263,11 +229,6 @@ export default function SignupModal({ isOpen, onClose, onSwitchToLogin }) {
       const updated = { ...prev, [name]: sanitized };
       if (name === 'password' && prev.confirmPassword) {
         validateField('confirmPassword', prev.confirmPassword, sanitized);
-      }
-      // Re-validate churchId when position changes
-      if (name === 'officerPosition' && prev.churchId) {
-        const churchIdErr = validators.churchId(prev.churchId, sanitized);
-        setErrors(p => ({ ...p, churchId: churchIdErr }));
       }
       return updated;
     });
@@ -298,12 +259,8 @@ export default function SignupModal({ isOpen, onClose, onSwitchToLogin }) {
         gender: formData.gender,
         branch: formData.community,
         password: formData.password,
-        role: formData.role,
+        role: 'member',
       };
-      if (formData.role === 'officer') {
-        submitData.position = formData.officerPosition;
-        submitData.churchId = formData.churchId;
-      }
       const response = await fetch(`${API}/api/register`, {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
@@ -324,21 +281,14 @@ export default function SignupModal({ isOpen, onClose, onSwitchToLogin }) {
 
 
 
-  const isOfficerFieldsValid = formData.role === 'member' || (
-    formData.officerPosition && formData.churchId &&
-    !errors.officerPosition && !errors.churchId
-  );
-
   const isFormValid =
     formData.firstName && formData.lastName && formData.email &&
     formData.phone && formData.birthday && formData.gender &&
     formData.community && formData.password && formData.confirmPassword &&
-    Object.entries(errors).every(([key, err]) => {
-      // Skip officer fields validation when role is member
-      if (formData.role === 'member' && (key === 'officerPosition' || key === 'churchId')) return true;
+    Object.entries(errors).every(([, err]) => {
       return Array.isArray(err) ? err.length === 0 : !err;
     }) &&
-    isAllAgreed && isOfficerFieldsValid;
+    isAllAgreed;
 
   return (
     <div className="fixed inset-0 z-[9999] bg-black/60 backdrop-blur-sm flex items-end sm:items-center justify-center p-0 sm:p-4 overflow-y-auto" onClick={onClose}>
@@ -519,106 +469,7 @@ export default function SignupModal({ isOpen, onClose, onSwitchToLogin }) {
             )}
           </div>
 
-          {/* ROW 5: Role Selection */}
-          <div className="space-y-1.5 pt-1">
-            <label className="block text-xs font-bold text-slate-900 dark:text-white">I am a</label>
-            <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
-              {[
-                { 
-                  value: 'member', 
-                  label: 'Member', 
-                  icon: <User className="w-5 h-5 text-blue-600 shrink-0" />,
-                  sub: 'Donations, Attendance & Church Events'
-                },
-                { 
-                  value: 'officer', 
-                  label: 'Officer', 
-                  icon: <Briefcase className="w-5 h-5 text-amber-500 shrink-0" />,
-                  sub: 'All Member features + Loans, Savings & More'
-                },
-              ].map(({ value, label, icon, sub }) => (
-                <label
-                  key={value}
-                  className={`flex items-start gap-3 p-3.5 rounded-xl border cursor-pointer transition-all ${
-                    formData.role === value
-                      ? 'border-blue-600 bg-blue-50/70 dark:bg-blue-950/40 ring-2 ring-blue-600/20 shadow-xs'
-                      : 'border-slate-200 dark:border-white/10 bg-slate-50 dark:bg-slate-800/40 hover:bg-slate-100 dark:hover:bg-slate-800'
-                  }`}
-                >
-                  <div className={`w-4 h-4 mt-0.5 rounded-full border flex items-center justify-center shrink-0 transition-all ${
-                    formData.role === value 
-                      ? 'border-blue-600 bg-blue-600' 
-                      : 'border-slate-300 dark:border-slate-500 bg-white dark:bg-slate-700'
-                  }`}>
-                    {formData.role === value && <div className="w-1.5 h-1.5 rounded-full bg-white" />}
-                  </div>
-                  <input
-                    type="radio"
-                    name="role"
-                    value={value}
-                    checked={formData.role === value}
-                    onChange={handleChange}
-                    className="sr-only"
-                  />
-                  {icon}
-                  <div>
-                    <span className="text-xs font-bold text-slate-900 dark:text-white block">{label}</span>
-                    <span className="text-[11px] text-slate-500 dark:text-slate-400 block mt-0.5 leading-tight">{sub}</span>
-                  </div>
-                </label>
-              ))}
-            </div>
-          </div>
 
-          {/* Officer Fields — conditional */}
-          {formData.role === 'officer' && (
-            <div className="p-3.5 rounded-xl bg-slate-50 dark:bg-slate-800/40 border border-slate-200 dark:border-white/10 grid grid-cols-1 sm:grid-cols-2 gap-4">
-              <div className="space-y-1">
-                <label htmlFor="officerPosition" className="block text-xs font-semibold text-slate-700 dark:text-slate-300">Position:</label>
-                <div className="relative">
-                  <select
-                    id="officerPosition" name="officerPosition"
-                    value={formData.officerPosition}
-                    onChange={handleChange} onBlur={handleBlur}
-                    className="w-full px-3 py-2 bg-white dark:bg-slate-800 border border-slate-200 dark:border-white/10 rounded-xl text-xs text-slate-900 dark:text-white outline-none focus:ring-2 focus:ring-blue-600 appearance-none pr-8"
-                  >
-                    <option value="">Select your position</option>
-                    <option value="Deacon">Deacon</option>
-                    <option value="Local Evangelist">Local Evangelist</option>
-                    <option value="District Evangelist">District Evangelist</option>
-                    <option value="National Evangelist">National Evangelist</option>
-                    <option value="Assistant Priest">Assistant Priest</option>
-                    <option value="Priest">Priest</option>
-                    <option value="Elder">Elder</option>
-                    <option value="District Elder">District Elder</option>
-                    <option value="Bishop">Bishop</option>
-                    <option value="District Bishop">District Bishop</option>
-                    <option value="National Bishop">National Bishop</option>
-                    <option value="Apostle">Apostle</option>
-                  </select>
-                  <ChevronDown className="absolute right-3 top-1/2 -translate-y-1/2 text-slate-400 w-4 h-4 pointer-events-none" />
-                </div>
-                {touched.officerPosition && errors.officerPosition && (
-                  <span className="text-[11px] text-red-500 font-medium block">{errors.officerPosition}</span>
-                )}
-              </div>
-
-              <div className="space-y-1">
-                <label htmlFor="churchId" className="block text-xs font-semibold text-slate-700 dark:text-slate-300">Church ID:</label>
-                <input
-                  id="churchId" name="churchId"
-                  value={formData.churchId}
-                  onChange={handleChange} onBlur={handleBlur}
-                  className="w-full px-3.5 py-2 bg-white dark:bg-slate-800 border border-slate-200 dark:border-white/10 rounded-xl text-xs text-slate-900 dark:text-white outline-none focus:ring-2 focus:ring-blue-600"
-                  placeholder="00-00-00"
-                  autoComplete="off"
-                />
-                {touched.churchId && errors.churchId && (
-                  <span className="text-[11px] text-red-500 font-medium block">{errors.churchId}</span>
-                )}
-              </div>
-            </div>
-          )}
 
           {/* Password Requirements Box */}
           <div className="p-3 rounded-xl bg-slate-50 dark:bg-slate-800/40 border border-slate-200 dark:border-white/10 space-y-1.5">

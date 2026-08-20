@@ -977,7 +977,6 @@ export default function AdminFinancialReport() {
                         <span style={{ fontSize: '10px', color: '#4B5563', marginLeft: '6px' }}>({fmt(report.comparison.disbursements.current)})</span>
                       </div>
                       <div className="flex items-center gap-1.5 font-inter text-[11px] font-medium text-slate-600 dark:text-slate-400">
-                        <span className="w-2.5 h-2.5 rounded-full" style={{ background: '#93c5fd' }} />
                         <span className="font-inter text-[11px] font-medium text-slate-600 dark:text-slate-400">{report.comparison.prevPeriod}</span>
                         <span style={{ fontSize: '10px', color: '#4B5563', marginLeft: '6px' }}>({fmt(report.comparison.disbursements.previous)})</span>
                       </div>
@@ -990,7 +989,133 @@ export default function AdminFinancialReport() {
           </div>
         )}
 
-          {/* PAGE 2: Donations Overview */}
+          {/* PAGE 2: Attendance Overview — A4 Paper Format */}
+          {report.attendance && adminRole === 'admin' && (report.reportType === 'all' || report.reportType === 'attendance') && (
+            <div className="a4-page a4-page-break" style={a4Style}>
+              <div style={{ flex: 1, display: 'flex', flexDirection: 'column', gap: '8px' }}>
+                <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', borderBottom: '2px solid #0D1F45', paddingBottom: '8px', marginBottom: '4px' }}>
+                  <h2 style={{ margin: 0, fontSize: '16px', fontWeight: 800, color: '#0D1F45' }}>Attendance Overview</h2>
+                  <span style={{ fontSize: '11px', fontWeight: 600, color: '#6b7280' }}>{report.period}</span>
+                </div>
+
+              {/* Attendance Trends */}
+              {report.attendance?.byMonth?.length > 0 && (() => {
+                const byMonthMap = {};
+                (report.attendance.byMonth || []).forEach(d => { byMonthMap[d.month] = d.count; });
+                const { from, to } = getChartMonthRange();
+                const bmc = report.attendance.byMonthByCommunity || {};
+                const allCommunities = [...new Set(Object.values(bmc).flatMap(obj => Object.keys(obj)))].sort();
+                const isMulti = allCommunities.length >= 2;
+
+                if (!isMulti) return null;
+
+                const { topSeries, otherSeries, fullMonthData, totals, hasOthers } = buildTopNSeriesData({
+                  seriesKeys: allCommunities,
+                  dataMap: bmc,
+                  reportYear,
+                  from,
+                  to,
+                  maxSeries: 10,
+                });
+
+                const totalAtt = fullMonthData.reduce((s, d) =>
+                  s + topSeries.reduce((sum, k) => sum + (d[k] || 0), 0) + (d['Others'] || 0), 0);
+                const highestMon = fullMonthData.reduce((a, b) => {
+                  const aVal = topSeries.reduce((s, k) => s + (a[k] || 0), 0) + (a['Others'] || 0);
+                  const bVal = topSeries.reduce((s, k) => s + (b[k] || 0), 0) + (b['Others'] || 0);
+                  return bVal > aVal ? b : a;
+                }, fullMonthData[0]);
+
+                return fullMonthData.some(d => topSeries.some(k => d[k] > 0)) ? (
+                  <div style={{ gridTemplateColumns: '1fr', marginTop: '16px' }}>
+                    <div style={{ border: "1px solid #e2e8f0", padding: "12px", background: "#ffffff", display: "flex", flexDirection: "column", justifyContent: "space-between", width: "100%" }}>
+                      <h3 style={{ margin: 0, fontSize: "13px", fontWeight: 700, color: "#1e293b" }}>Monthly Attendance Trend (By Community)</h3>
+                      <p style={{ margin: "2px 0 4px", fontSize: "11px", color: "#6b7280" }}>
+                        Detailed Community Breakdown · Total: <strong>{totalAtt} attendees</strong> · Highest: <strong>{highestMon?.month}</strong>
+                        {hasOthers && <> · Showing top 10 of {allCommunities.length} communities</>}
+                      </p>
+
+                      <ResponsiveContainer width="100%" height={300}>
+                        <BarChart data={fullMonthData} margin={{ top: 15, right: 10, left: -10, bottom: 0 }}>
+                          <CartesianGrid strokeDasharray="3 3" stroke="#f1f5f9" vertical={false} />
+                          <XAxis dataKey="month" tick={{ fontSize: 10 }} />
+                          <YAxis tick={{ fontSize: 10 }} allowDecimals={false}>
+                            <Label value="Attendees" angle={-90} position="insideLeft" offset={20} style={{ fontSize: 9, fill: '#9CA3AF' }} />
+                          </YAxis>
+                          <Tooltip content={<CustomNonZeroTooltip formatter={(v, name) => [
+                            `${v} attendees`,
+                            name === 'Others' ? `Others (${otherSeries.length} communities)` : name
+                          ]} />} />
+                          {topSeries.map((s, i) => (
+                            <Bar key={s} dataKey={s} stackId="a" fill={COMMUNITY_COLORS[i % COMMUNITY_COLORS.length]} />
+                          ))}
+                          {hasOthers && (
+                            <Bar key="Others" dataKey="Others" stackId="a" fill="#d1d5db" name="Others" />
+                          )}
+                        </BarChart>
+                      </ResponsiveContainer>
+
+                      {/* Legend grouped by province */}
+                      {(() => {
+                        const branchToProv = {};
+                        branchesData.forEach(b => { branchToProv[b.name] = b.province || 'Unknown'; });
+                        const seriesByProv = {};
+                        topSeries.forEach((s, i) => {
+                          const totalVal = totals[s] || 0;
+                          if (totalVal > 0) {
+                            const prov = branchToProv[s] || 'Unknown';
+                            if (!seriesByProv[prov]) seriesByProv[prov] = [];
+                            seriesByProv[prov].push({ name: s, index: i, total: totalVal });
+                          }
+                        });
+                        return (
+                          <div style={{ display: "flex", flexWrap: "wrap", gap: "16px", marginTop: "8px", paddingTop: "8px", borderTop: "1px solid #f1f5f9" }}>
+                            {Object.entries(seriesByProv).map(([prov, comms]) => (
+                              <div key={prov} style={{ display: "flex", flexDirection: "column", gap: "4px" }}>
+                                <div style={{ fontSize: "10px", fontWeight: 700, color: "#374151", textTransform: "uppercase", letterSpacing: "0.05em", borderBottom: "1px solid #f1f5f9", paddingBottom: "3px", marginBottom: "3px" }}>{prov}</div>
+                                {comms.map(c => (
+                                  <div key={c.name} style={{ margin: 0 }}>
+                                    <span style={{ width: "8px", height: "8px", borderRadius: "50%", flexShrink: 0, background: COMMUNITY_COLORS[c.index % COMMUNITY_COLORS.length] }} />
+                                    <span style={{ fontSize: "10px", color: "#4b5563" }}>{c.name}</span>
+                                    <span style={{ fontSize: '10px', color: '#4B5563', marginLeft: '4px' }}>({c.total} attendees)</span>
+                                  </div>
+                                ))}
+                              </div>
+                            ))}
+                            {hasOthers && (
+                              <div style={{ display: "flex", flexDirection: "column", gap: "4px" }}>
+                                <div style={{ fontSize: "10px", fontWeight: 700, color: "#374151", textTransform: "uppercase", letterSpacing: "0.05em", borderBottom: "1px solid #f1f5f9", paddingBottom: "3px", marginBottom: "3px" }}>Others</div>
+                                <div style={{ margin: 0 }}>
+                                  <span style={{ width: "8px", height: "8px", borderRadius: "50%", flexShrink: 0, background: '#d1d5db' }} />
+                                  <span style={{ fontSize: "10px", color: "#4b5563" }}>{otherSeries.length} more communities</span>
+                                  <span style={{ fontSize: '10px', color: '#4B5563', marginLeft: '4px' }}>
+                                    ({otherSeries.reduce((s, k) => s + totals[k], 0)} attendees)
+                                  </span>
+                                </div>
+                              </div>
+                            )}
+                          </div>
+                        );
+                      })()}
+
+                      {hasOthers && (
+                        <p style={{ display: "block", fontSize: "10px", color: "#94a3b8", marginTop: "6px", textAlign: "center" }}>
+                          ℹ️ Chart shows top 10 communities by total attendance. {otherSeries.length} smaller
+                          communities are merged into "Others" for readability.
+                        </p>
+                      )}
+
+                      <ChartFooter period={report.period} location={getLocationLabel()} />
+                    </div>
+                  </div>
+                ) : null;
+              })()}
+              </div>
+              <ChartFooter period={report.period} location={getLocationLabel()} />
+            </div>
+        )}
+
+          {/* PAGE 3: Donations Overview */}
           {report.donations && adminRole === 'admin' && (report.reportType === 'all' || report.reportType === 'donations') && (
             <div className="a4-page a4-page-break" style={a4Style}>
               <div style={{ flex: 1, display: 'flex', flexDirection: 'column', gap: '8px' }}>
@@ -1565,7 +1690,7 @@ export default function AdminFinancialReport() {
                       <div style={{ border: '1px solid #e2e8f0', padding: '12px', display: 'flex', flexDirection: 'column', gap: '4px' }}>
                         <h3 style={{ margin: 0, fontSize: '13px', fontWeight: 700, color: '#1e293b' }}>Attendance By Community</h3>
                         <p style={{ margin: '2px 0 4px', fontSize: '11px', color: '#6b7280' }}>Top: <strong>{report.attendance.byBranch[0]?.name}</strong> · {report.attendance.byBranch[0]?.value} attendees</p>
-                        <ResponsiveContainer width="100%" height={200}>
+                        <ResponsiveContainer width="100%" height={320}>
                           <BarChart data={report.attendance.byBranch.slice(0, 8)} margin={{ top: 12, right: 10, left: -10, bottom: 40 }}>
                             <CartesianGrid strokeDasharray="3 3" stroke="#f1f5f9" />
                             <XAxis dataKey="name" tick={{ fontSize: 9, angle: -35, textAnchor: 'end' }} interval={0} height={50} />
@@ -1591,7 +1716,7 @@ export default function AdminFinancialReport() {
                         <div style={{ border: '1px solid #e2e8f0', padding: '12px', display: 'flex', flexDirection: 'column', gap: '4px' }}>
                           <h3 style={{ margin: 0, fontSize: '13px', fontWeight: 700, color: '#1e293b' }}>Top Services By Attendance</h3>
                           <p style={{ margin: '2px 0 4px', fontSize: '11px', color: '#6b7280' }}>Top: <strong>{serviceData[0].service}</strong> · {serviceData[0].count} attendees</p>
-                          <ResponsiveContainer width="100%" height={200}>
+                          <ResponsiveContainer width="100%" height={320}>
                             <BarChart data={serviceData} layout="vertical" margin={{ top: 12, right: 30, left: 10, bottom: 0 }}>
                               <CartesianGrid strokeDasharray="3 3" stroke="#f1f5f9" horizontal={false} />
                               <XAxis type="number" hide />
