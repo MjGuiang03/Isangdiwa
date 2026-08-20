@@ -1111,7 +1111,7 @@ export default function AdminFinancialReport() {
                 {report.executiveSummary && (
                   <>
                     <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', borderBottom: '2px solid #0D1F45', paddingBottom: '8px', marginBottom: '4px' }}>
-                      <h2 style={{ margin: 0, fontSize: '16px', fontWeight: 800, color: '#0D1F45' }}>AI Summary</h2>
+                      <h2 style={{ margin: 0, fontSize: '16px', fontWeight: 800, color: '#0D1F45' }}>AI Executive Summary</h2>
                       <span style={{ fontSize: '11px', fontWeight: 600, color: '#6b7280' }}>{report.period}</span>
                     </div>
                     <div style={{ border: '1px solid #e2e8f0', padding: '10px 14px', marginBottom: '8px' }}>
