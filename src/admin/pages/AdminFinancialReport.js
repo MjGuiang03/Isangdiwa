@@ -1630,6 +1630,153 @@ export default function AdminFinancialReport() {
           </div>
         )}
 
+          {/* Membership & Engagement — A4 Paper Format */}
+          {(report.memberGrowth || report.attendance) && adminRole === 'admin' && (report.reportType === 'all' || report.reportType === 'attendance') && (
+            <div className="a4-page a4-page-break" style={a4Style}>
+              <div style={{ flex: 1, display: 'flex', flexDirection: 'column', gap: '8px' }}>
+                <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', borderBottom: '2px solid #0D1F45', paddingBottom: '8px', marginBottom: '4px' }}>
+                  <h2 style={{ margin: 0, fontSize: '16px', fontWeight: 800, color: '#0D1F45' }}>Membership &amp; Engagement</h2>
+                  <span style={{ fontSize: '11px', fontWeight: 600, color: '#6b7280' }}>{report.period}</span>
+                </div>
+
+                {/* KPI Grid */}
+                <div style={{ display: 'grid', gridTemplateColumns: 'repeat(4, 1fr)', gap: '6px', marginBottom: '6px' }}>
+                  {report.memberGrowth && (
+                    <>
+                      <div style={{ background: '#f8fafc', border: '1px solid #e2e8f0', padding: '7px 10px' }}>
+                        <div style={{ fontSize: '9px', fontWeight: 700, color: '#6b7280', textTransform: 'uppercase', letterSpacing: '0.05em' }}>New Members</div>
+                        <div style={{ fontSize: '22px', fontWeight: 800, color: '#2563eb', marginTop: '2px' }}>{report.memberGrowth.newMembers}</div>
+                      </div>
+                      <div style={{ background: '#f8fafc', border: '1px solid #e2e8f0', padding: '7px 10px' }}>
+                        <div style={{ fontSize: '9px', fontWeight: 700, color: '#6b7280', textTransform: 'uppercase', letterSpacing: '0.05em' }}>Total Members</div>
+                        <div style={{ fontSize: '22px', fontWeight: 800, color: '#0f172a', marginTop: '2px' }}>{report.memberGrowth.totalMembers}</div>
+                      </div>
+                    </>
+                  )}
+                  {report.attendance && (
+                    <>
+                      <div style={{ background: '#f8fafc', border: '1px solid #e2e8f0', padding: '7px 10px' }}>
+                        <div style={{ fontSize: '9px', fontWeight: 700, color: '#6b7280', textTransform: 'uppercase', letterSpacing: '0.05em' }}>Attendance Records</div>
+                        <div style={{ fontSize: '22px', fontWeight: 800, color: '#059669', marginTop: '2px' }}>{report.attendance.totalRecords}</div>
+                      </div>
+                      <div style={{ background: '#f8fafc', border: '1px solid #e2e8f0', padding: '7px 10px' }}>
+                        <div style={{ fontSize: '9px', fontWeight: 700, color: '#6b7280', textTransform: 'uppercase', letterSpacing: '0.05em' }}>Communities</div>
+                        <div style={{ fontSize: '22px', fontWeight: 800, color: '#0f172a', marginTop: '2px' }}>{report.attendance.byBranch?.length || 0}</div>
+                      </div>
+                    </>
+                  )}
+                </div>
+
+                {/* Attendance Charts Row */}
+                <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '8px' }}>
+                  {/* Attendance By Community Chart */}
+                  {report.attendance?.byBranch?.length > 0 && (
+                    <div style={{ border: '1px solid #e2e8f0', padding: '12px', display: 'flex', flexDirection: 'column', gap: '4px' }}>
+                      <h3 style={{ margin: 0, fontSize: '13px', fontWeight: 700, color: '#1e293b' }}>Attendance By Community</h3>
+                      <p style={{ margin: '2px 0 4px', fontSize: '11px', color: '#6b7280' }}>Top: <strong>{report.attendance.byBranch[0]?.name}</strong> · {report.attendance.byBranch[0]?.value} attendees</p>
+                      <ResponsiveContainer width="100%" height={240}>
+                        <BarChart data={report.attendance.byBranch.slice(0, 8)} margin={{ top: 12, right: 10, left: -10, bottom: 5 }}>
+                          <CartesianGrid strokeDasharray="3 3" stroke="#f1f5f9" />
+                          <XAxis dataKey="name" tick={{ fontSize: 9, angle: -35, textAnchor: 'end' }} interval={0} height={45} />
+                          <YAxis tick={{ fontSize: 10 }} allowDecimals={false} />
+                          <Tooltip />
+                          <Bar dataKey="value" fill="#0D1F45" radius={[4, 4, 0, 0]} barSize={24}>
+                            <LabelList dataKey="value" position="top" style={{ fontSize: 10, fill: '#6B7280' }} />
+                          </Bar>
+                        </BarChart>
+                      </ResponsiveContainer>
+                    </div>
+                  )}
+
+                  {/* Top Services Chart */}
+                  {report.attendance?.attendees?.length > 0 && (() => {
+                    const serviceMap = {};
+                    report.attendance.attendees.forEach(a => {
+                      const svc = a.service || 'Unknown';
+                      serviceMap[svc] = (serviceMap[svc] || 0) + 1;
+                    });
+                    const serviceData = Object.keys(serviceMap).map(svc => ({ service: svc, count: serviceMap[svc] })).sort((a, b) => b.count - a.count).slice(0, 5);
+                    return serviceData.length > 0 ? (
+                      <div style={{ border: '1px solid #e2e8f0', padding: '12px', display: 'flex', flexDirection: 'column', gap: '4px' }}>
+                        <h3 style={{ margin: 0, fontSize: '13px', fontWeight: 700, color: '#1e293b' }}>Top Services By Attendance</h3>
+                        <p style={{ margin: '2px 0 4px', fontSize: '11px', color: '#6b7280' }}>Top: <strong>{serviceData[0].service}</strong> · {serviceData[0].count} attendees</p>
+                        <ResponsiveContainer width="100%" height={Math.max(140, serviceData.length * 40 + 30)}>
+                          <BarChart data={serviceData} layout="vertical" margin={{ top: 8, right: 30, left: 10, bottom: 0 }}>
+                            <CartesianGrid strokeDasharray="3 3" stroke="#f1f5f9" horizontal={false} />
+                            <XAxis type="number" hide />
+                            <YAxis type="category" dataKey="service" tick={{ fontSize: 10 }} width={90} />
+                            <Tooltip formatter={v => [v, 'Attendees']} />
+                            <Bar dataKey="count" radius={[0, 4, 4, 0]} barSize={22}>
+                              {serviceData.map((_, i) => (<Cell key={i} fill={i === 0 ? '#2563eb' : '#0D1F45'} />))}
+                              <LabelList dataKey="count" position="right" style={{ fontSize: 10, fill: '#6B7280' }} />
+                            </Bar>
+                          </BarChart>
+                        </ResponsiveContainer>
+                      </div>
+                    ) : null;
+                  })()}
+                </div>
+
+                {/* Monthly Attendance Trend */}
+                {(() => {
+                  const byMonthMap = {};
+                  (report.attendance?.byMonth || []).forEach(d => { byMonthMap[d.month] = d.count; });
+                  const { from, to } = getChartMonthRange();
+                  const bmp = report.attendance?.byMonthByProvince || {};
+                  const bmc = report.attendance?.byMonthByCommunity || {};
+                  const availProvinces = [...new Set(Object.values(bmp).flatMap(obj => Object.keys(obj)))].sort();
+                  const showProvinceTrend = availProvinces.length >= 2;
+                  let allSeries = showProvinceTrend ? availProvinces : [...new Set(Object.values(bmc).flatMap(obj => Object.keys(obj)))].sort();
+                  const dataMap = showProvinceTrend ? bmp : bmc;
+                  const chartTitle = `Monthly Attendance Trend${allSeries.length >= 2 ? (showProvinceTrend ? ' (By Province)' : ' (By Community)') : ''}`;
+                  const isMulti = allSeries.length >= 2;
+                  const seriesWithData = allSeries.filter(s => Object.values(dataMap).some(m => (m[s] || 0) > 0));
+                  const fullMonthData = MONTH_SHORT.slice(from, to + 1).map((label, idx) => {
+                    const i = from + idx;
+                    const key = `${reportYear}-${String(i+1).padStart(2,'0')}`;
+                    const row = { month: label, value: byMonthMap[key] || 0 };
+                    if (isMulti && dataMap[key]) allSeries.forEach(s => { row[s] = dataMap[key][s] || 0; });
+                    return row;
+                  });
+                  const totalAtt = fullMonthData.reduce((s, d) => s + d.value, 0);
+                  const highestMon = fullMonthData.reduce((a, b) => b.value > a.value ? b : a, fullMonthData[0]);
+                  if (!fullMonthData.some(d => d.value > 0)) return null;
+                  return (
+                    <div style={{ border: '1px solid #e2e8f0', padding: '12px', display: 'flex', flexDirection: 'column', gap: '4px', marginTop: '8px' }}>
+                      <h3 style={{ margin: 0, fontSize: '13px', fontWeight: 700, color: '#1e293b' }}>{chartTitle}</h3>
+                      <p style={{ margin: '2px 0 4px', fontSize: '11px', color: '#6b7280' }}>Total: <strong>{totalAtt}</strong> attendees · Highest: <strong>{highestMon?.month}</strong> ({highestMon?.value})</p>
+                      <ResponsiveContainer width="100%" height={isMulti ? 180 : 160}>
+                        {isMulti ? (
+                          <BarChart data={fullMonthData} margin={{ top: 12, right: 10, left: -10, bottom: 0 }}>
+                            <CartesianGrid strokeDasharray="3 3" stroke="#f1f5f9" />
+                            <XAxis dataKey="month" tick={{ fontSize: 10 }} />
+                            <YAxis tick={{ fontSize: 10 }} allowDecimals={false} />
+                            <Tooltip />
+                            {seriesWithData.map((s) => { const oi = allSeries.indexOf(s); return <Bar key={s} dataKey={s} fill={COMMUNITY_COLORS[oi % COMMUNITY_COLORS.length]} />; })}
+                          </BarChart>
+                        ) : (
+                          <BarChart data={fullMonthData} margin={{ top: 12, right: 10, left: -10, bottom: 0 }}>
+                            <CartesianGrid strokeDasharray="3 3" stroke="#f1f5f9" />
+                            <XAxis dataKey="month" tick={{ fontSize: 10 }} />
+                            <YAxis tick={{ fontSize: 10 }} allowDecimals={false} />
+                            <Tooltip />
+                            <Bar dataKey="value" fill="#0D1F45" radius={[4, 4, 0, 0]}><LabelList dataKey="value" position="top" style={{ fontSize: 10, fill: '#6B7280' }} /></Bar>
+                          </BarChart>
+                        )}
+                      </ResponsiveContainer>
+                      {isMulti && (
+                        <div style={{ display: 'flex', flexWrap: 'wrap', gap: '4px 12px', paddingTop: '6px', borderTop: '1px solid #f1f5f9' }}>
+                          {seriesWithData.map((s) => { const oi = allSeries.indexOf(s); const tv = fullMonthData.reduce((sum, r) => sum + (r[s] || 0), 0); return (<div key={s} style={{ display: 'flex', alignItems: 'center', gap: '4px', fontSize: '10px', color: '#4b5563' }}><span style={{ width: '7px', height: '7px', borderRadius: '50%', background: COMMUNITY_COLORS[oi % COMMUNITY_COLORS.length], display: 'inline-block' }} /><span>{s}</span><strong style={{ color: '#0f172a' }}> ({tv})</strong></div>); })}
+                        </div>
+                      )}
+                    </div>
+                  );
+                })()}
+              </div>
+              <ChartFooter period={report.period} location={getLocationLabel()} generatedAt={report.generatedAt} />
+            </div>
+          )}
+
           {/* Attendee List Pages */}
           {report.attendance?.attendees?.length > 0 && adminRole === 'admin' && (report.reportType === 'all' || report.reportType === 'attendance') && (() => {
                 const ROWS_PER_PAGE = 50;
