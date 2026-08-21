@@ -1098,6 +1098,7 @@ export default function AdminFinancialReport() {
                   </div>
                 )}
               </div>
+              <ChartFooter period={report.period} location={getLocationLabel()} generatedAt={report.generatedAt} />
             </div>
           </div>
         )}
@@ -1231,14 +1232,12 @@ export default function AdminFinancialReport() {
                           communities are merged into "Others" for readability.
                         </p>
                       )}
-
-                      <ChartFooter period={report.period} location={getLocationLabel()} />
                     </div>
                   </div>
                 ) : null;
               })()}
               </div>
-              <ChartFooter period={report.period} location={getLocationLabel()} />
+              <ChartFooter period={report.period} location={getLocationLabel()} generatedAt={report.generatedAt} />
             </div>
         )}
 
@@ -1295,7 +1294,6 @@ export default function AdminFinancialReport() {
                         </div>
                       ))}
                     </div>
-                    <ChartFooter period={report.period} location={getLocationLabel()} />
                   </div>
                 )}
 
@@ -1423,7 +1421,6 @@ export default function AdminFinancialReport() {
                           </div>
                         );
                       })()}
-                      <ChartFooter period={report.period} location={getLocationLabel()} />
                     </div>
                   );
                 })()}
@@ -1539,8 +1536,6 @@ export default function AdminFinancialReport() {
                           ({otherSeries.join(', ')}) are merged into "Others".
                         </p>
                       )}
-
-                      <ChartFooter period={report.period} location={getLocationLabel()} />
                     </div>
                   </div>
                 );
@@ -1569,7 +1564,6 @@ export default function AdminFinancialReport() {
                         </Bar>
                       </BarChart>
                     </ResponsiveContainer>
-                    <ChartFooter period={report.period} location={getLocationLabel()} />
                   </div>
                 )}
 
@@ -1605,7 +1599,6 @@ export default function AdminFinancialReport() {
                         </div>
                       ))}
                     </div>
-                    <ChartFooter period={report.period} location={getLocationLabel()} />
                   </div>
                   );
                 })()}
@@ -1639,7 +1632,7 @@ export default function AdminFinancialReport() {
                   </div>
                 </div>
               )}
-              <ChartFooter period={report.period} location={getLocationLabel()} />
+              <ChartFooter period={report.period} location={getLocationLabel()} generatedAt={report.generatedAt} />
             </div>
           </div>
         )}
@@ -2031,7 +2024,6 @@ export default function AdminFinancialReport() {
                           </div>
                         );
                       })()}
-                      <ChartFooter period={report.period} location={getLocationLabel()} />
                     </div>
                   ) : null;
                 })()}
