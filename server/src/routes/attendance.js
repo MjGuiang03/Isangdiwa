@@ -207,10 +207,15 @@ router.post('/admin/attendance/log-tap', authenticateAdmin, async (req, res) => 
 
      // Find user
      let user = null;
+     let resolvedMethod = method || 'RFID';
      if (method === 'Manual') {
         const { memberId } = req.body;
         if (!memberId) return res.status(400).json({ success: false, message: 'Member ID required for manual entry' });
         user = await users.findOne({ memberId });
+     } else if (cardId && typeof cardId === 'string' && cardId.includes('@')) {
+        // Mobile QR code contains user's email address
+        user = await users.findOne({ email: cardId.trim().toLowerCase() });
+        resolvedMethod = 'QR Scan';
      } else {
         user = await users.findOne({ rfidCardId: cardId });
      }
@@ -247,7 +252,7 @@ router.post('/admin/attendance/log-tap', authenticateAdmin, async (req, res) => 
           service: session.serviceType, 
           branch: session.branch, // record the session's branch, even if user is from another
           userBranch: user.branch,
-          method: method || 'RFID',
+          method: resolvedMethod,
           rfidCardId: user.rfidCardId || cardId || null,
           status,
           date: sessionDate.toLocaleDateString('en-US'),
