@@ -130,3 +130,12 @@ code {
     }
   }
 }
+
+/* ── Hidden Scrollbar for Horizontal Galleries ── */
+.scrollbar-hide {
+  -ms-overflow-style: none;
+  scrollbar-width: none;
+}
+.scrollbar-hide::-webkit-scrollbar {
+  display: none;
+}
