@@ -50,10 +50,6 @@ export default function SecApprovedLoanDetailsModal({ loan, onClose, onProcess }
                                     <p className="text-[13px] font-semibold text-slate-900 dark:text-white m-0 break-all">{loan.email}</p>
                                 </div>
                                 <div className="flex flex-col gap-0.5">
-                                    <p className="text-[10px] font-bold text-slate-400 dark:text-slate-400 uppercase tracking-wider m-0">Church ID</p>
-                                    <p className="text-[13.5px] font-semibold text-slate-900 dark:text-white m-0">{loan.churchId}</p>
-                                </div>
-                                <div className="flex flex-col gap-0.5">
                                     <p className="text-[10px] font-bold text-slate-400 dark:text-slate-400 uppercase tracking-wider m-0">Church Position</p>
                                     <p className="text-[13.5px] font-semibold text-slate-900 dark:text-white m-0">{loan.position}</p>
                                 </div>

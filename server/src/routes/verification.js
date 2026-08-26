@@ -11,10 +11,10 @@ const router = Router();
 router.post('/verification/submit', authenticateUser, async (req, res) => {
   try {
     const email = req.user.email;
-    const { churchId, position } = req.body;
+    const { position } = req.body;
 
-    if (!churchId || !position) {
-      return res.status(400).json({ success: false, message: 'All fields are required' });
+    if (!position) {
+      return res.status(400).json({ success: false, message: 'Position is required' });
     }
 
     const user = await users.findOne({ email });
@@ -30,7 +30,7 @@ router.post('/verification/submit', authenticateUser, async (req, res) => {
     }
 
     await verifications.insertOne({
-      email, memberName: user.fullName, churchId, position,
+      email, memberName: user.fullName, position,
       status: 'pending',
       submittedAt: new Date(), updatedAt: new Date()
     });

@@ -20,6 +20,41 @@ import featureSavings from '../../assets/optimized/features/savings.webp';
 import featureChatbot from '../../assets/optimized/features/chatbot1.webp';
 import featureAttendance from '../../assets/optimized/features/attendance.webp';
 
+/* ── Small count-up component for hero stats ── */
+function AnimatedCounter({ value, suffix = '', duration = 1600 }) {
+  const [display, setDisplay] = useState(0);
+  const ref = useRef(null);
+  const started = useRef(false);
+
+  useEffect(() => {
+    const el = ref.current;
+    if (!el) return;
+    const observer = new IntersectionObserver(([entry]) => {
+      if (entry.isIntersecting && !started.current) {
+        started.current = true;
+        const startTime = performance.now();
+        const animate = (now) => {
+          const progress = Math.min((now - startTime) / duration, 1);
+          const eased = 1 - Math.pow(1 - progress, 3);
+          setDisplay(Math.floor(eased * value));
+          if (progress < 1) requestAnimationFrame(animate);
+          else setDisplay(value);
+        };
+        requestAnimationFrame(animate);
+        observer.disconnect();
+      }
+    }, { threshold: 0.4 });
+    observer.observe(el);
+    return () => observer.disconnect();
+  }, [value, duration]);
+
+  return (
+    <span ref={ref} className="tabular-nums">
+      {display.toLocaleString()}{suffix}
+    </span>
+  );
+}
+
 export default function LandingPage() {
   const location = useLocation();
   const navigate = useNavigate();
@@ -27,8 +62,12 @@ export default function LandingPage() {
   const [showLoginModal, setShowLoginModal] = useState(false);
   const [showSignupModal, setShowSignupModal] = useState(false);
   const [showResetModal, setShowResetModal] = useState(false);
+  const [navVisible, setNavVisible] = useState(false);
+  const [heroVisible, setHeroVisible] = useState(false);
 
   const revealRefs = useRef([]);
+  const bentoRefs = useRef([]);
+  const heroImgRef = useRef(null);
 
   useEffect(() => {
     if (location.pathname === '/reset-password') {
@@ -38,25 +77,57 @@ export default function LandingPage() {
     }
   }, [location.pathname]);
 
+  // Trigger entrance animations on mount
+  useEffect(() => {
+    const navTimer = setTimeout(() => setNavVisible(true), 80);
+    const heroTimer = setTimeout(() => setHeroVisible(true), 180);
+    return () => { clearTimeout(navTimer); clearTimeout(heroTimer); };
+  }, []);
+
+  // Ref-based parallax (no re-renders on scroll)
+  useEffect(() => {
+    const handleScroll = () => {
+      if (heroImgRef.current) {
+        heroImgRef.current.style.transform = `scale(1.1) translateY(${window.scrollY * 0.15}px)`;
+      }
+    };
+    window.addEventListener('scroll', handleScroll, { passive: true });
+    return () => window.removeEventListener('scroll', handleScroll);
+  }, []);
+
+  // Scroll-reveal for sections + add reveal-active for feature-li stagger
   useEffect(() => {
     const observer = new IntersectionObserver((entries) => {
       entries.forEach(entry => {
         if (entry.isIntersecting) {
-          entry.target.classList.add('opacity-100', 'translate-y-0');
+          entry.target.classList.add('opacity-100', 'translate-y-0', 'reveal-active');
           entry.target.classList.remove('opacity-0', 'translate-y-10');
         }
       });
     }, { threshold: 0.1 });
 
     revealRefs.current.forEach(el => { if (el) observer.observe(el); });
+    return () => observer.disconnect();
+  }, []);
 
-    return () => {
-      observer.disconnect();
-    };
+  // Bento card scroll-triggered stagger
+  useEffect(() => {
+    const observer = new IntersectionObserver((entries) => {
+      entries.forEach(entry => {
+        if (entry.isIntersecting) entry.target.classList.add('bento-in');
+      });
+    }, { threshold: 0.15 });
+
+    bentoRefs.current.forEach(el => { if (el) observer.observe(el); });
+    return () => observer.disconnect();
   }, []);
 
   const addToRefs = el => {
     if (el && !revealRefs.current.includes(el)) revealRefs.current.push(el);
+  };
+
+  const addToBentoRefs = el => {
+    if (el && !bentoRefs.current.includes(el)) bentoRefs.current.push(el);
   };
 
   const handleOpenLogin = () => setShowLoginModal(true);
@@ -71,7 +142,7 @@ export default function LandingPage() {
     e.preventDefault();
     const el = document.getElementById(id);
     if (el) {
-      const yOffset = -90; // offset for fixed top navbar
+      const yOffset = -90;
       const y = el.getBoundingClientRect().top + window.pageYOffset + yOffset;
       window.scrollTo({ top: y, behavior: 'smooth' });
     }
@@ -79,13 +150,39 @@ export default function LandingPage() {
 
   return (
     <div className="font-inter bg-[#F8FAFC] text-[#0D1F45] min-h-screen selection:bg-[#F5C800] selection:text-[#0D1F45] overflow-x-hidden scroll-smooth">
+
+      {/* ── ANIMATION KEYFRAMES ── */}
+      <style>{`
+        @keyframes fadeSlideDown { from { opacity:0; transform:translateY(-16px); } to { opacity:1; transform:translateY(0); } }
+        @keyframes fadeSlideUp { from { opacity:0; transform:translateY(28px); } to { opacity:1; transform:translateY(0); } }
+        @keyframes shimmerSweep { 0% { transform:translateX(-120%) skewX(-15deg); } 100% { transform:translateX(220%) skewX(-15deg); } }
+        @keyframes softPulse { 0%,100% { box-shadow:0 0 0 0 rgba(245,200,0,0.35); } 50% { box-shadow:0 0 0 10px rgba(245,200,0,0); } }
+        .nav-enter { animation: fadeSlideDown 0.7s ease-out forwards; }
+        .hero-item { opacity:0; animation: fadeSlideUp 0.8s cubic-bezier(0.22,1,0.36,1) forwards; }
+        .hero-item.d1 { animation-delay:0.05s; } .hero-item.d2 { animation-delay:0.18s; }
+        .hero-item.d3 { animation-delay:0.34s; } .hero-item.d4 { animation-delay:0.48s; }
+        .bento-card { opacity:0; transform:translateY(24px) scale(0.97); transition: opacity 0.7s cubic-bezier(0.22,1,0.36,1), transform 0.7s cubic-bezier(0.22,1,0.36,1); }
+        .bento-card.bento-in { opacity:1; transform:translateY(0) scale(1); }
+        .feature-li { opacity:0; transform:translateX(-10px); animation:none; }
+        .reveal-active .feature-li { animation: fadeSlideUp 0.5s ease-out forwards; }
+        .reveal-active .feature-li:nth-child(1) { animation-delay:0.05s; }
+        .reveal-active .feature-li:nth-child(2) { animation-delay:0.18s; }
+        .reveal-active .feature-li:nth-child(3) { animation-delay:0.31s; }
+        .shine-btn { position:relative; overflow:hidden; }
+        .shine-btn::after { content:''; position:absolute; top:0; left:0; width:40%; height:100%; background:linear-gradient(120deg,transparent,rgba(255,255,255,0.55),transparent); transform:translateX(-120%) skewX(-15deg); pointer-events:none; }
+        .shine-btn:hover::after { animation: shimmerSweep 0.9s ease forwards; }
+        .cta-pulse { animation: softPulse 2.6s ease-in-out infinite; }
+        @media (prefers-reduced-motion:reduce) {
+          .nav-enter,.hero-item,.bento-card,.feature-li,.cta-pulse,.shine-btn::after { animation:none!important; transition:none!important; opacity:1!important; transform:none!important; }
+        }
+      `}</style>
       
       {/* ── NAVBAR: FLOATING PILL (ABSOLUTE TOP - NON-STICKY) ── */}
-      <nav className="absolute top-0 left-0 right-0 z-[100] py-4 sm:py-5 pointer-events-none">
+      <nav className={`absolute top-0 left-0 right-0 z-[100] py-4 sm:py-5 pointer-events-none ${navVisible ? 'nav-enter' : 'opacity-0'}`}>
         <div className="max-w-[1400px] mx-auto px-5 sm:px-10 flex items-center justify-between pointer-events-auto">
           {/* Logo — left side */}
-          <a href="#" onClick={(e) => { e.preventDefault(); window.scrollTo({ top: 0, behavior: 'smooth' }); }} className="flex items-center gap-2.5 no-underline shrink-0">
-            <img src={puacLogo} alt="IsangDiwa" className="w-9 h-9 object-contain" width="36" height="36" />
+          <a href="#" onClick={(e) => { e.preventDefault(); window.scrollTo({ top: 0, behavior: 'smooth' }); }} className="flex items-center gap-2.5 no-underline shrink-0 group">
+            <img src={puacLogo} alt="IsangDiwa" className="w-9 h-9 object-contain transition-transform duration-500 group-hover:rotate-[8deg]" width="36" height="36" />
             <span className="font-outfit text-xl font-bold tracking-tight text-white drop-shadow-[0_1px_3px_rgba(0,0,0,0.6)]">
               Isang<span className="text-[#F5C800]">Diwa</span>
             </span>
@@ -95,12 +192,12 @@ export default function LandingPage() {
           <div className="flex items-center gap-3">
             {/* Frosted glass pill with matched height */}
             <div className="hidden md:flex items-center gap-1 h-11 px-1.5 rounded-full bg-white/15 backdrop-blur-md border border-white/25 shadow-sm">
-              <a href="#features" onClick={(e) => scrollToSection(e, 'features')} className="no-underline text-xs font-bold h-8 flex items-center px-4 rounded-full text-white drop-shadow-[0_1px_3px_rgba(0,0,0,0.8)] hover:bg-white/20 transition-all">Features</a>
-              <a href="#gallery" onClick={(e) => scrollToSection(e, 'gallery')} className="no-underline text-xs font-bold h-8 flex items-center px-4 rounded-full text-white drop-shadow-[0_1px_3px_rgba(0,0,0,0.8)] hover:bg-white/20 transition-all">Events</a>
+              <a href="#features" onClick={(e) => scrollToSection(e, 'features')} className="no-underline text-xs font-bold h-8 flex items-center px-4 rounded-full text-white drop-shadow-[0_1px_3px_rgba(0,0,0,0.8)] hover:bg-white/20 transition-all duration-300">Features</a>
+              <a href="#gallery" onClick={(e) => scrollToSection(e, 'gallery')} className="no-underline text-xs font-bold h-8 flex items-center px-4 rounded-full text-white drop-shadow-[0_1px_3px_rgba(0,0,0,0.8)] hover:bg-white/20 transition-all duration-300">Events</a>
             </div>
 
             {/* Dark CTA button with matched height */}
-            <button onClick={handleOpenLogin} className="bg-[#0E254A] hover:bg-[#142E54] text-white text-xs font-bold h-11 px-6 rounded-full transition-all active:scale-95 flex items-center gap-1.5 cursor-pointer shadow-sm">
+            <button onClick={handleOpenLogin} className="shine-btn bg-[#0E254A] hover:bg-[#142E54] text-white text-xs font-bold h-11 px-6 rounded-full transition-all duration-300 active:scale-95 flex items-center gap-1.5 cursor-pointer shadow-sm hover:shadow-lg hover:-translate-y-0.5">
               Sign In <ChevronRight size={14} />
             </button>
           </div>
@@ -108,26 +205,27 @@ export default function LandingPage() {
       </nav>
 
       {/* ── HERO: FULL-BLEED CINEMATIC (TasteSkill style) ── */}
-      <section className="relative h-screen min-h-[600px] max-h-[900px] overflow-hidden">
-        <img src={puacCongregation} alt="PUAC National Assembly" className="absolute inset-0 w-full h-full object-cover" />
+      <section className="relative h-screen min-h-[480px] max-h-[900px] overflow-hidden">
+        <img ref={heroImgRef} src={puacCongregation} alt="PUAC National Assembly" className="absolute inset-0 w-full h-full object-cover scale-110" />
         <div className="absolute inset-0 bg-gradient-to-t from-[#060F20] via-[#060F20]/60 to-[#060F20]/30" />
 
-        <div className="relative z-10 h-full flex flex-col justify-end max-w-[1400px] mx-auto px-6 sm:px-10 pb-16 sm:pb-20">
+        <div className="relative z-10 h-full flex flex-col justify-end max-w-[1400px] mx-auto px-6 sm:px-10 pb-12 sm:pb-20">
           <div className="max-w-3xl">
-            <div className="text-[11px] font-bold uppercase tracking-[0.2em] text-[#F5C800] mb-4">Philippine United Apostolic Church</div>
-            <h1 className="font-outfit text-[clamp(2.8rem,6vw,5.5rem)] font-extrabold leading-[1.02] tracking-tight text-white mb-5">
+            <div className={`text-[11px] font-bold uppercase tracking-[0.2em] text-[#F5C800] mb-4 ${heroVisible ? 'hero-item d1' : 'opacity-0'}`}>Philippine United Apostolic Church</div>
+            <h1 className={`font-outfit text-[clamp(2.8rem,6vw,5.5rem)] font-extrabold leading-[1.02] tracking-tight text-white mb-5 ${heroVisible ? 'hero-item d2' : 'opacity-0'}`}>
               Empowering Faith,<br />
               Fellowship, and<br />
               Stewardship
             </h1>
-            <p className="text-white/60 text-base sm:text-lg max-w-lg mb-8 leading-relaxed">
-              Connecting 68 branches and 3,400+ members across the Philippines under one unified digital platform.
+            <p className={`text-white/60 text-base sm:text-lg max-w-lg mb-2 leading-relaxed ${heroVisible ? 'hero-item d3' : 'opacity-0'}`}>
+              Connecting <span className="text-white font-semibold"><AnimatedCounter value={68} /></span> branches and{' '}
+              <span className="text-white font-semibold"><AnimatedCounter value={3400} suffix="+" /></span> members across the Philippines under one unified digital platform.
             </p>
-            <div className="flex flex-wrap gap-3">
-              <button onClick={handleOpenSignup} className="bg-[#F5C800] hover:bg-amber-400 text-[#0E254A] font-bold text-sm px-7 py-3.5 rounded-xl transition-all flex items-center gap-2 group cursor-pointer active:scale-[0.97]">
-                Join Our Community <ArrowRight size={16} className="group-hover:translate-x-0.5 transition-transform" />
+            <div className={`flex flex-wrap gap-3 mt-6 ${heroVisible ? 'hero-item d4' : 'opacity-0'}`}>
+              <button onClick={handleOpenSignup} className="shine-btn cta-pulse bg-[#F5C800] hover:bg-amber-400 text-[#0E254A] font-bold text-sm px-7 py-3.5 rounded-xl transition-all duration-300 flex items-center gap-2 group cursor-pointer active:scale-[0.97] hover:-translate-y-0.5 hover:shadow-xl hover:shadow-amber-500/20">
+                Join Our Community <ArrowRight size={16} className="group-hover:translate-x-1 transition-transform duration-300" />
               </button>
-              <button onClick={(e) => scrollToSection(e, 'features')} className="bg-white/10 hover:bg-white/20 backdrop-blur-sm text-white font-semibold text-sm px-7 py-3.5 rounded-xl border border-white/15 transition-all cursor-pointer active:scale-[0.97]">
+              <button onClick={(e) => scrollToSection(e, 'features')} className="bg-white/10 hover:bg-white/20 backdrop-blur-sm text-white font-semibold text-sm px-7 py-3.5 rounded-xl border border-white/15 transition-all duration-300 cursor-pointer active:scale-[0.97] hover:-translate-y-0.5">
                 Explore Features
               </button>
             </div>
@@ -135,27 +233,12 @@ export default function LandingPage() {
         </div>
       </section>
 
-      {/* ── SCROLLING STATS MARQUEE ── */}
-      <div className="bg-[#0E254A] border-y border-white/10 py-4 overflow-hidden">
-        <div className="flex animate-ticker whitespace-nowrap">
-          {[...Array(2)].map((_, rep) => (
-            <div key={rep} className="flex items-center gap-12 px-6 shrink-0">
-              {['68 Active Branches', '3,400+ Church Members', '100% Financial Transparency', 'RFID Attendance System', '24/7 AI Member Assistant', 'Nationwide PUAC Network'].map((t, i) => (
-                <span key={i} className="flex items-center gap-3 text-sm font-semibold text-white/80 tracking-wide">
-                  <span className="w-1.5 h-1.5 rounded-full bg-[#F5C800] shrink-0" /> {t}
-                </span>
-              ))}
-            </div>
-          ))}
-        </div>
-      </div>
-
 
       {/* EDITORIAL VERSE & PHILOSOPHY STRIP */}
       <section className="bg-[#0E254A] text-white py-16 sm:py-20 px-6 sm:px-10 border-t border-white/10 relative overflow-hidden">
-        <div className="max-w-4xl mx-auto text-center space-y-4 relative z-10">
+        <div className="max-w-4xl mx-auto text-center space-y-4 relative z-10 opacity-0 translate-y-10 transition-all duration-700" ref={addToRefs}>
           <span className="text-[11px] sm:text-xs font-bold uppercase tracking-[0.2em] text-[#F5C800]">Philippine United Apostolic Church</span>
-          <blockquote className="font-outfit text-xl sm:text-3xl lg:text-4xl font-medium text-white leading-relaxed tracking-tight">
+          <blockquote className="font-inter text-lg sm:text-2xl lg:text-3xl font-normal text-white/90 leading-relaxed tracking-normal italic">
             “Now all who believed were together, and had all things in common, and sold their possessions and goods, and divided them among all, as anyone had need.”
           </blockquote>
           <cite className="block text-xs font-bold tracking-[0.15em] text-[#F5C800] uppercase not-italic pt-1">
@@ -167,7 +250,7 @@ export default function LandingPage() {
       {/* MEMBER-SIDE FEATURE SHOWCASE (ALTERNATING LAYOUT) */}
       <section id="features" className="py-24 px-4 sm:px-8 max-w-[1400px] mx-auto space-y-24">
         
-        <div className="text-center max-w-2xl mx-auto space-y-3">
+        <div className="text-center max-w-2xl mx-auto space-y-3 opacity-0 translate-y-10 transition-all duration-700" ref={addToRefs}>
           <span className="text-xs font-bold uppercase tracking-widest text-[#0D1F45] bg-[#0D1F45]/5 px-3 py-1 rounded-full">Designed For Church Members</span>
           <h2 className="font-dm text-3xl sm:text-5xl font-extrabold text-[#0D1F45]">
             Everything You Need<br />In One Spiritual &amp; Financial Hub
@@ -188,13 +271,13 @@ export default function LandingPage() {
               Set personal financial goals for emergency funds, education, or house building. Deposit easily and watch your savings accumulate safely within the PUAC community network.
             </p>
             <ul className="space-y-2 text-sm text-slate-700 font-medium">
-              <li className="flex items-center gap-2"><CheckCircle2 size={16} className="text-emerald-500 shrink-0" /> Goal-oriented savings trackers</li>
-              <li className="flex items-center gap-2"><CheckCircle2 size={16} className="text-emerald-500 shrink-0" /> Transparent deposit logs and instant receipts</li>
-              <li className="flex items-center gap-2"><CheckCircle2 size={16} className="text-emerald-500 shrink-0" /> Verified deposit logging and transparent ledger tracking</li>
+              <li className="feature-li flex items-center gap-2"><CheckCircle2 size={16} className="text-emerald-500 shrink-0" /> Goal-oriented savings trackers</li>
+              <li className="feature-li flex items-center gap-2"><CheckCircle2 size={16} className="text-emerald-500 shrink-0" /> Transparent deposit logs and instant receipts</li>
+              <li className="feature-li flex items-center gap-2"><CheckCircle2 size={16} className="text-emerald-500 shrink-0" /> Verified deposit logging and transparent ledger tracking</li>
             </ul>
           </div>
           <div className="lg:col-span-7">
-            <div className="bg-white p-2 sm:p-3 rounded-3xl shadow-2xl border border-slate-200 overflow-hidden transform hover:scale-[1.01] transition-transform duration-500">
+            <div className="bg-white p-2 sm:p-3 rounded-3xl shadow-2xl border border-slate-200 overflow-hidden transform hover:scale-[1.02] hover:-translate-y-1 transition-all duration-500 ease-out">
               <img 
                 src={featureSavings} 
                 alt="Savings and Stewardship UI" 
@@ -216,9 +299,9 @@ export default function LandingPage() {
               Get 24/7 assistance on church guidelines, service schedules, savings inquiries, and general member support powered by our intelligent AI assistant.
             </p>
             <ul className="space-y-2 text-sm text-slate-700 font-medium">
-              <li className="flex items-center gap-2"><CheckCircle2 size={16} className="text-emerald-500 shrink-0" /> 24/7 automated member query support</li>
-              <li className="flex items-center gap-2"><CheckCircle2 size={16} className="text-emerald-500 shrink-0" /> Fast access to service schedules and church policies</li>
-              <li className="flex items-center gap-2"><CheckCircle2 size={16} className="text-emerald-500 shrink-0" /> Personalized member account and savings guidance</li>
+              <li className="feature-li flex items-center gap-2"><CheckCircle2 size={16} className="text-emerald-500 shrink-0" /> 24/7 automated member query support</li>
+              <li className="feature-li flex items-center gap-2"><CheckCircle2 size={16} className="text-emerald-500 shrink-0" /> Fast access to service schedules and church policies</li>
+              <li className="feature-li flex items-center gap-2"><CheckCircle2 size={16} className="text-emerald-500 shrink-0" /> Personalized member account and savings guidance</li>
             </ul>
           </div>
           <div className="lg:col-span-7 lg:order-1">
@@ -239,9 +322,9 @@ export default function LandingPage() {
               Keep track of your service attendance across Sunday assemblies, youth gatherings, and national conventions. Receive announcements from your branch secretary instantly.
             </p>
             <ul className="space-y-2 text-sm text-slate-700 font-medium">
-              <li className="flex items-center gap-2"><CheckCircle2 size={16} className="text-emerald-500 shrink-0" /> Automated RFID tap-in logging</li>
-              <li className="flex items-center gap-2"><CheckCircle2 size={16} className="text-emerald-500 shrink-0" /> Attendance stats and spiritual engagement metrics</li>
-              <li className="flex items-center gap-2"><CheckCircle2 size={16} className="text-emerald-500 shrink-0" /> Branch announcements &amp; event reminders</li>
+              <li className="feature-li flex items-center gap-2"><CheckCircle2 size={16} className="text-emerald-500 shrink-0" /> Automated RFID tap-in logging</li>
+              <li className="feature-li flex items-center gap-2"><CheckCircle2 size={16} className="text-emerald-500 shrink-0" /> Attendance stats and spiritual engagement metrics</li>
+              <li className="feature-li flex items-center gap-2"><CheckCircle2 size={16} className="text-emerald-500 shrink-0" /> Branch announcements &amp; event reminders</li>
             </ul>
           </div>
           <div className="lg:col-span-7">
@@ -258,7 +341,7 @@ export default function LandingPage() {
         <div className="max-w-[1400px] mx-auto space-y-12 relative z-10">
           
           {/* Header */}
-          <div className="flex flex-col md:flex-row md:items-end justify-between gap-6 border-b border-slate-200 pb-8">
+          <div className="flex flex-col md:flex-row md:items-end justify-between gap-6 border-b border-slate-200 pb-8 opacity-0 translate-y-10 transition-all duration-700" ref={addToRefs}>
             <div className="space-y-2">
               <span className="text-xs font-bold uppercase tracking-[0.2em] text-[#0D1F45] bg-[#0D1F45]/5 px-3 py-1 rounded-full">
                 Events &amp; Fellowship
@@ -276,7 +359,7 @@ export default function LandingPage() {
           <div className="grid grid-cols-1 md:grid-cols-3 gap-5 lg:gap-6">
             
             {/* Card 1: Main Assembly (Large Feature, 2 cols, 2 rows) */}
-            <div className="md:col-span-2 md:row-span-2 relative group overflow-hidden rounded-3xl border border-slate-200 bg-slate-900 shadow-2xl min-h-[380px] lg:min-h-[460px]">
+            <div className="bento-card md:col-span-2 md:row-span-2 relative group overflow-hidden rounded-3xl border border-slate-200 bg-slate-900 shadow-2xl min-h-[380px] lg:min-h-[460px]" style={{transitionDelay:'0ms'}} ref={addToBentoRefs}>
               <img 
                 src={puacCongregation} 
                 alt="PUAC Congregation" 
@@ -298,7 +381,7 @@ export default function LandingPage() {
             </div>
 
             {/* Card 2: Sunday Praise & Prayer */}
-            <div className="relative group overflow-hidden rounded-3xl border border-slate-200 bg-slate-900 shadow-xl min-h-[220px] lg:min-h-[240px]">
+            <div className="bento-card relative group overflow-hidden rounded-3xl border border-slate-200 bg-slate-900 shadow-xl min-h-[220px] lg:min-h-[240px]" style={{transitionDelay:'90ms'}} ref={addToBentoRefs}>
               <img 
                 src={bentoImg1} 
                 alt="Sunday Worship" 
@@ -312,7 +395,7 @@ export default function LandingPage() {
             </div>
 
             {/* Card 3: Medical & Feeding Mission */}
-            <div className="relative group overflow-hidden rounded-3xl border border-slate-200 bg-slate-900 shadow-xl min-h-[220px] lg:min-h-[240px]">
+            <div className="bento-card relative group overflow-hidden rounded-3xl border border-slate-200 bg-slate-900 shadow-xl min-h-[220px] lg:min-h-[240px]" style={{transitionDelay:'180ms'}} ref={addToBentoRefs}>
               <img 
                 src={missionImg} 
                 alt="Outreach Mission" 
@@ -326,7 +409,7 @@ export default function LandingPage() {
             </div>
 
             {/* Card 4: Summer Youth Camp */}
-            <div className="relative group overflow-hidden rounded-3xl border border-slate-200 bg-slate-900 shadow-xl min-h-[220px] lg:min-h-[240px]">
+            <div className="bento-card relative group overflow-hidden rounded-3xl border border-slate-200 bg-slate-900 shadow-xl min-h-[220px] lg:min-h-[240px]" style={{transitionDelay:'270ms'}} ref={addToBentoRefs}>
               <img 
                 src={summerYouthCamp} 
                 alt="Summer Youth Camp" 
@@ -340,7 +423,7 @@ export default function LandingPage() {
             </div>
 
             {/* Card 5: Water Baptism Services (Wide 2 cols) */}
-            <div className="md:col-span-2 relative group overflow-hidden rounded-3xl border border-slate-200 bg-slate-900 shadow-xl min-h-[220px] lg:min-h-[240px]">
+            <div className="bento-card md:col-span-2 relative group overflow-hidden rounded-3xl border border-slate-200 bg-slate-900 shadow-xl min-h-[220px] lg:min-h-[240px]" style={{transitionDelay:'360ms'}} ref={addToBentoRefs}>
               <img 
                 src={bentoImg2} 
                 alt="Water Baptism" 
@@ -359,7 +442,7 @@ export default function LandingPage() {
 
       {/* ── CTA BANNER: TASTESKILL CINEMATIC FULL-BLEED ── */}
       <section className="py-16 sm:py-24 px-5 sm:px-10 bg-[#0E254A] text-white text-center relative overflow-hidden">
-        <div className="max-w-4xl mx-auto space-y-5 sm:space-y-6 relative z-10">
+        <div className="max-w-4xl mx-auto space-y-5 sm:space-y-6 relative z-10 opacity-0 translate-y-10 transition-all duration-700" ref={addToRefs}>
           <span className="text-[11px] sm:text-xs font-bold uppercase tracking-[0.2em] text-[#F5C800]">
             Welcome To The Family
           </span>
@@ -375,13 +458,13 @@ export default function LandingPage() {
           <div className="flex flex-col sm:flex-row justify-center items-center gap-3 sm:gap-4 pt-2 sm:pt-4">
             <button 
               onClick={handleOpenSignup}
-              className="bg-[#F5C800] hover:bg-amber-400 text-[#0E254A] font-extrabold text-xs sm:text-sm px-6 py-3 sm:px-8 sm:py-3.5 rounded-full transition-all flex items-center justify-center gap-2 cursor-pointer active:scale-95 w-[85%] sm:w-auto max-w-[260px] sm:max-w-none"
+              className="shine-btn bg-[#F5C800] hover:bg-amber-400 text-[#0E254A] font-extrabold text-xs sm:text-sm px-6 py-3 sm:px-8 sm:py-3.5 rounded-full transition-all duration-300 flex items-center justify-center gap-2 cursor-pointer active:scale-95 w-[85%] sm:w-auto max-w-[260px] sm:max-w-none hover:-translate-y-0.5 hover:shadow-xl hover:shadow-amber-500/20"
             >
               Register as Member <ArrowRight size={16} />
             </button>
             <button 
               onClick={handleOpenLogin}
-              className="bg-white/10 hover:bg-white/20 text-white font-bold text-xs sm:text-sm px-6 py-3 sm:px-8 sm:py-3.5 rounded-full transition-all border border-white/20 cursor-pointer active:scale-95 w-[85%] sm:w-auto max-w-[260px] sm:max-w-none justify-center"
+              className="bg-white/10 hover:bg-white/20 text-white font-bold text-xs sm:text-sm px-6 py-3 sm:px-8 sm:py-3.5 rounded-full transition-all duration-300 border border-white/20 cursor-pointer active:scale-95 w-[85%] sm:w-auto max-w-[260px] sm:max-w-none justify-center hover:-translate-y-0.5"
             >
               Sign In to Account
             </button>

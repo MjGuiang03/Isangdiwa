@@ -36,7 +36,6 @@ function EditModal({ member, onClose, onSave }) {
     phone:    member.phone    || '',
     branch:   member.branch   || '',
     position: member.position || 'Member',
-    churchId: member.churchId || '',
     newPassword: '', // Added for editing password
   });
   const [errors, setErrors] = useState({});
@@ -53,25 +52,6 @@ function EditModal({ member, onClose, onSave }) {
       else if (!/[a-z]/.test(value)) error = 'At least one lowercase letter';
       else if (!/[0-9]/.test(value)) error = 'At least one number';
       else if (!/[^A-Za-z0-9]/.test(value)) error = 'At least one symbol';
-    } else if (name === 'churchId' && position !== 'Member') {
-      if (!value) error = 'Church ID is required';
-      else if (!/^\d{2}-\d{2}-\d{2}$/.test(value)) error = 'Format XX-XX-XX';
-      else {
-        const POSITION_RANGES = {
-          'Deacon': { prefix: '00-00' }, 'Local Evangelist': { prefix: '00-01' },
-          'District Evangelist': { prefix: '00-02' }, 'National Evangelist': { prefix: '00-03' },
-          'Assistant Priest': { prefix: '00-04' }, 'Priest': { prefix: '00-05' },
-          'Elder': { prefix: '00-06' }, 'District Elder': { prefix: '00-06' },
-          'Bishop': { prefix: '00-07' }, 'District Bishop': { prefix: '00-08' },
-          'National Bishop': { prefix: '00-09' }, 'Apostle': { prefix: '00-10' },
-        };
-        const range = POSITION_RANGES[position];
-        if (range) {
-          const parts = value.split('-');
-          const idPrefix = parts[0] + '-' + parts[1];
-          if (idPrefix !== range.prefix) error = `Must start with ${range.prefix} for ${position}`;
-        }
-      }
     }
     return error;
   };
@@ -79,16 +59,10 @@ function EditModal({ member, onClose, onSave }) {
   const handleChange = e => {
     const { name, value } = e.target;
     let sanitized = value;
-    if (name === 'churchId') sanitized = value.replace(/[^\d-]/g, '').slice(0, 8);
     setForm(f => ({ ...f, [name]: sanitized }));
 
     const error = validateField(name, sanitized, name === 'position' ? sanitized : form.position);
     setErrors(prev => ({ ...prev, [name]: error }));
-
-    if (name === 'position' && sanitized !== 'Member') {
-      const cidError = validateField('churchId', form.churchId, sanitized);
-      setErrors(prev => ({ ...prev, churchId: cidError }));
-    }
   };
 
   const handleSubmit = async () => {
@@ -97,7 +71,7 @@ function EditModal({ member, onClose, onSave }) {
 
     const newErrors = {};
     if (form.newPassword) newErrors.newPassword = validateField('newPassword', form.newPassword);
-    if (form.position !== 'Member') newErrors.churchId = validateField('churchId', form.churchId, form.position);
+
     setErrors(newErrors);
 
     if (Object.values(newErrors).some(err => err)) {
@@ -223,17 +197,7 @@ function EditModal({ member, onClose, onSave }) {
                 <option value="Apostle">Apostle</option>
               </select>
             </div>
-            <div className="flex flex-col gap-1.5">
-              <label className="font-inter text-[13px] font-semibold text-slate-700 dark:text-slate-300">Church ID</label>
-              <input 
-                className={`h-10 px-3 bg-white dark:bg-[#161922] border rounded-lg text-sm font-inter text-slate-800 dark:text-white outline-none focus:border-blue-500 transition-all w-full ${errors.churchId ? 'border-rose-500 ring-1 ring-rose-500/50' : 'border-slate-300 dark:border-white/10'}`} 
-                name="churchId" 
-                value={form.churchId} 
-                onChange={handleChange} 
-                disabled={form.position === 'Member'} 
-              />
-              {errors.churchId && <p className="m-0 font-inter text-xs text-rose-500 font-medium" >{errors.churchId}</p>}
-            </div>
+
           </div>
           <div className="flex flex-col gap-1.5 mb-5">
             <label className="font-inter text-[13px] font-semibold text-slate-700 dark:text-slate-300">New Password (optional)</label>
@@ -384,7 +348,7 @@ function DeleteModal({ member, onClose, onConfirm }) {
 ═══════════════════════════════════════════════════════════════════════════ */
 function AddMemberModal({ onClose, onSave }) {
   const [form, setForm] = useState({
-    fullName: '', email: '', password: '', phone: '', branch: '', position: 'Member', churchId: ''
+    fullName: '', email: '', password: '', phone: '', branch: '', position: 'Member'
   });
   const [errors, setErrors] = useState({});
   const [saving, setSaving] = useState(false);
@@ -404,25 +368,6 @@ function AddMemberModal({ onClose, onSave }) {
       else if (!/[a-z]/.test(value)) error = 'At least one lowercase letter';
       else if (!/[0-9]/.test(value)) error = 'At least one number';
       else if (!/[^A-Za-z0-9]/.test(value)) error = 'At least one symbol';
-    } else if (name === 'churchId' && position !== 'Member') {
-      if (!value) error = 'Church ID is required';
-      else if (!/^\d{2}-\d{2}-\d{2}$/.test(value)) error = 'Format XX-XX-XX';
-      else {
-        const POSITION_RANGES = {
-          'Deacon': { prefix: '00-00' }, 'Local Evangelist': { prefix: '00-01' },
-          'District Evangelist': { prefix: '00-02' }, 'National Evangelist': { prefix: '00-03' },
-          'Assistant Priest': { prefix: '00-04' }, 'Priest': { prefix: '00-05' },
-          'Elder': { prefix: '00-06' }, 'District Elder': { prefix: '00-06' },
-          'Bishop': { prefix: '00-07' }, 'District Bishop': { prefix: '00-08' },
-          'National Bishop': { prefix: '00-09' }, 'Apostle': { prefix: '00-10' },
-        };
-        const range = POSITION_RANGES[position];
-        if (range) {
-          const parts = value.split('-');
-          const idPrefix = parts[0] + '-' + parts[1];
-          if (idPrefix !== range.prefix) error = `Must start with ${range.prefix} for ${position}`;
-        }
-      }
     } else if (name === 'branch') {
       if (!value) error = 'Please select a community';
     }
@@ -433,17 +378,11 @@ function AddMemberModal({ onClose, onSave }) {
     const { name, value } = e.target;
     let sanitized = value;
     if (name === 'phone') sanitized = value.replace(/\D/g, '').slice(0, 10);
-    if (name === 'churchId') sanitized = value.replace(/[^\d-]/g, '').slice(0, 8);
 
     setForm(f => ({ ...f, [name]: sanitized }));
     
     const error = validateField(name, sanitized, name === 'position' ? sanitized : form.position);
     setErrors(prev => ({ ...prev, [name]: error }));
-
-    if (name === 'position' && sanitized !== 'Member') {
-      const cidError = validateField('churchId', form.churchId, sanitized);
-      setErrors(prev => ({ ...prev, churchId: cidError }));
-    }
   };
 
   const handleSubmit = async () => {
@@ -453,9 +392,7 @@ function AddMemberModal({ onClose, onSave }) {
     newErrors.password = validateField('password', form.password);
     newErrors.phone = validateField('phone', form.phone);
     newErrors.branch = validateField('branch', form.branch);
-    if (form.position !== 'Member') {
-      newErrors.churchId = validateField('churchId', form.churchId, form.position);
-    }
+
     setErrors(newErrors);
 
     if (Object.values(newErrors).some(err => err)) {
@@ -600,19 +537,7 @@ function AddMemberModal({ onClose, onSave }) {
                 <option value="Apostle">Apostle</option>
               </select>
             </div>
-            <div className="flex flex-col gap-1.5">
-              <label className="font-inter text-[13px] font-semibold text-slate-700 dark:text-slate-300">Church ID</label>
-              <input 
-                className={`h-10 px-3 bg-white dark:bg-[#161922] border rounded-lg text-sm font-inter text-slate-800 dark:text-white outline-none focus:border-blue-500 transition-all w-full ${errors.churchId ? 'border-rose-500 ring-1 ring-rose-500/50' : 'border-slate-300 dark:border-white/10'}`} 
-                type="text" 
-                name="churchId" 
-                value={form.churchId} 
-                onChange={handleChange} 
-                placeholder="e.g. 00-00-01" 
-                disabled={form.position === 'Member'}
-              />
-              {errors.churchId && <p className="m-0 font-inter text-xs text-rose-500 font-medium" >{errors.churchId}</p>}
-            </div>
+
           </div>
         </div>
 
@@ -916,12 +841,7 @@ export default function AdminMembers() {
                           <p className="text-[12px] text-slate-500 dark:text-slate-400 font-medium m-0">Community Branch</p>
                           <p className="text-[13px] font-semibold text-slate-800 dark:text-white m-0 mt-1">{viewMember.branch || '—'}</p>
                         </div>
-                        {(viewMember.churchId || (viewMember.position !== 'member' && viewMember.position !== 'Member')) && (
-                          <div>
-                            <p className="text-[12px] text-slate-500 dark:text-slate-400 font-medium m-0">Church ID</p>
-                            <p className="text-[13px] font-semibold text-slate-800 dark:text-white m-0 mt-1">{viewMember.churchId || '—'}</p>
-                          </div>
-                        )}
+
                       </div>
                     </div>
                   </div>

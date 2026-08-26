@@ -70,8 +70,7 @@ router.post('/register',
       .matches(/[^A-Za-z0-9]/).withMessage('Password must contain a symbol'),
     body('birthday').notEmpty().withMessage('Birthday is required')
       .isISO8601().withMessage('Invalid date format'),
-    body('churchId').optional().trim().isLength({ max: 20 }).withMessage('Church ID too long')
-      .matches(/^[a-zA-Z0-9\-]*$/).withMessage('Church ID contains invalid characters'),
+
     body('branch').optional().trim().isLength({ max: 50 }),
     body('position').optional().trim().isLength({ max: 50 }),
     body('gender').optional().isIn(['male', 'female']).withMessage('Invalid gender value'),
@@ -79,7 +78,7 @@ router.post('/register',
   async (req, res) => {
     try {
       console.log('📝 Registration payload:', req.body);
-      const { email, password, fullName, phone, branch, position, gender, birthday, role, churchId } = req.body;
+      const { email, password, fullName, phone, branch, position, gender, birthday, role } = req.body;
 
       // All new users start as Member — admin will assign officer positions manually
       const finalPosition = 'Member';
@@ -99,7 +98,7 @@ router.post('/register',
       const passwordHash = await bcrypt.hash(password, 10);
       await pendingRegistrations.insertOne({
         email, passwordHash, fullName, phone, branch, position: finalPosition,
-        churchId: churchId || null, gender, birthday,
+        gender, birthday,
         isVerified: false, failedLoginAttempts: 0, lockUntil: null,
         isPermanentlyLocked: false, createdAt: new Date()
       });
@@ -303,7 +302,7 @@ router.post('/login',
           : {
               email: account.email, fullName: account.fullName, full_name: account.fullName,
               phone: account.phone, branch: account.branch, position: account.position,
-              churchId: account.churchId || null,
+
               gender: account.gender, birthday: account.birthday, created_at: account.createdAt,
               role: 'user'
             }

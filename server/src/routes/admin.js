@@ -208,7 +208,7 @@ router.get('/members', authenticateAdmin, async (req, res) => {
 /* ================== UPDATE MEMBER ================== */
 router.put('/update-member', authenticateAdmin, async (req, res) => {
   try {
-    const { originalEmail, email, adminPassword, fullName, phone, branch, position, newPassword, churchId } = req.body;
+    const { originalEmail, email, adminPassword, fullName, phone, branch, position, newPassword } = req.body;
 
     const targetEmail = originalEmail || email;
     if (!targetEmail) return res.status(400).json({ success: false, message: 'Email is required' });
@@ -239,7 +239,7 @@ router.put('/update-member', authenticateAdmin, async (req, res) => {
     if (phone !== undefined) updateData.phone = phone;
     if (branch !== undefined) updateData.branch = branch;
     if (position !== undefined) updateData.position = position;
-    if (churchId !== undefined) updateData.churchId = churchId;
+
 
     if (newPassword && newPassword.trim() !== '') {
       updateData.passwordHash = await bcrypt.hash(newPassword, 10);
@@ -251,7 +251,7 @@ router.put('/update-member', authenticateAdmin, async (req, res) => {
     res.status(200).json({
       success: true,
       message: 'Member updated successfully',
-      user: { email: updated.email, fullName: updated.fullName, phone: updated.phone, branch: updated.branch, position: updated.position, churchId: updated.churchId }
+      user: { email: updated.email, fullName: updated.fullName, phone: updated.phone, branch: updated.branch, position: updated.position }
     });
   } catch (err) {
     console.error(err);
@@ -1119,7 +1119,7 @@ router.post('/process-loan-payment', authenticateAdmin, async (req, res) => {
 /* ================== ADMIN - CREATE NEW MEMBER DIRECTLY ================== */
 router.post('/create-member', authenticateAdmin, async (req, res) => {
   try {
-    const { email, password, fullName, phone, branch, position, churchId } = req.body;
+    const { email, password, fullName, phone, branch, position } = req.body;
 
     if (!email || !password || !fullName || !phone) {
       return res.status(400).json({ success: false, message: 'Email, Default Password, Full Name, and Phone are required' });
@@ -1142,7 +1142,7 @@ router.post('/create-member', authenticateAdmin, async (req, res) => {
       phone,
       branch: branch || 'Bulacan Main',
       position: position || 'member',
-      churchId: churchId || null,
+
       gender: null,
       birthday: null,
       isVerified: true,

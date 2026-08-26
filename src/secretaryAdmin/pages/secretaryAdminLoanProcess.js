@@ -61,7 +61,6 @@ export default function SecretaryLoanProcess() {
 
         let loanHistoryCount = 0;
         let totalDonations = 0;
-        let userChurchId = 'N/A';
         let userPosition = 'Member';
 
         // Provide immediate visual feedback
@@ -91,17 +90,17 @@ export default function SecretaryLoanProcess() {
                 }
             }
 
-            // Process Member Info (churchId, position)
+            // Process Member Info (position)
             if (memberRes.status === 'fulfilled' && memberRes.value.ok) {
                 const memberData = await memberRes.value.json();
                 if (memberData.success && memberData.members && memberData.members.length > 0) {
                     const member = memberData.members.find(m => m.email === loan.email);
                     if (member) {
-                        userChurchId = member.churchId || member.memberId || 'N/A';
                         userPosition = member.position || member.officerPosition || 'Member';
                     }
                 }
             }
+
         } catch (err) {
             console.error('Failed to fetch user details:', err);
         } finally {
@@ -117,7 +116,6 @@ export default function SecretaryLoanProcess() {
             purpose: loan.purpose,
             approvedDate: new Date(loan.approvedDate || loan.appliedDate).toLocaleDateString('en-US'),
             status: loan.disbursed ? 'Processed' : 'Awaiting Processing',
-            churchId: userChurchId,
             position: userPosition,
             disbursementMethod: loan.disbursementMethod || 'cash',
             disbursementAccount: loan.disbursementAccount || '',
