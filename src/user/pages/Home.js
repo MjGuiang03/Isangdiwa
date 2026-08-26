@@ -15,7 +15,6 @@ export default function Home() {
 
   const [loanStats, setLoanStats] = useState({ activeCount: 0, remainingBalance: 0 });
   const [activeLoansList, setActiveLoansList] = useState([]);
-  const [allLoansList, setAllLoansList] = useState([]);
   const [rejectedLoansCount, setRejectedLoansCount] = useState(0);
 
   const [donationStats, setDonationStats] = useState({ totalDonated: 0 });
@@ -85,7 +84,6 @@ export default function Home() {
     if (loansData.success) {
       setLoanStats(loansData.stats || { activeCount: 0, remainingBalance: 0 });
       setActiveLoansList((loansData.loans || []).filter(l => l.status === 'active'));
-      setAllLoansList(loansData.loans || []);
       setRejectedLoansCount((loansData.loans || []).filter(l => l.status === 'rejected').length);
     }
   }, [loansData]);

@@ -2,7 +2,7 @@ import { useState, useMemo, useEffect, useRef, useCallback } from 'react';
 import { toast } from 'sonner';
 
 import API from '../../utils/api';
-import { Banknote, CheckCircle, X, Pencil, Camera, RotateCcw, AlertTriangle, Upload, Trash2, ChevronDown, Check, ShieldCheck, Send, Wallet, Zap, Clock } from 'lucide-react';
+import { Banknote, CheckCircle, X, Pencil, Camera, RotateCcw, AlertTriangle, Upload, Trash2, ChevronDown, Check, ShieldCheck, Send, Wallet, Clock } from 'lucide-react';
 
 /* ── Loan-type config ── */
 const LOAN_TYPES = [
