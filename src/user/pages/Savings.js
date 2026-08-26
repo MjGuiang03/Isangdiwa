@@ -51,8 +51,8 @@ export default function Savings() {
     
     // Goals Pagination
     const [goalPage, setGoalPage] = useState(1);
-    const [loadingMoreGoals, setLoadingMoreGoals] = useState(false);
-    const GOAL_LIMIT = 5;
+    const [goalsTotalCount, setGoalsTotalCount] = useState(0);
+    const GOAL_LIMIT = 3;
 
     const [showInstruction, setShowInstruction] = useState(false);
     const [hasClosedInstruction, setHasClosedInstruction] = useState(false);
@@ -70,7 +70,7 @@ export default function Savings() {
     };
 
     const { data: overviewData, error: overviewError, isValidating: overviewValidating, mutate: mutateOverview } = useSWR(
-        txnPage === 1 ? `${API}/api/savings/overview?txnLimit=${TXN_LIMIT}` : null,
+        txnPage === 1 ? `${API}/api/savings/overview?txnLimit=${TXN_LIMIT}&goalLimit=${GOAL_LIMIT}` : null,
         fetcher,
         { revalidateOnFocus: false, dedupingInterval: 5000 }
     );
@@ -88,6 +88,7 @@ export default function Savings() {
         if (txnPage === 1 && overviewData?.success) {
             setGoals(overviewData.goals || []);
             setGoalPage(1);
+            setGoalsTotalCount(overviewData.stats?.totalCount || overviewData.stats?.totalGoalCount || overviewData.goals?.length || 0);
             setTransactions(overviewData.transactions || []);
             setTxnTotal(overviewData.txnTotal || 0);
             setStats(overviewData.stats || {});
@@ -101,26 +102,20 @@ export default function Savings() {
         }
     }, [overviewData, txnData, txnPage, hasClosedInstruction]);
 
-    const fetchMoreGoals = async () => {
-        setLoadingMoreGoals(true);
+    const fetchGoalPage = async (page) => {
         try {
             const token = localStorage.getItem('token');
-            const nextPage = goalPage + 1;
-            const res = await fetch(`${API}/api/savings/goals?page=${nextPage}&limit=${GOAL_LIMIT}`, {
+            const res = await fetch(`${API}/api/savings/goals?page=${page}&limit=${GOAL_LIMIT}`, {
                 headers: { 'Content-Type': 'application/json', Authorization: `Bearer ${token}` }
             });
             const data = await res.json();
             if (data.success) {
-                setGoals(prev => [...prev, ...data.goals]);
-                setGoalPage(nextPage);
-                if (data.totalCount !== undefined) {
-                    setStats(prev => ({ ...prev, totalGoalCount: data.totalCount }));
-                }
+                setGoals(data.goals || []);
+                setGoalPage(page);
+                setGoalsTotalCount(data.totalCount || 0);
             }
         } catch (err) {
-            console.error('Failed to fetch more goals', err);
-        } finally {
-            setLoadingMoreGoals(false);
+            console.error('Failed to fetch goals page', err);
         }
     };
 
@@ -130,13 +125,6 @@ export default function Savings() {
     const closeModal = () => { setModal(null); setModalData(null); mutateOverview(); mutateTxn(); };
 
     const hasGoals = goals.length > 0;
-
-    const handleViewLess = () => {
-        setGoals(prev => prev.slice(0, GOAL_LIMIT));
-        setGoalPage(1);
-    };
-
-
 
     /* ── goals list ── */
     const renderGoals = () => {
@@ -158,9 +146,11 @@ export default function Savings() {
             </div>
         );
 
+        const totalPages = Math.ceil(goalsTotalCount / GOAL_LIMIT) || 1;
+
         return (
-            <div className="mt-3 mb-1">
-                <div className="space-y-2 max-h-[290px] overflow-y-auto pr-1">
+            <div className="flex-1 flex flex-col justify-between mt-1">
+                <div className="space-y-2 overflow-y-auto pr-1 flex-1">
                     {goals.map((goal) => {
                         const colorKey = goal.color || 'blue';
                         const colors = GOAL_COLORS[colorKey] || GOAL_COLORS.blue;
@@ -200,18 +190,25 @@ export default function Savings() {
                     })}
                 </div>
 
-                {(stats.totalGoalCount > goals.length || goalPage > 1) && (
-                    <div className="flex justify-center gap-4 py-1.5 font-inter text-[11px] font-semibold">
-                        {goalPage > 1 && (
-                            <button onClick={handleViewLess} className="text-slate-500 hover:text-slate-800 dark:hover:text-white">
-                                View less
+                {goalsTotalCount > GOAL_LIMIT && (
+                    <div className="pt-3 mt-3 border-t border-slate-100 dark:border-white/5 flex items-center justify-between text-[11px] text-slate-500 dark:text-slate-400 font-inter shrink-0">
+                        <span>Page {goalPage} of {totalPages}</span>
+                        <div className="flex gap-2">
+                            <button
+                                className="text-slate-500 hover:text-slate-800 dark:hover:text-white disabled:opacity-40 font-semibold cursor-pointer border-none bg-transparent"
+                                onClick={() => fetchGoalPage(goalPage - 1)}
+                                disabled={goalPage === 1}
+                            >
+                                Prev
                             </button>
-                        )}
-                        {stats.totalGoalCount > goals.length && (
-                            <button onClick={fetchMoreGoals} disabled={loadingMoreGoals} className="text-[#1E3A8A] dark:text-blue-400 hover:underline">
-                                {loadingMoreGoals ? 'Loading...' : 'View more goals'}
+                            <button
+                                className="text-[#1E3A8A] dark:text-blue-400 hover:underline disabled:opacity-40 font-semibold cursor-pointer border-none bg-transparent"
+                                onClick={() => fetchGoalPage(goalPage + 1)}
+                                disabled={goalPage >= totalPages}
+                            >
+                                Next
                             </button>
-                        )}
+                        </div>
                     </div>
                 )}
             </div>
@@ -480,18 +477,16 @@ export default function Savings() {
                                 <div className="grid grid-cols-1 lg:grid-cols-5 gap-4">
                                     {/* Goals section (60%) */}
                                     <div className="lg:col-span-3 bg-white dark:bg-[#1E2130] border border-slate-200/80 dark:border-white/10 rounded-2xl p-5 shadow-md shadow-slate-200/50 dark:shadow-none flex flex-col justify-between">
-                                        <div>
-                                            <div className="flex justify-between items-center mb-4">
-                                                <h2 className="text-sm font-bold text-slate-900 dark:text-white uppercase tracking-wider font-inter">
-                                                    Savings Goals
-                                                </h2>
-                                                <button onClick={openNewGoal} className="text-xs font-semibold text-[#1E3A8A] dark:text-blue-400 hover:underline">
-                                                    + New Goal
-                                                </button>
-                                            </div>
-
-                                            {renderGoals()}
+                                        <div className="flex justify-between items-center mb-4 shrink-0">
+                                            <h2 className="text-sm font-bold text-slate-900 dark:text-white uppercase tracking-wider font-inter">
+                                                Savings Goals
+                                            </h2>
+                                            <button onClick={openNewGoal} className="text-xs font-semibold text-[#1E3A8A] dark:text-blue-400 hover:underline">
+                                                + New Goal
+                                            </button>
                                         </div>
+
+                                        {renderGoals()}
                                     </div>
 
                                     {/* Transaction history (40%) */}

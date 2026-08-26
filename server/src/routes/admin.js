@@ -1186,7 +1186,7 @@ router.get('/loans/:id/dss-analysis', authenticateAdmin, async (req, res) => {
     const loan = await loans.findOne({ _id: new ObjectId(id) });
     if (!loan) return res.status(404).json({ success: false, message: 'Loan not found' });
 
-    if (req.query.refresh !== 'true' && loan.dssAnalysis) {
+    if (req.query.refresh !== 'true' && loan.dssAnalysis && !loan.dssAnalysis.recommendation?.includes('5,000')) {
       return res.json({ success: true, analysis: loan.dssAnalysis, cached: true });
     }
 
@@ -1214,9 +1214,9 @@ router.get('/loans/:id/dss-analysis', authenticateAdmin, async (req, res) => {
 
     // 2. Loan Capacity
     const LOAN_CONFIG = {
-      'personal': { multiplier: 2, min: 5000 },
-      'emergency': { multiplier: 1.5, min: 5000 },
-      'short-term': { multiplier: 1, min: 5000 }
+      'personal': { multiplier: 2, min: 1000 },
+      'emergency': { multiplier: 1.5, min: 1000 },
+      'short-term': { multiplier: 1, min: 1000 }
     };
     const config = LOAN_CONFIG[loan.loanType] || LOAN_CONFIG['personal'];
 

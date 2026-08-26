@@ -14,7 +14,7 @@ router.get('/savings/overview', authenticateUser, async (req, res) => {
     const { txnLimit = 5 } = req.query;
 
     const goalPage = parseInt(req.query.goalPage) || 1;
-    const goalLimit = parseInt(req.query.goalLimit) || 5;
+    const goalLimit = parseInt(req.query.goalLimit) || 3;
     const skipGoals = (goalPage - 1) * goalLimit;
 
     // Aggregation for stats instead of finding all goals
@@ -140,7 +140,7 @@ router.get('/savings/goals', authenticateUser, async (req, res) => {
     }
 
     const page = parseInt(req.query.page) || 1;
-    const limit = parseInt(req.query.limit) || 5;
+    const limit = parseInt(req.query.limit) || 3;
     const skip = (page - 1) * limit;
 
     const goals = await savingsGoals.find({ email }).sort({ createdAt: -1 }).skip(skip).limit(limit).toArray();
@@ -159,8 +159,8 @@ router.post('/savings/goals', authenticateUser, async (req, res) => {
     const email = req.user.email;
     const { name, targetAmount, color, iconType } = req.body;
 
-    if (!name || !targetAmount) {
-      return res.status(400).json({ success: false, message: 'Name and target amount are required' });
+    if (!name || !targetAmount || Number(targetAmount) < 1000) {
+      return res.status(400).json({ success: false, message: 'Name and a minimum target amount of ₱1,000 are required' });
     }
 
     const user = await users.findOne({ email });
@@ -243,8 +243,8 @@ router.post('/savings/deposit', authenticateUser, async (req, res) => {
     const email = req.user.email;
     const { goalId, amount, description, source, paymentMethod } = req.body;
 
-    if (!goalId || !amount || amount <= 0) {
-      return res.status(400).json({ success: false, message: 'Goal and a positive amount are required' });
+    if (!goalId || !amount || Number(amount) < 1000) {
+      return res.status(400).json({ success: false, message: 'Goal and a minimum deposit amount of ₱1,000 are required' });
     }
 
     const goal = await savingsGoals.findOne({ _id: new ObjectId(goalId), email });

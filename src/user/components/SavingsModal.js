@@ -1,7 +1,7 @@
 import { useState, useEffect } from 'react';
 import { useAuth } from '../../context/AuthContext';
 import API from '../../utils/api';
-import { CheckCircle, X, ArrowDownRight, ArrowUpLeft, Repeat, History, CreditCard, Smartphone, Building2, Info, UploadCloud, FileCheck2, PiggyBank, ZoomIn } from 'lucide-react';
+import { CheckCircle, X, ArrowDownRight, ArrowUpLeft, Repeat, History, CreditCard, Smartphone, Building2, Info, UploadCloud, FileCheck2, PiggyBank, ZoomIn, Trash2, AlertTriangle } from 'lucide-react';
 import useSwipeToClose, { DragHandle } from '../hooks/useSwipeToClose';
 
 const fmt = (n) =>
@@ -21,7 +21,7 @@ const GOAL_NAME_OPTIONS = [
     { value: 'others', label: '  Others (Specify)' },
 ];
 
-const QUICK_AMOUNTS = [500, 1000, 2000, 5000];
+const QUICK_AMOUNTS = [1000, 2000, 5000, 10000];
 
 const CloseIcon = () => (
     <X size={16} />
@@ -85,7 +85,7 @@ function DepositModal({ goals, onClose }) {
     };
 
     const handleSubmit = async () => {
-        if (!numAmt || numAmt <= 0) { setError('Please enter a valid amount.'); return; }
+        if (!numAmt || numAmt < 1000) { setError('Minimum deposit amount is ₱1,000.'); return; }
         if (!selectedGoal) { setError('Please select a goal.'); return; }
         if (!paymentMethod) { setError('Please select a payment method.'); return; }
         
@@ -125,7 +125,7 @@ function DepositModal({ goals, onClose }) {
     };
 
     const isFormComplete = 
-        numAmt > 0 &&
+        numAmt >= 1000 &&
         selectedGoal !== '' &&
         paymentMethod !== '' &&
         (approvalMethod !== 'manual' || (
@@ -443,7 +443,7 @@ function NewGoalModal({ onClose }) {
 
     const handleSubmit = async () => {
         if (!resolvedName) { setError('Goal name is required.'); return; }
-        if (!targetAmount || parseFloat(targetAmount.replace(/,/g, '')) <= 0) { setError('Enter a valid target amount.'); return; }
+        if (!targetAmount || parseFloat(targetAmount.replace(/,/g, '')) < 1000) { setError('Minimum target amount is ₱1,000.'); return; }
         setError('');
         setLoading(true);
         try {
@@ -470,7 +470,7 @@ function NewGoalModal({ onClose }) {
 
     const isFormComplete = 
         resolvedName !== '' &&
-        targetAmount !== '' && parseFloat(targetAmount.replace(/,/g, '')) > 0;
+        targetAmount !== '' && parseFloat(targetAmount.replace(/,/g, '')) >= 1000;
 
     return (
         <div className="svm-overlay" onClick={onClose}>
@@ -531,6 +531,9 @@ function NewGoalModal({ onClose }) {
                                 }}
                             />
                         </div>
+                        {targetAmount && parseFloat(targetAmount.replace(/,/g, '')) > 0 && parseFloat(targetAmount.replace(/,/g, '')) < 1000 && (
+                            <div className="svm-error" style={{ marginTop: '6px' }}>Minimum target amount is ₱1,000</div>
+                        )}
                     </div>
                 </div>
 
@@ -596,7 +599,7 @@ function QuickDepositModal({ goal, goals, onClose }) {
         : 0;
 
     const handleSubmit = async () => {
-        if (!numAmt || numAmt <= 0) { setError('Enter a valid amount.'); return; }
+        if (!numAmt || numAmt < 1000) { setError('Minimum deposit amount is ₱1,000.'); return; }
         if (!paymentMethod) { setError('Please select a payment method.'); return; }
         if (approvalMethod === 'manual') {
             if (!proofBase64) { setError('Please upload your proof of payment.'); return; }
@@ -632,7 +635,7 @@ function QuickDepositModal({ goal, goals, onClose }) {
     };
 
     const isFormComplete = 
-        numAmt > 0 &&
+        numAmt >= 1000 &&
         paymentMethod !== '' && paymentMethod !== 'cash' &&
         (approvalMethod !== 'manual' || (
             proofBase64 !== '' &&
@@ -914,36 +917,14 @@ function EditGoalModal({ goal, onClose }) {
     const [nameOption, setNameOption] = useState(matchedPreset ? goal.name : 'others');
     const [customName, setCustomName] = useState(!matchedPreset ? (goal?.name || '') : '');
     const [target, setTarget] = useState(String(goal?.targetAmount || ''));
-    const [monthly, setMonthly] = useState(String(goal?.monthlyContribution || ''));
-    const [startDate, setStartDate] = useState(goal?.startDate ? goal.startDate.slice(0, 10) : new Date().toISOString().split('T')[0]);
-    const [targetDate, setDate] = useState(goal?.targetDate ? goal.targetDate.slice(0, 10) : '');
-    const [dateError, setDateError] = useState('');
     const [color] = useState(goal?.color || 'blue');
     const [iconType, setIcon] = useState(goal?.iconType || 'default');
     const [loading, setLoading] = useState(false);
     const [error, setError] = useState('');
-    const [confirmDelete, setConfirmDelete] = useState(false);
+    const [showDeleteConfirm, setShowDeleteConfirm] = useState(false);
 
     const isOthers = nameOption === 'others';
     const resolvedName = isOthers ? customName.trim() : nameOption;
-
-
-    const handleDates = (start, end) => {
-        if (start && end) {
-            const s = new Date(start);
-            const e = new Date(end);
-            const minTarget = new Date(s);
-            // Must be at least 1 month forward
-            minTarget.setMonth(s.getMonth() + 1);
-            if (e < minTarget) {
-                setDateError('Target date must be at least 1 month from start date.');
-            } else {
-                setDateError('');
-            }
-        } else {
-            setDateError('');
-        }
-    };
 
     const handleNameChange = (val) => {
         setNameOption(val);
@@ -962,7 +943,7 @@ function EditGoalModal({ goal, onClose }) {
 
     const handleSave = async () => {
         if (!resolvedName) { setError('Goal name is required.'); return; }
-        if (dateError) { setError(dateError); return; }
+        if (parseFloat(target.replace(/,/g, '')) < 1000) { setError('Minimum target amount is ₱1,000.'); return; }
         setError('');
         setLoading(true);
         try {
@@ -973,9 +954,6 @@ function EditGoalModal({ goal, onClose }) {
                 body: JSON.stringify({
                     name: resolvedName,
                     targetAmount: parseFloat(target) || goal.targetAmount,
-                    startDate: startDate || undefined,
-                    targetDate: targetDate || undefined,
-                    monthlyContribution: parseFloat(monthly) || 0,
                     color,
                     iconType,
                 }),
@@ -1000,6 +978,7 @@ function EditGoalModal({ goal, onClose }) {
             });
             const data = await res.json();
             if (!res.ok || !data.success) throw new Error(data.message || 'Could not delete goal.');
+            setShowDeleteConfirm(false);
             onClose();
         } catch (err) {
             setError(err.message);
@@ -1057,71 +1036,31 @@ function EditGoalModal({ goal, onClose }) {
                                 onChange={e => setTarget(e.target.value.replace(/[^0-9.]/g, ''))}
                             />
                         </div>
-                    </div>
-
-                    {/* START DATE + TARGET DATE side by side */}
-                    <div className="svm-field-row">
-                        <div className="svm-field">
-                            <label className="svm-label">Start date</label>
-                            <input
-                                className="svm-input"
-                                type="date"
-                                value={startDate}
-                                min={new Date().toISOString().split('T')[0]}
-                                onChange={e => { setStartDate(e.target.value); handleDates(e.target.value, targetDate); }}
-                            />
-                        </div>
-                        <div className="svm-field">
-                            <label className="svm-label">Target date <span className="svm-label-opt">(optional)</span></label>
-                            <input
-                                className={`svm-input${dateError ? ' svm-input--error' : ''}`}
-                                type="date"
-                                value={targetDate}
-                                min={(() => {
-                                    if (!startDate) return new Date().toISOString().split('T')[0];
-                                    const d = new Date(startDate);
-                                    d.setMonth(d.getMonth() + 1);
-                                    return d.toISOString().split('T')[0];
-                                })()}
-                                onChange={e => { setDate(e.target.value); handleDates(startDate, e.target.value); }}
-                            />
-                        </div>
-                    </div>
-                    {dateError && <div className="svm-date-error">{dateError}</div>}
-                    <div className="svm-helper-text">When to begin saving</div>
-
-                    <div className="svm-field">
-                        <label className="svm-label">Monthly contribution <span className="svm-label-opt">(optional)</span></label>
-                        <div className="svm-amount-wrap">
-                            <span className="svm-peso">₱</span>
-                            <input
-                                className="svm-input svm-input--amount"
-                                type="text"
-                                value={monthly}
-                                onChange={e => setMonthly(e.target.value.replace(/[^0-9.]/g, ''))}
-                            />
-                        </div>
+                        {target && parseFloat(target.replace(/,/g, '')) > 0 && parseFloat(target.replace(/,/g, '')) < 1000 && (
+                            <div className="svm-error" style={{ marginTop: '6px' }}>Minimum target amount is ₱1,000</div>
+                        )}
                     </div>
 
                     {/* Delete zone */}
-                    <div className="svm-delete-zone">
-                        {!confirmDelete ? (
-                            <button className="svm-delete-link" onClick={() => setConfirmDelete(true)}>
-                                Delete this goal
-                            </button>
-                        ) : (
-                            <div className="svm-delete-confirm">
-                                <span>Are you sure? This cannot be undone.</span>
-                                <div style={{ display: 'flex', gap: '8px' }}>
-                                    <button className="svm-btn-cancel svm-btn-cancel--sm" onClick={() => setConfirmDelete(false)}>
-                                        No, keep it
-                                    </button>
-                                    <button className="svm-btn-danger" onClick={handleDelete} disabled={loading}>
-                                        {loading ? <span className="btn-spinner" /> : 'Yes, delete'}
-                                    </button>
+                    <div className="pt-2 border-t border-slate-100 dark:border-white/10 mt-4">
+                        <button 
+                            type="button" 
+                            className="w-full flex items-center justify-between p-3 rounded-xl bg-rose-50/80 dark:bg-rose-950/30 border border-rose-200/80 dark:border-rose-900/40 text-rose-600 dark:text-rose-400 hover:bg-rose-100/80 dark:hover:bg-rose-950/60 transition-all font-inter text-xs font-semibold group cursor-pointer"
+                            onClick={() => setShowDeleteConfirm(true)}
+                        >
+                            <div className="flex items-center gap-2.5">
+                                <div className="p-1.5 rounded-lg bg-rose-100 dark:bg-rose-900/40 text-rose-600 dark:text-rose-400 group-hover:scale-105 transition-transform">
+                                    <Trash2 size={15} />
+                                </div>
+                                <div className="text-left">
+                                    <div className="font-bold text-xs text-rose-600 dark:text-rose-300">Delete this savings goal</div>
+                                    <div className="text-[10px] text-rose-500/80 dark:text-rose-400/70 font-normal">Permanently remove this goal</div>
                                 </div>
                             </div>
-                        )}
+                            <span className="text-[11px] font-bold px-2.5 py-1 rounded-md bg-rose-200/60 dark:bg-rose-900/50 text-rose-700 dark:text-rose-300 group-hover:bg-rose-600 group-hover:text-white transition-colors">
+                                Delete
+                            </span>
+                        </button>
                     </div>
                 </div>
 
@@ -1132,6 +1071,40 @@ function EditGoalModal({ goal, onClose }) {
                     </button>
                 </div>
             </div>
+
+            {/* Separate Delete Confirmation Modal */}
+            {showDeleteConfirm && (
+                <div className="fixed inset-0 z-50 bg-slate-950/70 backdrop-blur-xs flex items-center justify-center p-4" onClick={() => setShowDeleteConfirm(false)}>
+                    <div className="relative max-w-sm w-full bg-white dark:bg-[#1E2130] rounded-2xl p-6 shadow-2xl flex flex-col gap-4 border border-rose-100 dark:border-rose-900/40 animate-in zoom-in-95 duration-200" onClick={e => e.stopPropagation()}>
+                        <div className="flex flex-col items-center text-center gap-2">
+                            <div className="p-3.5 rounded-full bg-rose-100 dark:bg-rose-900/50 text-rose-600 dark:text-rose-400 shrink-0">
+                                <AlertTriangle size={24} />
+                            </div>
+                            <div>
+                                <h3 className="text-base font-bold text-slate-900 dark:text-white font-inter m-0">Delete Goal?</h3>
+                                <p className="text-xs text-slate-500 dark:text-slate-400 font-inter m-0 mt-1.5 leading-relaxed">Are you sure you want to delete <strong className="text-slate-700 dark:text-slate-200">{goal?.name}</strong>? This action cannot be undone.</p>
+                            </div>
+                        </div>
+                        <div className="flex items-center gap-2 pt-3 border-t border-slate-100 dark:border-white/10 mt-1">
+                            <button 
+                                type="button"
+                                className="flex-1 py-2 rounded-xl bg-slate-100 dark:bg-slate-800 text-slate-700 dark:text-slate-200 text-xs font-semibold hover:bg-slate-200 dark:hover:bg-slate-700 transition-colors"
+                                onClick={() => setShowDeleteConfirm(false)}
+                            >
+                                Cancel
+                            </button>
+                            <button 
+                                type="button"
+                                className="flex-1 py-2 rounded-xl bg-rose-600 hover:bg-rose-700 text-white text-xs font-semibold shadow-xs transition-colors flex items-center justify-center gap-1.5 cursor-pointer"
+                                onClick={handleDelete}
+                                disabled={loading}
+                            >
+                                {loading ? <span className="btn-spinner" /> : 'Yes, delete'}
+                            </button>
+                        </div>
+                    </div>
+                </div>
+            )}
         </div>
     );
 }

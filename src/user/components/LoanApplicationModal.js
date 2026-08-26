@@ -450,7 +450,7 @@ export default function LoanApplicationModal({
   /* ── eligibility ── */
   const savingsOk = totalSavings >= 1000;
   const noOverdue = !hasOverdueLoans;
-  const amountOk = calc ? calc.principal >= 500 && calc.principal <= maxLoanable : true;
+  const amountOk = calc ? calc.principal >= 1000 && calc.principal <= maxLoanable : true;
   const allEligible = savingsOk && noOverdue && (calc ? amountOk : true);
 
   /* ── submit ── */
@@ -460,7 +460,7 @@ export default function LoanApplicationModal({
     if (!amount || Number(amount.replace(/,/g, '')) <= 0) { toast.error('Please enter a loan amount.'); return; }
     if (!termMonths) { toast.error('Please select a repayment term.'); return; }
     if (!calc) { toast.error('Please fill in amount and term.'); return; }
-    if (calc.principal < 500) { toast.error('Minimum loan amount is ₱500.'); return; }
+    if (calc.principal < 1000) { toast.error('Minimum loan amount is ₱1,000.'); return; }
     if (calc.principal > maxLoanable) { toast.error(`Amount exceeds your max loanable of ${fmt(maxLoanable)}.`); return; }
     if (!savingsOk) { toast.error('You need at least ₱1,000 in savings.'); return; }
     if (hasOverdueLoans) { toast.error('You have overdue loans. Please settle them first.'); return; }
@@ -826,10 +826,14 @@ export default function LoanApplicationModal({
                     />
                   </div>
                   {amount && Number(amount.replace(/,/g, '')) > maxLoanable && (
-                    <span className="ula-field-error">Exceeds your max loanable amount</span>
+                    <div className="mt-1.5 px-2.5 py-1.5 rounded-lg bg-rose-50 dark:bg-rose-950/40 border border-rose-200/60 dark:border-rose-900/40">
+                      <span className="text-[11px] font-semibold text-rose-600 dark:text-rose-400 font-inter">Exceeds your max loanable amount</span>
+                    </div>
                   )}
-                  {amount && Number(amount.replace(/,/g, '')) > 0 && Number(amount.replace(/,/g, '')) < 500 && (
-                    <span className="ula-field-error">Minimum loan is ₱500</span>
+                  {amount && Number(amount.replace(/,/g, '')) > 0 && Number(amount.replace(/,/g, '')) < 1000 && (
+                    <div className="mt-1.5 px-2.5 py-1.5 rounded-lg bg-rose-50 dark:bg-rose-950/40 border border-rose-200/60 dark:border-rose-900/40">
+                      <span className="text-[11px] font-semibold text-rose-600 dark:text-rose-400 font-inter">Minimum loan is ₱1,000</span>
+                    </div>
                   )}
                 </div>
 
@@ -1976,7 +1980,7 @@ export default function LoanApplicationModal({
                   </div>
                   <div>
                     <span className="text-[11px] text-slate-500 dark:text-slate-400 block font-medium">Repayment Term</span>
-                    <span className="text-base font-extrabold text-slate-900 dark:text-white">{reviewData.termMonths} Months</span>
+                    <span className="text-base font-extrabold text-slate-900 dark:text-white">{reviewData.termMonths} {Number(reviewData.termMonths) === 1 ? 'Month' : 'Months'}</span>
                   </div>
                   <div>
                     <span className="text-[11px] text-slate-500 dark:text-slate-400 block font-medium">Monthly Installment</span>

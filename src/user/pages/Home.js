@@ -945,7 +945,7 @@ export default function Home() {
               {/* Timeline spine */}
               <div className="absolute left-[21px] top-4 bottom-4 w-px bg-slate-100 dark:bg-white/5" />
               <div className="space-y-1">
-                {recentActivity.map((act, index) => {
+                {recentActivity.slice(0, 3).map((act, index) => {
                   const iconBg =
                     act.type === 'savings'  ? 'bg-emerald-100 text-emerald-600 dark:bg-emerald-950/60 dark:text-emerald-400' :
                     act.type === 'loan'     ? 'bg-blue-100 text-blue-600 dark:bg-blue-950/60 dark:text-blue-400' :
@@ -955,7 +955,7 @@ export default function Home() {
                     act.type === 'savings'  ? 'text-emerald-600 dark:text-emerald-400' :
                     act.type === 'loan'     ? 'text-blue-600 dark:text-blue-400' :
                     act.type === 'donation' ? 'text-rose-600 dark:text-rose-400' : 'text-slate-900 dark:text-white';
-                  const isLast = index === recentActivity.length - 1;
+                  const isLast = index === Math.min(recentActivity.length, 3) - 1;
                   return (
                     <div key={index} className={`flex items-center gap-3 py-2.5 ${!isLast ? 'border-b border-slate-100 dark:border-white/5' : ''}`}>
                       <div className={`relative z-10 w-9 h-9 rounded-xl flex items-center justify-center shrink-0 ${iconBg}`}>
@@ -1071,10 +1071,8 @@ export default function Home() {
           };
 
           return (
-            <div className="bg-white dark:bg-[#1E2130] border border-slate-200/80 dark:border-white/10 rounded-2xl overflow-hidden shadow-sm">
-
-              {/* Dark gradient header */}
-              <div className="bg-gradient-to-br from-slate-900 to-slate-800 dark:from-[#0f172a] dark:to-[#1E2130] px-4 pt-3 pb-3">
+            <div className="bg-gradient-to-br from-slate-900 to-slate-800 dark:from-[#0f172a] dark:to-[#1E2130] border border-slate-200/80 dark:border-white/10 rounded-2xl overflow-hidden shadow-sm px-4 pt-3.5 pb-3.5">
+              <div>
                 <div className="flex items-center justify-between mb-2">
                   <div>
                     <h2 className="text-sm font-extrabold text-white font-dm leading-tight">
@@ -1108,127 +1106,99 @@ export default function Home() {
                 </div>
 
                 {/* Calendar grid */}
-                <div className="grid grid-cols-7 gap-y-0.5 text-center font-inter">
-                  {cells.map((day, i) => (
-                    <div
-                      key={i}
-                      onClick={() => { if (day && eventDays[day]) { setSelectedEvent(eventDays[day][0]); setModalImageIndex(0); } }}
-                      className={`h-6 flex flex-col items-center justify-center text-[11px] font-semibold transition-all relative mx-auto w-6 rounded-full ${
-                        !day ? 'invisible' : eventDays[day] ? 'cursor-pointer' : 'cursor-default'
-                      } ${
-                        day === today
-                          ? 'bg-blue-500 text-white shadow-md shadow-blue-500/40 font-bold'
-                          : eventDays[day]
-                          ? 'text-white hover:bg-white/15'
-                          : 'text-slate-400 hover:bg-white/10'
-                      }`}
-                    >
-                      {day}
-                      {day && eventDays[day] && day !== today && (
-                        <span className={`w-1 h-1 rounded-full absolute bottom-0.5 ${eventDays[day].some(e => e.isLoanDue) ? 'bg-indigo-400' : 'bg-amber-400'}`} />
-                      )}
-                    </div>
-                  ))}
+                <div className="grid grid-cols-7 gap-y-1 text-center font-inter">
+                  {cells.map((day, i) => {
+                    const hasEvent = day && eventDays[day] && eventDays[day].some(e => !e.isLoanDue);
+                    const hasLoanDue = day && eventDays[day] && eventDays[day].some(e => e.isLoanDue);
+                    const isBoth = hasEvent && hasLoanDue;
+
+                    let cellStyle = 'text-slate-400 hover:bg-white/10';
+                    if (day === today) {
+                      cellStyle = 'bg-blue-600 text-white font-extrabold shadow-md shadow-blue-600/40';
+                    } else if (isBoth) {
+                      cellStyle = 'bg-gradient-to-r from-amber-500/35 to-indigo-600/35 text-white font-bold border border-amber-300/50 shadow-sm hover:brightness-125';
+                    } else if (hasEvent) {
+                      cellStyle = 'bg-amber-500/25 text-amber-200 font-bold border border-amber-400/40 shadow-sm hover:bg-amber-500/40';
+                    } else if (hasLoanDue) {
+                      cellStyle = 'bg-indigo-500/30 text-indigo-200 font-bold border border-indigo-400/40 shadow-sm hover:bg-indigo-500/45';
+                    }
+
+                    return (
+                      <div
+                        key={i}
+                        onClick={() => {
+                          if (day && eventDays[day]) {
+                            const evts = eventDays[day];
+                            const churchEvt = evts.find(e => !e.isLoanDue);
+                            const loanEvt = evts.find(e => e.isLoanDue);
+                            if (churchEvt) {
+                              setSelectedEvent(churchEvt);
+                              setModalImageIndex(0);
+                            } else if (loanEvt) {
+                              navigate('/loans');
+                            }
+                          }
+                        }}
+                        className={`h-7 flex flex-col items-center justify-center text-[12px] transition-all relative mx-auto w-7 rounded-lg ${
+                          !day ? 'invisible' : eventDays[day] ? 'cursor-pointer' : 'cursor-default'
+                        } ${cellStyle}`}
+                      >
+                        {day}
+                        {day && eventDays[day] && day !== today && (
+                          <div className="absolute -bottom-0.5 flex items-center justify-center">
+                            {isBoth ? (
+                              <div className="w-4 h-1 rounded-full bg-gradient-to-r from-amber-400 to-indigo-400 shadow-sm" />
+                            ) : hasEvent ? (
+                              <div className="w-3.5 h-1 rounded-full bg-amber-400 shadow-sm" />
+                            ) : (
+                              <div className="w-3.5 h-1 rounded-full bg-indigo-400 shadow-sm" />
+                            )}
+                          </div>
+                        )}
+                      </div>
+                    );
+                  })}
                 </div>
 
                 {/* Legend */}
-                <div className="flex items-center gap-3 mt-2 pt-2 border-t border-white/10">
+                <div className="flex items-center gap-3 mt-3 pt-2.5 border-t border-white/10">
                   <div className="flex items-center gap-1.5">
-                    <div className="w-5 h-5 rounded-full bg-blue-500 flex items-center justify-center"><span className="text-[9px] font-bold text-white">{today > 0 ? today : '·'}</span></div>
-                    <span className="text-[10px] text-slate-400 font-inter">Today</span>
+                    <div className="w-4 h-4 rounded-md bg-blue-600 flex items-center justify-center"><span className="text-[9px] font-bold text-white">{today > 0 ? today : '·'}</span></div>
+                    <span className="text-[10px] text-slate-300 font-inter">Today</span>
                   </div>
                   <div className="flex items-center gap-1.5">
-                    <span className="w-1.5 h-1.5 rounded-full bg-amber-400 block" />
-                    <span className="text-[10px] text-slate-400 font-inter">Event</span>
+                    <span className="w-3 h-3 rounded-md bg-amber-500/30 border border-amber-400/50 block flex items-center justify-center">
+                      <span className="w-1.5 h-1 rounded-sm bg-amber-400" />
+                    </span>
+                    <span className="text-[10px] text-slate-300 font-inter">Event</span>
                   </div>
                   {activeLoansList.length > 0 && (
                     <div className="flex items-center gap-1.5">
-                      <span className="w-1.5 h-1.5 rounded-full bg-indigo-400 block" />
-                      <span className="text-[10px] text-slate-400 font-inter">Loan due</span>
+                      <span className="w-3 h-3 rounded-md bg-indigo-500/30 border border-indigo-400/50 block flex items-center justify-center">
+                        <span className="w-1.5 h-1 rounded-sm bg-indigo-400" />
+                      </span>
+                      <span className="text-[10px] text-slate-300 font-inter">Loan due</span>
                     </div>
                   )}
                   {monthEvents.length > 0 && (
-                    <div className="ml-auto">
-                      <span className="text-[10px] font-bold px-2 py-0.5 rounded-full bg-amber-400/20 text-amber-300 font-inter">
-                        {monthEvents.length} event{monthEvents.length !== 1 ? 's' : ''}
-                      </span>
+                    <div className="ml-auto flex items-center gap-1.5">
+                      {monthEvents.filter(e => !e.isLoanDue).length > 0 && (
+                        <span className="text-[10px] font-bold px-2 py-0.5 rounded-full bg-amber-400/20 text-amber-300 border border-amber-400/30 font-inter">
+                          {monthEvents.filter(e => !e.isLoanDue).length} event{monthEvents.filter(e => !e.isLoanDue).length !== 1 ? 's' : ''}
+                        </span>
+                      )}
+                      {monthEvents.filter(e => e.isLoanDue).length > 0 && (
+                        <span className="text-[10px] font-bold px-2 py-0.5 rounded-full bg-indigo-400/20 text-indigo-300 border border-indigo-400/30 font-inter">
+                          {monthEvents.filter(e => e.isLoanDue).length} loan due{monthEvents.filter(e => e.isLoanDue).length !== 1 ? 's' : ''}
+                        </span>
+                      )}
                     </div>
                   )}
                 </div>
               </div>
-
-              {/* Events list — white section */}
-              <div className="p-3">
-                <p className="text-[10px] font-bold text-slate-400 dark:text-slate-500 uppercase tracking-wider mb-2 font-inter">Scheduled Events</p>
-
-                {monthEvents.length === 0 ? (
-                  <div className="flex flex-col items-center justify-center py-3 px-3 rounded-xl bg-slate-50 dark:bg-white/5 border border-dashed border-slate-200 dark:border-white/10">
-                    <div className="w-8 h-8 rounded-lg bg-slate-100 dark:bg-white/10 flex items-center justify-center mb-1.5">
-                      <CalendarDays size={18} className="text-slate-400 dark:text-slate-500" />
-                    </div>
-                    <p className="text-xs font-semibold text-slate-500 dark:text-slate-400 font-inter">Nothing scheduled</p>
-                    <p className="text-[10px] text-slate-400 dark:text-slate-500 font-inter mt-0.5">Navigate months to see events</p>
-                  </div>
-                ) : (
-                  <div className="space-y-2">
-                    {monthEvents.map((evt, i) => {
-                      const d = new Date(evt.dateObj);
-                      const dayNum = d.getDate();
-                      const dayName = d.toLocaleDateString('en-US', { weekday: 'short' });
-                      const isPast = d < new Date();
-                      const colors = catColor(evt.category);
-                      return (
-                        <button
-                          key={i}
-                          onClick={() => { if (evt.isLoanDue) { navigate('/loans'); } else { setSelectedEvent(evt); setModalImageIndex(0); } }}
-                          className={`w-full flex items-center gap-3 p-2.5 rounded-xl border transition-all cursor-pointer group text-left ${
-                            isPast
-                              ? 'border-slate-100 dark:border-white/5 opacity-50'
-                              : 'border-slate-100 dark:border-white/5 hover:border-blue-200 dark:hover:border-blue-800/50 hover:bg-blue-50/30 dark:hover:bg-blue-950/20'
-                          }`}
-                        >
-                          {/* Date badge */}
-                          <div className={`w-9 h-9 rounded-xl flex flex-col items-center justify-center shrink-0 ${evt.isLoanDue ? 'bg-indigo-100 dark:bg-indigo-950/40' : 'bg-slate-100 dark:bg-white/10'}`}>
-                            {evt.isLoanDue ? (
-                              <Banknote size={16} className="text-indigo-600 dark:text-indigo-400" />
-                            ) : (
-                              <>
-                                <span className="text-[9px] font-bold text-slate-400 uppercase leading-none">{dayName}</span>
-                                <span className={`text-sm font-extrabold leading-tight font-dm ${isPast ? 'text-slate-400' : 'text-slate-900 dark:text-white'}`}>{dayNum}</span>
-                              </>
-                            )}
-                          </div>
-                          {/* Color bar */}
-                          <div className={`w-0.5 h-7 rounded-full shrink-0 ${colors.dot}`} />
-                          {/* Info */}
-                          <div className="flex-1 min-w-0">
-                            <span className="text-xs font-semibold text-slate-800 dark:text-white font-inter block truncate group-hover:text-blue-600 dark:group-hover:text-blue-400 transition-colors">
-                              {evt.title}
-                            </span>
-                            <div className="flex items-center gap-1.5 mt-0.5">
-                              <span className={`text-[9px] font-bold px-1.5 py-0.5 rounded ${colors.pill}`}>{evt.category}</span>
-                              {evt.isLoanDue ? (
-                                <span className="text-[9px] text-slate-500 dark:text-slate-400 font-semibold font-inter">
-                                  {evt.body}
-                                </span>
-                              ) : evt.time && (
-                                <span className="text-[9px] text-slate-400 dark:text-slate-500 flex items-center gap-0.5 font-inter">
-                                  <Clock size={9} /> {evt.time}
-                                </span>
-                              )}
-                           </div>
-                         </div>
-                         <ChevronRight size={13} className="text-slate-300 dark:text-slate-600 group-hover:text-blue-400 transition-colors shrink-0" />
-                       </button>
-                     );
-                   })}
-                 </div>
-               )}
-             </div>
-           </div>
-         );
+            </div>
+          );
         })()}
-
       </div>
 
 
@@ -1342,37 +1312,33 @@ export default function Home() {
                   </button>
                 </div>
 
-                {/* Event Schedule & Location Grid (Compact 3-column on mobile) */}
-                <div className="grid grid-cols-3 gap-2 font-inter">
-                  <div className="p-2 sm:p-3 rounded-xl sm:rounded-2xl bg-blue-50/70 dark:bg-blue-950/40 border border-blue-100 dark:border-blue-900/40 flex flex-col gap-0.5">
-                    <div className="flex items-center gap-1 text-blue-600 dark:text-blue-400 text-[10px] sm:text-xs font-bold">
-                      <CalendarDays size={12} className="shrink-0" />
-                      <span>Date</span>
-                    </div>
-                    <span className="text-[11px] sm:text-xs font-semibold text-slate-800 dark:text-slate-200 truncate">
+                {/* Event Schedule & Location Unified Info Bar (Icon-free, clean layout) */}
+                <div className="bg-slate-50 dark:bg-slate-800/40 border border-slate-200/80 dark:border-white/10 rounded-2xl p-3 sm:p-4 grid grid-cols-3 gap-2 divide-x divide-slate-200/80 dark:divide-white/10 font-inter text-center">
+                  
+                  {/* Date Item */}
+                  <div className="flex flex-col items-center justify-center px-1 sm:px-2">
+                    <span className="text-[9px] sm:text-[10px] font-bold text-slate-400 dark:text-slate-500 uppercase tracking-wider">Date</span>
+                    <span className="text-xs sm:text-[13px] font-bold text-slate-800 dark:text-white mt-0.5 leading-tight">
                       {selectedEvent.dateObj?.toLocaleDateString('en-US', { month: 'short', day: 'numeric', year: 'numeric' }) || 'Scheduled'}
                     </span>
                   </div>
 
-                  <div className="p-2 sm:p-3 rounded-xl sm:rounded-2xl bg-amber-50/70 dark:bg-amber-950/40 border border-amber-100 dark:border-amber-900/40 flex flex-col gap-0.5">
-                    <div className="flex items-center gap-1 text-amber-600 dark:text-amber-400 text-[10px] sm:text-xs font-bold">
-                      <Clock size={12} className="shrink-0" />
-                      <span>Time</span>
-                    </div>
-                    <span className="text-[11px] sm:text-xs font-semibold text-slate-800 dark:text-slate-200 truncate">
+                  {/* Time Item */}
+                  <div className="flex flex-col items-center justify-center px-1 sm:px-2">
+                    <span className="text-[9px] sm:text-[10px] font-bold text-slate-400 dark:text-slate-500 uppercase tracking-wider">Time</span>
+                    <span className="text-xs sm:text-[13px] font-bold text-slate-800 dark:text-white mt-0.5 leading-tight">
                       {selectedEvent.time || 'All Day'}
                     </span>
                   </div>
 
-                  <div className="p-2 sm:p-3 rounded-xl sm:rounded-2xl bg-emerald-50/70 dark:bg-emerald-950/40 border border-emerald-100 dark:border-emerald-900/40 flex flex-col gap-0.5">
-                    <div className="flex items-center gap-1 text-emerald-600 dark:text-emerald-400 text-[10px] sm:text-xs font-bold">
-                      <MapPin size={12} className="shrink-0" />
-                      <span>Venue</span>
-                    </div>
-                    <span className="text-[11px] sm:text-xs font-semibold text-slate-800 dark:text-slate-200 truncate">
+                  {/* Venue Item */}
+                  <div className="flex flex-col items-center justify-center px-1 sm:px-2">
+                    <span className="text-[9px] sm:text-[10px] font-bold text-slate-400 dark:text-slate-500 uppercase tracking-wider">Venue</span>
+                    <span className="text-xs sm:text-[13px] font-bold text-slate-800 dark:text-white mt-0.5 leading-tight">
                       {selectedEvent.branch || 'All Branches'}
                     </span>
                   </div>
+
                 </div>
 
                 {/* Announcement Content Block */}
