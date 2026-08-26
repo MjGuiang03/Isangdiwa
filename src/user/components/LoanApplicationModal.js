@@ -2,7 +2,7 @@ import { useState, useMemo, useEffect, useRef, useCallback } from 'react';
 import { toast } from 'sonner';
 
 import API from '../../utils/api';
-import { Banknote, CheckCircle, X, Pencil, Camera, RotateCcw, AlertTriangle, Upload, Trash2, ChevronDown, Check, ShieldCheck, Send } from 'lucide-react';
+import { Banknote, CheckCircle, X, Pencil, Camera, RotateCcw, AlertTriangle, Upload, Trash2, ChevronDown, Check, ShieldCheck, Send, Wallet, Zap, Clock } from 'lucide-react';
 
 /* ── Loan-type config ── */
 const LOAN_TYPES = [
@@ -17,7 +17,7 @@ const LOAN_TYPES = [
     color: 'blue',
     desc: 'For everyday needs, big purchases, or personal goals.',
     icon: (
-      <Banknote size={20} />
+      <Wallet size={20} />
     ),
   },
   {
@@ -31,7 +31,7 @@ const LOAN_TYPES = [
     color: 'amber',
     desc: 'Fast-tracked for urgent and unexpected situations.',
     icon: (
-      <Banknote size={20} />
+      <AlertTriangle size={20} />
     ),
   },
   {
@@ -45,7 +45,7 @@ const LOAN_TYPES = [
     color: 'teal',
     desc: 'Quick, low-interest loan for short bridge financing.',
     icon: (
-      <Banknote size={20} />
+      <Clock size={20} />
     ),
   },
 ];
@@ -93,6 +93,20 @@ export default function LoanApplicationModal({
 }) {
   const [loanType, setLoanType] = useState('');
   const [amount, setAmount] = useState('');
+  const [activeCardIndex, setActiveCardIndex] = useState(0);
+  const carouselRef = useRef(null);
+
+  const handleCarouselScroll = useCallback((e) => {
+    const container = e.target;
+    if (!container) return;
+    const scrollLeft = container.scrollLeft;
+    const itemWidth = container.clientWidth * 0.75;
+    const newIndex = Math.min(
+      LOAN_TYPES.length - 1,
+      Math.max(0, Math.round(scrollLeft / (itemWidth || 1)))
+    );
+    setActiveCardIndex(newIndex);
+  }, []);
   const [termMonths, setTermMonths] = useState('');
   const [selfieImage, setSelfieImage] = useState(null);   // base64 data URL
   const [idImage, setIdImage] = useState(null);             // base64 data URL
@@ -624,9 +638,6 @@ export default function LoanApplicationModal({
           {/* ── Savings Context Card ── */}
           <div className="p-4 rounded-2xl bg-slate-50 dark:bg-slate-800/40 border border-slate-200/80 dark:border-white/10 flex flex-col sm:flex-row items-center justify-between gap-3 text-xs">
             <div className="flex items-center gap-3">
-              <div className="w-10 h-10 rounded-xl bg-blue-100 dark:bg-blue-950/60 text-blue-600 dark:text-blue-400 flex items-center justify-center font-bold text-sm">
-                ₱
-              </div>
               <div>
                 <span className="text-slate-700 dark:text-slate-200 font-bold text-xs block">Your Total Savings</span>
                 <span className={`text-lg font-extrabold ${totalSavings < 1000 ? 'text-amber-600 dark:text-amber-400' : 'text-slate-900 dark:text-white'}`}>
@@ -647,68 +658,144 @@ export default function LoanApplicationModal({
 
           {/* ── STEP 1: Loan Type & Terms ── */}
           <div className="bg-slate-50/70 dark:bg-slate-800/40 border border-slate-200/80 dark:border-white/10 rounded-2xl p-4 sm:p-5 space-y-4">
-            <div className="flex items-center justify-between pb-2 border-b border-slate-200/60 dark:border-white/10">
+            <div className="flex items-center justify-between pb-2 border-b border-slate-200/60 dark:border-white/10 gap-2">
               <div className="flex items-center gap-2">
                 <div className="w-6 h-6 rounded-full bg-[#1E3A8A] text-white font-bold text-xs flex items-center justify-center shrink-0">1</div>
-                <h3 className="text-xs font-bold text-slate-900 dark:text-white uppercase tracking-wider font-inter">Loan Details &amp; Amount</h3>
+                <h3 className="text-[11px] sm:text-xs font-bold text-slate-900 dark:text-white uppercase tracking-wider font-inter">Loan Details &amp; Amount</h3>
               </div>
-              <span className="text-xs font-bold text-slate-600 dark:text-slate-300">Step 1 of 4</span>
+              <span className="text-[11px] sm:text-xs font-bold text-slate-600 dark:text-slate-300 whitespace-nowrap shrink-0">Step 1 of 4</span>
             </div>
 
             {/* ── Loan Type selector ── */}
             <div className="user-loan-application-form-group">
-              <label className="user-loan-application-label text-xs sm:text-sm font-bold text-slate-800 dark:text-slate-200 block mb-2">Select Loan Type</label>
-              <div className="ula-type-cards">
-                {LOAN_TYPES.map((lt) => {
+              <label className="user-loan-application-label text-xs sm:text-sm font-bold text-slate-800 dark:text-slate-200 block mb-3">Select Loan Type</label>
+              <div
+                ref={carouselRef}
+                onScroll={handleCarouselScroll}
+                className="flex sm:grid sm:grid-cols-3 gap-3 overflow-x-auto sm:overflow-visible snap-x snap-mandatory pb-2 sm:pb-0 -mx-1 px-1 sm:mx-0 sm:px-0"
+                style={{ scrollbarWidth: 'none', msOverflowStyle: 'none', WebkitOverflowScrolling: 'touch' }}
+              >
+                {LOAN_TYPES.map((lt, idx) => {
                   const isSelected = loanType === lt.key;
                   const ltMax = Math.max(0, totalSavings * lt.multiplier - existingLoanBalance);
+                  
+                  /* accent colors per card type */
+                  const cardTheme = {
+                    personal: {
+                      bg: 'bg-gradient-to-br from-[#0D1F45] via-[#1A3268] to-[#2B4EAF]',
+                      accent: 'text-blue-300',
+                      iconBg: 'bg-blue-400/20',
+                      iconColor: 'text-blue-300',
+                      checkBg: 'bg-blue-500',
+                      ringActive: 'ring-blue-400 ring-2 shadow-lg shadow-blue-500/30',
+                    },
+                    emergency: {
+                      bg: 'bg-gradient-to-br from-[#1C1024] via-[#3B1A4A] to-[#6B2FA0]',
+                      accent: 'text-purple-300',
+                      iconBg: 'bg-purple-400/20',
+                      iconColor: 'text-purple-300',
+                      checkBg: 'bg-purple-500',
+                      ringActive: 'ring-purple-400 ring-2 shadow-lg shadow-purple-500/30',
+                    },
+                    'short-term': {
+                      bg: 'bg-gradient-to-br from-[#0B1F1A] via-[#133D32] to-[#1B6B54]',
+                      accent: 'text-emerald-300',
+                      iconBg: 'bg-emerald-400/20',
+                      iconColor: 'text-emerald-300',
+                      checkBg: 'bg-emerald-500',
+                      ringActive: 'ring-emerald-400 ring-2 shadow-lg shadow-emerald-500/30',
+                    },
+                  }[lt.key];
+
                   return (
-                    <div 
-                      key={lt.key} 
-                      className="ula-type-card-wrapper h-full"
+                    <div
+                      key={lt.key}
+                      className={`relative overflow-hidden rounded-2xl cursor-pointer transition-all duration-300 ${cardTheme.bg} ${isSelected ? `${cardTheme.ringActive} sm:-translate-y-3 sm:scale-[1.02]` : 'ring-1 ring-white/10 shadow-md sm:hover:-translate-y-0.5 sm:hover:shadow-xl'} w-[75vw] max-w-[260px] sm:w-auto shrink-0 sm:shrink snap-center p-5 sm:p-4`}
+                      onClick={() => {
+                        setLoanType(lt.key);
+                        setActiveCardIndex(idx);
+                        setTermMonths('');
+                        setAmount(ltMax > 0 ? Number(ltMax).toLocaleString('en-US') : '');
+                      }}
                     >
-                      <div
-                        className={`ula-type-card h-full flex flex-col justify-between ula-type-card--${lt.color} ${isSelected ? 'ula-type-card--active' : ''}`}
-                        onClick={() => { 
-                          setLoanType(lt.key); 
-                          setTermMonths(''); 
-                          setAmount(ltMax > 0 ? Number(ltMax).toLocaleString('en-US') : ''); 
-                        }}
-                      >
-                        <div>
-                          <div className="ula-type-header pb-2.5 border-b border-slate-200/60 dark:border-white/10">
-                            <div className={`ula-type-icon ula-type-icon--${lt.color}`}>{lt.icon}</div>
-                            <div className="ula-type-header-text">
-                              <div className="ula-type-name">{lt.name}</div>
-                              <div className="ula-type-mult">{lt.multiplier}× savings</div>
-                            </div>
+                      {/* Subtle card pattern overlay */}
+                      <div className="absolute inset-0 opacity-[0.04]" style={{
+                        backgroundImage: `radial-gradient(circle at 20% 80%, white 1px, transparent 1px), radial-gradient(circle at 80% 20%, white 1px, transparent 1px)`,
+                        backgroundSize: '60px 60px'
+                      }} />
+
+                      <div className="relative z-10 flex flex-col gap-4 sm:gap-3">
+                        {/* Row 1: Icon + Checkmark */}
+                        <div className="flex items-center justify-between">
+                          <div className={`w-9 h-9 rounded-xl ${cardTheme.iconBg} ${cardTheme.iconColor} flex items-center justify-center`}>
+                            {lt.icon}
                           </div>
-                          
-                          <p className="text-xs text-slate-500 dark:text-slate-400 font-medium leading-relaxed mt-2.5">
+                          {isSelected && (
+                            <div className={`w-6 h-6 rounded-full ${cardTheme.checkBg} flex items-center justify-center shadow-md`}>
+                              <Check size={14} className="text-white" strokeWidth={3} />
+                            </div>
+                          )}
+                        </div>
+
+                        {/* Row 2: Name + Description */}
+                        <div>
+                          <p className="text-base font-bold text-white tracking-tight leading-tight" style={{ fontFamily: "'DM Sans', 'Inter', sans-serif" }}>
+                            {lt.name}
+                          </p>
+                          <p className="text-[11px] text-white/50 mt-0.5 leading-snug">
                             {lt.desc}
                           </p>
                         </div>
 
-                        <div className="space-y-2.5 mt-3 pt-2.5 border-t border-slate-200/60 dark:border-white/10">
-                          <div className="flex items-center justify-between gap-1.5 text-[11px] font-medium">
-                            <span className="px-2 py-1 rounded-md bg-slate-100 dark:bg-slate-700/60 text-slate-700 dark:text-slate-300 font-semibold border border-slate-200/60 dark:border-white/5">
-                              {lt.rateLabel}
-                            </span>
-                            <span className="px-2 py-1 rounded-md bg-slate-100 dark:bg-slate-700/60 text-slate-700 dark:text-slate-300 font-semibold border border-slate-200/60 dark:border-white/5">
-                              {lt.minTerm}–{lt.maxTerm} mo
-                            </span>
-                          </div>
+                        {/* Row 3: Multiplier */}
+                        <p className={`text-[11px] font-semibold ${cardTheme.accent}`}>
+                          {lt.multiplier}x savings multiplier
+                        </p>
 
-                          <div className="flex items-center justify-between text-xs pt-0.5">
-                            <span className="text-[10px] font-bold text-slate-400 dark:text-slate-500 uppercase tracking-wider">Max Limit</span>
-                            <span className="font-bold text-blue-600 dark:text-blue-400 font-dm text-xs sm:text-sm">{fmt(ltMax)}</span>
+                        {/* Row 4: Rate + Term side by side */}
+                        <div className="flex items-end gap-6">
+                          <div>
+                            <span className="block text-[9px] font-bold uppercase tracking-wider text-white/40">Rate</span>
+                            <span className="text-xs font-semibold text-white/90">{lt.rateLabel}</span>
                           </div>
+                          <div>
+                            <span className="block text-[9px] font-bold uppercase tracking-wider text-white/40">Term</span>
+                            <span className="text-xs font-semibold text-white/90">{lt.minTerm}-{lt.maxTerm} mo</span>
+                          </div>
+                        </div>
+
+                        {/* Row 5: Max Limit */}
+                        <div>
+                          <span className="block text-[9px] font-bold uppercase tracking-wider text-white/40">Max Limit</span>
+                          <span className={`text-base font-extrabold ${cardTheme.accent}`} style={{ fontFamily: "'DM Sans', sans-serif" }}>
+                            {fmt(ltMax)}
+                          </span>
                         </div>
                       </div>
                     </div>
                   );
                 })}
               </div>
+
+              {/* Mobile swipe indicator dots */}
+              <div className="flex sm:hidden items-center justify-center gap-1.5 mt-2">
+                {LOAN_TYPES.map((lt, idx) => (
+                  <button
+                    key={lt.key}
+                    type="button"
+                    onClick={() => {
+                      if (carouselRef.current) {
+                        const itemWidth = carouselRef.current.clientWidth * 0.75;
+                        carouselRef.current.scrollTo({ left: idx * itemWidth, behavior: 'smooth' });
+                      }
+                      setActiveCardIndex(idx);
+                    }}
+                    className={`h-1.5 rounded-full transition-all duration-300 ${activeCardIndex === idx ? 'w-5 bg-blue-600 dark:bg-blue-400' : 'w-1.5 bg-slate-300 dark:bg-slate-700'}`}
+                    aria-label={`Go to slide ${idx + 1}`}
+                  />
+                ))}
+              </div>
+
             </div>
 
             {/* ── Amount + Term row ── */}
@@ -834,12 +921,12 @@ export default function LoanApplicationModal({
 
           {/* ── STEP 2: Verification & Required Documents ── */}
           <div className="bg-slate-50/70 dark:bg-slate-800/40 border border-slate-200/80 dark:border-white/10 rounded-2xl p-4 sm:p-5 space-y-5">
-            <div className="flex items-center justify-between pb-2 border-b border-slate-200/60 dark:border-white/10">
+            <div className="flex items-center justify-between pb-2 border-b border-slate-200/60 dark:border-white/10 gap-2">
               <div className="flex items-center gap-2">
                 <div className="w-6 h-6 rounded-full bg-[#1E3A8A] text-white font-bold text-xs flex items-center justify-center shrink-0">2</div>
-                <h3 className="text-xs font-bold text-slate-900 dark:text-white uppercase tracking-wider font-inter">Identity Verification &amp; Supporting Documents</h3>
+                <h3 className="text-[11px] sm:text-xs font-bold text-slate-900 dark:text-white uppercase tracking-wider font-inter">Verification &amp; Documents</h3>
               </div>
-              <span className="text-xs font-bold text-slate-600 dark:text-slate-300">Step 2 of 4</span>
+              <span className="text-[11px] sm:text-xs font-bold text-slate-600 dark:text-slate-300 whitespace-nowrap shrink-0">Step 2 of 4</span>
             </div>
 
             {/* ── Group A: Live Camera Verification ── */}
@@ -1096,12 +1183,12 @@ export default function LoanApplicationModal({
 
           {/* ── STEP 3: Disbursement Method ── */}
           <div className="bg-slate-50/70 dark:bg-slate-800/40 border border-slate-200/80 dark:border-white/10 rounded-2xl p-4 sm:p-5 space-y-4">
-            <div className="flex items-center justify-between pb-2 border-b border-slate-200/60 dark:border-white/10">
+            <div className="flex items-center justify-between pb-2 border-b border-slate-200/60 dark:border-white/10 gap-2">
               <div className="flex items-center gap-2">
                 <div className="w-6 h-6 rounded-full bg-[#1E3A8A] text-white font-bold text-xs flex items-center justify-center shrink-0">3</div>
-                <h3 className="text-xs font-bold text-slate-900 dark:text-white uppercase tracking-wider font-inter">Disbursement Method</h3>
+                <h3 className="text-[11px] sm:text-xs font-bold text-slate-900 dark:text-white uppercase tracking-wider font-inter">Disbursement Method</h3>
               </div>
-              <span className="text-xs font-bold text-slate-600 dark:text-slate-300">Step 3 of 4</span>
+              <span className="text-[11px] sm:text-xs font-bold text-slate-600 dark:text-slate-300 whitespace-nowrap shrink-0">Step 3 of 4</span>
             </div>
 
             {/* ── Disbursement Method ── */}
@@ -1482,23 +1569,97 @@ export default function LoanApplicationModal({
 
           {/* ── STEP 4: Terms & Conditions Agreement ── */}
           <div className="bg-slate-50/70 dark:bg-slate-800/40 border border-slate-200/80 dark:border-white/10 rounded-2xl p-4 sm:p-5 space-y-4">
-            <div className="flex items-center justify-between pb-2 border-b border-slate-200/60 dark:border-white/10">
+            <div className="flex items-center justify-between pb-2 border-b border-slate-200/60 dark:border-white/10 gap-2">
               <div className="flex items-center gap-2">
                 <div className="w-6 h-6 rounded-full bg-[#1E3A8A] text-white font-bold text-xs flex items-center justify-center shrink-0">4</div>
-                <h3 className="text-xs font-bold text-slate-900 dark:text-white uppercase tracking-wider font-inter">Terms &amp; Conditions Agreement</h3>
+                <h3 className="text-[11px] sm:text-xs font-bold text-slate-900 dark:text-white uppercase tracking-wider font-inter">Terms &amp; Conditions</h3>
               </div>
-              <span className="text-xs font-bold text-slate-600 dark:text-slate-300">Step 4 of 4</span>
+              <span className="text-[11px] sm:text-xs font-bold text-slate-600 dark:text-slate-300 whitespace-nowrap shrink-0">Step 4 of 4</span>
             </div>
 
             <div className="ula-terms-section">
-              <h4 className="text-xs font-bold text-slate-800 dark:text-slate-200 mb-2 font-inter">Loan Terms &amp; Conditions</h4>
-              <div className="ula-terms-box">
+              <h4 className="text-xs font-bold text-slate-800 dark:text-slate-200 mb-2 font-inter">IsangDiwa — Loan Terms &amp; Conditions</h4>
+              <div className="ula-terms-box max-h-60 overflow-y-auto pr-1 space-y-3">
+                <div className="ula-terms-group">
+                  <strong>1. Eligibility Requirements</strong>
+                  <ul>
+                    <li>Active officer in good standing with minimum ₱1,000 confirmed savings.</li>
+                    <li>Borrowing limit depends directly on accumulated total savings.</li>
+                  </ul>
+                </div>
+
+                <div className="ula-terms-group">
+                  <strong>2. Application &amp; Approval Process</strong>
+                  <ul>
+                    <li>All applications are evaluated by loan staff.</li>
+                    <li>Approval notice will be sent via notifications.</li>
+                  </ul>
+                </div>
+
+                <div className="ula-terms-group">
+                  <strong>3. Maximum Loan Limits</strong>
+                  <ul>
+                    <li>Personal Loan: up to 2× of total active savings.</li>
+                    <li>Emergency Loan: up to 1.5× of total active savings.</li>
+                    <li>Short-Term Loan: up to 1× of total active savings.</li>
+                  </ul>
+                </div>
+
+                <div className="ula-terms-group">
+                  <strong>4. Interest Rates</strong>
+                  <ul>
+                    <li>Emergency Loan: 1.5% monthly interest rate.</li>
+                    <li>Personal Loan: 2.0% monthly interest rate.</li>
+                    <li>Short-Term Loan: 1.0% monthly interest rate.</li>
+                  </ul>
+                </div>
+
+                <div className="ula-terms-group">
+                  <strong>5. Document Requirements</strong>
+                  <ul>
+                    <li>Live selfie holding valid government ID with current date label.</li>
+                    <li>Uploaded COE, ITR, or payslip supporting income verification.</li>
+                  </ul>
+                </div>
+
+                <div className="ula-terms-group">
+                  <strong>6. Identity Verification</strong>
+                  <ul>
+                    <li>Documents undergo automated AI scanning and validation checks.</li>
+                    <li>Unclear or fake document captures will result in instant rejection.</li>
+                  </ul>
+                </div>
+
+                <div className="ula-terms-group">
+                  <strong>7. Purpose of Loan</strong>
+                  <ul>
+                    <li>Loan funds must be utilized strictly for the stated purpose.</li>
+                    <li>Misrepresentation of purpose may disqualify future borrowings.</li>
+                  </ul>
+                </div>
+
+                <div className="ula-terms-group">
+                  <strong>8. Existing Loan Disclosure</strong>
+                  <ul>
+                    <li>Full disclosure of external active loans is mandatory.</li>
+                    <li>Additional proof of ongoing balance may be requested.</li>
+                  </ul>
+                </div>
+
+                <div className="ula-terms-group">
+                  <strong>9. Disbursement Options</strong>
+                  <ul>
+                    <li>Cash pickup at office or direct transfer via GCash / Bank.</li>
+                    <li>Account details must match member name on record.</li>
+                  </ul>
+                </div>
+
                 <div className="ula-terms-group">
                   <strong>10. Repayment Terms</strong>
                   <ul>
                     <li>Payments are monthly based on the selected term.</li>
                     <li>Due dates are fixed upon approval.</li>
-                    <li>Accepted payment methods: Cash, Bank transfer, E-Wallet.</li>
+                    <li>Accepted payment methods: Cash, Bank Transfer, GCash.</li>
                   </ul>
                 </div>
 
@@ -1512,18 +1673,11 @@ export default function LoanApplicationModal({
                 </div>
 
                 <div className="ula-terms-group">
-                   <strong>12. Late Payment and Penalties</strong>
+                  <strong>12. Late Payment and Penalties</strong>
                   <ul>
-                    <li>Grace period: 3 days.</li>
-                    <li>Penalty: 3% per month on overdue amount.</li>
-                  </ul>
-                </div>
-
-                <div className="ula-terms-group">
-                  <strong>20. Policy Violations</strong>
-                  <ul>
-                     <li>Violations include: Providing false information, Non-payment, System abuse.</li>
-                     <li>Sanctions: Loan denial, Suspension, Account termination.</li>
+                    <li>Late payments may incur an ongoing penalty fee.</li>
+                    <li>Accounts past due beyond 60 days will be escalated.</li>
+                    <li>Reach out to administration to apply for an extension.</li>
                   </ul>
                 </div>
               </div>
@@ -1534,7 +1688,7 @@ export default function LoanApplicationModal({
                   checked={agreedToTerms}
                   onChange={(e) => setAgreedToTerms(e.target.checked)}
                 />
-                <span>I have read and agree to the Loan Terms &amp; Conditions and policies above.</span>
+                <span>I have read and agree to the IsangDiwa Loan Terms &amp; Conditions above.</span>
               </label>
             </div>
           </div>
@@ -1719,31 +1873,31 @@ export default function LoanApplicationModal({
             className="relative w-full max-w-sm bg-white dark:bg-slate-900 rounded-2xl p-5 sm:p-6 shadow-2xl border border-slate-200 dark:border-white/10 flex flex-col gap-4 text-left font-inter"
             onClick={e => e.stopPropagation()}
           >
-            <div className="flex items-start gap-3.5">
-              <div className={`w-10 h-10 rounded-xl flex items-center justify-center shrink-0 ${confirmModal.actionVariant === 'danger' ? 'bg-rose-100 dark:bg-rose-950/60 text-rose-600 dark:text-rose-400' : 'bg-blue-100 dark:bg-blue-950/60 text-blue-600 dark:text-blue-400'}`}>
-                {confirmModal.actionVariant === 'danger' ? <Trash2 size={20} /> : <RotateCcw size={20} />}
+            <div className="flex flex-col items-center text-center gap-3">
+              <div className={`w-12 h-12 rounded-2xl flex items-center justify-center shrink-0 ${confirmModal.actionVariant === 'danger' ? 'bg-rose-100 dark:bg-rose-950/60 text-rose-600 dark:text-rose-400' : 'bg-blue-100 dark:bg-blue-950/60 text-blue-600 dark:text-blue-400'}`}>
+                {confirmModal.actionVariant === 'danger' ? <Trash2 size={22} /> : <RotateCcw size={22} />}
               </div>
-              <div className="flex-1 min-w-0">
-                <h4 className="text-sm font-extrabold text-slate-900 dark:text-white">
+              <div className="w-full">
+                <h4 className="text-base font-extrabold text-slate-900 dark:text-white">
                   {confirmModal.title}
                 </h4>
-                <p className="text-xs text-slate-500 dark:text-slate-400 mt-1 leading-relaxed">
+                <p className="text-xs text-slate-500 dark:text-slate-400 mt-1.5 leading-relaxed">
                   {confirmModal.message}
                 </p>
               </div>
             </div>
 
-            <div className="flex items-center justify-end gap-2.5 pt-3 border-t border-slate-100 dark:border-white/10">
+            <div className="flex items-center justify-center gap-2.5 pt-3 border-t border-slate-100 dark:border-white/10 w-full">
               <button
                 type="button"
-                className="px-4 py-2 rounded-xl border border-slate-300 dark:border-white/10 text-xs font-semibold text-slate-700 dark:text-slate-300 hover:bg-slate-100 dark:hover:bg-slate-800 transition-colors cursor-pointer"
+                className="flex-1 py-2.5 rounded-xl border border-slate-300 dark:border-white/10 text-xs font-semibold text-slate-700 dark:text-slate-300 hover:bg-slate-100 dark:hover:bg-slate-800 transition-colors cursor-pointer"
                 onClick={() => setConfirmModal(prev => ({ ...prev, isOpen: false }))}
               >
                 Cancel
               </button>
               <button
                 type="button"
-                className={`px-4 py-2 rounded-xl text-xs font-bold text-white shadow-md transition-all active:scale-95 cursor-pointer ${confirmModal.actionVariant === 'danger' ? 'bg-rose-600 hover:bg-rose-700' : 'bg-blue-600 hover:bg-blue-700'}`}
+                className={`flex-1 py-2.5 rounded-xl text-xs font-bold text-white shadow-md transition-all active:scale-95 cursor-pointer ${confirmModal.actionVariant === 'danger' ? 'bg-rose-600 hover:bg-rose-700' : 'bg-blue-600 hover:bg-blue-700'}`}
                 onClick={() => {
                   if (confirmModal.type === 'delete_account' && confirmModal.accountToDelete) {
                     handleDeleteAccount(confirmModal.accountToDelete);
@@ -1951,11 +2105,11 @@ export default function LoanApplicationModal({
             className="relative w-full max-w-sm bg-white dark:bg-slate-900 text-slate-900 dark:text-white rounded-3xl p-5 sm:p-6 shadow-2xl border border-slate-200 dark:border-white/10 flex flex-col gap-4 text-left font-inter animate-in fade-in zoom-in-95 duration-200"
             onClick={e => e.stopPropagation()}
           >
-            <div className="flex items-start gap-3.5">
-              <div className="w-11 h-11 rounded-2xl bg-emerald-100 dark:bg-emerald-950/80 text-emerald-600 dark:text-emerald-400 flex items-center justify-center shrink-0 border border-emerald-200 dark:border-emerald-800/50">
+            <div className="flex flex-col items-center text-center gap-3">
+              <div className="w-12 h-12 rounded-2xl bg-emerald-100 dark:bg-emerald-950/80 text-emerald-600 dark:text-emerald-400 flex items-center justify-center shrink-0 border border-emerald-200 dark:border-emerald-800/50">
                 <ShieldCheck size={22} />
               </div>
-              <div className="flex-1 min-w-0">
+              <div className="w-full">
                 <h4 className="text-base font-extrabold text-slate-900 dark:text-white leading-tight">
                   Submit Loan Application?
                 </h4>
@@ -1965,10 +2119,10 @@ export default function LoanApplicationModal({
               </div>
             </div>
 
-            <div className="flex items-center justify-end gap-2.5 pt-3 border-t border-slate-100 dark:border-white/10">
+            <div className="flex items-center justify-center gap-2.5 pt-3 border-t border-slate-100 dark:border-white/10 w-full">
               <button
                 type="button"
-                className="px-4 py-2.5 rounded-xl border border-slate-300 dark:border-white/10 text-xs font-semibold text-slate-700 dark:text-slate-300 hover:bg-slate-100 dark:hover:bg-slate-800 transition-colors cursor-pointer"
+                className="flex-1 py-2.5 rounded-xl border border-slate-300 dark:border-white/10 text-xs font-semibold text-slate-700 dark:text-slate-300 hover:bg-slate-100 dark:hover:bg-slate-800 transition-colors cursor-pointer"
                 onClick={() => setShowFinalSubmitConfirm(false)}
                 disabled={loading}
               >
@@ -1976,14 +2130,14 @@ export default function LoanApplicationModal({
               </button>
               <button
                 type="button"
-                className="px-5 py-2.5 rounded-xl bg-gradient-to-r from-emerald-600 to-teal-600 hover:from-emerald-700 hover:to-teal-700 text-white font-bold text-xs shadow-md transition-all active:scale-95 flex items-center gap-2 cursor-pointer disabled:opacity-50"
+                className="flex-1 py-2.5 rounded-xl bg-gradient-to-r from-emerald-600 to-teal-600 hover:from-emerald-700 hover:to-teal-700 text-white font-bold text-xs shadow-md transition-all active:scale-95 flex items-center justify-center gap-2 cursor-pointer disabled:opacity-50"
                 onClick={async () => {
                   setShowFinalSubmitConfirm(false);
                   await executeFinalSubmission();
                 }}
                 disabled={loading}
               >
-                {loading ? <span className="btn-spinner" /> : 'Yes, Submit Application'}
+                {loading ? <span className="btn-spinner" /> : 'Yes, Submit'}
               </button>
             </div>
           </div>

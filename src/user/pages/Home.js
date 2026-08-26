@@ -15,6 +15,7 @@ export default function Home() {
 
   const [loanStats, setLoanStats] = useState({ activeCount: 0, remainingBalance: 0 });
   const [activeLoansList, setActiveLoansList] = useState([]);
+  const [allLoansList, setAllLoansList] = useState([]);
   const [rejectedLoansCount, setRejectedLoansCount] = useState(0);
 
   const [donationStats, setDonationStats] = useState({ totalDonated: 0 });
@@ -84,6 +85,7 @@ export default function Home() {
     if (loansData.success) {
       setLoanStats(loansData.stats || { activeCount: 0, remainingBalance: 0 });
       setActiveLoansList((loansData.loans || []).filter(l => l.status === 'active'));
+      setAllLoansList(loansData.loans || []);
       setRejectedLoansCount((loansData.loans || []).filter(l => l.status === 'rejected').length);
     }
   }, [loansData]);
@@ -265,13 +267,19 @@ export default function Home() {
     }
   }, [loansData, donationsData, savingsData, annData, attendanceData]);
 
+  const [carouselFade, setCarouselFade] = useState(true);
+
   useEffect(() => {
     if (upcomingEvents.length <= 1) return;
     const timer = setInterval(() => {
-      setCurrentEventIndex(prev => (prev + 1) % upcomingEvents.length);
-    }, 5000 * (1 + currentEventIndex / 10));
+      setCarouselFade(false);
+      setTimeout(() => {
+        setCurrentEventIndex(prev => (prev + 1) % upcomingEvents.length);
+        setCarouselFade(true);
+      }, 300);
+    }, 5000);
     return () => clearInterval(timer);
-  }, [upcomingEvents.length, currentEventIndex]);
+  }, [upcomingEvents.length]);
 
   const isOfficer = isOfficerPosition(profile?.position);
   
@@ -848,7 +856,7 @@ export default function Home() {
 
             {upcomingEvents.length > 0 ? (
               <div
-                className="relative rounded-2xl overflow-hidden bg-slate-900 min-h-[280px] sm:min-h-[310px] flex-1 group cursor-pointer shadow-md mb-2"
+                className={`relative rounded-2xl overflow-hidden bg-slate-900 min-h-[280px] sm:min-h-[310px] flex-1 group cursor-pointer shadow-md mb-2 transition-opacity duration-300 ${carouselFade ? 'opacity-100' : 'opacity-0'}`}
                 onClick={() => { setSelectedEvent(upcomingEvents[currentEventIndex]); setModalImageIndex(0); }}
               >
                 <img
@@ -1012,26 +1020,54 @@ export default function Home() {
             }
           });
 
+          // Inject loan due dates into calendar
+          const loanDueDates = [];
+          activeLoansList.forEach(loan => {
+            if (loan.nextPaymentDate) {
+              const d = new Date(loan.nextPaymentDate);
+              if (d.getMonth() === month && d.getFullYear() === year) {
+                const day = d.getDate();
+                const loanEvt = {
+                  title: `Loan Payment Due — ${loan.loanId}`,
+                  body: `₱${Number(loan.upcomingPaymentAmount || loan.monthlyPayment || 0).toLocaleString('en-PH', { minimumFractionDigits: 2 })} monthly payment`,
+                  fullBody: `Monthly payment of ₱${Number(loan.upcomingPaymentAmount || loan.monthlyPayment || 0).toLocaleString('en-PH', { minimumFractionDigits: 2 })} is due for loan ${loan.loanId} (${loan.loanType || 'Personal'} Loan).`,
+                  dateObj: d,
+                  category: 'Loan Due',
+                  time: '',
+                  branch: '',
+                  isLoanDue: true,
+                  loanId: loan.loanId,
+                  isLate: loan.isLate,
+                };
+                if (!eventDays[day]) eventDays[day] = [];
+                eventDays[day].push(loanEvt);
+                loanDueDates.push(loanEvt);
+              }
+            }
+          });
+
           const cells = [];
           for (let i = 0; i < startWeekday; i++) cells.push(null);
           for (let d = 1; d <= daysInMonth; d++) cells.push(d);
 
-          const monthEvents = allAnnouncements
-            .filter(evt => {
+          const monthEvents = [
+            ...allAnnouncements.filter(evt => {
               if (!evt.dateObj) return false;
               const d = new Date(evt.dateObj);
               return d.getMonth() === month && d.getFullYear() === year;
-            })
-            .sort((a, b) => new Date(a.dateObj) - new Date(b.dateObj));
+            }),
+            ...loanDueDates
+          ].sort((a, b) => new Date(a.dateObj) - new Date(b.dateObj));
 
           const catColor = (cat) => {
             const map = {
-              Events:    { dot: 'bg-orange-400', pill: 'bg-orange-100 text-orange-700 dark:bg-orange-950/60 dark:text-orange-300' },
-              General:   { dot: 'bg-blue-400',   pill: 'bg-blue-100 text-blue-700 dark:bg-blue-950/60 dark:text-blue-300' },
-              Prayer:    { dot: 'bg-purple-400',  pill: 'bg-purple-100 text-purple-700 dark:bg-purple-950/60 dark:text-purple-300' },
-              Services:  { dot: 'bg-emerald-400', pill: 'bg-emerald-100 text-emerald-700 dark:bg-emerald-950/60 dark:text-emerald-300' },
-              Donations: { dot: 'bg-pink-400',    pill: 'bg-pink-100 text-pink-700 dark:bg-pink-950/60 dark:text-pink-300' },
-              Urgent:    { dot: 'bg-rose-500',    pill: 'bg-rose-100 text-rose-700 dark:bg-rose-950/60 dark:text-rose-300' },
+              Events:      { dot: 'bg-orange-400', pill: 'bg-orange-100 text-orange-700 dark:bg-orange-950/60 dark:text-orange-300' },
+              General:     { dot: 'bg-blue-400',   pill: 'bg-blue-100 text-blue-700 dark:bg-blue-950/60 dark:text-blue-300' },
+              Prayer:      { dot: 'bg-purple-400',  pill: 'bg-purple-100 text-purple-700 dark:bg-purple-950/60 dark:text-purple-300' },
+              Services:    { dot: 'bg-emerald-400', pill: 'bg-emerald-100 text-emerald-700 dark:bg-emerald-950/60 dark:text-emerald-300' },
+              Donations:   { dot: 'bg-pink-400',    pill: 'bg-pink-100 text-pink-700 dark:bg-pink-950/60 dark:text-pink-300' },
+              Urgent:      { dot: 'bg-rose-500',    pill: 'bg-rose-100 text-rose-700 dark:bg-rose-950/60 dark:text-rose-300' },
+              'Loan Due':  { dot: 'bg-indigo-500',  pill: 'bg-indigo-100 text-indigo-700 dark:bg-indigo-950/60 dark:text-indigo-300' },
             };
             return map[cat] || { dot: 'bg-slate-400', pill: 'bg-slate-100 text-slate-600 dark:bg-slate-800 dark:text-slate-400' };
           };
@@ -1091,7 +1127,7 @@ export default function Home() {
                     >
                       {day}
                       {day && eventDays[day] && day !== today && (
-                        <span className="w-1 h-1 rounded-full bg-amber-400 absolute bottom-0.5" />
+                        <span className={`w-1 h-1 rounded-full absolute bottom-0.5 ${eventDays[day].some(e => e.isLoanDue) ? 'bg-indigo-400' : 'bg-amber-400'}`} />
                       )}
                     </div>
                   ))}
@@ -1105,8 +1141,14 @@ export default function Home() {
                   </div>
                   <div className="flex items-center gap-1.5">
                     <span className="w-1.5 h-1.5 rounded-full bg-amber-400 block" />
-                    <span className="text-[10px] text-slate-400 font-inter">Has event</span>
+                    <span className="text-[10px] text-slate-400 font-inter">Event</span>
                   </div>
+                  {activeLoansList.length > 0 && (
+                    <div className="flex items-center gap-1.5">
+                      <span className="w-1.5 h-1.5 rounded-full bg-indigo-400 block" />
+                      <span className="text-[10px] text-slate-400 font-inter">Loan due</span>
+                    </div>
+                  )}
                   {monthEvents.length > 0 && (
                     <div className="ml-auto">
                       <span className="text-[10px] font-bold px-2 py-0.5 rounded-full bg-amber-400/20 text-amber-300 font-inter">
@@ -1140,7 +1182,7 @@ export default function Home() {
                       return (
                         <button
                           key={i}
-                          onClick={() => { setSelectedEvent(evt); setModalImageIndex(0); }}
+                          onClick={() => { if (evt.isLoanDue) { navigate('/loans'); } else { setSelectedEvent(evt); setModalImageIndex(0); } }}
                           className={`w-full flex items-center gap-3 p-2.5 rounded-xl border transition-all cursor-pointer group text-left ${
                             isPast
                               ? 'border-slate-100 dark:border-white/5 opacity-50'
@@ -1148,9 +1190,15 @@ export default function Home() {
                           }`}
                         >
                           {/* Date badge */}
-                          <div className="w-9 h-9 rounded-xl bg-slate-100 dark:bg-white/10 flex flex-col items-center justify-center shrink-0">
-                            <span className="text-[9px] font-bold text-slate-400 uppercase leading-none">{dayName}</span>
-                            <span className={`text-sm font-extrabold leading-tight font-dm ${isPast ? 'text-slate-400' : 'text-slate-900 dark:text-white'}`}>{dayNum}</span>
+                          <div className={`w-9 h-9 rounded-xl flex flex-col items-center justify-center shrink-0 ${evt.isLoanDue ? 'bg-indigo-100 dark:bg-indigo-950/40' : 'bg-slate-100 dark:bg-white/10'}`}>
+                            {evt.isLoanDue ? (
+                              <Banknote size={16} className="text-indigo-600 dark:text-indigo-400" />
+                            ) : (
+                              <>
+                                <span className="text-[9px] font-bold text-slate-400 uppercase leading-none">{dayName}</span>
+                                <span className={`text-sm font-extrabold leading-tight font-dm ${isPast ? 'text-slate-400' : 'text-slate-900 dark:text-white'}`}>{dayNum}</span>
+                              </>
+                            )}
                           </div>
                           {/* Color bar */}
                           <div className={`w-0.5 h-7 rounded-full shrink-0 ${colors.dot}`} />
@@ -1161,7 +1209,11 @@ export default function Home() {
                             </span>
                             <div className="flex items-center gap-1.5 mt-0.5">
                               <span className={`text-[9px] font-bold px-1.5 py-0.5 rounded ${colors.pill}`}>{evt.category}</span>
-                              {evt.time && (
+                              {evt.isLoanDue ? (
+                                <span className="text-[9px] text-slate-500 dark:text-slate-400 font-semibold font-inter">
+                                  {evt.body}
+                                </span>
+                              ) : evt.time && (
                                 <span className="text-[9px] text-slate-400 dark:text-slate-500 flex items-center gap-0.5 font-inter">
                                   <Clock size={9} /> {evt.time}
                                 </span>

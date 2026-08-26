@@ -15,7 +15,7 @@ const fmt = (n) =>
 const fmtDate = (d) =>
   d ? new Date(d).toLocaleDateString('en-PH', { month: 'short', day: 'numeric', year: 'numeric' }) : '—';
 
-const LIMIT = 5;
+const LIMIT = 4;
 
 const STATUS_CLASS = {
   pending:    'bg-amber-50 dark:bg-amber-950/60 text-amber-700 dark:text-amber-300 border border-amber-100 dark:border-amber-900/30',
@@ -226,45 +226,99 @@ export default function Loans() {
           {
             type: 'Personal Loan',
             description: 'For personal needs such as education or family expenses.',
-            term: '3 - 12 months',
-            rate: '2% / month',
-            maxAmount: 'Up to 2× savings',
-            icon: <Wallet size={18} className="text-blue-600 dark:text-blue-400" />,
-            badge: 'bg-blue-50 dark:bg-blue-950/50 border-blue-100 dark:border-blue-900/40'
+            term: '3 – 12 months',
+            rate: '2% / mo',
+            maxAmount: '2× savings',
+            multiplier: '2×',
+            icon: <Wallet size={18} />,
+            gradient: 'bg-gradient-to-br from-blue-50 via-blue-50/80 to-indigo-50 dark:from-blue-950/40 dark:via-blue-950/30 dark:to-indigo-950/30',
+            borderActive: 'border-blue-200/80 dark:border-blue-800/40',
+            iconBg: 'bg-blue-100 dark:bg-blue-900/40',
+            iconColor: 'text-blue-600 dark:text-blue-400',
+            accentText: 'text-blue-600 dark:text-blue-400',
+            pillBg: 'bg-blue-600/10 dark:bg-blue-400/15 text-blue-700 dark:text-blue-300',
+            dotColor: 'bg-blue-500',
           },
           {
             type: 'Emergency Loan',
             description: 'For urgent situations like medical emergencies.',
-            term: '1 - 6 months',
-            rate: '1.5% / month',
-            maxAmount: 'Up to 1.5× savings',
-            icon: <ShieldAlert size={18} className="text-amber-600 dark:text-amber-400" />,
-            badge: 'bg-amber-50 dark:bg-amber-950/50 border-amber-100 dark:border-amber-900/40'
+            term: '1 – 6 months',
+            rate: '1.5% / mo',
+            maxAmount: '1.5× savings',
+            multiplier: '1.5×',
+            icon: <ShieldAlert size={18} />,
+            gradient: 'bg-gradient-to-br from-purple-50 via-purple-50/80 to-fuchsia-50 dark:from-purple-950/40 dark:via-purple-950/30 dark:to-fuchsia-950/30',
+            borderActive: 'border-purple-200/80 dark:border-purple-800/40',
+            iconBg: 'bg-purple-100 dark:bg-purple-900/40',
+            iconColor: 'text-purple-600 dark:text-purple-400',
+            accentText: 'text-purple-600 dark:text-purple-400',
+            pillBg: 'bg-purple-600/10 dark:bg-purple-400/15 text-purple-700 dark:text-purple-300',
+            dotColor: 'bg-purple-500',
           },
           {
             type: 'Short-term Loan',
             description: 'Quick cash with faster processing & shorter repayment.',
-            term: '1 - 3 months',
-            rate: '1% / month',
-            maxAmount: 'Up to 1× savings',
-            icon: <Clock size={18} className="text-teal-600 dark:text-teal-400" />,
-            badge: 'bg-teal-50 dark:bg-teal-950/50 border-teal-100 dark:border-teal-900/40'
+            term: '1 – 3 months',
+            rate: '1% / mo',
+            maxAmount: '1× savings',
+            multiplier: '1×',
+            icon: <Clock size={18} />,
+            gradient: 'bg-gradient-to-br from-emerald-50 via-emerald-50/80 to-teal-50 dark:from-emerald-950/40 dark:via-emerald-950/30 dark:to-teal-950/30',
+            borderActive: 'border-emerald-200/80 dark:border-emerald-800/40',
+            iconBg: 'bg-emerald-100 dark:bg-emerald-900/40',
+            iconColor: 'text-emerald-600 dark:text-emerald-400',
+            accentText: 'text-emerald-600 dark:text-emerald-400',
+            pillBg: 'bg-emerald-600/10 dark:bg-emerald-400/15 text-emerald-700 dark:text-emerald-300',
+            dotColor: 'bg-emerald-500',
           }
         ].map(lt => (
-          <div key={lt.type} className="bg-white dark:bg-[#1E2130] border border-slate-200/80 dark:border-white/10 rounded-2xl p-4 shadow-md shadow-slate-200/50 dark:shadow-none hover:shadow-lg hover:-translate-y-0.5 transition-all duration-200 flex flex-col justify-between space-y-3 font-inter">
-            <div className="space-y-2.5">
-              <div className={`w-9 h-9 rounded-xl ${lt.badge} border flex items-center justify-center`}>
-                {lt.icon}
+          <div key={lt.type} className={`relative overflow-hidden ${lt.gradient} border ${lt.borderActive} rounded-2xl p-4 sm:p-5 shadow-sm hover:shadow-lg hover:-translate-y-0.5 transition-all duration-300 flex flex-col justify-between font-inter group`}>
+            {/* Subtle pattern overlay */}
+            <div className="absolute inset-0 opacity-[0.03]" style={{
+              backgroundImage: `radial-gradient(circle at 20% 80%, currentColor 1px, transparent 1px), radial-gradient(circle at 80% 20%, currentColor 1px, transparent 1px)`,
+              backgroundSize: '50px 50px'
+            }} />
+
+            <div className="relative z-10 flex flex-col gap-3">
+              {/* Row 1: Icon + Multiplier pill */}
+              <div className="flex items-center justify-between">
+                <div className={`w-10 h-10 rounded-xl ${lt.iconBg} ${lt.iconColor} flex items-center justify-center border border-white/60 dark:border-white/10 shadow-sm group-hover:scale-105 transition-transform`}>
+                  {lt.icon}
+                </div>
+                <span className={`px-2.5 py-1 rounded-lg text-[10px] font-extrabold tracking-wide ${lt.pillBg}`}>
+                  {lt.multiplier} MULTIPLIER
+                </span>
               </div>
+
+              {/* Row 2: Title + Description */}
               <div>
-                <h3 className="text-xs font-bold text-slate-900 dark:text-white font-inter">{lt.type}</h3>
-                <p className="text-[11px] text-slate-500 dark:text-slate-400 mt-0.5 leading-relaxed font-inter">{lt.description}</p>
+                <h3 className="text-sm font-bold text-slate-900 dark:text-white tracking-tight leading-tight" style={{ fontFamily: "'DM Sans', 'Inter', sans-serif" }}>
+                  {lt.type}
+                </h3>
+                <p className="text-[11px] text-slate-500 dark:text-slate-400 mt-0.5 leading-snug">
+                  {lt.description}
+                </p>
               </div>
-            </div>
-            <div className="border-t border-slate-100 dark:border-white/5 pt-2.5 space-y-1.5 text-[11px] font-inter">
-              <div className="flex items-center justify-between"><span className="text-slate-400">Term</span><span className="font-semibold text-slate-900 dark:text-white">{lt.term}</span></div>
-              <div className="flex items-center justify-between"><span className="text-slate-400">Interest rate</span><span className="font-semibold text-slate-900 dark:text-white">{lt.rate}</span></div>
-              <div className="flex items-center justify-between"><span className="text-slate-400">Max loanable</span><span className="font-semibold text-slate-900 dark:text-white">{lt.maxAmount}</span></div>
+
+              {/* Row 3: Rate + Term side by side */}
+              <div className="flex items-end gap-5">
+                <div>
+                  <span className="block text-[9px] font-bold uppercase tracking-wider text-slate-400 dark:text-slate-500">Rate</span>
+                  <span className={`text-xs font-bold ${lt.accentText}`}>{lt.rate}</span>
+                </div>
+                <div>
+                  <span className="block text-[9px] font-bold uppercase tracking-wider text-slate-400 dark:text-slate-500">Term</span>
+                  <span className="text-xs font-semibold text-slate-700 dark:text-slate-200">{lt.term}</span>
+                </div>
+              </div>
+
+              {/* Row 4: Max Loanable */}
+              <div className="pt-2.5 mt-0.5 border-t border-slate-200/60 dark:border-white/5">
+                <span className="block text-[9px] font-bold uppercase tracking-wider text-slate-400 dark:text-slate-500">Max Loanable</span>
+                <span className={`text-base font-extrabold ${lt.accentText}`} style={{ fontFamily: "'DM Sans', sans-serif" }}>
+                  {lt.maxAmount}
+                </span>
+              </div>
             </div>
           </div>
         ))}
