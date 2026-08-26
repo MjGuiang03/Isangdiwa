@@ -1057,18 +1057,7 @@ export default function Home() {
             ...loanDueDates
           ].sort((a, b) => new Date(a.dateObj) - new Date(b.dateObj));
 
-          const catColor = (cat) => {
-            const map = {
-              Events:      { dot: 'bg-orange-400', pill: 'bg-orange-100 text-orange-700 dark:bg-orange-950/60 dark:text-orange-300' },
-              General:     { dot: 'bg-blue-400',   pill: 'bg-blue-100 text-blue-700 dark:bg-blue-950/60 dark:text-blue-300' },
-              Prayer:      { dot: 'bg-purple-400',  pill: 'bg-purple-100 text-purple-700 dark:bg-purple-950/60 dark:text-purple-300' },
-              Services:    { dot: 'bg-emerald-400', pill: 'bg-emerald-100 text-emerald-700 dark:bg-emerald-950/60 dark:text-emerald-300' },
-              Donations:   { dot: 'bg-pink-400',    pill: 'bg-pink-100 text-pink-700 dark:bg-pink-950/60 dark:text-pink-300' },
-              Urgent:      { dot: 'bg-rose-500',    pill: 'bg-rose-100 text-rose-700 dark:bg-rose-950/60 dark:text-rose-300' },
-              'Loan Due':  { dot: 'bg-indigo-500',  pill: 'bg-indigo-100 text-indigo-700 dark:bg-indigo-950/60 dark:text-indigo-300' },
-            };
-            return map[cat] || { dot: 'bg-slate-400', pill: 'bg-slate-100 text-slate-600 dark:bg-slate-800 dark:text-slate-400' };
-          };
+
 
           return (
             <div className="bg-gradient-to-br from-slate-900 to-slate-800 dark:from-[#0f172a] dark:to-[#1E2130] border border-slate-200/80 dark:border-white/10 rounded-2xl overflow-hidden shadow-sm px-4 pt-3.5 pb-3.5">
@@ -1174,7 +1163,7 @@ export default function Home() {
                 {/* Legend */}
                 <div className="flex items-center gap-3 mt-3 pt-2.5 border-t border-white/10">
                   <div className="flex items-center gap-1.5">
-                    <div className="w-4 h-4 rounded-md bg-blue-600 flex items-center justify-center"><span className="text-[9px] font-bold text-white">{today > 0 ? today : '·'}</span></div>
+                    <div className="w-4 h-4 rounded-md bg-blue-600 flex items-center justify-center"><span className="text-[9px] font-bold text-white">{now.getDate()}</span></div>
                     <span className="text-[10px] text-slate-300 font-inter">Today</span>
                   </div>
                   <div className="flex items-center gap-1.5">
