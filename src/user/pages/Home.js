@@ -1073,6 +1073,17 @@ export default function Home() {
           return (
             <div className="bg-gradient-to-br from-slate-900 to-slate-800 dark:from-[#0f172a] dark:to-[#1E2130] border border-slate-200/80 dark:border-white/10 rounded-2xl overflow-hidden shadow-sm px-4 pt-3.5 pb-3.5">
               <div>
+                {/* Title header */}
+                <div className="flex items-center justify-between mb-2.5 pb-2 border-b border-white/10">
+                  <span className="text-xs font-bold text-white uppercase tracking-wider font-inter">Scheduled Events & Loan Dues</span>
+                  <button
+                    onClick={() => setShowAllEvents(true)}
+                    className="text-[10px] font-bold text-blue-400 hover:text-blue-300 hover:underline border-none bg-transparent cursor-pointer p-0 font-inter flex items-center gap-0.5"
+                  >
+                    View all <ChevronRight size={11} />
+                  </button>
+                </div>
+
                 <div className="flex items-center justify-between mb-2">
                   <div>
                     <h2 className="text-sm font-extrabold text-white font-dm leading-tight">
