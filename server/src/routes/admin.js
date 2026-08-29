@@ -1093,11 +1093,30 @@ router.post('/process-loan-payment', authenticateAdmin, async (req, res) => {
     await loanPayments.insertOne(payment);
 
     // 2. Update Loan balance
-    const newPaidMonths = (loan.paidMonths || 0) + 1;
-    const newBalance = Math.max(0, (loan.remainingBalance || loan.totalRepayment || loan.amount) - Number(amount));
-    const isComplete = newPaidMonths >= (loan.termMonths || 12);
+    const currentBalance = loan.remainingBalance != null ? loan.remainingBalance : (loan.totalRepayment || loan.amount || 0);
+    const payAmt = Number(amount);
+    const newBalance = Math.max(0, currentBalance - payAmt);
 
-    const startDate = new Date(loan.disbursementDate || loan.approvedDate || loan.appliedDate);
+    const termMonths = loan.termMonths || 12;
+    const totalRepayment = loan.totalRepayment || loan.amount || 0;
+    const monthlyInstallment = loan.monthlyInstallment || (totalRepayment / termMonths);
+    const totalPaidSoFar = Math.max(0, totalRepayment - newBalance);
+
+    let newPaidMonths = Math.floor(totalPaidSoFar / Math.max(1, monthlyInstallment));
+    if (newPaidMonths < (loan.paidMonths || 0) + 1) {
+      newPaidMonths = (loan.paidMonths || 0) + 1;
+    }
+    if (newPaidMonths > termMonths) {
+      newPaidMonths = termMonths;
+    }
+
+    // Loan is complete if balance reaches 0 OR paid months reaches term
+    const isComplete = newBalance <= 0 || newPaidMonths >= termMonths;
+    if (isComplete) {
+      newPaidMonths = termMonths;
+    }
+
+    const startDate = new Date(loan.disbursementDate || loan.approvedDate || loan.appliedDate || new Date());
     const nextDue = new Date(startDate);
     nextDue.setMonth(startDate.getMonth() + newPaidMonths + 1);
 
@@ -1105,11 +1124,12 @@ router.post('/process-loan-payment', authenticateAdmin, async (req, res) => {
       { _id: loan._id },
       {
         $set: {
-          remainingBalance: newBalance,
+          remainingBalance: isComplete ? 0 : newBalance,
           paidMonths: newPaidMonths,
           status: isComplete ? 'completed' : 'active',
-          nextPaymentDate: nextDue,
-          nextDueDate: nextDue
+          nextPaymentDate: isComplete ? null : nextDue,
+          nextDueDate: isComplete ? null : nextDue,
+          updatedAt: new Date()
         }
       }
     );

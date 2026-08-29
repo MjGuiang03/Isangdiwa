@@ -209,15 +209,15 @@ export default function LandingPage() {
         <img ref={heroImgRef} src={puacCongregation} alt="PUAC National Assembly" className="absolute inset-0 w-full h-full object-cover scale-110" />
         <div className="absolute inset-0 bg-gradient-to-t from-[#060F20] via-[#060F20]/60 to-[#060F20]/30" />
 
-        <div className="relative z-10 h-full flex flex-col justify-end max-w-[1400px] mx-auto px-6 sm:px-10 pb-12 sm:pb-20">
+        <div className="relative z-10 h-full flex flex-col justify-center pt-20 sm:pt-28 pb-8 sm:pb-16 max-w-[1400px] mx-auto px-6 sm:px-10">
           <div className="max-w-3xl">
-            <div className={`text-[11px] font-bold uppercase tracking-[0.2em] text-[#F5C800] mb-4 ${heroVisible ? 'hero-item d1' : 'opacity-0'}`}>Philippine United Apostolic Church</div>
-            <h1 className={`font-outfit text-[clamp(2.8rem,6vw,5.5rem)] font-extrabold leading-[1.02] tracking-tight text-white mb-5 ${heroVisible ? 'hero-item d2' : 'opacity-0'}`}>
+            <div className={`text-[11px] font-bold uppercase tracking-[0.2em] text-[#F5C800] mb-2 ${heroVisible ? 'hero-item d1' : 'opacity-0'}`}>Philippine United Apostolic Church</div>
+            <h1 className={`font-outfit text-[clamp(2.5rem,6vw,5.5rem)] font-extrabold leading-[1.02] tracking-tight text-white mb-3.5 ${heroVisible ? 'hero-item d2' : 'opacity-0'}`}>
               Empowering Faith,<br />
               Fellowship, and<br />
               Stewardship
             </h1>
-            <p className={`text-white/60 text-base sm:text-lg max-w-lg mb-2 leading-relaxed ${heroVisible ? 'hero-item d3' : 'opacity-0'}`}>
+            <p className={`text-white/60 text-sm sm:text-lg max-w-lg mb-2 leading-relaxed ${heroVisible ? 'hero-item d3' : 'opacity-0'}`}>
               Connecting <span className="text-white font-semibold"><AnimatedCounter value={68} /></span> branches and{' '}
               <span className="text-white font-semibold"><AnimatedCounter value={3400} suffix="+" /></span> members across the Philippines under one unified digital platform.
             </p>

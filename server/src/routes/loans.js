@@ -324,6 +324,12 @@ router.get('/loans/my-loans', authenticateUser, async (req, res) => {
 /* ================== ADMIN - GET ALL LOANS ================== */
 router.get('/admin/loans', authenticateAdmin, async (req, res) => {
   try {
+    // Auto-complete any active loans whose remaining balance is 0 or less
+    await loans.updateMany(
+      { status: 'active', remainingBalance: { $lte: 0 } },
+      { $set: { status: 'completed', nextPaymentDate: null, nextDueDate: null } }
+    );
+
     const { search, status, page: qPage, limit: qLimit } = req.query;
     const page  = parseInt(qPage)  || 1;
     const limit = parseInt(qLimit) || 10;
@@ -1187,27 +1193,48 @@ router.get('/admin/loan-reports', authenticateAdmin, async (req, res) => {
     const yearStart = new Date(year, 0, 1);
     const yearEnd = new Date(year + 1, 0, 1);
 
-    // All loans that were applied within the selected year
-    const allLoansInYear = await loans.find({
-      appliedDate: { $gte: yearStart, $lt: yearEnd }
-    }).project({ status: 1, totalInterest: 1 }).toArray();
+    // Fetch all loans and confirmed payments concurrently in 2 fast queries
+    const [allLoansEver, allConfirmedPaymentsRaw] = await Promise.all([
+      loans.find({}, {
+        projection: {
+          status: 1, email: 1, appliedDate: 1, disbursed: 1, disbursementDate: 1,
+          amount: 1, loanType: 1, totalInterest: 1, nextDueDate: 1, approvedDate: 1
+        }
+      }).toArray(),
+      loanPayments.find({ status: 'confirmed' }).toArray()
+    ]);
 
-    // Disbursed loans (money released) in the selected year
-    const disbursedLoans = await loans.find({
-      disbursed: true,
-      disbursementDate: { $gte: yearStart, $lt: yearEnd }
-    }).project({ amount: 1, loanType: 1, disbursementDate: 1 }).toArray();
+    // Filtered loan subsets (in memory)
+    const allLoansInYear = allLoansEver.filter(l => {
+      if (!l.appliedDate) return false;
+      const d = new Date(l.appliedDate);
+      return d >= yearStart && d < yearEnd;
+    });
 
-    // Active/completed loans (money to be received) in the selected year
+    const disbursedLoans = allLoansEver.filter(l => {
+      if (!l.disbursed || !l.disbursementDate) return false;
+      const d = new Date(l.disbursementDate);
+      return d >= yearStart && d < yearEnd;
+    });
+
     const activeCompletedLoans = allLoansInYear.filter(
       l => l.status === 'active' || l.status === 'completed'
     );
 
-    // Actual payments received in the selected year
-    const confirmedPayments = await loanPayments.find({
-      status: 'confirmed',
-      submittedAt: { $gte: yearStart, $lt: yearEnd }
-    }).toArray();
+    // Filter confirmed payments for the selected year
+    const confirmedPayments = allConfirmedPaymentsRaw.filter(p => {
+      const dateVal = p.submittedAt || p.createdAt || p.confirmedAt;
+      if (!dateVal) return false;
+      const d = new Date(dateVal);
+      return d >= yearStart && d < yearEnd;
+    });
+
+    const confirmedPaymentsByConfirmedDate = allConfirmedPaymentsRaw.filter(p => {
+      const dateVal = p.confirmedAt || p.submittedAt;
+      if (!dateVal) return false;
+      const d = new Date(dateVal);
+      return d >= yearStart && d < yearEnd;
+    });
 
     // ── Summary cards ──
     const totalReceived = confirmedPayments.reduce((sum, p) => sum + (p.amount || 0), 0);
@@ -1218,7 +1245,7 @@ router.get('/admin/loan-reports', authenticateAdmin, async (req, res) => {
     const months = ['Jan', 'Feb', 'Mar', 'Apr', 'May', 'Jun', 'Jul', 'Aug', 'Sep', 'Oct', 'Nov', 'Dec'];
     const monthlyData = months.map((month, idx) => {
       const monthPayments = confirmedPayments.filter(p => {
-        const d = new Date(p.submittedAt);
+        const d = new Date(p.submittedAt || p.createdAt);
         return d.getMonth() === idx;
       });
       const monthLoansDisbursed = disbursedLoans.filter(l => {
@@ -1233,7 +1260,7 @@ router.get('/admin/loan-reports', authenticateAdmin, async (req, res) => {
       };
     });
 
-    // ── Loans by type (only secretary-processed / disbursed loans) ──
+    // ── Loans by type ──
     const LOAN_TYPE_LABELS = {
       'personal': 'Personal Loan',
       'emergency': 'Emergency Loan',
@@ -1252,7 +1279,6 @@ router.get('/admin/loan-reports', authenticateAdmin, async (req, res) => {
       };
     });
 
-    // Disbursement chart data by type
     const disbursementByType = loanTypeKeys.map(key => ({
       type: LOAN_TYPE_LABELS[key] || key,
       amount: disbursedLoans
@@ -1260,8 +1286,7 @@ router.get('/admin/loan-reports', authenticateAdmin, async (req, res) => {
         .reduce((s, l) => s + (l.amount || 0), 0),
     }));
 
-    // ── NEW: Loan Status Distribution (Donut Chart) ──
-    const allLoansEver = await loans.find({}).project({ status: 1 }).toArray();
+    // ── Loan Status Distribution (Donut Chart) ──
     const statusCounts = {};
     allLoansEver.forEach(l => {
       const s = l.status || 'pending';
@@ -1278,14 +1303,8 @@ router.get('/admin/loan-reports', authenticateAdmin, async (req, res) => {
       key,
     })).sort((a, b) => b.value - a.value);
 
-    // ── NEW: Repayment Performance (On-Time vs Late) ──
-    const allConfirmedPayments = await loanPayments.find({
-      status: 'confirmed',
-      confirmedAt: { $gte: yearStart, $lt: yearEnd }
-    }).toArray();
-
-    // Include active loans that are currently past due
-    const activeLoans = await loans.find({ status: 'active' }).toArray();
+    // ── Repayment Performance (On-Time vs Late) ──
+    const activeLoans = allLoansEver.filter(l => l.status === 'active');
     const currentlyLateLoans = activeLoans.filter(l => {
       let dueDate = l.nextDueDate;
       if (!dueDate) {
@@ -1298,19 +1317,16 @@ router.get('/admin/loan-reports', authenticateAdmin, async (req, res) => {
       return daysLate >= 1;
     });
 
-    const onTimePayments = allConfirmedPayments.filter(p => !p.isLate).length;
-    const latePayments = allConfirmedPayments.filter(p => p.isLate).length + currentlyLateLoans.length;
+    const onTimePayments = confirmedPaymentsByConfirmedDate.filter(p => !p.isLate).length;
+    const latePayments = confirmedPaymentsByConfirmedDate.filter(p => p.isLate).length + currentlyLateLoans.length;
     const repaymentPerformance = [
       { name: 'On-Time', value: onTimePayments },
       { name: 'Late', value: latePayments },
     ];
 
-    // ── NEW: Monthly Loan Applications Trend ──
-    const allApplicationsInYear = await loans.find({
-      appliedDate: { $gte: yearStart, $lt: yearEnd }
-    }).project({ appliedDate: 1, status: 1 }).toArray();
+    // ── Monthly Loan Applications Trend ──
     const monthlyApplications = months.map((month, idx) => {
-      const monthApps = allApplicationsInYear.filter(l => {
+      const monthApps = allLoansInYear.filter(l => {
         const d = new Date(l.appliedDate);
         return d.getMonth() === idx;
       });
@@ -1322,14 +1338,13 @@ router.get('/admin/loan-reports', authenticateAdmin, async (req, res) => {
       };
     });
 
-    // ── NEW: Delinquency Rate (monthly) ──
+    // ── Delinquency Rate (monthly) ──
     const delinquencyRate = months.map((month, idx) => {
-      const monthPayments = allConfirmedPayments.filter(p => {
+      const monthPayments = confirmedPaymentsByConfirmedDate.filter(p => {
         const d = new Date(p.confirmedAt || p.submittedAt);
         return d.getMonth() === idx;
       });
       
-      // Add currently late loans to the current month's stats
       const isCurrentMonth = new Date().getMonth() === idx && new Date().getFullYear() === year;
       const additionalLate = isCurrentMonth ? currentlyLateLoans.length : 0;
 
@@ -1343,19 +1358,22 @@ router.get('/admin/loan-reports', authenticateAdmin, async (req, res) => {
       };
     });
 
-    // ── Available years (for the dropdown) ──
-    const oldestLoan = await loans.find().sort({ appliedDate: 1 }).limit(1).toArray();
-    const startYear = oldestLoan.length > 0 ? new Date(oldestLoan[0].appliedDate).getFullYear() : year;
+    // ── Available years ──
+    let startYear = year;
+    allLoansEver.forEach(l => {
+      if (l.appliedDate) {
+        const y = new Date(l.appliedDate).getFullYear();
+        if (y < startYear) startYear = y;
+      }
+    });
     const currentYear = new Date().getFullYear();
     const availableYears = [];
     for (let y = currentYear; y >= startYear; y--) availableYears.push(y);
 
     // ── BRANCH-LEVEL AGGREGATIONS ──
-    // Build email → branch map from all relevant emails
     const allEmails = new Set();
-    allLoansEver.forEach(l => allEmails.add(l.email));
-    allApplicationsInYear.forEach(l => allEmails.add(l.email));
-    allConfirmedPayments.forEach(p => allEmails.add(p.email));
+    allLoansEver.forEach(l => { if (l.email) allEmails.add(l.email); });
+    confirmedPaymentsByConfirmedDate.forEach(p => { if (p.email) allEmails.add(p.email); });
 
     const branchUsers = allEmails.size > 0
       ? await users.find(
@@ -1366,10 +1384,9 @@ router.get('/admin/loan-reports', authenticateAdmin, async (req, res) => {
     const emailToBranch = {};
     branchUsers.forEach(u => { emailToBranch[u.email] = u.branch || 'Unassigned'; });
 
-    // 1. Status distribution by branch (all loans ever - need email field)
-    const allLoansWithEmail = await loans.find({}).project({ status: 1, email: 1 }).toArray();
+    // 1. Status distribution by branch
     const branchStatusMap = {};
-    allLoansWithEmail.forEach(l => {
+    allLoansEver.forEach(l => {
       const branch = emailToBranch[l.email] || 'Unassigned';
       if (!branchStatusMap[branch]) branchStatusMap[branch] = { branch, total: 0, active: 0, completed: 0, pending: 0, approved: 0, rejected: 0, cancelled: 0 };
       branchStatusMap[branch].total++;
@@ -1388,7 +1405,7 @@ router.get('/admin/loan-reports', authenticateAdmin, async (req, res) => {
 
     // 2. Repayment performance by branch
     const branchRepaymentMap = {};
-    allConfirmedPayments.forEach(p => {
+    confirmedPaymentsByConfirmedDate.forEach(p => {
       const branch = emailToBranch[p.email] || 'Unassigned';
       if (!branchRepaymentMap[branch]) branchRepaymentMap[branch] = { branch, onTime: 0, late: 0, total: 0, penalties: 0 };
       branchRepaymentMap[branch].total++;
@@ -1404,21 +1421,17 @@ router.get('/admin/loan-reports', authenticateAdmin, async (req, res) => {
       onTimeRate: b.total > 0 ? Math.round((b.onTime / b.total) * 100 * 10) / 10 : 100,
     })).sort((a, b) => a.onTimeRate - b.onTimeRate);
 
-    // Monthly repayment trend (on-time vs late by month)
+    // Monthly repayment trend
     const monthlyRepayment = months.map((month, idx) => {
-      const mp = allConfirmedPayments.filter(p => new Date(p.confirmedAt || p.submittedAt).getMonth() === idx);
+      const mp = confirmedPaymentsByConfirmedDate.filter(p => new Date(p.confirmedAt || p.submittedAt).getMonth() === idx);
       return { month, onTime: mp.filter(p => !p.isLate).length, late: mp.filter(p => p.isLate).length };
     });
 
-    // Total penalties
-    const totalPenalties = allConfirmedPayments.filter(p => p.isLate).reduce((s, p) => s + Math.round((p.amount || 0) * 0.03), 0);
+    const totalPenalties = confirmedPaymentsByConfirmedDate.filter(p => p.isLate).reduce((s, p) => s + Math.round((p.amount || 0) * 0.03), 0);
 
     // 3. Applications by branch
-    const allAppsWithEmail = await loans.find({
-      appliedDate: { $gte: yearStart, $lt: yearEnd }
-    }).project({ appliedDate: 1, status: 1, email: 1, loanType: 1 }).toArray();
     const branchAppMap = {};
-    allAppsWithEmail.forEach(l => {
+    allLoansInYear.forEach(l => {
       const branch = emailToBranch[l.email] || 'Unassigned';
       if (!branchAppMap[branch]) branchAppMap[branch] = { branch, total: 0, approved: 0, rejected: 0, pending: 0, loanTypes: {} };
       branchAppMap[branch].total++;
@@ -1430,7 +1443,6 @@ router.get('/admin/loan-reports', authenticateAdmin, async (req, res) => {
     });
     const branchAppData = Object.values(branchAppMap).map(b => {
       const topType = Object.entries(b.loanTypes).sort((a, c) => c[1] - a[1])[0];
-      // Cap approved at total to prevent >100% rates from edge cases
       const safeApproved = Math.min(b.approved, b.total);
       return {
         ...b,
@@ -1453,11 +1465,8 @@ router.get('/admin/loan-reports', authenticateAdmin, async (req, res) => {
     const branchesAtRisk = branchDelinquencyData.filter(b => b.delinquencyRate > 15).length;
 
     // Monthly status trend
-    const allLoansMonthlyStatus = await loans.find({
-      appliedDate: { $gte: yearStart, $lt: yearEnd }
-    }).project({ appliedDate: 1, status: 1 }).toArray();
     const monthlyStatusTrend = months.map((month, idx) => {
-      const ml = allLoansMonthlyStatus.filter(l => new Date(l.appliedDate).getMonth() === idx);
+      const ml = allLoansInYear.filter(l => new Date(l.appliedDate).getMonth() === idx);
       return {
         month,
         active: ml.filter(l => l.status === 'active').length,

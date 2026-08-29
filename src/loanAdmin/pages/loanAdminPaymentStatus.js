@@ -1045,88 +1045,91 @@ export default function LoanAdminPaymentStatus() {
         )}
       </div>
 
-      {/* ── Loan Detail Modal ── */}
+        {/* ── Loan Detail Modal ── */}
       {selectedLoan && (
         <div className="fixed inset-0 bg-black/50 backdrop-blur-sm flex items-center justify-center z-[1000] p-4" onClick={() => { setSelectedLoan(null); setSelectedLoanPayments([]); }}>
-          <div className="bg-white dark:bg-[#1E2130] rounded-2xl w-full max-w-[520px] flex flex-col border border-slate-200 dark:border-white/10 shadow-2xl" style={{ maxWidth: '520px' }} onClick={(e) => e.stopPropagation()}>
+          <div className="bg-white dark:bg-[#1E2130] rounded-2xl w-full max-w-[900px] flex flex-col border border-slate-200 dark:border-white/10 shadow-2xl" style={{ maxWidth: '900px' }} onClick={(e) => e.stopPropagation()}>
             <div className="flex items-center justify-between p-[18px_24px] border-b border-slate-200 dark:border-white/10 shrink-0">
               <h2 className="font-inter text-lg font-bold text-slate-800 dark:text-white m-0">Loan Payment Progress</h2>
               <button className="w-8 h-8 border-none bg-slate-100 dark:bg-white/5 text-slate-500 rounded-lg cursor-pointer flex items-center justify-center text-lg font-bold hover:bg-slate-200 transition-colors" onClick={() => { setSelectedLoan(null); setSelectedLoanPayments([]); }}>
                 <X size={16} />
               </button>
             </div>
-            <div style={{ padding: '16px 24px 8px' }}>
-              <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '8px', marginBottom: '16px' }}>
-                <div style={{ background: '#F9FAFB', padding: '8px 12px', borderRadius: '8px', border: '1px solid #E5E7EB' }}>
-                  <p style={{ margin: 0, marginBottom: '2px', fontSize: '12px', color: '#6B7280', fontFamily: 'Inter', textTransform: 'uppercase', letterSpacing: '0.05em', fontWeight: 600 }}>Loan ID</p>
-                  <p style={{ margin: 0, fontSize: '17px', fontWeight: 700, fontFamily: 'Inter', color: '#111827' }}>{selectedLoan.loanId}</p>
+            <div className="p-6 grid grid-cols-1 md:grid-cols-2 gap-6">
+              {/* Left Column: Loan Details & Status */}
+              <div className="flex flex-col gap-4">
+                <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '8px' }}>
+                  <div style={{ background: '#F9FAFB', padding: '8px 12px', borderRadius: '8px', border: '1px solid #E5E7EB' }}>
+                    <p style={{ margin: 0, marginBottom: '2px', fontSize: '12px', color: '#6B7280', fontFamily: 'Inter', textTransform: 'uppercase', letterSpacing: '0.05em', fontWeight: 600 }}>Loan ID</p>
+                    <p style={{ margin: 0, fontSize: '17px', fontWeight: 700, fontFamily: 'Inter', color: '#111827' }}>{selectedLoan.loanId}</p>
+                  </div>
+                  <div style={{ background: '#F9FAFB', padding: '8px 12px', borderRadius: '8px', border: '1px solid #E5E7EB' }}>
+                    <p style={{ margin: 0, marginBottom: '2px', fontSize: '12px', color: '#6B7280', fontFamily: 'Inter', textTransform: 'uppercase', letterSpacing: '0.05em', fontWeight: 600 }}>Member</p>
+                    <p style={{ margin: 0, fontSize: '17px', fontWeight: 700, fontFamily: 'Inter', color: '#111827' }}>{selectedLoan.memberName}</p>
+                  </div>
+                  <div style={{ background: '#F9FAFB', padding: '8px 12px', borderRadius: '8px', border: '1px solid #E5E7EB' }}>
+                    <p style={{ margin: 0, marginBottom: '2px', fontSize: '12px', color: '#6B7280', fontFamily: 'Inter', textTransform: 'uppercase', letterSpacing: '0.05em', fontWeight: 600 }}>Loan Amount</p>
+                    <p style={{ margin: 0, fontSize: '17px', fontWeight: 700, fontFamily: 'Inter', color: '#111827' }}>{fmt(selectedLoan.amount)}</p>
+                  </div>
+                  <div style={{ background: '#F9FAFB', padding: '8px 12px', borderRadius: '8px', border: '1px solid #E5E7EB' }}>
+                    <p style={{ margin: 0, marginBottom: '2px', fontSize: '12px', color: '#6B7280', fontFamily: 'Inter', textTransform: 'uppercase', letterSpacing: '0.05em', fontWeight: 600 }}>Monthly Payment</p>
+                    <p style={{ margin: 0, fontSize: '17px', fontWeight: 700, fontFamily: 'Inter', color: '#155DFC' }}>{fmt(selectedLoan.monthlyPayment)}</p>
+                  </div>
+                  <div style={{ background: '#F9FAFB', padding: '8px 12px', borderRadius: '8px', border: '1px solid #E5E7EB' }}>
+                    <p style={{ margin: 0, marginBottom: '2px', fontSize: '12px', color: '#6B7280', fontFamily: 'Inter', textTransform: 'uppercase', letterSpacing: '0.05em', fontWeight: 600 }}>Term</p>
+                    <p style={{ margin: 0, fontSize: '17px', fontWeight: 700, fontFamily: 'Inter', color: '#111827' }}>{selectedLoan.termMonths} months</p>
+                  </div>
+                  <div style={{ background: '#F9FAFB', padding: '8px 12px', borderRadius: '8px', border: '1px solid #E5E7EB' }}>
+                    <p style={{ margin: 0, marginBottom: '2px', fontSize: '12px', color: '#6B7280', fontFamily: 'Inter', textTransform: 'uppercase', letterSpacing: '0.05em', fontWeight: 600 }}>Interest Rate</p>
+                    <p style={{ margin: 0, fontSize: '17px', fontWeight: 700, fontFamily: 'Inter', color: '#111827' }}>{(selectedLoan.interestRate < 1 ? (selectedLoan.interestRate * 100).toFixed(1) : selectedLoan.interestRate)}%</p>
+                  </div>
                 </div>
-                <div style={{ background: '#F9FAFB', padding: '8px 12px', borderRadius: '8px', border: '1px solid #E5E7EB' }}>
-                  <p style={{ margin: 0, marginBottom: '2px', fontSize: '12px', color: '#6B7280', fontFamily: 'Inter', textTransform: 'uppercase', letterSpacing: '0.05em', fontWeight: 600 }}>Member</p>
-                  <p style={{ margin: 0, fontSize: '17px', fontWeight: 700, fontFamily: 'Inter', color: '#111827' }}>{selectedLoan.memberName}</p>
+
+                {/* Progress bar */}
+                <div style={{ background: '#EEF2FF', borderRadius: '10px', padding: '12px 16px', border: '1px solid #E0E7FF' }}>
+                  <div style={{ display: 'flex', justifyContent: 'space-between', marginBottom: '8px', alignItems: 'center' }}>
+                    <span style={{ fontSize: '14px', fontWeight: 700, fontFamily: 'Inter', color: '#1E3A8A' }}>Repayment Progress</span>
+                    <span style={{ fontSize: '14px', fontWeight: 700, fontFamily: 'Inter', color: '#155DFC', background: '#DBEAFE', padding: '4px 10px', borderRadius: '20px' }}>
+                      {selectedLoan.paidMonths || 0} / {selectedLoan.termMonths || 0} months
+                    </span>
+                  </div>
+                  <div style={{ background: '#BFDBFE', borderRadius: '8px', height: '10px', overflow: 'hidden' }}>
+                    <div style={{
+                      background: '#2563EB', borderRadius: '8px', height: '100%',
+                      width: `${Math.max(2, ((selectedLoan.paidMonths || 0) / (selectedLoan.termMonths || 1)) * 100)}%`,
+                      transition: 'width 0.4s ease-out',
+                    }} />
+                  </div>
+                  <div style={{ display: 'flex', justifyContent: 'space-between', marginTop: '8px' }}>
+                    <span style={{ fontSize: '13px', fontWeight: 600, color: '#4B5563', fontFamily: 'Inter' }}>Balance: <span style={{ color: '#111827' }}>{fmt(selectedLoan.remainingBalance)}</span></span>
+                    <span style={{ fontSize: '13px', fontWeight: 600, color: '#4B5563', fontFamily: 'Inter' }}>Total: <span style={{ color: '#111827' }}>{fmt(selectedLoan.totalRepayment)}</span></span>
+                  </div>
                 </div>
-                <div style={{ background: '#F9FAFB', padding: '8px 12px', borderRadius: '8px', border: '1px solid #E5E7EB' }}>
-                  <p style={{ margin: 0, marginBottom: '2px', fontSize: '12px', color: '#6B7280', fontFamily: 'Inter', textTransform: 'uppercase', letterSpacing: '0.05em', fontWeight: 600 }}>Loan Amount</p>
-                  <p style={{ margin: 0, fontSize: '17px', fontWeight: 700, fontFamily: 'Inter', color: '#111827' }}>{fmt(selectedLoan.amount)}</p>
-                </div>
-                <div style={{ background: '#F9FAFB', padding: '8px 12px', borderRadius: '8px', border: '1px solid #E5E7EB' }}>
-                  <p style={{ margin: 0, marginBottom: '2px', fontSize: '12px', color: '#6B7280', fontFamily: 'Inter', textTransform: 'uppercase', letterSpacing: '0.05em', fontWeight: 600 }}>Monthly Payment</p>
-                  <p style={{ margin: 0, fontSize: '17px', fontWeight: 700, fontFamily: 'Inter', color: '#155DFC' }}>{fmt(selectedLoan.monthlyPayment)}</p>
-                </div>
-                <div style={{ background: '#F9FAFB', padding: '8px 12px', borderRadius: '8px', border: '1px solid #E5E7EB' }}>
-                  <p style={{ margin: 0, marginBottom: '2px', fontSize: '12px', color: '#6B7280', fontFamily: 'Inter', textTransform: 'uppercase', letterSpacing: '0.05em', fontWeight: 600 }}>Term</p>
-                  <p style={{ margin: 0, fontSize: '17px', fontWeight: 700, fontFamily: 'Inter', color: '#111827' }}>{selectedLoan.termMonths} months</p>
-                </div>
-                <div style={{ background: '#F9FAFB', padding: '8px 12px', borderRadius: '8px', border: '1px solid #E5E7EB' }}>
-                  <p style={{ margin: 0, marginBottom: '2px', fontSize: '12px', color: '#6B7280', fontFamily: 'Inter', textTransform: 'uppercase', letterSpacing: '0.05em', fontWeight: 600 }}>Interest Rate</p>
-                  <p style={{ margin: 0, fontSize: '17px', fontWeight: 700, fontFamily: 'Inter', color: '#111827' }}>{(selectedLoan.interestRate < 1 ? (selectedLoan.interestRate * 100).toFixed(1) : selectedLoan.interestRate)}%</p>
+
+                <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '8px' }}>
+                  <div style={{ padding: '4px' }}>
+                    <p style={{ margin: 0, marginBottom: '4px', fontSize: '12px', color: '#6B7280', fontFamily: 'Inter', fontWeight: 600 }}>Status</p>
+                    <span className={`inline-block px-3 py-1 rounded-md text-sm font-bold tracking-wide uppercase ${selectedLoan.paymentStatus.cls === 'on-track' ? 'bg-emerald-100 text-emerald-700 dark:bg-emerald-500/20 dark:text-emerald-400' : selectedLoan.paymentStatus.cls === 'reminder' ? 'bg-amber-100 text-amber-700 dark:bg-amber-500/20 dark:text-amber-400' : selectedLoan.paymentStatus.cls === 'delinquent' ? 'bg-orange-100 text-orange-700 dark:bg-orange-500/20 dark:text-orange-400' : selectedLoan.paymentStatus.cls === 'high-risk' ? 'bg-rose-100 text-rose-700 dark:bg-rose-500/20 dark:text-rose-400' : 'bg-red-900 text-white'}`}>{selectedLoan.paymentStatus.label}</span>
+                  </div>
+                  <div style={{ padding: '4px' }}>
+                    <p style={{ margin: 0, marginBottom: '4px', fontSize: '12px', color: '#6B7280', fontFamily: 'Inter', fontWeight: 600 }}>Days Late</p>
+                    <p style={{ margin: 0, fontSize: '16px', fontWeight: 700, fontFamily: 'Inter', color: selectedLoan.daysLate > 0 ? '#DC2626' : '#16A34A' }}>{selectedLoan.daysLate > 0 ? `${selectedLoan.daysLate} days` : 'Current'}</p>
+                  </div>
+                  <div style={{ padding: '4px' }}>
+                    <p style={{ margin: 0, marginBottom: '4px', fontSize: '12px', color: '#6B7280', fontFamily: 'Inter', fontWeight: 600 }}>Approved Date</p>
+                    <p style={{ margin: 0, fontSize: '15px', fontWeight: 600, fontFamily: 'Inter', color: '#374151' }}>{fmtDate(selectedLoan.approvedDate)}</p>
+                  </div>
+                  <div style={{ padding: '4px' }}>
+                    <p style={{ margin: 0, marginBottom: '4px', fontSize: '12px', color: '#6B7280', fontFamily: 'Inter', fontWeight: 600 }}>Next Due Date</p>
+                    <p style={{ margin: 0, fontSize: '15px', fontWeight: 600, fontFamily: 'Inter', color: '#374151' }}>{fmtDate(selectedLoan.effectiveDueDate)}</p>
+                  </div>
                 </div>
               </div>
 
-              {/* Progress bar */}
-              <div style={{ background: '#EEF2FF', borderRadius: '10px', padding: '12px 16px', marginBottom: '16px', border: '1px solid #E0E7FF' }}>
-                <div style={{ display: 'flex', justifyContent: 'space-between', marginBottom: '8px', alignItems: 'center' }}>
-                  <span style={{ fontSize: '14px', fontWeight: 700, fontFamily: 'Inter', color: '#1E3A8A' }}>Repayment Progress</span>
-                  <span style={{ fontSize: '14px', fontWeight: 700, fontFamily: 'Inter', color: '#155DFC', background: '#DBEAFE', padding: '4px 10px', borderRadius: '20px' }}>
-                    {selectedLoan.paidMonths || 0} / {selectedLoan.termMonths || 0} months
-                  </span>
-                </div>
-                <div style={{ background: '#BFDBFE', borderRadius: '8px', height: '10px', overflow: 'hidden' }}>
-                  <div style={{
-                    background: '#2563EB', borderRadius: '8px', height: '100%',
-                    width: `${Math.max(2, ((selectedLoan.paidMonths || 0) / (selectedLoan.termMonths || 1)) * 100)}%`,
-                    transition: 'width 0.4s ease-out',
-                  }} />
-                </div>
-                <div style={{ display: 'flex', justifyContent: 'space-between', marginTop: '8px' }}>
-                  <span style={{ fontSize: '13px', fontWeight: 600, color: '#4B5563', fontFamily: 'Inter' }}>Balance: <span style={{ color: '#111827' }}>{fmt(selectedLoan.remainingBalance)}</span></span>
-                  <span style={{ fontSize: '13px', fontWeight: 600, color: '#4B5563', fontFamily: 'Inter' }}>Total: <span style={{ color: '#111827' }}>{fmt(selectedLoan.totalRepayment)}</span></span>
-                </div>
-              </div>
-
-              <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '8px' }}>
-                <div style={{ padding: '4px' }}>
-                  <p style={{ margin: 0, marginBottom: '4px', fontSize: '12px', color: '#6B7280', fontFamily: 'Inter', fontWeight: 600 }}>Status</p>
-                  <span className={`inline-block px-3 py-1 rounded-md text-sm font-bold tracking-wide uppercase ${selectedLoan.paymentStatus.cls === 'on-track' ? 'bg-emerald-100 text-emerald-700 dark:bg-emerald-500/20 dark:text-emerald-400' : selectedLoan.paymentStatus.cls === 'reminder' ? 'bg-amber-100 text-amber-700 dark:bg-amber-500/20 dark:text-amber-400' : selectedLoan.paymentStatus.cls === 'delinquent' ? 'bg-orange-100 text-orange-700 dark:bg-orange-500/20 dark:text-orange-400' : selectedLoan.paymentStatus.cls === 'high-risk' ? 'bg-rose-100 text-rose-700 dark:bg-rose-500/20 dark:text-rose-400' : 'bg-red-900 text-white'}`}>{selectedLoan.paymentStatus.label}</span>
-                </div>
-                <div style={{ padding: '4px' }}>
-                  <p style={{ margin: 0, marginBottom: '4px', fontSize: '12px', color: '#6B7280', fontFamily: 'Inter', fontWeight: 600 }}>Days Late</p>
-                  <p style={{ margin: 0, fontSize: '16px', fontWeight: 700, fontFamily: 'Inter', color: selectedLoan.daysLate > 0 ? '#DC2626' : '#16A34A' }}>{selectedLoan.daysLate > 0 ? `${selectedLoan.daysLate} days` : 'Current'}</p>
-                </div>
-                <div style={{ padding: '4px' }}>
-                  <p style={{ margin: 0, marginBottom: '4px', fontSize: '12px', color: '#6B7280', fontFamily: 'Inter', fontWeight: 600 }}>Approved Date</p>
-                  <p style={{ margin: 0, fontSize: '15px', fontWeight: 600, fontFamily: 'Inter', color: '#374151' }}>{fmtDate(selectedLoan.approvedDate)}</p>
-                </div>
-                <div style={{ padding: '4px' }}>
-                  <p style={{ margin: 0, marginBottom: '4px', fontSize: '12px', color: '#6B7280', fontFamily: 'Inter', fontWeight: 600 }}>Next Due Date</p>
-                  <p style={{ margin: 0, fontSize: '15px', fontWeight: 600, fontFamily: 'Inter', color: '#374151' }}>{fmtDate(selectedLoan.effectiveDueDate)}</p>
-                </div>
-              </div>
-
-              {/* Payment History */}
-              <div style={{ marginTop: '16px' }}>
-                <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '10px' }}>
-                  <p style={{ margin: 0, fontSize: '14px', fontWeight: 700, fontFamily: 'Inter', color: '#1E3A8A' }}>Payment History</p>
+              {/* Right Column: Payment History */}
+              <div className="flex flex-col border-t md:border-t-0 md:border-l border-slate-200 dark:border-white/10 pt-4 md:pt-0 md:pl-6">
+                <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '12px' }}>
+                  <p style={{ margin: 0, fontSize: '15px', fontWeight: 700, fontFamily: 'Inter', color: '#1E3A8A' }}>Payment History</p>
                   {selectedLoanPayments.length === 0 && !selectedLoanPaymentsLoading && (
                     <button
                       onClick={async () => {
@@ -1138,17 +1141,19 @@ export default function LoanAdminPaymentStatus() {
                         } catch { /* silent */ }
                         finally { setSelectedLoanPaymentsLoading(false); }
                       }}
-                      style={{ background: '#EEF2FF', color: '#1E3A8A', border: '1px solid #C7D2FE', padding: '4px 12px', borderRadius: '6px', fontSize: '12px', fontWeight: 600, cursor: 'pointer', fontFamily: 'Inter' }}
+                      style={{ background: '#EEF2FF', color: '#1E3A8A', border: '1px solid #C7D2FE', padding: '5px 14px', borderRadius: '6px', fontSize: '12px', fontWeight: 600, cursor: 'pointer', fontFamily: 'Inter' }}
                     >Load History</button>
                   )}
                 </div>
+
                 {selectedLoanPaymentsLoading && (
-                  <p style={{ fontSize: '13px', color: '#9CA3AF', fontFamily: 'Inter', textAlign: 'center', padding: '12px 0' }}>Loading...</p>
+                  <p style={{ fontSize: '13px', color: '#9CA3AF', fontFamily: 'Inter', textAlign: 'center', padding: '24px 0' }}>Loading...</p>
                 )}
+
                 {selectedLoanPayments.length > 0 && (
-                  <div style={{ maxHeight: '180px', overflowY: 'auto', borderRadius: '8px', border: '1px solid #E5E7EB' }}>
+                  <div style={{ flex: 1, maxHeight: '340px', overflowY: 'auto', borderRadius: '8px', border: '1px solid #E5E7EB' }}>
                     <table style={{ width: '100%', borderCollapse: 'collapse', fontSize: '12px', fontFamily: 'Inter' }}>
-                      <thead>
+                      <thead style={{ position: 'sticky', top: 0, zIndex: 1 }}>
                         <tr style={{ background: '#F9FAFB' }}>
                           <th style={{ padding: '8px 10px', textAlign: 'left', fontWeight: 600, color: '#6B7280', borderBottom: '1px solid #E5E7EB' }}>Date</th>
                           <th style={{ padding: '8px 10px', textAlign: 'right', fontWeight: 600, color: '#6B7280', borderBottom: '1px solid #E5E7EB' }}>Amount</th>
@@ -1173,11 +1178,15 @@ export default function LoanAdminPaymentStatus() {
                     </table>
                   </div>
                 )}
+
                 {!selectedLoanPaymentsLoading && selectedLoanPayments.length === 0 && (
-                  <p style={{ fontSize: '12px', color: '#9CA3AF', fontFamily: 'Inter', textAlign: 'center', padding: '8px 0', margin: 0 }}>Click "Load History" to view payment records</p>
+                  <div className="flex-1 flex flex-col items-center justify-center p-8 bg-slate-50 dark:bg-black/10 rounded-xl border border-dashed border-slate-200 dark:border-white/10 text-center min-h-[180px]">
+                    <p style={{ fontSize: '13px', color: '#9CA3AF', fontFamily: 'Inter', margin: 0 }}>Click "Load History" to view payment records</p>
+                  </div>
                 )}
               </div>
             </div>
+
             <div style={{ padding: '0 24px 16px', display: 'flex', justifyContent: 'flex-end' }}>
               <button onClick={() => { setSelectedLoan(null); setSelectedLoanPayments([]); }} style={{ background: '#155DFC', color: '#fff', border: 'none', padding: '8px 20px', borderRadius: '8px', fontSize: '13px', fontWeight: 600, cursor: 'pointer', fontFamily: 'Inter' }}>Close</button>
             </div>
