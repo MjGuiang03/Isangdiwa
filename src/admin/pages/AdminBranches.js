@@ -3,7 +3,7 @@ import { createPortal } from 'react-dom';
 import useSWR from 'swr';
 import { useNavigate } from 'react-router';
 import { toast } from 'sonner';
-import { CalendarDays, Circle, MapPin, Search, Users, TrendingUp , Loader2, AlertTriangle} from 'lucide-react';
+import { CalendarDays, MapPin, Search, Users, TrendingUp , Loader2, AlertTriangle} from 'lucide-react';
 import { PieChart, Pie, Cell, Tooltip, ResponsiveContainer, Legend, BarChart, Bar, XAxis, YAxis, CartesianGrid, LabelList } from 'recharts';
 import useDebounce from '../../hooks/useDebounce';
 
@@ -23,15 +23,48 @@ const REGION_MAP = {
 
 const REGION_ORDER = ['CAR', 'Region II', 'Region I', 'Region III', 'NCR', 'Region IV-A', 'Region VII', 'Region XIII'];
 
+const REGION_CITIES_MAP = {
+  'NCR': [
+    'Manila', 'Quezon City', 'Caloocan', 'Las Piñas', 'Makati', 'Malabon', 
+    'Mandaluyong', 'Marikina', 'Muntinlupa', 'Navotas', 'Parañaque', 'Pasay', 
+    'Pasig', 'Pateros', 'San Juan', 'Taguig', 'Valenzuela'
+  ],
+  'CAR': ['Abra', 'Apayao', 'Baguio City', 'Benguet', 'Ifugao', 'Kalinga', 'Mountain Province'],
+  'Region I': ['Ilocos Norte', 'Ilocos Sur', 'La Union', 'Pangasinan'],
+  'Region II': ['Batanes', 'Cagayan', 'Isabela', 'Nueva Vizcaya', 'Quirino'],
+  'Region III': ['Aurora', 'Bataan', 'Bulacan', 'Nueva Ecija', 'Pampanga', 'Tarlac', 'Zambales'],
+  'Region IV-A': ['Batangas', 'Cavite', 'Laguna', 'Quezon', 'Rizal'],
+  'Region VII': ['Bohol', 'Cebu', 'Negros Oriental', 'Siquijor'],
+  'Region XIII': ['Agusan del Norte', 'Agusan del Sur', 'Dinagat Islands', 'Surigao del Norte', 'Surigao del Sur']
+};
+
 const PROVINCE_TO_REGION_TAG = {
-  'Kalinga': 'CAR', 'Abra': 'CAR', 'Benguet': 'CAR', 'Ifugao': 'CAR', 'Mountain Province': 'CAR', 'Apayao': 'CAR',
-  'Isabela': 'Region II', 'Cagayan': 'Region II', 'Nueva Vizcaya': 'Region II', 'Quirino': 'Region II', 'Batanes': 'Region II',
-  'Pangasinan': 'Region I', 'Ilocos Norte': 'Region I', 'Ilocos Sur': 'Region I', 'La Union': 'Region I',
-  'Bulacan': 'Region III', 'Tarlac': 'Region III', 'Nueva Ecija': 'Region III', 'Pampanga': 'Region III', 'Bataan': 'Region III', 'Zambales': 'Region III', 'Aurora': 'Region III',
-  'NCR': 'NCR', 'Metro Manila': 'NCR',
-  'Rizal': 'Region IV-A', 'Cavite': 'Region IV-A', 'Laguna': 'Region IV-A', 'Batangas': 'Region IV-A', 'Quezon': 'Region IV-A',
-  'Cebu': 'Region VII', 'Bohol': 'Region VII', 'Negros Oriental': 'Region VII', 'Siquijor': 'Region VII',
-  'Agusan Del Norte': 'Region XIII', 'Agusan Del Sur': 'Region XIII', 'Surigao Del Norte': 'Region XIII', 'Surigao Del Sur': 'Region XIII', 'Dinagat Islands': 'Region XIII'
+  // NCR
+  'NCR': 'NCR', 'Metro Manila': 'NCR', 'Manila': 'NCR', 'Quezon City': 'NCR', 'Caloocan': 'NCR', 
+  'Las Piñas': 'NCR', 'Makati': 'NCR', 'Malabon': 'NCR', 'Mandaluyong': 'NCR', 'Marikina': 'NCR', 
+  'Muntinlupa': 'NCR', 'Navotas': 'NCR', 'Parañaque': 'NCR', 'Pasay': 'NCR', 'Pasig': 'NCR', 
+  'Pateros': 'NCR', 'San Juan': 'NCR', 'Taguig': 'NCR', 'Valenzuela': 'NCR',
+
+  // CAR
+  'CAR': 'CAR', 'Kalinga': 'CAR', 'Abra': 'CAR', 'Benguet': 'CAR', 'Ifugao': 'CAR', 'Mountain Province': 'CAR', 'Apayao': 'CAR', 'Baguio City': 'CAR',
+
+  // Region I
+  'Region I': 'Region I', 'Pangasinan': 'Region I', 'Ilocos Norte': 'Region I', 'Ilocos Sur': 'Region I', 'La Union': 'Region I',
+
+  // Region II
+  'Region II': 'Region II', 'Isabela': 'Region II', 'Cagayan': 'Region II', 'Nueva Vizcaya': 'Region II', 'Quirino': 'Region II', 'Batanes': 'Region II',
+
+  // Region III
+  'Region III': 'Region III', 'Bulacan': 'Region III', 'Tarlac': 'Region III', 'Nueva Ecija': 'Region III', 'Pampanga': 'Region III', 'Bataan': 'Region III', 'Zambales': 'Region III', 'Aurora': 'Region III',
+
+  // Region IV-A
+  'Region IV-A': 'Region IV-A', 'Rizal': 'Region IV-A', 'Cavite': 'Region IV-A', 'Laguna': 'Region IV-A', 'Batangas': 'Region IV-A', 'Quezon': 'Region IV-A',
+
+  // Region VII
+  'Region VII': 'Region VII', 'Cebu': 'Region VII', 'Bohol': 'Region VII', 'Negros Oriental': 'Region VII', 'Siquijor': 'Region VII',
+
+  // Region XIII
+  'Region XIII': 'Region XIII', 'Agusan Del Norte': 'Region XIII', 'Agusan del Norte': 'Region XIII', 'Agusan Del Sur': 'Region XIII', 'Agusan del Sur': 'Region XIII', 'Surigao Del Norte': 'Region XIII', 'Surigao del Norte': 'Region XIII', 'Surigao Del Sur': 'Region XIII', 'Surigao del Sur': 'Region XIII', 'Dinagat Islands': 'Region XIII'
 };
 
 const NAME_TO_REGION_TAG = {
@@ -339,13 +372,25 @@ function DeleteCommunityModal({ branch, onClose, onConfirm }) {
 
 function AddCommunityModal({ onClose, onSave }) {
   const [name, setName] = useState('');
+  const [region, setRegion] = useState('');
+  const [cityOrProvince, setCityOrProvince] = useState('');
   const [address, setAddress] = useState('');
   const [pastor, setPastor] = useState('');
   const [saving, setSaving] = useState(false);
 
+  const handleRegionChange = (e) => {
+    const selectedRegion = e.target.value;
+    setRegion(selectedRegion);
+    setCityOrProvince('');
+  };
+
   const handleSubmit = async (e) => {
     e.preventDefault();
-    if (!name.trim()) return toast.error('Community name is required');
+    if (!name.trim()) return toast.error('Community Name is required');
+    if (!region) return toast.error('Region is required');
+    if (!cityOrProvince) return toast.error('City / Province is required');
+    if (!address.trim()) return toast.error('Complete Address is required');
+    if (!pastor.trim()) return toast.error('Lead Pastor is required');
 
     setSaving(true);
     try {
@@ -353,7 +398,13 @@ function AddCommunityModal({ onClose, onSave }) {
       const res = await fetch(`${API}/api/admin/branches`, {
         method: 'POST',
         headers: { 'Content-Type': 'application/json', Authorization: `Bearer ${token}` },
-        body: JSON.stringify({ name: name.trim(), address: address.trim(), pastor: pastor.trim() })
+        body: JSON.stringify({
+          name: name.trim(),
+          region,
+          province: cityOrProvince,
+          address: address.trim(),
+          pastor: pastor.trim()
+        })
       });
       const data = await res.json();
       if (!data.success) throw new Error(data.message);
@@ -366,9 +417,11 @@ function AddCommunityModal({ onClose, onSave }) {
     }
   };
 
+  const cityOptions = region ? (REGION_CITIES_MAP[region] || []) : [];
+
   return (
     <div className="fixed inset-0 bg-black/50 backdrop-blur-sm z-[1000] flex items-center justify-center p-4" onClick={onClose}>
-      <div className="bg-white dark:bg-[#1E2130] rounded-2xl w-full max-w-[400px] shadow-2xl border border-slate-200 dark:border-white/10 flex flex-col max-h-[90vh] overflow-hidden" onClick={e => e.stopPropagation()}>
+      <div className="bg-white dark:bg-[#1E2130] rounded-2xl w-full max-w-[420px] shadow-2xl border border-slate-200 dark:border-white/10 flex flex-col max-h-[90vh] overflow-hidden" onClick={e => e.stopPropagation()}>
         <div className="flex items-center gap-4 p-5 border-b border-slate-200 dark:border-white/10 shrink-0 relative">
            <div className="w-12 h-12 rounded-xl flex items-center justify-center shrink-0 bg-blue-100 text-blue-600 dark:bg-blue-500/20 dark:text-blue-400">
              <Plus size={20} />
@@ -379,18 +432,55 @@ function AddCommunityModal({ onClose, onSave }) {
           </div>
           <button className="absolute top-5 right-5 w-8 h-8 flex items-center justify-center rounded-lg bg-slate-100 dark:bg-white/5 text-slate-500 hover:bg-slate-200 dark:hover:bg-white/10 transition-colors cursor-pointer border-none" onClick={onClose}><XCircle size={20} color="#6B7280" /></button>
         </div>
-        <form onSubmit={handleSubmit} className="p-6 overflow-y-auto custom-scrollbar flex flex-col gap-5">
+        <form onSubmit={handleSubmit} className="p-6 overflow-y-auto custom-scrollbar flex flex-col gap-4">
           <div className="flex flex-col gap-1.5">
              <label className="font-inter text-[13px] font-semibold text-slate-700 dark:text-slate-300">Community Name</label>
-             <input type="text" className="h-10 px-3 bg-white dark:bg-[#1E2130] border border-slate-300 dark:border-white/10 rounded-lg text-sm font-inter text-slate-800 dark:text-white outline-none focus:border-blue-500 focus:ring-1 focus:ring-blue-500 transition-all w-full" autoFocus placeholder="e.g. San Pedro" value={name} onChange={e => setName(e.target.value)} />
+             <input type="text" className="h-10 px-3 bg-white dark:bg-[#1E2130] border border-slate-300 dark:border-white/10 rounded-lg text-sm font-inter text-slate-800 dark:text-white outline-none focus:border-blue-500 focus:ring-1 focus:ring-blue-500 transition-all w-full" autoFocus placeholder="e.g. San Pedro" value={name} onChange={e => setName(e.target.value)} required />
           </div>
+          
           <div className="flex flex-col gap-1.5">
-             <label className="font-inter text-[13px] font-semibold text-slate-700 dark:text-slate-300">Address</label>
-             <input type="text" className="h-10 px-3 bg-white dark:bg-[#1E2130] border border-slate-300 dark:border-white/10 rounded-lg text-sm font-inter text-slate-800 dark:text-white outline-none focus:border-blue-500 focus:ring-1 focus:ring-blue-500 transition-all w-full" placeholder="Branch Address" value={address} onChange={e => setAddress(e.target.value)} />
+             <label className="font-inter text-[13px] font-semibold text-slate-700 dark:text-slate-300">Region</label>
+             <select
+               className="h-10 px-3 bg-white dark:bg-[#1E2130] border border-slate-300 dark:border-white/10 rounded-lg text-sm font-inter text-slate-800 dark:text-white outline-none focus:border-blue-500 focus:ring-1 focus:ring-blue-500 transition-all w-full cursor-pointer"
+               value={region}
+               onChange={handleRegionChange}
+               required
+             >
+               <option value="">Select Region</option>
+               {REGION_ORDER.map(rKey => (
+                 <option key={rKey} value={rKey}>
+                   {rKey} - {REGION_MAP[rKey]}
+                 </option>
+               ))}
+             </select>
           </div>
+
+          <div className="flex flex-col gap-1.5">
+             <label className="font-inter text-[13px] font-semibold text-slate-700 dark:text-slate-300">City / Province</label>
+             <select
+               className="h-10 px-3 bg-white dark:bg-[#1E2130] border border-slate-300 dark:border-white/10 rounded-lg text-sm font-inter text-slate-800 dark:text-white outline-none focus:border-blue-500 focus:ring-1 focus:ring-blue-500 transition-all w-full cursor-pointer disabled:opacity-50 disabled:cursor-not-allowed"
+               value={cityOrProvince}
+               onChange={e => setCityOrProvince(e.target.value)}
+               disabled={!region}
+               required
+             >
+               <option value="">{region ? 'Select City / Province' : 'Select Region First'}</option>
+               {cityOptions.map(city => (
+                 <option key={city} value={city}>
+                   {city}
+                 </option>
+               ))}
+             </select>
+          </div>
+
+          <div className="flex flex-col gap-1.5">
+             <label className="font-inter text-[13px] font-semibold text-slate-700 dark:text-slate-300">Complete Address</label>
+             <input type="text" className="h-10 px-3 bg-white dark:bg-[#1E2130] border border-slate-300 dark:border-white/10 rounded-lg text-sm font-inter text-slate-800 dark:text-white outline-none focus:border-blue-500 focus:ring-1 focus:ring-blue-500 transition-all w-full" placeholder="e.g. 123 Street Name, Barangay" value={address} onChange={e => setAddress(e.target.value)} required />
+          </div>
+
           <div className="flex flex-col gap-1.5">
              <label className="font-inter text-[13px] font-semibold text-slate-700 dark:text-slate-300">Pastor</label>
-             <input type="text" className="h-10 px-3 bg-white dark:bg-[#1E2130] border border-slate-300 dark:border-white/10 rounded-lg text-sm font-inter text-slate-800 dark:text-white outline-none focus:border-blue-500 focus:ring-1 focus:ring-blue-500 transition-all w-full" placeholder="Lead Pastor" value={pastor} onChange={e => setPastor(e.target.value)} />
+             <input type="text" className="h-10 px-3 bg-white dark:bg-[#1E2130] border border-slate-300 dark:border-white/10 rounded-lg text-sm font-inter text-slate-800 dark:text-white outline-none focus:border-blue-500 focus:ring-1 focus:ring-blue-500 transition-all w-full" placeholder="Lead Pastor" value={pastor} onChange={e => setPastor(e.target.value)} required />
           </div>
         </form>
         <div className="p-5 border-t border-slate-200 dark:border-white/10 bg-slate-50 dark:bg-black/20 flex items-center justify-end gap-3 shrink-0">

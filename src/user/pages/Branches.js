@@ -3,7 +3,7 @@ import { useAuth } from '../../context/AuthContext';
 import { useState, useMemo, useEffect, useRef, Suspense, lazy } from 'react';
 import useSWR from 'swr';
 import { MapPin, Search, X, ChevronDown, Check, Map, List, Calendar } from 'lucide-react';
-import { branchData, REGION_ORDER, REGION_LABELS, DAY_COLORS, COMMUNITY_MAP } from '../components/branchData';
+import { branchData, getCoords, REGION_ORDER, REGION_LABELS, DAY_COLORS, COMMUNITY_MAP } from '../components/branchData';
 import { useNavigate } from 'react-router-dom';
 import API from '../../utils/api';
 import useSwipeToClose, { DragHandle } from '../hooks/useSwipeToClose';
@@ -36,19 +36,54 @@ export default function Branches() {
   const { data: eventsData } = useSWR(`${API}/api/admin/announcements`, fetcher, { revalidateOnFocus: false });
   const { data: visitedData } = useSWR(token ? `${API}/api/attendance/visited-stats` : null, authFetcher, { revalidateOnFocus: false });
 
+  const allBranches = useMemo(() => {
+    const map = new Map();
+    branchData.forEach(b => {
+      map.set(b.name.toLowerCase().trim(), { ...b });
+    });
+
+    if (branchesData?.success && Array.isArray(branchesData.branches)) {
+      branchesData.branches.forEach(dbBranch => {
+        const key = dbBranch.name.toLowerCase().trim();
+        const existing = map.get(key);
+
+        const resolvedRegion = dbBranch.region || dbBranch.province || existing?.region || 'CAR';
+        const resolvedProvince = dbBranch.province || existing?.province || resolvedRegion;
+        const coords = getCoords(dbBranch.name, resolvedProvince);
+
+        map.set(key, {
+          ...existing,
+          name: dbBranch.name,
+          region: resolvedRegion,
+          province: resolvedProvince,
+          address: dbBranch.address || existing?.address || '',
+          pastor: dbBranch.pastor || existing?.pastor || '',
+          serviceTimes: dbBranch.serviceTimes && dbBranch.serviceTimes.length > 0
+            ? dbBranch.serviceTimes
+            : (existing?.serviceTimes || [{ day: 'Sunday', time: '9:00 AM' }]),
+          lat: dbBranch.lat || existing?.lat || coords.lat,
+          lng: dbBranch.lng || existing?.lng || coords.lng,
+          members: Number(dbBranch.members) || 0,
+          officers: Number(dbBranch.officers) || 0,
+          id: dbBranch._id || existing?.id
+        });
+      });
+    }
+
+    return Array.from(map.values());
+  }, [branchesData]);
+
   const visitedStats = useMemo(() => {
     return visitedData?.success ? visitedData.visited : {};
   }, [visitedData]);
 
   const branchStats = useMemo(() => {
     const stats = {};
-    if (branchesData?.success) {
-      branchesData.branches.forEach(b => {
-        stats[b.name] = { members: Number(b.members) || 0, officers: Number(b.officers) || 0 };
-      });
-    }
+    allBranches.forEach(b => {
+      stats[b.name] = { members: Number(b.members) || 0, officers: Number(b.officers) || 0 };
+    });
     return stats;
-  }, [branchesData]);
+  }, [allBranches]);
 
   const events = useMemo(() => {
     return eventsData?.success && Array.isArray(eventsData.announcements) ? eventsData.announcements : [];
@@ -78,7 +113,7 @@ export default function Branches() {
 
     const normalizedUserBranch = rawBranch.toLowerCase().replace(/\s*city\s*/gi, '').trim();
 
-    let match = branchData.find(b => {
+    let match = allBranches.find(b => {
       const normalizedName = b.name.toLowerCase().replace(/\s*city\s*/gi, '').trim();
       return normalizedName.includes(normalizedUserBranch) || normalizedUserBranch.includes(normalizedName);
     });
@@ -86,12 +121,12 @@ export default function Branches() {
     if (!match) {
       const mappedName = COMMUNITY_MAP[rawBranch];
       if (mappedName) {
-        match = branchData.find(b => b.name.toLowerCase() === mappedName.toLowerCase());
+        match = allBranches.find(b => b.name.toLowerCase() === mappedName.toLowerCase());
       }
     }
 
     return match || null;
-  }, [profile]);
+  }, [profile, allBranches]);
 
   const userBranchName = userBranch?.name || null;
 
@@ -189,7 +224,7 @@ export default function Branches() {
           {/* Region accordion list */}
           <div className="flex-1 overflow-y-auto divide-y divide-slate-100 dark:divide-white/5">
             {REGION_ORDER.map(regionKey => {
-              const regionBranches = branchData.filter(b => b.region === regionKey);
+              const regionBranches = allBranches.filter(b => b.region === regionKey);
               const filtered = search
                 ? regionBranches.filter(b => b.name.toLowerCase().includes(search.toLowerCase()))
                 : regionBranches;
@@ -247,7 +282,7 @@ export default function Branches() {
         }`}>
           <Suspense fallback={<div className="flex justify-center items-center h-full w-full text-slate-400 text-xs font-semibold">Loading Map...</div>}>
             <BranchMap
-              branches={branchData}
+              branches={allBranches}
               userBranch={userBranch}
               onBranchClick={(branch) => { openDrawer(branch); }}
               flyToRef={flyToRef}

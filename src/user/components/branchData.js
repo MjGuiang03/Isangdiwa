@@ -3,17 +3,72 @@ const PROVINCE_COORDS = {
   'Kalinga':           { lat: 17.4766, lng: 121.3554 },
   'Abra':              { lat: 17.5967, lng: 120.7982 },
   'Benguet':           { lat: 16.4023, lng: 120.5960 },
-  'Isabela':           { lat: 16.9754, lng: 121.8107 },
+  'Apayao':            { lat: 18.1186, lng: 121.1685 },
+  'Ifugao':            { lat: 16.8200, lng: 121.1500 },
+  'Mountain Province': { lat: 17.0833, lng: 121.0000 },
+  'CAR':               { lat: 17.0000, lng: 121.0000 },
+
+  'Ilocos Norte':      { lat: 18.1960, lng: 120.5927 },
+  'Ilocos Sur':        { lat: 17.5747, lng: 120.3869 },
+  'La Union':          { lat: 16.6159, lng: 120.3209 },
   'Pangasinan':        { lat: 15.8949, lng: 120.2863 },
+  'Region I':          { lat: 16.8000, lng: 120.4000 },
+
+  'Batanes':           { lat: 20.4487, lng: 121.9702 },
+  'Cagayan':           { lat: 17.6132, lng: 121.7269 },
+  'Isabela':           { lat: 16.9754, lng: 121.8107 },
+  'Nueva Vizcaya':     { lat: 16.3200, lng: 121.1000 },
+  'Quirino':           { lat: 16.2700, lng: 121.5300 },
+  'Region II':         { lat: 17.0000, lng: 121.7000 },
+
+  'Aurora':            { lat: 15.7500, lng: 121.5500 },
+  'Bataan':            { lat: 14.6800, lng: 120.4700 },
   'Bulacan':           { lat: 14.7942, lng: 120.8767 },
-  'Tarlac':            { lat: 15.4755, lng: 120.5963 },
   'Nueva Ecija':       { lat: 15.5784, lng: 121.0687 },
+  'Pampanga':          { lat: 15.0794, lng: 120.6200 },
+  'Tarlac':            { lat: 15.4755, lng: 120.5963 },
+  'Zambales':          { lat: 15.3300, lng: 120.1200 },
+  'Region III':        { lat: 15.2000, lng: 120.7000 },
+
   'NCR':               { lat: 14.5995, lng: 120.9842 },
+  'Metro Manila':      { lat: 14.5995, lng: 120.9842 },
+  'Manila':            { lat: 14.5995, lng: 120.9842 },
+  'Quezon City':       { lat: 14.6760, lng: 121.0437 },
+  'Caloocan':          { lat: 14.6500, lng: 120.9833 },
+  'Las Piñas':         { lat: 14.4445, lng: 120.9939 },
+  'Makati':            { lat: 14.5547, lng: 121.0244 },
+  'Malabon':           { lat: 14.6625, lng: 120.9566 },
+  'Mandaluyong':       { lat: 14.5794, lng: 121.0359 },
+  'Marikina':          { lat: 14.6507, lng: 121.1029 },
+  'Muntinlupa':        { lat: 14.4081, lng: 121.0415 },
+  'Navotas':           { lat: 14.6667, lng: 120.9417 },
+  'Parañaque':         { lat: 14.4793, lng: 121.0198 },
+  'Pasay':             { lat: 14.5378, lng: 120.9996 },
+  'Pasig':             { lat: 14.5764, lng: 121.0851 },
+  'Pateros':           { lat: 14.5453, lng: 121.0687 },
+  'San Juan':          { lat: 14.6019, lng: 121.0355 },
+  'Taguig':            { lat: 14.5176, lng: 121.0509 },
+  'Valenzuela':        { lat: 14.6942, lng: 120.9842 },
+
+  'Batangas':          { lat: 13.7565, lng: 121.0583 },
+  'Cavite':            { lat: 14.2829, lng: 120.8999 },
+  'Laguna':            { lat: 14.2700, lng: 121.3500 },
+  'Quezon':            { lat: 13.9300, lng: 121.6100 },
   'Rizal':             { lat: 14.5243, lng: 121.3579 },
+  'Region IV-A':       { lat: 14.1000, lng: 121.2000 },
+
+  'Bohol':             { lat: 9.8500,  lng: 124.1433 },
   'Cebu':              { lat: 10.3157, lng: 123.8854 },
+  'Negros Oriental':   { lat: 9.5870,  lng: 122.9274 },
+  'Siquijor':          { lat: 9.1997,  lng: 123.5952 },
+  'Region VII':        { lat: 9.8000,  lng: 123.6000 },
+
   'Agusan Del Norte':  { lat: 8.9481,  lng: 125.5436 },
+  'Agusan Del Sur':    { lat: 8.5000,  lng: 125.7000 },
+  'Dinagat Islands':   { lat: 10.0500, lng: 125.6000 },
   'Surigao Del Norte': { lat: 9.7832,  lng: 125.4943 },
   'Surigao Del Sur':   { lat: 8.7512,  lng: 126.0652 },
+  'Region XIII':       { lat: 9.0000,  lng: 125.8000 },
 };
 
 const EXACT_COORDS = {
@@ -33,7 +88,7 @@ const EXACT_COORDS = {
 };
 
 const jitter = () => (Math.random() - 0.5) * 0.08;
-const getCoords = (name, province) => {
+export const getCoords = (name, province) => {
   if (EXACT_COORDS[name]) return { lat: EXACT_COORDS[name].lat, lng: EXACT_COORDS[name].lng };
   const p = PROVINCE_COORDS[province];
   return p ? { lat: p.lat + jitter(), lng: p.lng + jitter() } : { lat: 14.5, lng: 121.0 };

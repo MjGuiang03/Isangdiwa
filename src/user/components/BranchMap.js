@@ -33,6 +33,7 @@ function makePin(color, isHome) {
 export default function BranchMap({ branches, userBranch, onBranchClick, flyToRef, autoFocusUser = false }) {
   const mapRef = useRef(null);
   const instanceRef = useRef(null);
+  const markersGroupRef = useRef(null);
 
   useEffect(() => {
     if (instanceRef.current) return;
@@ -44,13 +45,31 @@ export default function BranchMap({ branches, userBranch, onBranchClick, flyToRe
       attribution: '&copy; OpenStreetMap contributors', maxZoom: 18,
     }).addTo(map);
 
+    markersGroupRef.current = L.layerGroup().addTo(map);
+
+    // Expose flyTo for sidebar clicks
+    if (flyToRef) {
+      flyToRef.current = (branch) => {
+        map.flyTo([branch.lat, branch.lng], 14, { duration: 0.7 });
+      };
+    }
+
+    instanceRef.current = map;
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, []);
+
+  useEffect(() => {
+    if (!instanceRef.current || !markersGroupRef.current) return;
+    const group = markersGroupRef.current;
+    group.clearLayers();
+
     branches.forEach(b => {
       const isHome = userBranch?.name === b.name;
       const color = REGION_COLORS[b.region] || '#6b7280';
-      const marker = L.marker([b.lat, b.lng], { icon: makePin(color, isHome) }).addTo(map);
+      const marker = L.marker([b.lat, b.lng], { icon: makePin(color, isHome) }).addTo(group);
 
       // Popup content
-      const days = b.serviceTimes.map(s => `<span style="font-size:11px;background:#eff4ff;color:#1a56db;
+      const days = (b.serviceTimes || []).map(s => `<span style="font-size:11px;background:#eff4ff;color:#1a56db;
         padding:2px 7px;border-radius:4px;font-weight:600;">${s.day}</span>`).join(' ');
       marker.bindPopup(`
         <div style="font-family:'Inter',sans-serif;min-width:180px;padding:2px 0;">
@@ -66,17 +85,7 @@ export default function BranchMap({ branches, userBranch, onBranchClick, flyToRe
         </div>
       `, { maxWidth: 220 });
     });
-
-    // Expose flyTo for sidebar clicks
-    if (flyToRef) {
-      flyToRef.current = (branch) => {
-        map.flyTo([branch.lat, branch.lng], 14, { duration: 0.7 });
-      };
-    }
-
-    instanceRef.current = map;
-    // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, []);
+  }, [branches, userBranch]);
 
   // Wire up the popup button to React's onBranchClick
   useEffect(() => {

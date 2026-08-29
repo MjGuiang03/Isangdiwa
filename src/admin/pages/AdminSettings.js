@@ -56,8 +56,6 @@ export default function AdminSettings() {
   const [showNewPassword, setShowNewPassword] = useState(false);
   const [showConfirmPassword, setShowConfirmPassword] = useState(false);
 
-  const [savedApprovalMethod, setSavedApprovalMethod] = useState('gateway');
-  const [isEditingPayment, setIsEditingPayment] = useState(false);
   const [confirmModal, setConfirmModal] = useState({ show: false, section: null });
   const [showMaintenanceModal, setShowMaintenanceModal] = useState(false);
   const [pendingMaintenanceState, setPendingMaintenanceState] = useState(false);
@@ -114,7 +112,6 @@ export default function AdminSettings() {
             notifDonation: s.notifDonation ?? true,
             notifLoan: s.notifLoan ?? true
         }));
-        setSavedApprovalMethod(currentMethod);
     }
   }, [settingsData]);
 
@@ -218,10 +215,6 @@ export default function AdminSettings() {
       if (data.success) {
         if (!directPayload) {
             toast.success(`${section} settings updated successfully`);
-        }
-        if (section === 'Payment') {
-            setSavedApprovalMethod(settings.approvalMethod);
-            setIsEditingPayment(false);
         }
         refreshSettings();
       } else {

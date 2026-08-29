@@ -443,7 +443,7 @@ router.get('/branches', authenticateAdmin, async (req, res) => {
 /* ================== ADD BRANCH ================== */
 router.post('/branches', authenticateAdmin, async (req, res) => {
   try {
-    const { name, address, pastor } = req.body;
+    const { name, address, pastor, province, region } = req.body;
     if (!name) return res.status(400).json({ success: false, message: 'Branch name is required' });
 
     const exists = await branches.findOne({ name: { $regex: `^${name}$`, $options: 'i' } });
@@ -453,6 +453,8 @@ router.post('/branches', authenticateAdmin, async (req, res) => {
       name,
       address: address || '',
       pastor: pastor || '',
+      province: province || region || 'CAR',
+      region: region || 'CAR',
       status: 'Active',
       createdAt: new Date()
     };
@@ -474,7 +476,7 @@ router.delete('/branches/:id', authenticateAdmin, async (req, res) => {
     const result = await branches.deleteOne({ _id: new ObjectId(id) });
     if (result.deletedCount === 0) return res.status(404).json({ success: false, message: 'Branch not found' });
 
-    res.status(200).json({ success: true, message: 'Branch removed successfully' });
+    res.status(200).json({ success: true, message: 'Branch deleted successfully' });
   } catch (err) {
     console.error(err);
     res.status(500).json({ success: false, message: 'Failed to delete branch' });
@@ -486,7 +488,7 @@ router.put('/branches/:id', authenticateAdmin, async (req, res) => {
   try {
     const { ObjectId } = await import('mongodb');
     const { id } = req.params;
-    const { name, address, pastor } = req.body;
+    const { name, address, pastor, province, region } = req.body;
 
     if (!name) return res.status(400).json({ success: false, message: 'Branch name is required' });
 
@@ -496,6 +498,8 @@ router.put('/branches/:id', authenticateAdmin, async (req, res) => {
       pastor: pastor || '',
       updatedAt: new Date()
     };
+    if (province) updateData.province = province;
+    if (region) updateData.region = region;
 
     const result = await branches.updateOne({ _id: new ObjectId(id) }, { $set: updateData });
     if (result.matchedCount === 0) return res.status(404).json({ success: false, message: 'Branch not found' });

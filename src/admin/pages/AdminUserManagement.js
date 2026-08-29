@@ -80,6 +80,8 @@ function PasswordModal({ title, description, onConfirm, onClose, loading, varian
   );
 }
 
+const EMAIL_REGEX = /^[^\s@]+@[^\s@]+\.[^\s@]+$/;
+
 /* ══════════════════════════════════════════════════════
    MAIN COMPONENT
 ══════════════════════════════════════════════════════ */
@@ -117,8 +119,6 @@ export default function AdminUserManagement() {
   const [showCreateConfirmModal, setShowCreateConfirmModal] = useState(false);
 
   /* ── Real-time Validations ── */
-  const EMAIL_REGEX = /^[^\s@]+@[^\s@]+\.[^\s@]+$/;
-
   const createEmailError = useMemo(() => {
     if (!createForm.email) return '';
     if (!EMAIL_REGEX.test(createForm.email.trim())) return 'Please enter a valid email address';
