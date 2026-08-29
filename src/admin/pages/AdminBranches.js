@@ -19,9 +19,10 @@ const REGION_MAP = {
   'Region IV-A': 'CALABARZON',
   'Region VII': 'Central Visayas',
   'Region XIII': 'Caraga Region',
+  'Other': 'Other Regions'
 };
 
-const REGION_ORDER = ['CAR', 'Region II', 'Region I', 'Region III', 'NCR', 'Region IV-A', 'Region VII', 'Region XIII'];
+const REGION_ORDER = ['CAR', 'Region II', 'Region I', 'Region III', 'NCR', 'Region IV-A', 'Region VII', 'Region XIII', 'Other'];
 
 const REGION_CITIES_MAP = {
   'NCR': [
@@ -95,32 +96,36 @@ const getRegionInfoForBranch = (b) => {
     return { tag: b.region, name: REGION_MAP[b.region] };
   }
   
+  let province = b.province;
+  if (province && REGION_MAP[province]) {
+    return { tag: province, name: REGION_MAP[province] };
+  }
+
+  if (province && PROVINCE_TO_REGION_TAG[province]) {
+    const tag = PROVINCE_TO_REGION_TAG[province];
+    return { tag, name: REGION_MAP[tag] || tag };
+  }
+
   if (b.name) {
     for (const [keyName, tag] of Object.entries(NAME_TO_REGION_TAG)) {
       if (b.name.toLowerCase().includes(keyName.toLowerCase())) {
-        return { tag, name: REGION_MAP[tag] };
+        return { tag, name: REGION_MAP[tag] || tag };
       }
     }
   }
   
-  let province = b.province;
   if (!province && b.address) {
     const parts = b.address.split(', ');
     if (parts.length > 0) province = parts[0];
     if (parts.length > 1 && PROVINCE_TO_REGION_TAG[parts[1]]) {
       const tag = PROVINCE_TO_REGION_TAG[parts[1]];
-      return { tag, name: REGION_MAP[tag] };
+      return { tag, name: REGION_MAP[tag] || tag };
     }
   }
-  
-  if (province && PROVINCE_TO_REGION_TAG[province]) {
-    const tag = PROVINCE_TO_REGION_TAG[province];
-    return { tag, name: REGION_MAP[tag] };
-  }
-  
+
   if (b.address) {
     for (const tag of REGION_ORDER) {
-      if (b.address.includes(tag) || b.address.includes(REGION_MAP[tag])) {
+      if (b.address.includes(tag) || (REGION_MAP[tag] && b.address.includes(REGION_MAP[tag]))) {
         return { tag, name: REGION_MAP[tag] };
       }
     }

@@ -2,7 +2,7 @@
 import { useAuth } from '../../context/AuthContext';
 import { useState, useMemo, useEffect, useRef, Suspense, lazy } from 'react';
 import useSWR from 'swr';
-import { MapPin, Search, X, ChevronDown, Check, Map, List, Calendar } from 'lucide-react';
+import { MapPin, Search, X, ChevronDown, Check, Map as MapIcon, List, Calendar } from 'lucide-react';
 import { branchData, getCoords, REGION_ORDER, REGION_LABELS, DAY_COLORS, COMMUNITY_MAP } from '../components/branchData';
 import { useNavigate } from 'react-router-dom';
 import API from '../../utils/api';
@@ -165,7 +165,7 @@ export default function Branches() {
                 : 'text-slate-600 dark:text-slate-300 hover:text-slate-900 dark:hover:text-white bg-transparent'
             }`}
           >
-            <Map size={13} />
+            <MapIcon size={13} />
             <span>Map</span>
           </button>
           <button
