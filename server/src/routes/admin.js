@@ -1410,6 +1410,70 @@ router.get('/loans/payments', authenticateAdmin, async (req, res) => {
   }
 });
 
+/* ================== ADMIN - EXPORT MASTER DATABASE (CSV) ================== */
+router.get('/export-master-csv', authenticateAdmin, async (req, res) => {
+  try {
+    const { users, donations, loans } = await import('../config/db.js');
+
+    const [allUsers, allDonations, allLoans] = await Promise.all([
+      users.find({}).project({ fullName: 1, email: 1, phone: 1, branch: 1, position: 1, isVerified: 1, createdAt: 1 }).toArray(),
+      donations.find({}).project({ donorName: 1, fullName: 1, email: 1, amount: 1, category: 1, purpose: 1, paymentMethod: 1, status: 1, createdAt: 1, date: 1 }).toArray(),
+      loans.find({}).project({ loanId: 1, memberName: 1, email: 1, loanType: 1, amount: 1, status: 1, appliedDate: 1, createdAt: 1 }).toArray()
+    ]);
+
+    let csvContent = "";
+
+    // 1. Members Section
+    csvContent += "=== MEMBERS ===\n";
+    csvContent += "Full Name,Email,Phone,Branch,Position,Is Verified,Created At\n";
+    allUsers.forEach(u => {
+      const name = `"${(u.fullName || '').replace(/"/g, '""')}"`;
+      const email = `"${(u.email || '').replace(/"/g, '""')}"`;
+      const phone = `"${(u.phone || '').replace(/"/g, '""')}"`;
+      const branch = `"${(u.branch || '').replace(/"/g, '""')}"`;
+      const pos = `"${(u.position || '').replace(/"/g, '""')}"`;
+      const ver = u.isVerified ? 'Yes' : 'No';
+      const created = u.createdAt ? new Date(u.createdAt).toISOString() : '';
+      csvContent += `${name},${email},${phone},${branch},${pos},${ver},${created}\n`;
+    });
+
+    // 2. Donations Section
+    csvContent += "\n=== DONATIONS ===\n";
+    csvContent += "Donor Name,Email,Amount,Category,Payment Method,Status,Date\n";
+    allDonations.forEach(d => {
+      const name = `"${(d.donorName || d.fullName || '').replace(/"/g, '""')}"`;
+      const email = `"${(d.email || '').replace(/"/g, '""')}"`;
+      const amount = d.amount || 0;
+      const cat = `"${(d.category || d.purpose || '').replace(/"/g, '""')}"`;
+      const method = `"${(d.paymentMethod || '').replace(/"/g, '""')}"`;
+      const status = `"${(d.status || '').replace(/"/g, '""')}"`;
+      const date = d.createdAt || d.date ? new Date(d.createdAt || d.date).toISOString() : '';
+      csvContent += `${name},${email},${amount},${cat},${method},${status},${date}\n`;
+    });
+
+    // 3. Loans Section
+    csvContent += "\n=== LOANS ===\n";
+    csvContent += "Loan ID,Member Name,Email,Loan Type,Amount,Status,Applied Date\n";
+    allLoans.forEach(l => {
+      const loanId = `"${(l.loanId || l._id || '').toString().replace(/"/g, '""')}"`;
+      const name = `"${(l.memberName || '').replace(/"/g, '""')}"`;
+      const email = `"${(l.email || '').replace(/"/g, '""')}"`;
+      const type = `"${(l.loanType || '').replace(/"/g, '""')}"`;
+      const amount = l.amount || 0;
+      const status = `"${(l.status || '').replace(/"/g, '""')}"`;
+      const date = l.appliedDate || l.createdAt ? new Date(l.appliedDate || l.createdAt).toISOString() : '';
+      csvContent += `${loanId},${name},${email},${type},${amount},${status},${date}\n`;
+    });
+
+    res.setHeader('Content-Type', 'text/csv');
+    res.setHeader('Content-Disposition', 'attachment; filename="master_database_backup.csv"');
+    res.status(200).send(csvContent);
+  } catch (err) {
+    console.error('Export CSV error:', err);
+    res.status(500).json({ success: false, message: 'Failed to export master database CSV' });
+  }
+});
+
 /* ================== SETTINGS (ADMIN) ================== */
 router.get('/settings', authenticateAdmin, async (req, res) => {
   try {

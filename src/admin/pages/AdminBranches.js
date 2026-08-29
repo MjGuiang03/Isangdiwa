@@ -1,5 +1,5 @@
-/* eslint-disable no-unused-vars */
-import { useState, useEffect, useMemo } from 'react';
+import { useState, useEffect, useMemo, useRef } from 'react';
+import { createPortal } from 'react-dom';
 import useSWR from 'swr';
 import { useNavigate } from 'react-router';
 import { toast } from 'sonner';
@@ -9,6 +9,179 @@ import useDebounce from '../../hooks/useDebounce';
 
 import API from '../../utils/api';
 import { Plus, XCircle, MoreVertical, Edit2, Trash2 } from 'lucide-react';
+
+const REGION_MAP = {
+  'CAR': 'Cordillera Administrative Region',
+  'Region II': 'Cagayan Valley',
+  'Region I': 'Ilocos Region',
+  'Region III': 'Central Luzon',
+  'NCR': 'National Capital Region',
+  'Region IV-A': 'CALABARZON',
+  'Region VII': 'Central Visayas',
+  'Region XIII': 'Caraga Region',
+};
+
+const REGION_ORDER = ['CAR', 'Region II', 'Region I', 'Region III', 'NCR', 'Region IV-A', 'Region VII', 'Region XIII'];
+
+const PROVINCE_TO_REGION_TAG = {
+  'Kalinga': 'CAR', 'Abra': 'CAR', 'Benguet': 'CAR', 'Ifugao': 'CAR', 'Mountain Province': 'CAR', 'Apayao': 'CAR',
+  'Isabela': 'Region II', 'Cagayan': 'Region II', 'Nueva Vizcaya': 'Region II', 'Quirino': 'Region II', 'Batanes': 'Region II',
+  'Pangasinan': 'Region I', 'Ilocos Norte': 'Region I', 'Ilocos Sur': 'Region I', 'La Union': 'Region I',
+  'Bulacan': 'Region III', 'Tarlac': 'Region III', 'Nueva Ecija': 'Region III', 'Pampanga': 'Region III', 'Bataan': 'Region III', 'Zambales': 'Region III', 'Aurora': 'Region III',
+  'NCR': 'NCR', 'Metro Manila': 'NCR',
+  'Rizal': 'Region IV-A', 'Cavite': 'Region IV-A', 'Laguna': 'Region IV-A', 'Batangas': 'Region IV-A', 'Quezon': 'Region IV-A',
+  'Cebu': 'Region VII', 'Bohol': 'Region VII', 'Negros Oriental': 'Region VII', 'Siquijor': 'Region VII',
+  'Agusan Del Norte': 'Region XIII', 'Agusan Del Sur': 'Region XIII', 'Surigao Del Norte': 'Region XIII', 'Surigao Del Sur': 'Region XIII', 'Dinagat Islands': 'Region XIII'
+};
+
+const NAME_TO_REGION_TAG = {
+  'Paco': 'NCR',
+  'San Andres': 'NCR',
+  'Tandang Sora': 'NCR',
+  'Payatas': 'NCR',
+  'COA': 'NCR',
+  'Malaria': 'NCR',
+  'Valenzuela': 'NCR',
+  'Meycauayan': 'Region III',
+  'Camalig': 'Region III',
+  'San Jose Del Monte': 'Region III',
+  'Pacpaco': 'Region III',
+  'Victoria': 'Region III',
+  'Bambanaba': 'Region III',
+  'Tabuk': 'CAR', 'Zapote': 'CAR', 'Bliss': 'CAR', 'Libanon': 'CAR', 'Batong Buhay': 'CAR', 'Balatoc': 'CAR', 'Lat-nog': 'CAR',
+  'Lamao': 'CAR', 'Lingey': 'CAR', 'Cabaruyan': 'CAR', 'Ducligan': 'CAR', 'Gangal': 'CAR', 'Bila-Bila': 'CAR', 'Naguillian': 'CAR', 'Ud-udiao': 'CAR', 'Villa Conchita': 'CAR', 'Ay-yeng Manabo': 'CAR', 'Dao-angan': 'CAR', 'Kilong-olao': 'CAR', 'Bao-yan': 'CAR', 'Amti': 'CAR', 'Danac': 'CAR', 'Bengued': 'CAR', 'Sappaac': 'CAR', 'Saccaang': 'CAR', 'Baguio': 'CAR',
+  'Santiago City': 'Region II',
+  'Dagupan': 'Region I', 'Mangatarem': 'Region I', 'Laoak Langka': 'Region I', 'Orbiztondo': 'Region I', 'Malasique': 'Region I', 'Taloyan': 'Region I', 'Binmaley': 'Region I', 'San Carlos': 'Region I', 'Manaoag': 'Region I', 'Pozorrobio': 'Region I', 'Alcala': 'Region I',
+  'Montalban': 'Region IV-A',
+  'Mandaue': 'Region VII', 'Li-loan': 'Region VII', 'Calero': 'Region VII', 'Compostela': 'Region VII',
+  'Butuan City': 'Region XIII', 'RTR': 'Region XIII', 'Jabonga': 'Region XIII', 'Kasiklan': 'Region XIII', 'San Mateo': 'Region XIII', 'Fatima': 'Region XIII', 'Bayugan': 'Region XIII', 'Ibuan': 'Region XIII', 'Balubo': 'Region XIII', 'Alegria': 'Region XIII', 'Bonifacio': 'Region XIII', 'Matin-ao': 'Region XIII', 'Ipil': 'Region XIII', 'Kinabigtasan': 'Region XIII'
+};
+
+const getRegionInfoForBranch = (b) => {
+  if (b.region && REGION_MAP[b.region]) {
+    return { tag: b.region, name: REGION_MAP[b.region] };
+  }
+  
+  if (b.name) {
+    for (const [keyName, tag] of Object.entries(NAME_TO_REGION_TAG)) {
+      if (b.name.toLowerCase().includes(keyName.toLowerCase())) {
+        return { tag, name: REGION_MAP[tag] };
+      }
+    }
+  }
+  
+  let province = b.province;
+  if (!province && b.address) {
+    const parts = b.address.split(', ');
+    if (parts.length > 0) province = parts[0];
+    if (parts.length > 1 && PROVINCE_TO_REGION_TAG[parts[1]]) {
+      const tag = PROVINCE_TO_REGION_TAG[parts[1]];
+      return { tag, name: REGION_MAP[tag] };
+    }
+  }
+  
+  if (province && PROVINCE_TO_REGION_TAG[province]) {
+    const tag = PROVINCE_TO_REGION_TAG[province];
+    return { tag, name: REGION_MAP[tag] };
+  }
+  
+  if (b.address) {
+    for (const tag of REGION_ORDER) {
+      if (b.address.includes(tag) || b.address.includes(REGION_MAP[tag])) {
+        return { tag, name: REGION_MAP[tag] };
+      }
+    }
+  }
+
+  return { tag: 'Other', name: 'Other Regions' };
+};
+
+function CommunityActionDropdown({ branch, isOpen, isLastItem, onToggle, onClose, onEdit, onDelete }) {
+  const buttonRef = useRef(null);
+  const menuRef = useRef(null);
+  const [coords, setCoords] = useState(null);
+
+  useEffect(() => {
+    if (isOpen) {
+      const updatePosition = () => {
+        if (!buttonRef.current) return;
+        const rect = buttonRef.current.getBoundingClientRect();
+        const spaceBelow = window.innerHeight - rect.bottom;
+        const menuHeight = 92;
+        const openUpward = isLastItem || spaceBelow < 120;
+
+        setCoords({
+          top: openUpward ? Math.max(10, rect.top - menuHeight - 4) : rect.bottom + 4,
+          left: Math.max(10, rect.right - 176)
+        });
+      };
+
+      updatePosition();
+      window.addEventListener('scroll', updatePosition, true);
+      window.addEventListener('resize', updatePosition);
+
+      const handleOutsideClick = (e) => {
+        if (
+          buttonRef.current && !buttonRef.current.contains(e.target) &&
+          menuRef.current && !menuRef.current.contains(e.target)
+        ) {
+          onClose();
+        }
+      };
+
+      const timer = setTimeout(() => {
+        window.addEventListener('click', handleOutsideClick);
+      }, 10);
+
+      return () => {
+        clearTimeout(timer);
+        window.removeEventListener('scroll', updatePosition, true);
+        window.removeEventListener('resize', updatePosition);
+        window.removeEventListener('click', handleOutsideClick);
+      };
+    } else {
+      setCoords(null);
+    }
+  }, [isOpen, isLastItem, onClose]);
+
+  return (
+    <>
+      <button 
+        ref={buttonRef}
+        className="w-8 h-8 rounded-lg flex items-center justify-center text-slate-400 hover:text-slate-700 dark:hover:text-white hover:bg-slate-100 dark:hover:bg-white/10 transition-colors border-none bg-transparent cursor-pointer ml-auto"
+        onClick={(e) => { 
+          e.stopPropagation(); 
+          onToggle(); 
+        }}
+      >
+        <MoreVertical size={16} />
+      </button>
+      
+      {isOpen && coords && createPortal(
+        <div 
+          ref={menuRef}
+          className="fixed z-[99999] w-44 bg-white dark:bg-[#1A1D2C] border border-slate-200 dark:border-white/10 rounded-xl shadow-2xl py-1 text-left animate-in fade-in zoom-in-95 duration-100"
+          style={{ top: `${coords.top}px`, left: `${coords.left}px` }}
+          onClick={(e) => e.stopPropagation()}
+        >
+          <button 
+            className="w-full flex items-center gap-2.5 px-3.5 py-2 text-xs font-medium text-slate-700 dark:text-slate-300 hover:bg-slate-50 dark:hover:bg-white/5 transition-colors border-none bg-transparent cursor-pointer" 
+            onClick={() => { onClose(); onEdit(branch); }}
+          >
+            <Edit2 size={14} className="text-blue-500" /> Edit Details
+          </button>
+          <button 
+            className="w-full flex items-center gap-2.5 px-3.5 py-2 text-xs font-medium text-rose-600 hover:bg-rose-50 dark:hover:bg-rose-500/10 transition-colors border-none bg-transparent cursor-pointer" 
+            onClick={() => { onClose(); onDelete(branch); }}
+          >
+            <Trash2 size={14} /> Remove Community
+          </button>
+        </div>,
+        document.body
+      )}
+    </>
+  );
+}
 
 function EditCommunityModal({ branch, onClose, onSave }) {
   const [name, setName] = useState(branch.name || '');
@@ -54,7 +227,7 @@ function EditCommunityModal({ branch, onClose, onSave }) {
         </div>
         <form onSubmit={handleSubmit} className="p-6 overflow-y-auto custom-scrollbar flex flex-col gap-5">
           <div className="flex flex-col gap-1.5">
-             <label className="font-inter text-[13px] font-semibold text-slate-700 dark:text-slate-300">Branch Name</label>
+             <label className="font-inter text-[13px] font-semibold text-slate-700 dark:text-slate-300">Community Name</label>
              <input type="text" className="h-10 px-3 bg-white dark:bg-[#1E2130] border border-slate-300 dark:border-white/10 rounded-lg text-sm font-inter text-slate-800 dark:text-white outline-none focus:border-blue-500 focus:ring-1 focus:ring-blue-500 transition-all w-full" autoFocus placeholder="e.g. San Pedro" value={name} onChange={e => setName(e.target.value)} />
           </div>
           <div className="flex flex-col gap-1.5">
@@ -208,7 +381,7 @@ function AddCommunityModal({ onClose, onSave }) {
         </div>
         <form onSubmit={handleSubmit} className="p-6 overflow-y-auto custom-scrollbar flex flex-col gap-5">
           <div className="flex flex-col gap-1.5">
-             <label className="font-inter text-[13px] font-semibold text-slate-700 dark:text-slate-300">Branch Name</label>
+             <label className="font-inter text-[13px] font-semibold text-slate-700 dark:text-slate-300">Community Name</label>
              <input type="text" className="h-10 px-3 bg-white dark:bg-[#1E2130] border border-slate-300 dark:border-white/10 rounded-lg text-sm font-inter text-slate-800 dark:text-white outline-none focus:border-blue-500 focus:ring-1 focus:ring-blue-500 transition-all w-full" autoFocus placeholder="e.g. San Pedro" value={name} onChange={e => setName(e.target.value)} />
           </div>
           <div className="flex flex-col gap-1.5">
@@ -545,11 +718,7 @@ export default function AdminBranches() {
     setPage(1);
   }, [debouncedSearch]);
 
-  useEffect(() => {
-    const handleClickOutside = () => setOpenMenuId(null);
-    window.addEventListener('click', handleClickOutside);
-    return () => window.removeEventListener('click', handleClickOutside);
-  }, []);
+
 
   // Compute stats from fetched branches using useMemo for max performance
   const { totalMembers, totalAllDonations } = useMemo(() => {
@@ -558,24 +727,30 @@ export default function AdminBranches() {
     return { totalMembers: members, totalAllDonations: donations };
   }, [branches]);
 
-  const { groupedBranches, provinceOrder } = useMemo(() => {
+  const { groupedBranches, regionOrder } = useMemo(() => {
     const grouped = (branches || []).reduce((acc, b) => {
       if (filterActive && (b.members || 0) === 0) return acc;
       
-      // Parse province from address if not explicitly present
-      let province = b.province;
-      if (!province && b.address) {
-        const parts = b.address.split(', ');
-        if (parts.length > 0) province = parts[0];
+      const { tag, name } = getRegionInfoForBranch(b);
+      const key = tag;
+      
+      if (!acc[key]) {
+        acc[key] = { tag, name, list: [] };
       }
-      province = province || 'Other Provinces';
-      if (!acc[province]) acc[province] = [];
-      acc[province].push(b);
+      acc[key].list.push(b);
       return acc;
     }, {});
 
-    const order = Object.keys(grouped).sort();
-    return { groupedBranches: grouped, provinceOrder: order };
+    const sortedTags = Object.keys(grouped).sort((a, b) => {
+      const indexA = REGION_ORDER.indexOf(a);
+      const indexB = REGION_ORDER.indexOf(b);
+      if (indexA !== -1 && indexB !== -1) return indexA - indexB;
+      if (indexA !== -1) return -1;
+      if (indexB !== -1) return 1;
+      return a.localeCompare(b);
+    });
+
+    return { groupedBranches: grouped, regionOrder: sortedTags };
   }, [branches, filterActive]);
 
 
@@ -648,7 +823,7 @@ export default function AdminBranches() {
             <Search size={18} className="absolute left-3 top-1/2 -translate-y-1/2 text-slate-400 pointer-events-none" />
             <input
               type="text"
-              placeholder="Search by province or branch..."
+              placeholder="Search by province or community..."
               value={search}
               onChange={e => setSearch(e.target.value)}
               className="w-full h-10 pl-10 pr-4 bg-slate-50 dark:bg-[#161922] border border-slate-300 dark:border-white/10 rounded-lg text-sm font-inter text-slate-800 dark:text-white outline-none focus:border-blue-500 transition-all"
@@ -683,7 +858,7 @@ export default function AdminBranches() {
               <MapPin size={14} strokeWidth={2.5} />
               <span>All</span>
             </div>
-            <span className="font-inter text-xs font-medium text-slate-500 dark:text-slate-400">branches tracked</span>
+            <span className="font-inter text-xs font-medium text-slate-500 dark:text-slate-400">communities tracked</span>
           </div>
         </div>
 
@@ -762,28 +937,32 @@ export default function AdminBranches() {
         ) : branches.length === 0 ? (
           <div className="px-4 py-8 text-center text-slate-500 dark:text-slate-400 text-sm font-inter">No communities found.</div>
         ) : (
-          provinceOrder.map(province => {
-            const list = groupedBranches[province];
-            if (!list || list.length === 0) return null;
+          regionOrder.map(regionKey => {
+            const group = groupedBranches[regionKey];
+            if (!group || !group.list || group.list.length === 0) return null;
             
-            const visibleLimit = visibleCounts[province] || 5;
+            const { tag, name, list } = group;
+            const visibleLimit = visibleCounts[regionKey] || 5;
             const displayedList = list.slice(0, visibleLimit);
             const hasMore = list.length > visibleLimit;
 
             return (
-              <div key={province} className="flex flex-col bg-white dark:bg-[#1E2130] border border-slate-200 dark:border-white/10 rounded-2xl shadow-sm overflow-hidden transition-all duration-200 hover:shadow-md">
+              <div key={regionKey} className="flex flex-col bg-white dark:bg-[#1E2130] border border-slate-200 dark:border-white/10 rounded-2xl shadow-sm overflow-hidden transition-all duration-200 hover:shadow-md">
                 {/* Header */}
                 <div className="px-6 py-4 bg-slate-50/80 dark:bg-black/20 border-b border-slate-200/80 dark:border-white/10 flex items-center justify-between">
                   <div className="flex items-center gap-3">
                     <div className="w-9 h-9 rounded-xl bg-blue-500/10 dark:bg-blue-500/20 text-blue-600 dark:text-blue-400 flex items-center justify-center shrink-0 border border-blue-200/50 dark:border-blue-500/30">
                       <MapPin size={18} strokeWidth={2.2} />
                     </div>
-                    <div className="flex items-center gap-2">
-                      <h3 className="m-0 font-inter text-base font-bold text-slate-800 dark:text-white tracking-tight">{province}</h3>
+                    <div className="flex items-center gap-2.5">
+                      <span className="px-2.5 py-1 rounded-md bg-blue-100 dark:bg-blue-500/20 text-blue-700 dark:text-blue-400 text-xs font-bold tracking-wider">
+                        {tag}
+                      </span>
+                      <h3 className="m-0 font-inter text-base font-bold text-slate-800 dark:text-white tracking-tight">{name}</h3>
                     </div>
                   </div>
                   <span className="inline-flex items-center px-3 py-1 rounded-full text-xs font-bold tracking-wide bg-blue-50 dark:bg-blue-500/10 text-blue-600 dark:text-blue-400 border border-blue-100 dark:border-blue-500/20">
-                    {list.length} {list.length === 1 ? 'Branch' : 'Branches'}
+                    {list.length} {list.length === 1 ? 'Community' : 'Communities'}
                   </span>
                 </div>
 
@@ -800,7 +979,7 @@ export default function AdminBranches() {
                     </colgroup>
                     <thead>
                       <tr>
-                        <th className="px-5 py-3.5 bg-slate-50/50 dark:bg-black/10 border-b border-slate-200/60 dark:border-white/10 font-inter font-semibold text-[11px] tracking-wider uppercase text-slate-500 dark:text-slate-400 whitespace-nowrap">Branch Name</th>
+                        <th className="px-5 py-3.5 bg-slate-50/50 dark:bg-black/10 border-b border-slate-200/60 dark:border-white/10 font-inter font-semibold text-[11px] tracking-wider uppercase text-slate-500 dark:text-slate-400 whitespace-nowrap">Community Name</th>
                         <th className="px-5 py-3.5 bg-slate-50/50 dark:bg-black/10 border-b border-slate-200/60 dark:border-white/10 font-inter font-semibold text-[11px] tracking-wider uppercase text-slate-500 dark:text-slate-400 whitespace-nowrap">Lead Pastor</th>
                         <th className="px-5 py-3.5 bg-slate-50/50 dark:bg-black/10 border-b border-slate-200/60 dark:border-white/10 font-inter font-semibold text-[11px] tracking-wider uppercase text-slate-500 dark:text-slate-400 whitespace-nowrap">Full Address</th>
                         <th className="px-5 py-3.5 bg-slate-50/50 dark:bg-black/10 border-b border-slate-200/60 dark:border-white/10 font-inter font-semibold text-[11px] tracking-wider uppercase text-slate-500 dark:text-slate-400 whitespace-nowrap">Members</th>
@@ -809,7 +988,7 @@ export default function AdminBranches() {
                       </tr>
                     </thead>
                     <tbody className="divide-y divide-slate-100 dark:divide-white/5">
-                      {displayedList.map(branch => (
+                      {displayedList.map((branch, index) => (
                         <tr 
                           key={branch._id} 
                           onClick={() => setViewingBranch(branch)} 
@@ -838,30 +1017,16 @@ export default function AdminBranches() {
                               {branch.members > 0 ? 'Active' : 'Idle'}
                             </span>
                           </td>
-                          <td className="px-5 py-3.5 text-right relative" onClick={(e) => e.stopPropagation()}>
-                            <button 
-                              className="w-8 h-8 rounded-lg flex items-center justify-center text-slate-400 hover:text-slate-700 dark:hover:text-white hover:bg-slate-100 dark:hover:bg-white/10 transition-colors border-none bg-transparent cursor-pointer ml-auto"
-                              onClick={(e) => { e.stopPropagation(); setOpenMenuId(openMenuId === branch._id ? null : branch._id); }}
-                            >
-                              <MoreVertical size={16} />
-                            </button>
-                            
-                            {openMenuId === branch._id && (
-                              <div className="absolute right-4 top-12 z-50 w-44 bg-white dark:bg-[#1A1D2C] border border-slate-200 dark:border-white/10 rounded-xl shadow-xl py-1 text-left">
-                                <button 
-                                  className="w-full flex items-center gap-2.5 px-3.5 py-2 text-xs font-medium text-slate-700 dark:text-slate-300 hover:bg-slate-50 dark:hover:bg-white/5 transition-colors border-none bg-transparent cursor-pointer" 
-                                  onClick={() => { setOpenMenuId(null); setEditingBranch(branch); }}
-                                >
-                                  <Edit2 size={14} className="text-blue-500" /> Edit Details
-                                </button>
-                                <button 
-                                  className="w-full flex items-center gap-2.5 px-3.5 py-2 text-xs font-medium text-rose-600 hover:bg-rose-50 dark:hover:bg-rose-500/10 transition-colors border-none bg-transparent cursor-pointer" 
-                                  onClick={() => { setOpenMenuId(null); setDeletingBranch(branch); }}
-                                >
-                                  <Trash2 size={14} /> Remove Branch
-                                </button>
-                              </div>
-                            )}
+                          <td className="px-5 py-3.5 text-right" onClick={(e) => e.stopPropagation()}>
+                            <CommunityActionDropdown
+                              branch={branch}
+                              isOpen={openMenuId === branch._id}
+                              isLastItem={displayedList.length > 1 ? index >= displayedList.length - 2 : true}
+                              onToggle={() => setOpenMenuId(openMenuId === branch._id ? null : branch._id)}
+                              onClose={() => setOpenMenuId(null)}
+                              onEdit={(b) => setEditingBranch(b)}
+                              onDelete={(b) => setDeletingBranch(b)}
+                            />
                           </td>
                         </tr>
                       ))}
@@ -874,7 +1039,7 @@ export default function AdminBranches() {
                   <div className="p-3 text-center border-t border-slate-100 dark:border-white/10 bg-slate-50/50 dark:bg-black/10">
                     <button 
                       className="inline-flex items-center gap-2 px-4 py-2 rounded-xl text-xs font-bold text-blue-600 dark:text-blue-400 bg-blue-50 dark:bg-blue-500/10 hover:bg-blue-100 dark:hover:bg-blue-500/20 transition-all border border-blue-200/60 dark:border-blue-500/30 cursor-pointer"
-                      onClick={() => setVisibleCounts(prev => ({ ...prev, [province]: (prev[province] || 5) + 5 }))}
+                      onClick={() => setVisibleCounts(prev => ({ ...prev, [regionKey]: (prev[regionKey] || 5) + 5 }))}
                     >
                       View More ({list.length - visibleLimit} remaining)
                     </button>

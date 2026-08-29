@@ -3,7 +3,7 @@ import { useState, useEffect, useMemo } from 'react';
 import useSWR from 'swr';
 import { useNavigate } from 'react-router-dom';
 import { toast } from 'sonner';
-import { UserPlus, Search, Edit2, Trash2, Shield, Loader2, X, Info, Eye, EyeOff, Users, KeyRound, UserCog, MoreVertical } from 'lucide-react';
+import { UserPlus, Search, Edit2, Trash2, Shield, Loader2, X, Info, Eye, EyeOff, Users, KeyRound, UserCog, MoreVertical, AlertCircle, CheckCircle2 } from 'lucide-react';
 import useDebounce from '../../hooks/useDebounce';
 import API from '../../utils/api';
 import Pagination from '../../components/Pagination';
@@ -115,6 +115,52 @@ export default function AdminUserManagement() {
   const [createForm, setCreateForm] = useState({ email: '', password: '', role: 'loanAdmin' });
   const [createLoading, setCreateLoading] = useState(false);
   const [showCreateConfirmModal, setShowCreateConfirmModal] = useState(false);
+
+  /* ── Real-time Validations ── */
+  const EMAIL_REGEX = /^[^\s@]+@[^\s@]+\.[^\s@]+$/;
+
+  const createEmailError = useMemo(() => {
+    if (!createForm.email) return '';
+    if (!EMAIL_REGEX.test(createForm.email.trim())) return 'Please enter a valid email address';
+    if (adminList.some(a => a.email.toLowerCase() === createForm.email.trim().toLowerCase())) {
+      return 'An account with this email already exists';
+    }
+    return '';
+  }, [createForm.email, adminList]);
+
+  const createPasswordError = useMemo(() => {
+    if (!createForm.password) return '';
+    if (createForm.password.length < 8) return 'Password must be at least 8 characters';
+    return '';
+  }, [createForm.password]);
+
+  const isCreateFormValid = useMemo(() => {
+    return (
+      createForm.email.trim() !== '' &&
+      createForm.password.trim() !== '' &&
+      !createEmailError &&
+      !createPasswordError
+    );
+  }, [createForm.email, createForm.password, createEmailError, createPasswordError]);
+
+  const editEmailError = useMemo(() => {
+    if (!editEmail) return '';
+    if (!EMAIL_REGEX.test(editEmail.trim())) return 'Please enter a valid email address';
+    if (
+      editTarget &&
+      editEmail.trim().toLowerCase() !== editTarget.email.toLowerCase() &&
+      adminList.some(a => a.email.toLowerCase() === editEmail.trim().toLowerCase())
+    ) {
+      return 'An account with this email already exists';
+    }
+    return '';
+  }, [editEmail, editTarget, adminList]);
+
+  const editPasswordError = useMemo(() => {
+    if (!editPassword) return '';
+    if (editPassword.length < 8) return 'Password must be at least 8 characters';
+    return '';
+  }, [editPassword]);
 
   const token = localStorage.getItem('adminToken');
   const superAdminEmail = localStorage.getItem('adminEmail');
@@ -521,32 +567,85 @@ export default function AdminUserManagement() {
 
             <form className="flex-1 overflow-y-auto custom-scrollbar flex flex-col" onSubmit={(e) => {
               e.preventDefault();
-              if (!createForm.email.trim() || !createForm.password.trim()) {
-                return toast.error('Please fill in all fields');
+              if (!isCreateFormValid) {
+                if (createEmailError) return toast.error(createEmailError);
+                if (createPasswordError) return toast.error(createPasswordError);
+                return toast.error('Please complete all fields correctly');
               }
               setShowCreateConfirmModal(true);
             }}>
               <div className="px-6 pb-6 flex flex-col gap-4">
+                {/* Email Address */}
                 <div className="flex flex-col gap-1.5">
-                  <label className="font-inter text-[12px] font-semibold text-slate-500 dark:text-slate-400 uppercase tracking-wider">Email Address</label>
+                  <div className="flex items-center justify-between">
+                    <label className="font-inter text-[12px] font-semibold text-slate-500 dark:text-slate-400 uppercase tracking-wider">Email Address</label>
+                    {createForm.email && !createEmailError && (
+                      <span className="text-[11px] text-emerald-600 dark:text-emerald-400 font-semibold flex items-center gap-1">
+                        <CheckCircle2 size={12} /> Valid email
+                      </span>
+                    )}
+                  </div>
                   <input
-                    type="email" className="h-11 px-3 bg-slate-50 dark:bg-[#161922] border border-slate-300 dark:border-white/10 rounded-xl text-sm font-inter text-slate-800 dark:text-white outline-none focus:border-blue-500 focus:ring-2 focus:ring-blue-500/20 transition-all w-full" placeholder="example@email.com"
-                    value={createForm.email} onChange={e => setCreateForm(f => ({ ...f, email: e.target.value }))} required
+                    type="email" 
+                    className={`h-11 px-3 bg-slate-50 dark:bg-[#161922] border rounded-xl text-sm font-inter text-slate-800 dark:text-white outline-none transition-all w-full ${
+                      createEmailError 
+                        ? 'border-rose-500 text-rose-600 dark:text-rose-400 focus:border-rose-500 focus:ring-2 focus:ring-rose-500/20' 
+                        : createForm.email && !createEmailError 
+                        ? 'border-emerald-500 focus:border-emerald-500 focus:ring-2 focus:ring-emerald-500/20' 
+                        : 'border-slate-300 dark:border-white/10 focus:border-blue-500 focus:ring-2 focus:ring-blue-500/20'
+                    }`} 
+                    placeholder="example@email.com"
+                    value={createForm.email} 
+                    onChange={e => setCreateForm(f => ({ ...f, email: e.target.value }))} 
+                    required
                   />
+                  {createEmailError && (
+                    <span className="text-[11px] text-rose-500 font-medium flex items-center gap-1 mt-0.5">
+                      <AlertCircle size={12} /> {createEmailError}
+                    </span>
+                  )}
                 </div>
+
+                {/* Password */}
                 <div className="flex flex-col gap-1.5">
-                  <label className="font-inter text-[12px] font-semibold text-slate-500 dark:text-slate-400 uppercase tracking-wider">Password</label>
+                  <div className="flex items-center justify-between">
+                    <label className="font-inter text-[12px] font-semibold text-slate-500 dark:text-slate-400 uppercase tracking-wider">Password</label>
+                    {createForm.password && !createPasswordError && (
+                      <span className="text-[11px] text-emerald-600 dark:text-emerald-400 font-semibold flex items-center gap-1">
+                        <CheckCircle2 size={12} /> Password ok
+                      </span>
+                    )}
+                  </div>
                   <div className="relative">
                     <KeyRound size={16} className="absolute left-3 top-1/2 -translate-y-1/2 text-slate-400 pointer-events-none" />
                     <input
-                      type={showCreatePassword ? "text" : "password"} className="h-11 pl-10 pr-10 bg-slate-50 dark:bg-[#161922] border border-slate-300 dark:border-white/10 rounded-xl text-sm font-inter text-slate-800 dark:text-white outline-none focus:border-blue-500 focus:ring-2 focus:ring-blue-500/20 transition-all w-full" placeholder="••••••••"
-                      value={createForm.password} onChange={e => setCreateForm(f => ({ ...f, password: e.target.value }))} required
+                      type={showCreatePassword ? "text" : "password"} 
+                      className={`h-11 pl-10 pr-10 bg-slate-50 dark:bg-[#161922] border rounded-xl text-sm font-inter text-slate-800 dark:text-white outline-none transition-all w-full ${
+                        createPasswordError 
+                          ? 'border-rose-500 text-rose-600 dark:text-rose-400 focus:border-rose-500 focus:ring-2 focus:ring-rose-500/20' 
+                          : createForm.password && !createPasswordError 
+                          ? 'border-emerald-500 focus:border-emerald-500 focus:ring-2 focus:ring-emerald-500/20' 
+                          : 'border-slate-300 dark:border-white/10 focus:border-blue-500 focus:ring-2 focus:ring-blue-500/20'
+                      }`} 
+                      placeholder="••••••••"
+                      value={createForm.password} 
+                      onChange={e => setCreateForm(f => ({ ...f, password: e.target.value }))} 
+                      required
                     />
                     <button type="button" className="absolute right-3 top-1/2 -translate-y-1/2 p-0.5 bg-transparent border-none text-slate-400 hover:text-slate-600 dark:hover:text-slate-200 cursor-pointer" onClick={() => setShowCreatePassword(!showCreatePassword)}>
                       {showCreatePassword ? <EyeOff size={15} /> : <Eye size={15} />}
                     </button>
                   </div>
+                  {createPasswordError ? (
+                    <span className="text-[11px] text-rose-500 font-medium flex items-center gap-1 mt-0.5">
+                      <AlertCircle size={12} /> {createPasswordError}
+                    </span>
+                  ) : (
+                    <span className="text-[11px] text-slate-400 font-normal">Must be at least 8 characters</span>
+                  )}
                 </div>
+
+                {/* Account Role */}
                 <div className="flex flex-col gap-1.5">
                   <label className="font-inter text-[12px] font-semibold text-slate-500 dark:text-slate-400 uppercase tracking-wider">Account Role</label>
                   <div className="grid grid-cols-3 gap-2">
@@ -565,7 +664,7 @@ export default function AdminUserManagement() {
               {/* Actions */}
               <div className="px-6 pb-6 flex items-center gap-3">
                 <button type="button" className="h-10 flex-1 rounded-xl font-inter text-sm font-semibold transition-all border border-slate-200 dark:border-white/10 bg-white dark:bg-white/5 text-slate-700 dark:text-slate-300 hover:bg-slate-50 dark:hover:bg-white/10 cursor-pointer" onClick={() => setShowAddModal(false)}>Cancel</button>
-                <button type="submit" className="h-10 flex-1 rounded-xl font-inter text-sm font-semibold transition-all border-none bg-blue-600 text-white hover:bg-blue-700 cursor-pointer flex items-center justify-center gap-2 disabled:opacity-50" disabled={actionLoading}>
+                <button type="submit" className="h-10 flex-1 rounded-xl font-inter text-sm font-semibold transition-all border-none bg-blue-600 text-white hover:bg-blue-700 cursor-pointer flex items-center justify-center gap-2 disabled:opacity-50 disabled:cursor-not-allowed" disabled={!isCreateFormValid || actionLoading}>
                   {actionLoading ? <Loader2 className="animate-spin" size={16} /> : <><UserPlus size={16} /> Create Account</>}
                 </button>
               </div>
@@ -601,11 +700,32 @@ export default function AdminUserManagement() {
 
             <div className="px-6 pb-6 flex flex-col gap-4">
               <div className="flex flex-col gap-1.5">
-                <label className="font-inter text-[12px] font-semibold text-slate-500 dark:text-slate-400 uppercase tracking-wider">Email Address</label>
+                <div className="flex items-center justify-between">
+                  <label className="font-inter text-[12px] font-semibold text-slate-500 dark:text-slate-400 uppercase tracking-wider">Email Address</label>
+                  {editEmail && !editEmailError && (
+                    <span className="text-[11px] text-emerald-600 dark:text-emerald-400 font-semibold flex items-center gap-1">
+                      <CheckCircle2 size={12} /> Valid email
+                    </span>
+                  )}
+                </div>
                 <input
-                  type="email" className="h-11 px-3 bg-slate-50 dark:bg-[#161922] border border-slate-300 dark:border-white/10 rounded-xl text-sm font-inter text-slate-800 dark:text-white outline-none focus:border-blue-500 focus:ring-2 focus:ring-blue-500/20 transition-all w-full" 
-                  value={editEmail} onChange={e => setEditEmail(e.target.value)} required
+                  type="email" 
+                  className={`h-11 px-3 bg-slate-50 dark:bg-[#161922] border rounded-xl text-sm font-inter text-slate-800 dark:text-white outline-none transition-all w-full ${
+                    editEmailError 
+                      ? 'border-rose-500 text-rose-600 dark:text-rose-400 focus:border-rose-500 focus:ring-2 focus:ring-rose-500/20' 
+                      : editEmail && !editEmailError 
+                      ? 'border-emerald-500 focus:border-emerald-500 focus:ring-2 focus:ring-emerald-500/20' 
+                      : 'border-slate-300 dark:border-white/10 focus:border-blue-500 focus:ring-2 focus:ring-blue-500/20'
+                  }`} 
+                  value={editEmail} 
+                  onChange={e => setEditEmail(e.target.value)} 
+                  required
                 />
+                {editEmailError && (
+                  <span className="text-[11px] text-rose-500 font-medium flex items-center gap-1 mt-0.5">
+                    <AlertCircle size={12} /> {editEmailError}
+                  </span>
+                )}
               </div>
               <div className="flex flex-col gap-1.5">
                 <label className="font-inter text-[12px] font-semibold text-slate-500 dark:text-slate-400 uppercase tracking-wider">Role</label>
@@ -622,17 +742,38 @@ export default function AdminUserManagement() {
                 </div>
               </div>
               <div className="flex flex-col gap-1.5">
-                <label className="font-inter text-[12px] font-semibold text-slate-500 dark:text-slate-400 uppercase tracking-wider">New Password <span className="normal-case text-slate-400 dark:text-slate-500">(optional)</span></label>
+                <div className="flex items-center justify-between">
+                  <label className="font-inter text-[12px] font-semibold text-slate-500 dark:text-slate-400 uppercase tracking-wider">New Password <span className="normal-case text-slate-400 dark:text-slate-500">(optional)</span></label>
+                  {editPassword && !editPasswordError && (
+                    <span className="text-[11px] text-emerald-600 dark:text-emerald-400 font-semibold flex items-center gap-1">
+                      <CheckCircle2 size={12} /> Password ok
+                    </span>
+                  )}
+                </div>
                 <div className="relative">
                   <KeyRound size={16} className="absolute left-3 top-1/2 -translate-y-1/2 text-slate-400 pointer-events-none" />
                   <input
-                    type={showEditPassword ? "text" : "password"} className="h-11 pl-10 pr-10 bg-slate-50 dark:bg-[#161922] border border-slate-300 dark:border-white/10 rounded-xl text-sm font-inter text-slate-800 dark:text-white outline-none focus:border-blue-500 focus:ring-2 focus:ring-blue-500/20 transition-all w-full" placeholder="Leave blank to keep current"
-                    value={editPassword} onChange={e => setEditPassword(e.target.value)}
+                    type={showEditPassword ? "text" : "password"} 
+                    className={`h-11 pl-10 pr-10 bg-slate-50 dark:bg-[#161922] border rounded-xl text-sm font-inter text-slate-800 dark:text-white outline-none transition-all w-full ${
+                      editPasswordError 
+                        ? 'border-rose-500 text-rose-600 dark:text-rose-400 focus:border-rose-500 focus:ring-2 focus:ring-rose-500/20' 
+                        : editPassword && !editPasswordError 
+                        ? 'border-emerald-500 focus:border-emerald-500 focus:ring-2 focus:ring-emerald-500/20' 
+                        : 'border-slate-300 dark:border-white/10 focus:border-blue-500 focus:ring-2 focus:ring-blue-500/20'
+                    }`} 
+                    placeholder="Leave blank to keep current"
+                    value={editPassword} 
+                    onChange={e => setEditPassword(e.target.value)}
                   />
                   <button type="button" className="absolute right-3 top-1/2 -translate-y-1/2 p-0.5 bg-transparent border-none text-slate-400 hover:text-slate-600 dark:hover:text-slate-200 cursor-pointer" onClick={() => setShowEditPassword(!showEditPassword)}>
                     {showEditPassword ? <EyeOff size={15} /> : <Eye size={15} />}
                   </button>
                 </div>
+                {editPasswordError && (
+                  <span className="text-[11px] text-rose-500 font-medium flex items-center gap-1 mt-0.5">
+                    <AlertCircle size={12} /> {editPasswordError}
+                  </span>
+                )}
               </div>
             </div>
 
@@ -641,7 +782,7 @@ export default function AdminUserManagement() {
               <button className="h-10 flex-1 rounded-xl font-inter text-sm font-semibold transition-all border border-slate-200 dark:border-white/10 bg-white dark:bg-white/5 text-slate-700 dark:text-slate-300 hover:bg-slate-50 dark:hover:bg-white/10 cursor-pointer" onClick={() => setEditTarget(null)}>Cancel</button>
               <button className="h-10 flex-1 rounded-xl font-inter text-sm font-semibold transition-all border-none bg-blue-600 text-white hover:bg-blue-700 cursor-pointer flex items-center justify-center gap-2 disabled:opacity-50 disabled:cursor-not-allowed" onClick={() => {
                 setEditTarget({ ...editTarget, confirmStep: true });
-              }} disabled={(editRole === editTarget.role && editEmail === editTarget.email && !editPassword.trim())}>
+              }} disabled={!editEmail.trim() || !!editEmailError || !!editPasswordError || (editRole === editTarget.role && editEmail === editTarget.email && !editPassword.trim())}>
                 Save Changes
               </button>
             </div>

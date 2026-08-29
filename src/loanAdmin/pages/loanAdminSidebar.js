@@ -129,7 +129,7 @@ export default function LoanAdminSidebar() {
   return (
     <>
       {/* Mobile Top Bar */}
-      <div className="md:hidden flex items-center justify-between p-3.5 bg-navy text-white border-b border-white/10 sticky top-0 z-30 dark:bg-[#2C2F36]">
+      <div className="md:hidden flex items-center justify-between p-3.5 bg-navy text-white border-b border-white/10 sticky top-0 z-30 dark:bg-[#1E2130]">
         <div className="flex items-center gap-3">
           <img src={puacLogo} alt="IsangDiwa Logo" className="w-8 h-8 rounded-full overflow-hidden bg-white object-cover" />
           <h1 className="text-lg font-semibold m-0 text-white font-cormorant tracking-[0.02em]"><span className="brand-text-isang">Isang</span><span className="brand-text-diwa">Diwa</span></h1>
@@ -151,7 +151,7 @@ export default function LoanAdminSidebar() {
         />
       )}
 
-      <div className={`fixed md:sticky top-0 left-0 z-50 md:z-20 h-screen bg-navy text-white flex flex-col overflow-y-auto overflow-x-hidden dark:bg-[#2C2F36] dark:border-r dark:border-white/5 scrollbar-none transition-all duration-300 ${
+      <div className={`fixed md:sticky top-0 left-0 z-50 md:z-20 h-screen bg-navy text-white flex flex-col overflow-y-auto overflow-x-hidden dark:bg-[#1E2130] dark:border-r dark:border-white/5 scrollbar-none transition-all duration-300 ${
         collapsed ? 'w-64 -translate-x-full md:translate-x-0 md:w-[72px]' : 'w-64 min-w-[256px] translate-x-0'
       }`}>
         <div className={`p-3.5 border-b border-white/5 shrink-0 flex items-center justify-between gap-3 ${collapsed ? 'md:justify-center md:px-2' : 'px-4'}`}>
@@ -186,7 +186,7 @@ export default function LoanAdminSidebar() {
         
         <button
           title={collapsed ? "Dashboard" : undefined}
-          className={`flex items-center gap-3 px-3.5 h-[37px] bg-transparent border-none text-white/70 text-sm font-inter rounded-lg cursor-pointer transition-all w-full text-left leading-tight whitespace-nowrap relative hover:bg-white/10 dark:hover:bg-white/5 ${isActive('/loan-admin/dashboard') ? 'bg-white/10 text-white font-semibold dark:bg-[#363940]' : ''} ${collapsed ? 'md:w-9 md:h-9 md:p-0 md:justify-center' : ''}`}
+          className={`flex items-center gap-3 px-3.5 h-[37px] bg-transparent border-none text-white/70 text-sm font-inter rounded-lg cursor-pointer transition-all w-full text-left leading-tight whitespace-nowrap relative hover:bg-white/10 dark:hover:bg-white/5 ${isActive('/loan-admin/dashboard') ? 'bg-white/10 text-white font-semibold dark:bg-white/10' : ''} ${collapsed ? 'md:w-9 md:h-9 md:p-0 md:justify-center' : ''}`}
           onClick={() => handleNav('/loan-admin/dashboard')}
         >
           <span><LayoutGrid size={18} className="w-[18px] h-[18px] flex items-center justify-center shrink-0" /></span>
@@ -195,7 +195,7 @@ export default function LoanAdminSidebar() {
 
         <button
           title={collapsed ? "Notifications" : undefined}
-          className={`flex items-center gap-3 px-3.5 h-[37px] bg-transparent border-none text-white/70 text-sm font-inter rounded-lg cursor-pointer transition-all w-full text-left leading-tight whitespace-nowrap relative hover:bg-white/10 dark:hover:bg-white/5 ${isActive('/loan-admin/notifications') ? 'bg-white/10 text-white font-semibold dark:bg-[#363940]' : ''} ${collapsed ? 'md:w-9 md:h-9 md:p-0 md:justify-center' : ''}`}
+          className={`flex items-center gap-3 px-3.5 h-[37px] bg-transparent border-none text-white/70 text-sm font-inter rounded-lg cursor-pointer transition-all w-full text-left leading-tight whitespace-nowrap relative hover:bg-white/10 dark:hover:bg-white/5 ${isActive('/loan-admin/notifications') ? 'bg-white/10 text-white font-semibold dark:bg-white/10' : ''} ${collapsed ? 'md:w-9 md:h-9 md:p-0 md:justify-center' : ''}`}
           onClick={() => handleNav('/loan-admin/notifications')}
         >
           <span><Bell size={18} className="w-[18px] h-[18px] flex items-center justify-center shrink-0" /></span>
@@ -215,7 +215,7 @@ export default function LoanAdminSidebar() {
         
         <button
           title={collapsed ? "Loan Management" : undefined}
-          className={`flex items-center gap-3 px-3.5 h-[37px] bg-transparent border-none text-white/70 text-sm font-inter rounded-lg cursor-pointer transition-all w-full text-left leading-tight whitespace-nowrap relative hover:bg-white/10 dark:hover:bg-white/5 ${isActive('/loan-admin/loan-management') ? 'bg-white/10 text-white font-semibold dark:bg-[#363940]' : ''} ${collapsed ? 'md:w-9 md:h-9 md:p-0 md:justify-center' : ''}`}
+          className={`flex items-center gap-3 px-3.5 h-[37px] bg-transparent border-none text-white/70 text-sm font-inter rounded-lg cursor-pointer transition-all w-full text-left leading-tight whitespace-nowrap relative hover:bg-white/10 dark:hover:bg-white/5 ${isActive('/loan-admin/loan-management') ? 'bg-white/10 text-white font-semibold dark:bg-white/10' : ''} ${collapsed ? 'md:w-9 md:h-9 md:p-0 md:justify-center' : ''}`}
           onClick={() => handleNav('/loan-admin/loan-management')}
         >
           <span><FileText size={18} className="w-[18px] h-[18px] flex items-center justify-center shrink-0" /></span>
@@ -229,7 +229,7 @@ export default function LoanAdminSidebar() {
 
         <button
           title={collapsed ? "Payments" : undefined}
-          className={`flex items-center gap-3 px-3.5 h-[37px] bg-transparent border-none text-white/70 text-sm font-inter rounded-lg cursor-pointer transition-all w-full text-left leading-tight whitespace-nowrap relative hover:bg-white/10 dark:hover:bg-white/5 ${isActive('/loan-admin/payments/loans') ? 'bg-white/10 text-white font-semibold dark:bg-[#363940]' : ''} ${collapsed ? 'md:w-9 md:h-9 md:p-0 md:justify-center' : ''}`}
+          className={`flex items-center gap-3 px-3.5 h-[37px] bg-transparent border-none text-white/70 text-sm font-inter rounded-lg cursor-pointer transition-all w-full text-left leading-tight whitespace-nowrap relative hover:bg-white/10 dark:hover:bg-white/5 ${isActive('/loan-admin/payments/loans') ? 'bg-white/10 text-white font-semibold dark:bg-white/10' : ''} ${collapsed ? 'md:w-9 md:h-9 md:p-0 md:justify-center' : ''}`}
           onClick={() => handleNav('/loan-admin/payments/loans')}
         >
           <span><CreditCard size={18} className="w-[18px] h-[18px] flex items-center justify-center shrink-0" /></span>
@@ -243,7 +243,7 @@ export default function LoanAdminSidebar() {
 
         <button
           title={collapsed ? "Savings" : undefined}
-          className={`flex items-center gap-3 px-3.5 h-[37px] bg-transparent border-none text-white/70 text-sm font-inter rounded-lg cursor-pointer transition-all w-full text-left leading-tight whitespace-nowrap relative hover:bg-white/10 dark:hover:bg-white/5 ${isActive('/loan-admin/payments/savings') ? 'bg-white/10 text-white font-semibold dark:bg-[#363940]' : ''} ${collapsed ? 'md:w-9 md:h-9 md:p-0 md:justify-center' : ''}`}
+          className={`flex items-center gap-3 px-3.5 h-[37px] bg-transparent border-none text-white/70 text-sm font-inter rounded-lg cursor-pointer transition-all w-full text-left leading-tight whitespace-nowrap relative hover:bg-white/10 dark:hover:bg-white/5 ${isActive('/loan-admin/payments/savings') ? 'bg-white/10 text-white font-semibold dark:bg-white/10' : ''} ${collapsed ? 'md:w-9 md:h-9 md:p-0 md:justify-center' : ''}`}
           onClick={() => handleNav('/loan-admin/payments/savings')}
         >
           <span><PiggyBank size={18} className="w-[18px] h-[18px] flex items-center justify-center shrink-0" /></span>
@@ -263,7 +263,7 @@ export default function LoanAdminSidebar() {
         
         <button
           title={collapsed ? "Delinquency Reports" : undefined}
-          className={`flex items-center gap-3 px-3.5 h-[37px] bg-transparent border-none text-white/70 text-sm font-inter rounded-lg cursor-pointer transition-all w-full text-left leading-tight whitespace-nowrap relative hover:bg-white/10 dark:hover:bg-white/5 ${isActive('/loan-admin/delinquency') ? 'bg-white/10 text-white font-semibold dark:bg-[#363940]' : ''} ${collapsed ? 'md:w-9 md:h-9 md:p-0 md:justify-center' : ''}`}
+          className={`flex items-center gap-3 px-3.5 h-[37px] bg-transparent border-none text-white/70 text-sm font-inter rounded-lg cursor-pointer transition-all w-full text-left leading-tight whitespace-nowrap relative hover:bg-white/10 dark:hover:bg-white/5 ${isActive('/loan-admin/delinquency') ? 'bg-white/10 text-white font-semibold dark:bg-white/10' : ''} ${collapsed ? 'md:w-9 md:h-9 md:p-0 md:justify-center' : ''}`}
           onClick={() => handleNav('/loan-admin/delinquency')}
         >
           <span><AlertTriangle size={18} className="w-[18px] h-[18px] flex items-center justify-center shrink-0" /></span>
@@ -277,7 +277,7 @@ export default function LoanAdminSidebar() {
 
         <button
           title={collapsed ? "Automated Reports" : undefined}
-          className={`flex items-center gap-3 px-3.5 h-[37px] bg-transparent border-none text-white/70 text-sm font-inter rounded-lg cursor-pointer transition-all w-full text-left leading-tight whitespace-nowrap relative hover:bg-white/10 dark:hover:bg-white/5 ${isActive('/admin/financial-report') ? 'bg-white/10 text-white font-semibold dark:bg-[#363940]' : ''} ${collapsed ? 'md:w-9 md:h-9 md:p-0 md:justify-center' : ''}`}
+          className={`flex items-center gap-3 px-3.5 h-[37px] bg-transparent border-none text-white/70 text-sm font-inter rounded-lg cursor-pointer transition-all w-full text-left leading-tight whitespace-nowrap relative hover:bg-white/10 dark:hover:bg-white/5 ${isActive('/admin/financial-report') ? 'bg-white/10 text-white font-semibold dark:bg-white/10' : ''} ${collapsed ? 'md:w-9 md:h-9 md:p-0 md:justify-center' : ''}`}
           onClick={() => handleNav('/admin/financial-report')}
         >
           <span><BarChart size={18} className="w-[18px] h-[18px] flex items-center justify-center shrink-0" /></span>
@@ -292,7 +292,7 @@ export default function LoanAdminSidebar() {
         
         <button
           title={collapsed ? "Settings" : undefined}
-          className={`flex items-center gap-3 px-3.5 h-[37px] bg-transparent border-none text-white/70 text-sm font-inter rounded-lg cursor-pointer transition-all w-full text-left leading-tight whitespace-nowrap relative hover:bg-white/10 dark:hover:bg-white/5 ${isActive('/loan-admin/settings') ? 'bg-white/10 text-white font-semibold dark:bg-[#363940]' : ''} ${collapsed ? 'md:w-9 md:h-9 md:p-0 md:justify-center' : ''}`}
+          className={`flex items-center gap-3 px-3.5 h-[37px] bg-transparent border-none text-white/70 text-sm font-inter rounded-lg cursor-pointer transition-all w-full text-left leading-tight whitespace-nowrap relative hover:bg-white/10 dark:hover:bg-white/5 ${isActive('/loan-admin/settings') ? 'bg-white/10 text-white font-semibold dark:bg-white/10' : ''} ${collapsed ? 'md:w-9 md:h-9 md:p-0 md:justify-center' : ''}`}
           onClick={() => handleNav('/loan-admin/settings')}
         >
           <span><Settings size={18} className="w-[18px] h-[18px] flex items-center justify-center shrink-0" /></span>

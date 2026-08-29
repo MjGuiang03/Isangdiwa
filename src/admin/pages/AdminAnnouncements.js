@@ -1,4 +1,5 @@
 import { useState, useEffect } from 'react';
+import { createPortal } from 'react-dom';
 import useSWR from 'swr';
 import { useNavigate } from 'react-router-dom';
 import { toast } from 'sonner';
@@ -675,11 +676,11 @@ function DeleteAnnouncementModal({ announcement, onClose, onConfirm }) {
     }
   };
 
-  return (
-    <div className="fixed inset-0 bg-black/50 backdrop-blur-sm z-[1000] flex items-center justify-center p-4" onClick={onClose}>
-      <div className="bg-white dark:bg-[#1E2130] rounded-2xl w-full max-w-[400px] shadow-2xl border border-slate-200 dark:border-white/10 flex flex-col overflow-hidden" onClick={e => e.stopPropagation()}>
+  return createPortal(
+    <div className="fixed inset-0 bg-black/60 backdrop-blur-sm z-[99999] flex items-center justify-center p-4 animate-fade-in" onClick={onClose}>
+      <div className="bg-white dark:bg-[#1E2130] rounded-2xl w-full max-w-[420px] shadow-2xl border border-slate-200 dark:border-white/10 flex flex-col overflow-hidden" onClick={e => e.stopPropagation()}>
         <div className="flex flex-col items-center gap-4 p-6 pt-8">
-          <div className="w-14 h-14 rounded-2xl bg-rose-100 dark:bg-rose-500/20 text-rose-600 dark:text-rose-400 flex items-center justify-center shrink-0">
+          <div className="w-14 h-14 rounded-2xl bg-rose-100 dark:bg-rose-500/20 text-rose-600 dark:text-rose-400 flex items-center justify-center shrink-0 shadow-xs">
             <AlertTriangle size={28} strokeWidth={2.2} />
           </div>
           <div className="text-center">
@@ -690,12 +691,25 @@ function DeleteAnnouncementModal({ announcement, onClose, onConfirm }) {
           </div>
         </div>
         <div className="p-5 border-t border-slate-200 dark:border-white/10 bg-slate-50 dark:bg-black/20 flex items-center justify-end gap-3">
-          <button type="button" className="h-10 px-4 rounded-lg font-inter text-sm font-semibold transition-all border border-slate-300 dark:border-white/10 bg-white dark:bg-[#1E2130] text-slate-700 dark:text-slate-300 hover:bg-slate-50 dark:hover:bg-white/5 cursor-pointer flex-1 sm:flex-none" onClick={onClose} disabled={deleting}>Cancel</button>
-          <button type="button" className="h-10 px-6 rounded-lg font-inter text-sm font-semibold transition-all border-none bg-rose-600 text-white hover:bg-rose-700 cursor-pointer flex items-center justify-center min-w-[100px] flex-1 sm:flex-none" onClick={handleConfirm} disabled={deleting}>
-            {deleting ? <Loader2 className="animate-spin" size={16} /> : 'Delete'}
+          <button 
+            type="button" 
+            className="h-10 px-4 rounded-xl font-inter text-xs font-semibold transition-all border border-slate-300 dark:border-white/10 bg-white dark:bg-[#1E2130] text-slate-700 dark:text-slate-300 hover:bg-slate-50 dark:hover:bg-white/5 cursor-pointer flex-1 sm:flex-none" 
+            onClick={onClose} 
+            disabled={deleting}
+          >
+            Cancel
+          </button>
+          <button 
+            type="button" 
+            className="h-10 px-6 rounded-xl font-inter text-xs font-semibold transition-all border-none bg-rose-600 text-white hover:bg-rose-700 active:bg-rose-800 cursor-pointer flex items-center justify-center min-w-[100px] flex-1 sm:flex-none shadow-sm" 
+            onClick={handleConfirm} 
+            disabled={deleting}
+          >
+            {deleting ? <Loader2 className="animate-spin" size={16} /> : 'Delete Announcement'}
           </button>
         </div>
       </div>
-    </div>
+    </div>,
+    document.body
   );
 }

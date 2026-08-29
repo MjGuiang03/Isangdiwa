@@ -257,6 +257,15 @@ router.post('/login',
       /* ---- 4. Check Statuses for Valid Authenticated Users ---- */
       const now = new Date();
       if (!isAdminType) {
+        // Maintenance mode check for regular members
+        const { settings: settingsCol } = await import('../config/db.js');
+        const sysConfig = await settingsCol.findOne({ _id: 'global' });
+        if (sysConfig?.maintenanceMode) {
+          return res.status(503).json({
+            message: 'System is currently under scheduled maintenance. Access for regular members is temporarily paused.'
+          });
+        }
+
         if (account.lockUntil && account.lockUntil > now) {
           const remainingMinutes = Math.ceil((account.lockUntil - now) / 60000);
           return res.status(401).json({

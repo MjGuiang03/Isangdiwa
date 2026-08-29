@@ -123,28 +123,97 @@ const validators = {
 
 };
 
+/* ─── Region Mapping Helpers ───────────────────────────────── */
+const REGION_MAP = {
+  'CAR': 'Cordillera Administrative Region',
+  'Region II': 'Cagayan Valley',
+  'Region I': 'Ilocos Region',
+  'Region III': 'Central Luzon',
+  'NCR': 'National Capital Region',
+  'Region IV-A': 'CALABARZON',
+  'Region VII': 'Central Visayas',
+  'Region XIII': 'Caraga Region',
+};
+
+const REGION_ORDER = ['CAR', 'Region II', 'Region I', 'Region III', 'NCR', 'Region IV-A', 'Region VII', 'Region XIII'];
+
+const PROVINCE_TO_REGION_TAG = {
+  'Kalinga': 'CAR', 'Abra': 'CAR', 'Benguet': 'CAR', 'Ifugao': 'CAR', 'Mountain Province': 'CAR', 'Apayao': 'CAR',
+  'Isabela': 'Region II', 'Cagayan': 'Region II', 'Nueva Vizcaya': 'Region II', 'Quirino': 'Region II', 'Batanes': 'Region II',
+  'Pangasinan': 'Region I', 'Ilocos Norte': 'Region I', 'Ilocos Sur': 'Region I', 'La Union': 'Region I',
+  'Bulacan': 'Region III', 'Tarlac': 'Region III', 'Nueva Ecija': 'Region III', 'Pampanga': 'Region III', 'Bataan': 'Region III', 'Zambales': 'Region III', 'Aurora': 'Region III',
+  'NCR': 'NCR', 'Metro Manila': 'NCR',
+  'Rizal': 'Region IV-A', 'Cavite': 'Region IV-A', 'Laguna': 'Region IV-A', 'Batangas': 'Region IV-A', 'Quezon': 'Region IV-A',
+  'Cebu': 'Region VII', 'Bohol': 'Region VII', 'Negros Oriental': 'Region VII', 'Siquijor': 'Region VII',
+  'Agusan Del Norte': 'Region XIII', 'Agusan Del Sur': 'Region XIII', 'Surigao Del Norte': 'Region XIII', 'Surigao Del Sur': 'Region XIII', 'Dinagat Islands': 'Region XIII'
+};
+
+const NAME_TO_REGION_TAG = {
+  'Paco': 'NCR', 'San Andres': 'NCR', 'Tandang Sora': 'NCR', 'Payatas': 'NCR', 'COA': 'NCR', 'Malaria': 'NCR', 'Valenzuela': 'NCR',
+  'Meycauayan': 'Region III', 'Camalig': 'Region III', 'San Jose Del Monte': 'Region III', 'Pacpaco': 'Region III', 'Victoria': 'Region III', 'Bambanaba': 'Region III',
+  'Tabuk': 'CAR', 'Zapote': 'CAR', 'Bliss': 'CAR', 'Libanon': 'CAR', 'Batong Buhay': 'CAR', 'Balatoc': 'CAR', 'Lat-nog': 'CAR',
+  'Lamao': 'CAR', 'Lingey': 'CAR', 'Cabaruyan': 'CAR', 'Ducligan': 'CAR', 'Gangal': 'CAR', 'Bila-Bila': 'CAR', 'Naguillian': 'CAR', 'Ud-udiao': 'CAR', 'Villa Conchita': 'CAR', 'Ay-yeng Manabo': 'CAR', 'Dao-angan': 'CAR', 'Kilong-olao': 'CAR', 'Bao-yan': 'CAR', 'Amti': 'CAR', 'Danac': 'CAR', 'Bengued': 'CAR', 'Sappaac': 'CAR', 'Saccaang': 'CAR', 'Baguio': 'CAR',
+  'Santiago City': 'Region II',
+  'Dagupan': 'Region I', 'Mangatarem': 'Region I', 'Laoak Langka': 'Region I', 'Orbiztondo': 'Region I', 'Malasique': 'Region I', 'Taloyan': 'Region I', 'Binmaley': 'Region I', 'San Carlos': 'Region I', 'Manaoag': 'Region I', 'Pozorrobio': 'Region I', 'Alcala': 'Region I',
+  'Montalban': 'Region IV-A',
+  'Mandaue': 'Region VII', 'Li-loan': 'Region VII', 'Calero': 'Region VII', 'Compostela': 'Region VII',
+  'Butuan City': 'Region XIII', 'RTR': 'Region XIII', 'Jabonga': 'Region XIII', 'Kasiklan': 'Region XIII', 'San Mateo': 'Region XIII', 'Fatima': 'Region XIII', 'Bayugan': 'Region XIII', 'Ibuan': 'Region XIII', 'Balubo': 'Region XIII', 'Alegria': 'Region XIII', 'Bonifacio': 'Region XIII', 'Matin-ao': 'Region XIII', 'Ipil': 'Region XIII', 'Kinabigtasan': 'Region XIII'
+};
+
+const getRegionInfoForBranch = (b) => {
+  if (b.region && REGION_MAP[b.region]) return { tag: b.region, name: REGION_MAP[b.region] };
+  if (b.name) {
+    for (const [keyName, tag] of Object.entries(NAME_TO_REGION_TAG)) {
+      if (b.name.toLowerCase().includes(keyName.toLowerCase())) return { tag, name: REGION_MAP[tag] };
+    }
+  }
+  let province = b.province;
+  if (!province && b.address) {
+    const parts = b.address.split(', ');
+    if (parts.length > 0) province = parts[0];
+    if (parts.length > 1 && PROVINCE_TO_REGION_TAG[parts[1]]) {
+      const tag = PROVINCE_TO_REGION_TAG[parts[1]];
+      return { tag, name: REGION_MAP[tag] };
+    }
+  }
+  if (province && PROVINCE_TO_REGION_TAG[province]) {
+    const tag = PROVINCE_TO_REGION_TAG[province];
+    return { tag, name: REGION_MAP[tag] };
+  }
+  if (b.address) {
+    for (const tag of REGION_ORDER) {
+      if (b.address.includes(tag) || b.address.includes(REGION_MAP[tag])) return { tag, name: REGION_MAP[tag] };
+    }
+  }
+  return { tag: 'Other', name: 'Other Regions' };
+};
+
 /* ─── Communities ───────────────────────────────────────────── */
 const CommunitySelect = ({ value, onChange, branches }) => {
   const grouped = branches.reduce((acc, b) => {
-    let province = b.province;
-    if (!province && b.address) {
-      const parts = b.address.split(', ');
-      if (parts.length > 0) province = parts[0];
-    }
-    province = province || 'Other Provinces';
-    if (!acc[province]) acc[province] = [];
-    acc[province].push(b.name);
+    const { tag, name } = getRegionInfoForBranch(b);
+    const key = tag;
+    const label = name ? `${tag} - ${name}` : tag;
+    if (!acc[key]) acc[key] = { label, list: [] };
+    acc[key].list.push(b.name);
     return acc;
   }, {});
 
-  const provinces = Object.keys(grouped).sort();
+  const sortedKeys = Object.keys(grouped).sort((a, b) => {
+    const indexA = REGION_ORDER.indexOf(a);
+    const indexB = REGION_ORDER.indexOf(b);
+    if (indexA !== -1 && indexB !== -1) return indexA - indexB;
+    if (indexA !== -1) return -1;
+    if (indexB !== -1) return 1;
+    return a.localeCompare(b);
+  });
 
   return (
     <select name="community" value={value} onChange={onChange} className="w-full px-3 py-2.5 bg-slate-50 dark:bg-slate-800/60 border border-slate-200 dark:border-white/10 rounded-xl text-xs text-slate-900 dark:text-white outline-none focus:ring-2 focus:ring-blue-600 transition-all appearance-none pr-8">
       <option value="">Select your Community</option>
-      {provinces.map(prov => (
-        <optgroup key={prov} label={prov}>
-          {grouped[prov].map(branchName => (
+      {sortedKeys.map(key => (
+        <optgroup key={key} label={grouped[key].label}>
+          {grouped[key].list.sort().map(branchName => (
             <option key={branchName} value={branchName}>{branchName}</option>
           ))}
         </optgroup>

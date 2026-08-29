@@ -4,10 +4,13 @@ import Sidebar from './Sidebar';
 
 import Chatbot from './Chatbot';
 import NotificationPrompt from '../../components/NotificationPrompt';
+import MaintenanceOverlay from './MaintenanceOverlay';
 import { Bot, Sparkles, X, Menu } from 'lucide-react';
+import API from '../../utils/api';
 
 export default function UserLayout() {
   const [chatOpen, setChatOpen] = useState(false);
+  const [isMaintenanceMode, setIsMaintenanceMode] = useState(false);
   const [sidebarCollapsed, setSidebarCollapsed] = useState(() => {
     return localStorage.getItem('sidebar_collapsed') === 'true' || window.innerWidth < 1024;
   });
@@ -21,6 +24,19 @@ export default function UserLayout() {
   };
 
   useEffect(() => {
+    const checkMaintenance = async () => {
+      try {
+        const res = await fetch(`${API}/api/settings/public`);
+        const data = await res.json();
+        if (data.success && data.maintenanceMode) {
+          setIsMaintenanceMode(true);
+        }
+      } catch (err) {
+        console.error('Maintenance check error:', err);
+      }
+    };
+    checkMaintenance();
+
     const handleResize = () => {
       if (window.innerWidth < 1024) {
         setSidebarCollapsed(true);
@@ -29,6 +45,10 @@ export default function UserLayout() {
     window.addEventListener('resize', handleResize);
     return () => window.removeEventListener('resize', handleResize);
   }, []);
+
+  if (isMaintenanceMode) {
+    return <MaintenanceOverlay />;
+  }
 
   return (
     <div className="flex min-h-screen bg-background text-foreground transition-colors duration-300">
@@ -44,7 +64,7 @@ export default function UserLayout() {
         }`}
       >
         {/* Mobile top header bar with fixed sticky hamburger toggle */}
-        <div className="md:hidden fixed top-0 left-0 right-0 z-[1000] flex items-center justify-between h-12 px-3.5 bg-white/90 dark:bg-[#101217]/95 backdrop-blur-md border-b border-slate-200/60 dark:border-white/10 shadow-xs">
+        <div className="md:hidden fixed top-0 left-0 right-0 z-[1000] flex items-center justify-between h-12 px-3.5 bg-white/90 dark:bg-[#1E2130]/95 backdrop-blur-md border-b border-slate-200/60 dark:border-white/10 shadow-xs">
           <button 
             className="w-9 h-9 rounded-xl bg-slate-100/90 dark:bg-white/10 border border-slate-200/80 dark:border-white/15 text-slate-700 dark:text-white flex items-center justify-center hover:bg-slate-200 dark:hover:bg-white/20 cursor-pointer active:scale-95 transition-all p-0 shadow-xs" 
             onClick={toggleSidebar}

@@ -2,7 +2,7 @@ import { useState, useEffect } from 'react';
 import useSWR from 'swr';
 import { useNavigate } from 'react-router';
 import { toast } from 'sonner';
-import { Settings, Lock, CreditCard, Edit2, Moon, Building, Bell, Database, Wrench, Download, LogOut, Eye, EyeOff, Save, CheckCircle2 } from 'lucide-react';
+import { Settings, Lock, CreditCard, Edit2, Moon, Bell, Database, Wrench, Download, LogOut, Eye, EyeOff, Save, CheckCircle2, AlertTriangle } from 'lucide-react';
 import API from '../../utils/api';
 import { useTheme } from '../../context/ThemeContext';
 
@@ -59,6 +59,8 @@ export default function AdminSettings() {
   const [savedApprovalMethod, setSavedApprovalMethod] = useState('gateway');
   const [isEditingPayment, setIsEditingPayment] = useState(false);
   const [confirmModal, setConfirmModal] = useState({ show: false, section: null });
+  const [showMaintenanceModal, setShowMaintenanceModal] = useState(false);
+  const [pendingMaintenanceState, setPendingMaintenanceState] = useState(false);
 
   useEffect(() => {
     const adminEmail = localStorage.getItem('adminEmail');
@@ -235,11 +237,79 @@ export default function AdminSettings() {
       handleSave('Toggles', { [key]: checked });
   };
 
-  const handleExportData = () => {
-    toast.success('Preparing master database export...');
-    setTimeout(() => {
-        toast.success('Backup downloaded successfully (database_backup.csv)');
-    }, 1500);
+  const handleMaintenanceToggleClick = (targetChecked) => {
+    setPendingMaintenanceState(targetChecked);
+    setShowMaintenanceModal(true);
+  };
+
+  const confirmMaintenanceToggle = () => {
+    handleToggleChange('maintenanceMode', pendingMaintenanceState);
+    setShowMaintenanceModal(false);
+    toast.success(
+      pendingMaintenanceState
+        ? 'System Maintenance Mode enabled'
+        : 'System Maintenance Mode disabled'
+    );
+  };
+
+  const handleExportData = async () => {
+    const toastId = toast.loading('Preparing master database export...');
+    try {
+      const token = localStorage.getItem('adminToken');
+      
+      let res = await fetch(`${API}/api/admin/export-master-csv`, {
+        headers: { Authorization: `Bearer ${token}` }
+      }).catch(() => null);
+
+      let blob;
+      if (res && res.ok) {
+        blob = await res.blob();
+      } else {
+        // Fallback: Fetch resources directly and compile CSV
+        const [usersRes, donRes, loansRes] = await Promise.all([
+          fetch(`${API}/api/admin/users`, { headers: { Authorization: `Bearer ${token}` } }).then(r => r.json()).catch(() => ({})),
+          fetch(`${API}/api/admin/donations`, { headers: { Authorization: `Bearer ${token}` } }).then(r => r.json()).catch(() => ({})),
+          fetch(`${API}/api/admin/loans`, { headers: { Authorization: `Bearer ${token}` } }).then(r => r.json()).catch(() => ({}))
+        ]);
+
+        const usersList = usersRes.users || [];
+        const donList = donRes.donations || [];
+        const loansList = loansRes.loans || [];
+
+        let csv = "=== MEMBERS ===\nFull Name,Email,Phone,Branch,Position,Is Verified\n";
+        usersList.forEach(u => {
+          csv += `"${u.fullName || ''}","${u.email || ''}","${u.phone || ''}","${u.branch || ''}","${u.position || ''}","${u.isVerified ? 'Yes' : 'No'}"\n`;
+        });
+
+        csv += "\n=== DONATIONS ===\nDonor Name,Email,Amount,Category,Payment Method,Status\n";
+        donList.forEach(d => {
+          csv += `"${d.donorName || d.fullName || ''}","${d.email || ''}",${d.amount || 0},"${d.category || ''}","${d.paymentMethod || ''}","${d.status || ''}"\n`;
+        });
+
+        csv += "\n=== LOANS ===\nLoan ID,Member Name,Email,Type,Amount,Status\n";
+        loansList.forEach(l => {
+          csv += `"${l.loanId || ''}","${l.memberName || ''}","${l.email || ''}","${l.loanType || ''}",${l.amount || 0},"${l.status || ''}"\n`;
+        });
+
+        blob = new Blob([csv], { type: 'text/csv' });
+      }
+
+      const url = window.URL.createObjectURL(blob);
+      const a = document.createElement('a');
+      a.href = url;
+      a.download = `isangdiwa_master_backup_${new Date().toISOString().slice(0, 10)}.csv`;
+      document.body.appendChild(a);
+      a.click();
+      a.remove();
+      window.URL.revokeObjectURL(url);
+
+      toast.dismiss(toastId);
+      toast.success('Backup downloaded successfully');
+    } catch (err) {
+      console.error('Export CSV error:', err);
+      toast.dismiss(toastId);
+      toast.error('Failed to download database backup');
+    }
   };
 
   const handleLogout = () => {
@@ -291,56 +361,7 @@ export default function AdminSettings() {
         </div>
       </div>
 
-      {/* Organization Profile Section */}
-      <div className="bg-white dark:bg-[#1E2130] border border-slate-200 dark:border-white/10 rounded-2xl p-6 shadow-sm flex flex-col gap-6 relative">
-        <div className="flex items-center gap-4 pb-4 border-b border-slate-100 dark:border-white/5">
-          <div className="w-12 h-12 rounded-xl flex items-center justify-center shrink-0 bg-amber-50 text-amber-600 dark:bg-amber-500/20 dark:text-amber-400 border border-amber-200/50 dark:border-amber-500/30">
-            <Building size={22} />
-          </div>
-          <div className="flex flex-col">
-            <h2 className="m-0 font-inter text-base font-bold text-slate-800 dark:text-white">Organization Profile</h2>
-            <p className="m-0 font-inter text-xs text-slate-500 dark:text-slate-400 mt-0.5">Update the church's official branding and contact details</p>
-          </div>
-        </div>
 
-        <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-          <div className="flex flex-col gap-1">
-            <label className="font-inter text-xs font-semibold text-slate-700 dark:text-slate-300 uppercase tracking-wider mb-1">Church Name</label>
-            <input
-              type="text"
-              value={settings.orgName}
-              onChange={(e) => setSettings({ ...settings, orgName: e.target.value })}
-              className="h-10 px-3.5 bg-slate-50 dark:bg-[#161922] border border-slate-200 dark:border-white/10 rounded-xl text-sm font-inter text-slate-800 dark:text-white outline-none focus:border-blue-500 focus:bg-white dark:focus:bg-[#161922] transition-all w-full"
-            />
-          </div>
-          <div className="flex flex-col gap-1">
-            <label className="font-inter text-xs font-semibold text-slate-700 dark:text-slate-300 uppercase tracking-wider mb-1">Contact Number</label>
-            <input
-              type="text"
-              value={settings.orgContact}
-              onChange={(e) => setSettings({ ...settings, orgContact: e.target.value })}
-              className="h-10 px-3.5 bg-slate-50 dark:bg-[#161922] border border-slate-200 dark:border-white/10 rounded-xl text-sm font-inter text-slate-800 dark:text-white outline-none focus:border-blue-500 focus:bg-white dark:focus:bg-[#161922] transition-all w-full"
-            />
-          </div>
-        </div>
-        <div className="flex flex-col gap-1">
-          <label className="font-inter text-xs font-semibold text-slate-700 dark:text-slate-300 uppercase tracking-wider mb-1">Official Address</label>
-          <input
-            type="text"
-            value={settings.orgAddress}
-            onChange={(e) => setSettings({ ...settings, orgAddress: e.target.value })}
-            className="h-10 px-3.5 bg-slate-50 dark:bg-[#161922] border border-slate-200 dark:border-white/10 rounded-xl text-sm font-inter text-slate-800 dark:text-white outline-none focus:border-blue-500 focus:bg-white dark:focus:bg-[#161922] transition-all w-full"
-          />
-        </div>
-
-        <button
-          onClick={() => setConfirmModal({ show: true, section: 'Organization' })}
-          className="h-10 px-6 rounded-xl font-inter text-sm font-semibold transition-all border-none bg-blue-600 text-white hover:bg-blue-700 cursor-pointer shadow-sm flex items-center justify-center gap-2 w-fit mt-1"
-        >
-          <Save size={16} />
-          Save Details
-        </button>
-      </div>
 
       {/* Account Settings Section */}
       <div className="bg-white dark:bg-[#1E2130] border border-slate-200 dark:border-white/10 rounded-2xl p-6 shadow-sm flex flex-col gap-6 relative">
@@ -527,7 +548,12 @@ export default function AdminSettings() {
             <CreditCard size={22} />
           </div>
           <div className="flex flex-col">
-            <h2 className="m-0 font-inter text-base font-bold text-slate-800 dark:text-white">Payment Settings</h2>
+            <div className="flex items-center gap-2">
+              <h2 className="m-0 font-inter text-base font-bold text-slate-800 dark:text-white">Payment Settings</h2>
+              <span className="px-2.5 py-0.5 rounded-full bg-blue-50 dark:bg-blue-500/15 text-blue-600 dark:text-blue-400 border border-blue-200/60 dark:border-blue-500/30 text-[10px] font-bold uppercase tracking-wider">
+                Coming Soon
+              </span>
+            </div>
             <p className="m-0 font-inter text-xs text-slate-500 dark:text-slate-400 mt-0.5">Configure transaction approval methods for donations and loans</p>
           </div>
         </div>
@@ -535,58 +561,24 @@ export default function AdminSettings() {
         <div className="flex flex-col gap-2">
           <div className="flex items-center justify-between mb-1">
             <label className="font-inter text-xs font-semibold text-slate-700 dark:text-slate-300 uppercase tracking-wider">Payment Processing Mode</label>
-            {!isEditingPayment && (
-              <button 
-                onClick={() => setIsEditingPayment(true)} 
-                className="h-8 px-3 rounded-lg font-inter text-xs font-semibold transition-all border border-slate-200 dark:border-white/10 bg-slate-50 dark:bg-white/5 text-slate-700 dark:text-slate-300 hover:bg-slate-100 dark:hover:bg-white/10 cursor-pointer flex items-center gap-1.5" 
-              >
-                <Edit2 size={13} /> Edit
-              </button>
-            )}
+            <button 
+              disabled
+              className="h-8 px-3 rounded-lg font-inter text-xs font-semibold border border-slate-200/80 dark:border-white/10 bg-slate-100 dark:bg-white/5 text-slate-400 dark:text-slate-500 cursor-not-allowed flex items-center gap-1.5 opacity-70" 
+              title="Automated payment gateway configuration is coming soon"
+            >
+              <Edit2 size={13} /> Edit (Coming Soon)
+            </button>
           </div>
           
-          {!isEditingPayment ? (
-            <div className="p-4 bg-slate-50 dark:bg-[#161922] border border-slate-200 dark:border-white/10 rounded-xl flex items-center gap-3">
-              <span className={`text-xs font-bold px-3 py-1 rounded-full uppercase tracking-wider border ${savedApprovalMethod === 'manual' ? 'bg-amber-100 text-amber-800 border-amber-200 dark:bg-amber-500/20 dark:text-amber-400 dark:border-amber-500/30' : 'bg-emerald-100 text-emerald-800 border-emerald-200 dark:bg-emerald-500/20 dark:text-emerald-400 dark:border-emerald-500/30'}`}>
-                {savedApprovalMethod === 'manual' ? 'Manual Approval' : 'Automated Gateway'}
-              </span>
-              <span className="font-inter text-sm text-slate-600 dark:text-slate-300">
-                {savedApprovalMethod === 'manual' 
-                  ? 'Admins manually review uploaded receipts.' 
-                  : 'Transactions are processed automatically via online payment gateway.'}
-              </span>
-            </div>
-          ) : (
-            <select
-              value={settings.approvalMethod}
-              onChange={(e) => setSettings({ ...settings, approvalMethod: e.target.value })}
-              className="h-10 px-3.5 bg-slate-50 dark:bg-[#161922] border border-slate-200 dark:border-white/10 rounded-xl text-sm font-inter text-slate-800 dark:text-white outline-none focus:border-blue-500 transition-all w-full"
-            >
-              <option value="gateway">Automated Gateway Approval</option>
-              <option value="manual">Manual Approval</option>
-            </select>
-          )}
-        </div>
-
-        {isEditingPayment && (
-          <div className="flex gap-3">
-            <button
-              onClick={() => {
-                setIsEditingPayment(false);
-                setSettings({ ...settings, approvalMethod: savedApprovalMethod });
-              }}
-              className="h-10 px-6 rounded-xl font-inter text-sm font-semibold transition-all border border-slate-200 dark:border-white/10 bg-white dark:bg-white/5 text-slate-700 dark:text-slate-300 hover:bg-slate-50 dark:hover:bg-white/10 cursor-pointer flex-1"
-            >
-              Cancel
-            </button>
-            <button
-              onClick={() => setConfirmModal({ show: true, section: 'Payment' })}
-              className="h-10 px-6 rounded-xl font-inter text-sm font-semibold transition-all border-none bg-blue-600 text-white hover:bg-blue-700 cursor-pointer flex-1 flex items-center justify-center gap-2"
-            >
-              <Save size={16} /> Save Changes
-            </button>
+          <div className="p-4 bg-slate-50 dark:bg-[#161922] border border-slate-200 dark:border-white/10 rounded-xl flex items-center gap-3">
+            <span className="text-xs font-bold px-3 py-1 rounded-full uppercase tracking-wider border bg-amber-100 text-amber-800 border-amber-200 dark:bg-amber-500/20 dark:text-amber-400 dark:border-amber-500/30 shrink-0">
+              Manual Approval
+            </span>
+            <span className="font-inter text-sm text-slate-600 dark:text-slate-300">
+              Admins manually review uploaded receipts. (Automated gateway integration coming soon)
+            </span>
           </div>
-        )}
+        </div>
       </div>
 
       {/* Appearance Settings Section */}
@@ -659,7 +651,7 @@ export default function AdminSettings() {
             <span className="font-inter text-xs text-rose-700/80 dark:text-rose-400/80">Regular users will see a maintenance screen and cannot log in.</span>
           </div>
           <label className="relative inline-flex items-center cursor-pointer shrink-0">
-            <input type="checkbox" className="sr-only peer" checked={settings.maintenanceMode} onChange={(e) => handleToggleChange('maintenanceMode', e.target.checked)} />
+            <input type="checkbox" className="sr-only peer" checked={settings.maintenanceMode} onChange={(e) => handleMaintenanceToggleClick(e.target.checked)} />
             <div className="w-11 h-6 bg-slate-200 dark:bg-white/10 peer-focus:outline-none rounded-full peer peer-checked:after:translate-x-full peer-checked:after:border-white after:content-[''] after:absolute after:top-[2px] after:left-[2px] after:bg-white after:border-slate-300 after:border after:rounded-full after:h-5 after:w-5 after:transition-all peer-checked:bg-rose-600"></div>
           </label>
         </div>
@@ -718,6 +710,57 @@ export default function AdminSettings() {
                 className="h-10 px-5 rounded-xl font-inter text-sm font-semibold transition-all border-none bg-blue-600 text-white hover:bg-blue-700 cursor-pointer shadow-sm"
               >
                 Confirm
+              </button>
+            </div>
+          </div>
+        </div>
+      )}
+
+      {/* Maintenance Mode Confirmation Modal */}
+      {showMaintenanceModal && (
+        <div className="fixed inset-0 bg-black/60 backdrop-blur-sm z-[1000] flex items-center justify-center p-4 animate-fadeIn font-inter">
+          <div className="bg-white dark:bg-[#1E2130] rounded-2xl w-full max-w-[460px] shadow-2xl border border-slate-200 dark:border-white/10 p-6 flex flex-col gap-5">
+            <div className="flex items-center gap-3.5">
+              <div className={`w-12 h-12 rounded-xl flex items-center justify-center shrink-0 border ${
+                pendingMaintenanceState 
+                  ? 'bg-amber-100 dark:bg-amber-500/20 text-amber-600 dark:text-amber-400 border-amber-200 dark:border-amber-500/30' 
+                  : 'bg-emerald-100 dark:bg-emerald-500/20 text-emerald-600 dark:text-emerald-400 border-emerald-200 dark:border-emerald-500/30'
+              }`}>
+                <AlertTriangle size={24} />
+              </div>
+              <div className="flex flex-col">
+                <h3 className="m-0 text-base font-bold text-slate-800 dark:text-white">
+                  {pendingMaintenanceState ? 'Enable Maintenance Mode?' : 'Disable Maintenance Mode?'}
+                </h3>
+                <p className="m-0 text-xs text-slate-500 dark:text-slate-400 mt-0.5">
+                  {pendingMaintenanceState ? 'Restrict regular member portal access' : 'Restore full regular member portal access'}
+                </p>
+              </div>
+            </div>
+
+            <div className="bg-slate-50 dark:bg-[#151821] p-4 rounded-xl border border-slate-200 dark:border-white/10 text-xs text-slate-600 dark:text-slate-300 leading-relaxed">
+              <strong className="block font-semibold mb-1 text-slate-800 dark:text-white">Impact on system users:</strong>
+              {pendingMaintenanceState
+                ? 'Enabling Maintenance Mode will immediately restrict regular members. Regular users will see a full-screen maintenance overlay and cannot log in. Administrative accounts will bypass this restriction.'
+                : 'Disabling Maintenance Mode will immediately restore normal login functionality and remove the maintenance overlay for regular members.'}
+            </div>
+
+            <div className="flex items-center justify-end gap-3 mt-1">
+              <button
+                type="button"
+                onClick={() => setShowMaintenanceModal(false)}
+                className="h-10 px-5 rounded-xl font-inter text-xs font-semibold transition-all border border-slate-200 dark:border-white/10 bg-white dark:bg-white/5 text-slate-700 dark:text-slate-300 hover:bg-slate-50 dark:hover:bg-white/10 cursor-pointer"
+              >
+                Cancel
+              </button>
+              <button
+                type="button"
+                onClick={confirmMaintenanceToggle}
+                className={`h-10 px-5 rounded-xl font-inter text-xs font-bold text-white transition-all shadow-md cursor-pointer border-none ${
+                  pendingMaintenanceState ? 'bg-amber-600 hover:bg-amber-700' : 'bg-emerald-600 hover:bg-emerald-700'
+                }`}
+              >
+                {pendingMaintenanceState ? 'Yes, Enable Maintenance' : 'Yes, Disable Maintenance'}
               </button>
             </div>
           </div>

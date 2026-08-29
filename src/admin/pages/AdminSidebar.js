@@ -125,7 +125,7 @@ export default function AdminSidebar() {
   return (
     <>
       {/* Mobile Top Bar */}
-      <div className="md:hidden flex items-center justify-between p-3.5 bg-navy text-white border-b border-white/10 sticky top-0 z-30 dark:bg-[#2C2F36]">
+      <div className="md:hidden flex items-center justify-between p-3.5 bg-navy text-white border-b border-white/10 sticky top-0 z-30 dark:bg-[#1E2130]">
         <div className="flex items-center gap-3">
           <img src={puacLogo} alt="IsangDiwa Logo" className="w-8 h-8 rounded-full overflow-hidden bg-white object-cover" />
           <h1 className="text-lg font-semibold m-0 text-white font-cormorant tracking-[0.02em]"><span className="brand-text-isang">Isang</span><span className="brand-text-diwa">Diwa</span></h1>
@@ -147,7 +147,7 @@ export default function AdminSidebar() {
         />
       )}
 
-      <div className={`fixed md:sticky top-0 left-0 z-50 md:z-20 h-screen bg-navy text-white flex flex-col overflow-y-auto overflow-x-hidden dark:bg-[#2C2F36] dark:border-r dark:border-white/5 scrollbar-none transition-all duration-300 ${
+      <div className={`fixed md:sticky top-0 left-0 z-50 md:z-20 h-screen bg-navy text-white flex flex-col overflow-y-auto overflow-x-hidden dark:bg-[#1E2130] dark:border-r dark:border-white/5 scrollbar-none transition-all duration-300 ${
         collapsed ? 'w-64 -translate-x-full md:translate-x-0 md:w-[72px]' : 'w-64 min-w-[256px] translate-x-0'
       }`}>
         <div className={`p-3.5 border-b border-white/5 shrink-0 flex items-center justify-between gap-3 ${collapsed ? 'md:justify-center md:px-2' : 'px-4'}`}>
@@ -179,7 +179,7 @@ export default function AdminSidebar() {
         <button
           onClick={() => handleNav('/admin/dashboard')}
           title={collapsed ? "Dashboard" : undefined}
-          className={`flex items-center gap-3 px-3.5 h-[37px] bg-transparent border-none text-white/70 text-sm font-inter rounded-lg cursor-pointer transition-all w-full text-left leading-tight whitespace-nowrap relative hover:bg-white/10 dark:hover:bg-white/5 ${isActive('/admin/dashboard') || location.pathname === '/admin' ? 'bg-white/10 text-white font-semibold dark:bg-[#363940]' : ''} ${collapsed ? 'md:w-9 md:h-9 md:p-0 md:justify-center' : ''}`}
+          className={`flex items-center gap-3 px-3.5 h-[37px] bg-transparent border-none text-white/70 text-sm font-inter rounded-lg cursor-pointer transition-all w-full text-left leading-tight whitespace-nowrap relative hover:bg-white/10 dark:hover:bg-white/5 ${isActive('/admin/dashboard') || location.pathname === '/admin' ? 'bg-white/10 text-white font-semibold dark:bg-white/10' : ''} ${collapsed ? 'md:w-9 md:h-9 md:p-0 md:justify-center' : ''}`}
         >
           <span><LayoutGrid size={18} className="w-[18px] h-[18px] flex items-center justify-center shrink-0" /></span>
           {!collapsed && <span className="font-inter text-sm">Dashboard</span>}
@@ -189,7 +189,7 @@ export default function AdminSidebar() {
         <button
           onClick={() => handleNav('/admin/notification')}
           title={collapsed ? "Notification" : undefined}
-          className={`flex items-center gap-3 px-3.5 h-[37px] bg-transparent border-none text-white/70 text-sm font-inter rounded-lg cursor-pointer transition-all w-full text-left leading-tight whitespace-nowrap relative hover:bg-white/10 dark:hover:bg-white/5 ${isActive('/admin/notification') ? 'bg-white/10 text-white font-semibold dark:bg-[#363940]' : ''} ${collapsed ? 'md:w-9 md:h-9 md:p-0 md:justify-center' : ''}`}
+          className={`flex items-center gap-3 px-3.5 h-[37px] bg-transparent border-none text-white/70 text-sm font-inter rounded-lg cursor-pointer transition-all w-full text-left leading-tight whitespace-nowrap relative hover:bg-white/10 dark:hover:bg-white/5 ${isActive('/admin/notification') ? 'bg-white/10 text-white font-semibold dark:bg-white/10' : ''} ${collapsed ? 'md:w-9 md:h-9 md:p-0 md:justify-center' : ''}`}
         >
           <span><Bell size={18} className="w-[18px] h-[18px] flex items-center justify-center shrink-0" /></span>
           {!collapsed && <span className="font-inter text-sm">Notification</span>}
@@ -210,7 +210,7 @@ export default function AdminSidebar() {
         <button
           onClick={() => handleNav('/admin/members')}
           title={collapsed ? "Member List" : undefined}
-          className={`flex items-center gap-3 px-3.5 h-[37px] bg-transparent border-none text-white/70 text-sm font-inter rounded-lg cursor-pointer transition-all w-full text-left leading-tight whitespace-nowrap relative hover:bg-white/10 dark:hover:bg-white/5 ${isActive('/admin/members') ? 'bg-white/10 text-white font-semibold dark:bg-[#363940]' : ''} ${collapsed ? 'md:w-9 md:h-9 md:p-0 md:justify-center' : ''}`}
+          className={`flex items-center gap-3 px-3.5 h-[37px] bg-transparent border-none text-white/70 text-sm font-inter rounded-lg cursor-pointer transition-all w-full text-left leading-tight whitespace-nowrap relative hover:bg-white/10 dark:hover:bg-white/5 ${isActive('/admin/members') ? 'bg-white/10 text-white font-semibold dark:bg-white/10' : ''} ${collapsed ? 'md:w-9 md:h-9 md:p-0 md:justify-center' : ''}`}
         >
           <span><Users size={18} className="w-[18px] h-[18px] flex items-center justify-center shrink-0" /></span>
           {!collapsed && <span className="font-inter text-sm">Member List</span>}
@@ -223,7 +223,7 @@ export default function AdminSidebar() {
         <button
           onClick={() => handleNav('/admin/branches')}
           title={collapsed ? "Communities" : undefined}
-          className={`flex items-center gap-3 px-3.5 h-[37px] bg-transparent border-none text-white/70 text-sm font-inter rounded-lg cursor-pointer transition-all w-full text-left leading-tight whitespace-nowrap relative hover:bg-white/10 dark:hover:bg-white/5 ${isActive('/admin/branches') ? 'bg-white/10 text-white font-semibold dark:bg-[#363940]' : ''} ${collapsed ? 'md:w-9 md:h-9 md:p-0 md:justify-center' : ''}`}
+          className={`flex items-center gap-3 px-3.5 h-[37px] bg-transparent border-none text-white/70 text-sm font-inter rounded-lg cursor-pointer transition-all w-full text-left leading-tight whitespace-nowrap relative hover:bg-white/10 dark:hover:bg-white/5 ${isActive('/admin/branches') ? 'bg-white/10 text-white font-semibold dark:bg-white/10' : ''} ${collapsed ? 'md:w-9 md:h-9 md:p-0 md:justify-center' : ''}`}
         >
           <span><MapPin size={18} className="w-[18px] h-[18px] flex items-center justify-center shrink-0" /></span>
           {!collapsed && <span className="font-inter text-sm">Communities</span>}
@@ -237,7 +237,7 @@ export default function AdminSidebar() {
         <button
           onClick={() => handleNav('/admin/donations')}
           title={collapsed ? "Donations" : undefined}
-          className={`flex items-center gap-3 px-3.5 h-[37px] bg-transparent border-none text-white/70 text-sm font-inter rounded-lg cursor-pointer transition-all w-full text-left leading-tight whitespace-nowrap relative hover:bg-white/10 dark:hover:bg-white/5 ${isActive('/admin/donations') ? 'bg-white/10 text-white font-semibold dark:bg-[#363940]' : ''} ${collapsed ? 'md:w-9 md:h-9 md:p-0 md:justify-center' : ''}`}
+          className={`flex items-center gap-3 px-3.5 h-[37px] bg-transparent border-none text-white/70 text-sm font-inter rounded-lg cursor-pointer transition-all w-full text-left leading-tight whitespace-nowrap relative hover:bg-white/10 dark:hover:bg-white/5 ${isActive('/admin/donations') ? 'bg-white/10 text-white font-semibold dark:bg-white/10' : ''} ${collapsed ? 'md:w-9 md:h-9 md:p-0 md:justify-center' : ''}`}
         >
           <span><CreditCard size={18} className="w-[18px] h-[18px] flex items-center justify-center shrink-0" /></span>
           {!collapsed && <span className="font-inter text-sm">Donations</span>}
@@ -257,7 +257,7 @@ export default function AdminSidebar() {
         <button
           onClick={() => handleNav('/admin/attendance')}
           title={collapsed ? "Attendance" : undefined}
-          className={`flex items-center gap-3 px-3.5 h-[37px] bg-transparent border-none text-white/70 text-sm font-inter rounded-lg cursor-pointer transition-all w-full text-left leading-tight whitespace-nowrap relative hover:bg-white/10 dark:hover:bg-white/5 ${isActive('/admin/attendance') ? 'bg-white/10 text-white font-semibold dark:bg-[#363940]' : ''} ${collapsed ? 'md:w-9 md:h-9 md:p-0 md:justify-center' : ''}`}
+          className={`flex items-center gap-3 px-3.5 h-[37px] bg-transparent border-none text-white/70 text-sm font-inter rounded-lg cursor-pointer transition-all w-full text-left leading-tight whitespace-nowrap relative hover:bg-white/10 dark:hover:bg-white/5 ${isActive('/admin/attendance') ? 'bg-white/10 text-white font-semibold dark:bg-white/10' : ''} ${collapsed ? 'md:w-9 md:h-9 md:p-0 md:justify-center' : ''}`}
         >
           <span><CalendarCheck size={18} className="w-[18px] h-[18px] flex items-center justify-center shrink-0" /></span>
           {!collapsed && <span className="font-inter text-sm">Attendance</span>}
@@ -265,7 +265,7 @@ export default function AdminSidebar() {
         <button
           onClick={() => handleNav('/admin/announcements')}
           title={collapsed ? "Announcements" : undefined}
-          className={`flex items-center gap-3 px-3.5 h-[37px] bg-transparent border-none text-white/70 text-sm font-inter rounded-lg cursor-pointer transition-all w-full text-left leading-tight whitespace-nowrap relative hover:bg-white/10 dark:hover:bg-white/5 ${isActive('/admin/announcements') ? 'bg-white/10 text-white font-semibold dark:bg-[#363940]' : ''} ${collapsed ? 'md:w-9 md:h-9 md:p-0 md:justify-center' : ''}`}
+          className={`flex items-center gap-3 px-3.5 h-[37px] bg-transparent border-none text-white/70 text-sm font-inter rounded-lg cursor-pointer transition-all w-full text-left leading-tight whitespace-nowrap relative hover:bg-white/10 dark:hover:bg-white/5 ${isActive('/admin/announcements') ? 'bg-white/10 text-white font-semibold dark:bg-white/10' : ''} ${collapsed ? 'md:w-9 md:h-9 md:p-0 md:justify-center' : ''}`}
         >
           <span><Megaphone size={18} className="w-[18px] h-[18px] flex items-center justify-center shrink-0" /></span>
           {!collapsed && <span className="font-inter text-sm">Announcements</span>}
@@ -273,7 +273,7 @@ export default function AdminSidebar() {
         <button
           onClick={() => handleNav('/admin/financial-report')}
           title={collapsed ? "Reports" : undefined}
-          className={`flex items-center gap-3 px-3.5 h-[37px] bg-transparent border-none text-white/70 text-sm font-inter rounded-lg cursor-pointer transition-all w-full text-left leading-tight whitespace-nowrap relative hover:bg-white/10 dark:hover:bg-white/5 ${isActive('/admin/financial-report') ? 'bg-white/10 text-white font-semibold dark:bg-[#363940]' : ''} ${collapsed ? 'md:w-9 md:h-9 md:p-0 md:justify-center' : ''}`}
+          className={`flex items-center gap-3 px-3.5 h-[37px] bg-transparent border-none text-white/70 text-sm font-inter rounded-lg cursor-pointer transition-all w-full text-left leading-tight whitespace-nowrap relative hover:bg-white/10 dark:hover:bg-white/5 ${isActive('/admin/financial-report') ? 'bg-white/10 text-white font-semibold dark:bg-white/10' : ''} ${collapsed ? 'md:w-9 md:h-9 md:p-0 md:justify-center' : ''}`}
         >
           <span><FileText size={18} className="w-[18px] h-[18px] flex items-center justify-center shrink-0" /></span>
           {!collapsed && <span className="font-inter text-sm">Reports</span>}
@@ -289,7 +289,7 @@ export default function AdminSidebar() {
           <button
             onClick={() => handleNav('/admin/users')}
             title={collapsed ? "User Management" : undefined}
-            className={`flex items-center gap-3 px-3.5 h-[37px] bg-transparent border-none text-white/70 text-sm font-inter rounded-lg cursor-pointer transition-all w-full text-left leading-tight whitespace-nowrap relative hover:bg-white/10 dark:hover:bg-white/5 ${isActive('/admin/users') ? 'bg-white/10 text-white font-semibold dark:bg-[#363940]' : ''} ${collapsed ? 'md:w-9 md:h-9 md:p-0 md:justify-center' : ''}`}
+            className={`flex items-center gap-3 px-3.5 h-[37px] bg-transparent border-none text-white/70 text-sm font-inter rounded-lg cursor-pointer transition-all w-full text-left leading-tight whitespace-nowrap relative hover:bg-white/10 dark:hover:bg-white/5 ${isActive('/admin/users') ? 'bg-white/10 text-white font-semibold dark:bg-white/10' : ''} ${collapsed ? 'md:w-9 md:h-9 md:p-0 md:justify-center' : ''}`}
           >
             <span><UserCog size={18} className="w-[18px] h-[18px] flex items-center justify-center shrink-0" /></span>
             {!collapsed && <span className="font-inter text-sm">User Management</span>}
@@ -298,7 +298,7 @@ export default function AdminSidebar() {
         <button
           onClick={() => handleNav('/admin/settings')}
           title={collapsed ? "Settings" : undefined}
-          className={`flex items-center gap-3 px-3.5 h-[37px] bg-transparent border-none text-white/70 text-sm font-inter rounded-lg cursor-pointer transition-all w-full text-left leading-tight whitespace-nowrap relative hover:bg-white/10 dark:hover:bg-white/5 ${isActive('/admin/settings') ? 'bg-white/10 text-white font-semibold dark:bg-[#363940]' : ''} ${collapsed ? 'md:w-9 md:h-9 md:p-0 md:justify-center' : ''}`}
+          className={`flex items-center gap-3 px-3.5 h-[37px] bg-transparent border-none text-white/70 text-sm font-inter rounded-lg cursor-pointer transition-all w-full text-left leading-tight whitespace-nowrap relative hover:bg-white/10 dark:hover:bg-white/5 ${isActive('/admin/settings') ? 'bg-white/10 text-white font-semibold dark:bg-white/10' : ''} ${collapsed ? 'md:w-9 md:h-9 md:p-0 md:justify-center' : ''}`}
         >
           <span><Settings size={18} className="w-[18px] h-[18px] flex items-center justify-center shrink-0" /></span>
           {!collapsed && <span className="font-inter text-sm">Settings</span>}

@@ -726,7 +726,7 @@ export default function Settings() {
       {/* Password Update Success Modal */}
       {showSuccessModal && (
         <div className="fixed inset-0 z-[9999] bg-black/60 backdrop-blur-sm flex items-center justify-center p-4 overflow-y-auto animate-fadeIn" onClick={() => setShowSuccessModal(false)}>
-          <div className="relative w-full max-w-sm bg-white dark:bg-[#151821] rounded-2xl p-6 shadow-2xl border border-slate-200 dark:border-white/10 my-auto text-center space-y-4 font-inter" onClick={e => e.stopPropagation()}>
+          <div className="relative w-full max-w-sm bg-white dark:bg-[#1E2130] rounded-2xl p-6 shadow-2xl border border-slate-200 dark:border-white/10 my-auto text-center space-y-4 font-inter" onClick={e => e.stopPropagation()}>
             <div className="w-14 h-14 rounded-2xl bg-emerald-50 dark:bg-emerald-950/50 border border-emerald-200/80 dark:border-emerald-800/50 flex items-center justify-center text-emerald-600 dark:text-emerald-400 mx-auto shadow-xs">
               <ShieldCheck size={30} />
             </div>
