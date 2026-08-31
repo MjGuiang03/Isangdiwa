@@ -9,7 +9,7 @@ import {
   LineChart, Line,
   ComposedChart, Area,
   XAxis, YAxis, CartesianGrid, Tooltip, Legend, ResponsiveContainer,
-  ReferenceLine, ReferenceDot, LabelList, Label
+  ReferenceLine, Label, LabelList
 } from 'recharts';
 import API from '../../utils/api';
 import { 
