@@ -47,8 +47,8 @@ export default function Savings() {
     const [txnPage] = useState(1);
     // eslint-disable-next-line no-unused-vars
     const [txnTotal, setTxnTotal] = useState(0);
-    const TXN_LIMIT = 4;
-    
+    const TXN_LIMIT = 3;
+
     // Goals Pagination
     const [goalPage, setGoalPage] = useState(1);
     const [goalsTotalCount, setGoalsTotalCount] = useState(0);
@@ -92,7 +92,7 @@ export default function Savings() {
             setTransactions(overviewData.transactions || []);
             setTxnTotal(overviewData.txnTotal || 0);
             setStats(overviewData.stats || {});
-            
+
             if ((overviewData.stats?.totalSavings || 0) <= 0 && !hasClosedInstruction) {
                 setShowInstruction(true);
             }
@@ -137,7 +137,7 @@ export default function Savings() {
                 <p className="text-[11px] text-slate-500 dark:text-slate-400 font-inter max-w-xs mx-auto mb-3">
                     Set a goal to start saving for emergency funds or big purchases.
                 </p>
-                <button 
+                <button
                     onClick={openNewGoal}
                     className="h-8 px-3.5 rounded-xl bg-[#1E3A8A] hover:bg-[#2B4EAF] text-white text-xs font-semibold font-inter transition-all cursor-pointer border-none"
                 >
@@ -149,8 +149,8 @@ export default function Savings() {
         const totalPages = Math.ceil(goalsTotalCount / GOAL_LIMIT) || 1;
 
         return (
-            <div className="flex-1 flex flex-col justify-between mt-1">
-                <div className="space-y-2 overflow-y-auto pr-1 flex-1">
+            <div className="flex-1 flex flex-col justify-between mt-0.5 min-h-0">
+                <div className="space-y-1.5 overflow-y-auto pr-1 flex-1">
                     {goals.map((goal) => {
                         const colorKey = goal.color || 'blue';
                         const colors = GOAL_COLORS[colorKey] || GOAL_COLORS.blue;
@@ -159,14 +159,14 @@ export default function Savings() {
                             : 0;
                         const isDone = goal.status === 'completed' || pct >= 100;
                         return (
-                            <div 
-                                key={goal._id} 
+                            <div
+                                key={goal._id}
                                 onClick={() => { setModal('goalInfo'); setModalData(goal); }}
-                                className="p-3.5 rounded-xl bg-white dark:bg-[#1E2130] border border-slate-200 dark:border-white/10 hover:border-slate-300 dark:hover:border-white/20 transition-all cursor-pointer flex items-center justify-between gap-3"
+                                className="p-3 rounded-xl bg-white dark:bg-[#1E2130] border border-slate-200 dark:border-white/10 hover:border-slate-300 dark:hover:border-white/20 transition-all cursor-pointer flex items-center justify-between gap-3"
                             >
                                 <div className="flex-1 min-w-0">
                                     <div className="text-xs font-bold text-slate-900 dark:text-white font-inter truncate mb-0.5">{goal.name}</div>
-                                    <div className="text-[11px] text-slate-500 dark:text-slate-400 font-inter truncate mb-1.5">
+                                    <div className="text-[11px] text-slate-500 dark:text-slate-400 font-inter truncate mb-1">
                                         Target {fmt(goal.targetAmount)}
                                         {goal.monthlyContribution > 0 && ` · Monthly ${fmt(goal.monthlyContribution)}`}
                                         {isDone && ' · Completed'}
@@ -226,20 +226,19 @@ export default function Savings() {
         );
 
         return (
-            <div className="mt-3 mb-1">
-                <div className="space-y-2 max-h-[290px] overflow-y-auto pr-1">
+            <div className="mt-1 flex-1 flex flex-col justify-between">
+                <div className="space-y-3 overflow-y-auto pr-1">
                     {transactions.map((txn) => {
                         const isIn = txn.type === 'deposit';
                         return (
-                            <div 
-                                key={txn._id} 
+                            <div
+                                key={txn._id}
                                 onClick={() => { setModal('transactionInfo'); setModalData(txn); }}
-                                className="flex items-center justify-between p-3.5 rounded-xl bg-white dark:bg-[#1E2130] border border-slate-200 dark:border-white/10 hover:border-slate-300 dark:hover:border-white/20 transition-all cursor-pointer gap-3"
+                                className="flex items-center justify-between py-3.5 px-3.5 rounded-xl bg-white dark:bg-[#1E2130] border border-slate-200 dark:border-white/10 hover:border-slate-300 dark:hover:border-white/20 transition-all cursor-pointer gap-3"
                             >
                                 <div className="flex items-center gap-3 min-w-0 flex-1">
-                                    <div className={`w-8 h-8 rounded-lg flex items-center justify-center shrink-0 ${
-                                        isIn ? 'bg-emerald-50 dark:bg-emerald-950/40 text-emerald-600' : 'bg-rose-50 dark:bg-rose-950/40 text-rose-600'
-                                    }`}>
+                                    <div className={`w-8 h-8 rounded-lg flex items-center justify-center shrink-0 ${isIn ? 'bg-emerald-50 dark:bg-emerald-950/40 text-emerald-600' : 'bg-rose-50 dark:bg-rose-950/40 text-rose-600'
+                                        }`}>
                                         {isIn ? <TxnArrowIn /> : <TxnArrowOut />}
                                     </div>
                                     <div className="min-w-0 flex-1">
@@ -256,11 +255,10 @@ export default function Savings() {
                                     <div className={`text-xs font-bold font-dm ${isIn ? 'text-emerald-600 dark:text-emerald-400' : 'text-slate-900 dark:text-white'}`}>
                                         {isIn ? '+' : '-'}{fmt(txn.amount)}
                                     </div>
-                                    <span className={`px-1.5 py-0.5 rounded font-semibold uppercase text-[9px] tracking-wider leading-none ${
-                                        txn.status === 'confirmed' 
-                                            ? 'bg-emerald-50 dark:bg-emerald-950/60 text-emerald-700 dark:text-emerald-300 border border-emerald-100 dark:border-emerald-900/30' 
+                                    <span className={`px-1.5 py-0.5 rounded font-semibold uppercase text-[9px] tracking-wider leading-none ${txn.status === 'confirmed'
+                                            ? 'bg-emerald-50 dark:bg-emerald-950/60 text-emerald-700 dark:text-emerald-300 border border-emerald-100 dark:border-emerald-900/30'
                                             : 'bg-amber-50 dark:bg-amber-950/60 text-amber-700 dark:text-amber-300 border border-amber-100 dark:border-amber-900/30'
-                                    }`}>
+                                        }`}>
                                         {txn.status === 'confirmed' ? 'Successful' : txn.status === 'rejected' ? 'Failed' : 'Incomplete'}
                                     </span>
                                 </div>
@@ -476,8 +474,8 @@ export default function Savings() {
                                 {/* Goals & Transaction History 60/40 Grid */}
                                 <div className="grid grid-cols-1 lg:grid-cols-5 gap-4">
                                     {/* Goals section (60%) */}
-                                    <div className="lg:col-span-3 bg-white dark:bg-[#1E2130] border border-slate-200/80 dark:border-white/10 rounded-2xl p-5 shadow-md shadow-slate-200/50 dark:shadow-none flex flex-col justify-between">
-                                        <div className="flex justify-between items-center mb-4 shrink-0">
+                                    <div className="lg:col-span-3 bg-white dark:bg-[#1E2130] border border-slate-200/80 dark:border-white/10 rounded-2xl p-5 shadow-md shadow-slate-200/50 dark:shadow-none flex flex-col justify-between h-[340px]">
+                                        <div className="flex justify-between items-center mb-3 shrink-0">
                                             <h2 className="text-sm font-bold text-slate-900 dark:text-white uppercase tracking-wider font-inter">
                                                 Savings Goals
                                             </h2>
@@ -490,14 +488,14 @@ export default function Savings() {
                                     </div>
 
                                     {/* Transaction history (40%) */}
-                                    <div className="lg:col-span-2 bg-white dark:bg-[#1E2130] border border-slate-200/80 dark:border-white/10 rounded-2xl p-5 shadow-md shadow-slate-200/50 dark:shadow-none flex flex-col justify-between">
+                                    <div className="lg:col-span-2 bg-white dark:bg-[#1E2130] border border-slate-200/80 dark:border-white/10 rounded-2xl p-5 shadow-md shadow-slate-200/50 dark:shadow-none flex flex-col justify-between h-[340px]">
                                         <div>
                                             <div className="flex justify-between items-center mb-3">
                                                 <h2 className="text-sm font-bold text-slate-900 dark:text-white uppercase tracking-wider font-inter">
                                                     Transaction History
                                                 </h2>
-                                                <button 
-                                                    onClick={() => setShowAllTxnsModal(true)} 
+                                                <button
+                                                    onClick={() => setShowAllTxnsModal(true)}
                                                     className="text-xs font-semibold text-blue-600 dark:text-blue-400 hover:underline flex items-center gap-1 border-none bg-transparent cursor-pointer"
                                                 >
                                                     View All →
@@ -543,8 +541,8 @@ export default function Savings() {
                 }}
             />
 
-            <SavingsInstructionModal 
-                isOpen={showInstruction} 
+            <SavingsInstructionModal
+                isOpen={showInstruction}
                 onClose={() => {
                     setShowInstruction(false);
                     setHasClosedInstruction(true);
@@ -596,7 +594,7 @@ function AllTransactionsModal({ isOpen, onClose, onSelectTxn }) {
 
     const filtered = transactions.filter(t => {
         const matchesFilter = filter === 'all' || t.type === filter;
-        const matchesSearch = !search.trim() || 
+        const matchesSearch = !search.trim() ||
             (t.description || '').toLowerCase().includes(search.toLowerCase()) ||
             (t.goalName || '').toLowerCase().includes(search.toLowerCase()) ||
             String(t.amount || '').includes(search);
@@ -627,11 +625,10 @@ function AllTransactionsModal({ isOpen, onClose, onSelectTxn }) {
                             <button
                                 key={t}
                                 onClick={() => setFilter(t)}
-                                className={`px-3 py-1.5 rounded-lg text-xs font-semibold capitalize transition-all border-none cursor-pointer ${
-                                    filter === t 
-                                        ? 'bg-white dark:bg-[#1E3A8A] text-slate-900 dark:text-white shadow-xs' 
+                                className={`px-3 py-1.5 rounded-lg text-xs font-semibold capitalize transition-all border-none cursor-pointer ${filter === t
+                                        ? 'bg-white dark:bg-[#1E3A8A] text-slate-900 dark:text-white shadow-xs'
                                         : 'text-slate-500 dark:text-slate-400 hover:text-slate-800 dark:hover:text-slate-200'
-                                }`}
+                                    }`}
                             >
                                 {t === 'all' ? 'All Types' : t + 's'}
                             </button>
@@ -665,9 +662,8 @@ function AllTransactionsModal({ isOpen, onClose, onSelectTxn }) {
                                     className="flex items-center justify-between p-3 rounded-xl bg-slate-50/80 dark:bg-white/5 border border-slate-200/60 dark:border-white/10 hover:border-blue-500/50 transition-all cursor-pointer gap-3"
                                 >
                                     <div className="flex items-center gap-3 min-w-0 flex-1">
-                                        <div className={`w-8 h-8 rounded-lg flex items-center justify-center shrink-0 ${
-                                            isIn ? 'bg-emerald-50 dark:bg-emerald-950/40 text-emerald-600' : 'bg-rose-50 dark:bg-rose-950/40 text-rose-600'
-                                        }`}>
+                                        <div className={`w-8 h-8 rounded-lg flex items-center justify-center shrink-0 ${isIn ? 'bg-emerald-50 dark:bg-emerald-950/40 text-emerald-600' : 'bg-rose-50 dark:bg-rose-950/40 text-rose-600'
+                                            }`}>
                                             {isIn ? <TxnArrowIn /> : <TxnArrowOut />}
                                         </div>
                                         <div className="min-w-0 flex-1">
@@ -684,11 +680,10 @@ function AllTransactionsModal({ isOpen, onClose, onSelectTxn }) {
                                         <div className={`text-xs font-bold font-dm ${isIn ? 'text-emerald-600 dark:text-emerald-400' : 'text-slate-900 dark:text-white'}`}>
                                             {isIn ? '+' : '-'}{fmt(txn.amount)}
                                         </div>
-                                        <span className={`px-1.5 py-0.5 rounded font-semibold uppercase text-[9px] tracking-wider leading-none ${
-                                            txn.status === 'confirmed' 
-                                                ? 'bg-emerald-50 dark:bg-emerald-950/60 text-emerald-700 dark:text-emerald-300 border border-emerald-100 dark:border-emerald-900/30' 
+                                        <span className={`px-1.5 py-0.5 rounded font-semibold uppercase text-[9px] tracking-wider leading-none ${txn.status === 'confirmed'
+                                                ? 'bg-emerald-50 dark:bg-emerald-950/60 text-emerald-700 dark:text-emerald-300 border border-emerald-100 dark:border-emerald-900/30'
                                                 : 'bg-amber-50 dark:bg-amber-950/60 text-amber-700 dark:text-amber-300 border border-amber-100 dark:border-amber-900/30'
-                                        }`}>
+                                            }`}>
                                             {txn.status === 'confirmed' ? 'Successful' : txn.status === 'rejected' ? 'Failed' : 'Incomplete'}
                                         </span>
                                     </div>
@@ -738,7 +733,7 @@ function SavingsInstructionModal({ isOpen, onClose, onDeposit, onGoal }) {
                         <X size={18} />
                     </button>
                 </div>
-                
+
                 <div className="p-6 space-y-4 text-xs">
                     <div className="flex gap-3">
                         <div className="w-7 h-7 rounded-full bg-blue-100 dark:bg-blue-900/50 text-[#1E3A8A] dark:text-blue-300 font-bold flex items-center justify-center shrink-0">1</div>
@@ -762,9 +757,9 @@ function SavingsInstructionModal({ isOpen, onClose, onDeposit, onGoal }) {
                         </div>
                     </div>
                 </div>
-                
+
                 <div className="p-4 border-t border-slate-100 dark:border-white/5 flex justify-end">
-                    <button 
+                    <button
                         onClick={onClose}
                         className="h-10 px-5 rounded-xl bg-[#1E3A8A] hover:bg-[#2B4EAF] text-white text-xs font-semibold"
                     >

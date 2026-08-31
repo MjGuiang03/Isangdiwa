@@ -78,14 +78,41 @@ function DepositModal({ goals, onClose }) {
         ? Math.min(100, Math.round((newSaved / goal.targetAmount) * 100))
         : 0;
 
+    const getRealtimeError = () => {
+        if (amount.trim() !== '' && numAmt <= 0) {
+            return 'Please enter a valid deposit amount.';
+        }
+        if (approvalMethod === 'manual' && paymentMethod !== 'Cash') {
+            const cleanAcc = accountNumber.trim();
+            if (cleanAcc.length > 0) {
+                if (paymentMethod === 'Bank') {
+                    if (cleanAcc.length < 10 || cleanAcc.length > 16) {
+                        return 'Bank account number must be between 10 and 16 digits.';
+                    }
+                } else {
+                    if (!cleanAcc.startsWith('09')) {
+                        return 'Mobile number must start with 09.';
+                    }
+                    if (cleanAcc.length !== 11) {
+                        return 'Mobile number must be exactly 11 digits.';
+                    }
+                }
+            }
+        }
+        return '';
+    };
+
+    const activeError = error || getRealtimeError();
+
     const handleQuick = (val) => {
+        setError('');
         const maxAllowed = goal?.targetAmount > 0 ? goal.targetAmount - (goal.savedAmount || 0) : Infinity;
         const toAdd = Math.min(val, maxAllowed);
         setAmount(toAdd.toLocaleString('en-US'));
     };
 
     const handleSubmit = async () => {
-        if (!numAmt || numAmt < 1000) { setError('Minimum deposit amount is ₱1,000.'); return; }
+        if (!numAmt || numAmt <= 0) { setError('Please enter a valid deposit amount.'); return; }
         if (!selectedGoal) { setError('Please select a goal.'); return; }
         if (!paymentMethod) { setError('Please select a payment method.'); return; }
         
@@ -94,7 +121,16 @@ function DepositModal({ goals, onClose }) {
             if (paymentMethod !== 'Cash') {
                 if (!subMethod) { setError(`Please select a ${paymentMethod} option.`); return; }
                 if (!accountName.trim()) { setError('Please enter the account name.'); return; }
-                if (accountNumber.trim().length !== 11) { setError('Sender Account Number must be exactly 11 digits.'); return; }
+                const cleanAcc = accountNumber.trim();
+                if (paymentMethod === 'Bank') {
+                    if (cleanAcc.length < 10 || cleanAcc.length > 16) {
+                        setError('Bank account number must be between 10 and 16 digits.');
+                        return;
+                    }
+                } else {
+                    if (!cleanAcc.startsWith('09')) { setError('Mobile number must start with 09.'); return; }
+                    if (cleanAcc.length !== 11) { setError('Mobile number must be exactly 11 digits.'); return; }
+                }
             }
         }
         
@@ -124,8 +160,14 @@ function DepositModal({ goals, onClose }) {
         }
     };
 
+    const isBank = paymentMethod === 'Bank';
+    const cleanAcc = accountNumber.trim();
+    const isAccNumValid = isBank
+        ? (cleanAcc.length >= 10 && cleanAcc.length <= 16)
+        : (cleanAcc.startsWith('09') && cleanAcc.length === 11);
+
     const isFormComplete = 
-        numAmt >= 1000 &&
+        numAmt > 0 &&
         selectedGoal !== '' &&
         paymentMethod !== '' &&
         (approvalMethod !== 'manual' || (
@@ -133,7 +175,7 @@ function DepositModal({ goals, onClose }) {
             (paymentMethod === 'Cash' || (
                 subMethod !== '' &&
                 accountName.trim() !== '' &&
-                accountNumber.trim().length === 11
+                isAccNumValid
             ))
         ));
 
@@ -157,7 +199,7 @@ function DepositModal({ goals, onClose }) {
                         <select
                             className="svm-select"
                             value={selectedGoal}
-                            onChange={e => setSelectedGoal(e.target.value)}
+                            onChange={e => { setSelectedGoal(e.target.value); setError(''); }}
                         >
                             {goals.map(g => (
                                 <option key={g._id} value={g._id}>
@@ -172,11 +214,14 @@ function DepositModal({ goals, onClose }) {
                         <div className="svm-amount-wrap">
                             <span className="svm-peso">₱</span>
                             <input
-                                className="svm-input svm-input--amount"
+                                className={`svm-input svm-input--amount ${
+                                    amount.trim() !== '' && numAmt <= 0 ? 'border-rose-500' : ''
+                                }`}
                                 type="text"
                                 placeholder="0.00"
                                 value={amount}
                                 onChange={e => {
+                                    setError('');
                                     let raw = e.target.value.replace(/[^0-9.]/g, '');
                                     let val = parseFloat(raw) || 0;
                                     const maxAllowed = goal?.targetAmount > 0 ? goal.targetAmount - (goal.savedAmount || 0) : Infinity;
@@ -191,6 +236,11 @@ function DepositModal({ goals, onClose }) {
                                 }}
                             />
                         </div>
+                        {amount.trim() !== '' && numAmt <= 0 && (
+                            <div className="text-[11px] font-semibold text-rose-500 mt-1.5 flex items-center gap-1">
+                                <span>Please enter a valid deposit amount</span>
+                            </div>
+                        )}
                         <div className="svm-quick-pills">
                             {QUICK_AMOUNTS.map(v => (
                                 <button key={v} className="svm-quick-pill" onClick={() => handleQuick(v)}>
@@ -227,13 +277,13 @@ function DepositModal({ goals, onClose }) {
                                       <div className="svm-field">
                                         <label className="svm-label">{paymentMethod} Option</label>
                                         {paymentMethod === 'E-Wallet' ? (
-                                          <select className="svm-select" value={subMethod} onChange={(e) => setSubMethod(e.target.value)}>
+                                          <select className="svm-select" value={subMethod} onChange={(e) => { setError(''); setSubMethod(e.target.value); }}>
                                             <option value="" disabled>Select E-Wallet…</option>
                                             <option value="GCash">GCash</option>
                                             <option value="Maya">Maya</option>
                                           </select>
                                         ) : (
-                                          <select className="svm-select" value={subMethod} onChange={(e) => setSubMethod(e.target.value)}>
+                                          <select className="svm-select" value={subMethod} onChange={(e) => { setError(''); setSubMethod(e.target.value); }}>
                                             <option value="" disabled>Select Bank…</option>
                                             <optgroup label="Card Payments">
                                               <option value="Master Card">Master Card</option>
@@ -250,27 +300,93 @@ function DepositModal({ goals, onClose }) {
                                             </optgroup>
                                           </select>
                                         )}
+                                        {subMethod === '' && (accountName.trim() !== '' || accountNumber.trim() !== '') && (
+                                          <div className="text-[11px] font-semibold text-rose-500 mt-1">Please select a {paymentMethod} option</div>
+                                        )}
                                       </div>
                                       <div className="svm-field">
                                         <label className="svm-label">Sender Account Name</label>
                                         <input 
                                           type="text" 
-                                          className="svm-input" 
+                                          className={`svm-input ${accountName.trim() === '' && (accountNumber.trim() !== '' || subMethod !== '') ? 'border-rose-500' : ''}`} 
                                           placeholder="e.g. Juan Dela Cruz"
                                           value={accountName}
-                                          onChange={(e) => setAccountName(e.target.value)}
+                                          onChange={(e) => { setError(''); setAccountName(e.target.value); }}
                                         />
+                                        {accountName.trim() === '' && (accountNumber.trim() !== '' || subMethod !== '') && (
+                                          <div className="text-[11px] font-semibold text-rose-500 mt-1">Sender account name is required</div>
+                                        )}
                                       </div>
                                       <div className="svm-field">
-                                        <label className="svm-label">Sender Account Number</label>
+                                        <div className="flex items-center justify-between mb-1">
+                                          <label className="svm-label" style={{ marginBottom: 0 }}>
+                                            {paymentMethod === 'Bank' ? 'Sender Bank Account Number' : 'Sender Mobile Number'}
+                                          </label>
+                                          <span className={`text-[11px] font-bold ${
+                                            paymentMethod === 'Bank'
+                                              ? (accountNumber.trim().length >= 10 && accountNumber.trim().length <= 16
+                                                  ? 'text-emerald-600 dark:text-emerald-400'
+                                                  : accountNumber.trim().length > 0
+                                                  ? 'text-rose-500 font-semibold'
+                                                  : 'text-slate-400')
+                                              : (accountNumber.trim().startsWith('09') && accountNumber.trim().length === 11
+                                                  ? 'text-emerald-600 dark:text-emerald-400'
+                                                  : accountNumber.trim().length > 0
+                                                  ? 'text-rose-500 font-semibold'
+                                                  : 'text-slate-400')
+                                          }`}>
+                                            {paymentMethod === 'Bank'
+                                              ? `${accountNumber.trim().length} digits (10-16)`
+                                              : `${accountNumber.trim().length}/11 digits`
+                                            }
+                                          </span>
+                                        </div>
                                         <input 
                                           type="text" 
-                                          className="svm-input" 
-                                          placeholder="e.g. 09123456789"
-                                          maxLength={11}
+                                          className={`svm-input ${
+                                            accountNumber.trim().length > 0 && (
+                                              paymentMethod === 'Bank'
+                                                ? (accountNumber.trim().length < 10 || accountNumber.trim().length > 16)
+                                                : (!accountNumber.trim().startsWith('09') || accountNumber.trim().length !== 11)
+                                            )
+                                              ? 'border-rose-500 focus:border-rose-500'
+                                              : (
+                                                  paymentMethod === 'Bank'
+                                                    ? (accountNumber.trim().length >= 10 && accountNumber.trim().length <= 16)
+                                                    : (accountNumber.trim().startsWith('09') && accountNumber.trim().length === 11)
+                                                )
+                                              ? 'border-emerald-500 focus:border-emerald-500'
+                                              : ''
+                                          }`} 
+                                          placeholder={paymentMethod === 'Bank' ? "e.g. 123456789012" : "e.g. 09123456789"}
+                                          maxLength={paymentMethod === 'Bank' ? 16 : 11}
                                           value={accountNumber}
-                                          onChange={(e) => setAccountNumber(e.target.value.replace(/\D/g, '').slice(0, 11))}
+                                          onChange={(e) => {
+                                            setError('');
+                                            const maxLen = paymentMethod === 'Bank' ? 16 : 11;
+                                            setAccountNumber(e.target.value.replace(/\D/g, '').slice(0, maxLen));
+                                          }}
                                         />
+                                        {paymentMethod === 'Bank' ? (
+                                          accountNumber.trim().length > 0 && (accountNumber.trim().length < 10 || accountNumber.trim().length > 16) && (
+                                            <div className="text-[11px] font-semibold text-rose-500 mt-1 flex items-center gap-1">
+                                              <span>Bank account number must be 10 to 16 digits</span>
+                                            </div>
+                                          )
+                                        ) : (
+                                          <>
+                                            {accountNumber.trim().length > 0 && !accountNumber.trim().startsWith('09') && (
+                                              <div className="text-[11px] font-semibold text-rose-500 mt-1 flex items-center gap-1">
+                                                <span>Mobile number must start with 09</span>
+                                              </div>
+                                            )}
+                                            {accountNumber.trim().length > 0 && accountNumber.trim().startsWith('09') && accountNumber.trim().length !== 11 && (
+                                              <div className="text-[11px] font-semibold text-rose-500 mt-1 flex items-center gap-1">
+                                                <span>Must be exactly 11 digits (currently {accountNumber.trim().length}/11)</span>
+                                              </div>
+                                            )}
+                                          </>
+                                        )}
                                       </div>
                                     </div>
 
@@ -315,14 +431,25 @@ function DepositModal({ goals, onClose }) {
                                         </div>
                                       </div>
                                     ) : (
-                                      <label className="mt-4 flex flex-col items-center justify-center p-4 border-2 border-dashed border-slate-300 dark:border-white/10 rounded-xl bg-slate-50 dark:bg-slate-800/40 hover:bg-slate-100 dark:hover:bg-slate-800/70 cursor-pointer transition-all text-center">
-                                        <input type="file" accept="image/*" onChange={handleFileChange} className="hidden" />
-                                        <div className="flex flex-col items-center gap-1">
-                                          <UploadCloud className="text-slate-400 dark:text-slate-300" size={28} />
-                                          <p className="text-xs font-semibold text-slate-700 dark:text-slate-300"><span className="text-blue-600 dark:text-blue-400 hover:underline">Click to upload</span> or drag and drop</p>
-                                          <p className="text-[11px] text-slate-400 m-0">PNG, JPG, JPEG up to 5MB</p>
+                                      <div className="svm-field mt-3">
+                                        <div className="flex items-center justify-between mb-1">
+                                          <label className="svm-label" style={{ marginBottom: 0 }}>Proof of Payment</label>
+                                          <span className={`text-[11px] font-bold ${proofBase64 ? 'text-emerald-600 dark:text-emerald-400' : 'text-rose-500'}`}>
+                                            {proofBase64 ? 'Uploaded' : '* Required'}
+                                          </span>
                                         </div>
-                                      </label>
+                                        <label className="flex flex-col items-center justify-center p-4 border-2 border-dashed border-slate-300 dark:border-white/10 rounded-xl bg-slate-50 dark:bg-slate-800/40 hover:bg-slate-100 dark:hover:bg-slate-800/70 cursor-pointer transition-all text-center">
+                                          <input type="file" accept="image/*" onChange={handleFileChange} className="hidden" />
+                                          <div className="flex flex-col items-center gap-1">
+                                            <UploadCloud className="text-slate-400 dark:text-slate-300" size={28} />
+                                            <p className="text-xs font-semibold text-slate-700 dark:text-slate-300"><span className="text-blue-600 dark:text-blue-400 hover:underline">Click to upload</span> or drag and drop</p>
+                                            <p className="text-[11px] text-slate-400 m-0">PNG, JPG, JPEG up to 5MB</p>
+                                          </div>
+                                        </label>
+                                        {!proofBase64 && (accountName.trim() !== '' || accountNumber.trim() !== '') && (
+                                          <div className="text-[11px] font-semibold text-rose-500 mt-1">Please upload your payment receipt screenshot</div>
+                                        )}
+                                      </div>
                                     )}
                                 </div>
                             ) : (
@@ -598,14 +725,49 @@ function QuickDepositModal({ goal, goals, onClose }) {
         ? Math.min(100, Math.round((newSaved / goal.targetAmount) * 100))
         : 0;
 
+    const getRealtimeError = () => {
+        if (amount.trim() !== '' && numAmt <= 0) {
+            return 'Please enter a valid deposit amount.';
+        }
+        if (approvalMethod === 'manual') {
+            const cleanAcc = accountNumber.trim();
+            if (cleanAcc.length > 0) {
+                if (paymentMethod === 'Bank') {
+                    if (cleanAcc.length < 10 || cleanAcc.length > 16) {
+                        return 'Bank account number must be between 10 and 16 digits.';
+                    }
+                } else {
+                    if (!cleanAcc.startsWith('09')) {
+                        return 'Mobile number must start with 09.';
+                    }
+                    if (cleanAcc.length !== 11) {
+                        return 'Mobile number must be exactly 11 digits.';
+                    }
+                }
+            }
+        }
+        return '';
+    };
+
+    const activeError = error || getRealtimeError();
+
     const handleSubmit = async () => {
-        if (!numAmt || numAmt < 1000) { setError('Minimum deposit amount is ₱1,000.'); return; }
+        if (!numAmt || numAmt <= 0) { setError('Please enter a valid deposit amount.'); return; }
         if (!paymentMethod) { setError('Please select a payment method.'); return; }
         if (approvalMethod === 'manual') {
             if (!proofBase64) { setError('Please upload your proof of payment.'); return; }
             if (!subMethod) { setError(`Please select a ${paymentMethod} option.`); return; }
             if (!accountName.trim()) { setError('Please enter the account name.'); return; }
-            if (accountNumber.trim().length !== 11) { setError('Sender Account Number must be exactly 11 digits.'); return; }
+            const cleanAcc = accountNumber.trim();
+            if (paymentMethod === 'Bank') {
+                if (cleanAcc.length < 10 || cleanAcc.length > 16) {
+                    setError('Bank account number must be between 10 and 16 digits.');
+                    return;
+                }
+            } else {
+                if (!cleanAcc.startsWith('09')) { setError('Mobile number must start with 09.'); return; }
+                if (cleanAcc.length !== 11) { setError('Mobile number must be exactly 11 digits.'); return; }
+            }
         }
         setError('');
         setLoading(true);
@@ -634,14 +796,20 @@ function QuickDepositModal({ goal, goals, onClose }) {
         }
     };
 
+    const isQuickBank = paymentMethod === 'Bank';
+    const cleanQuickAcc = accountNumber.trim();
+    const isQuickAccValid = isQuickBank
+        ? (cleanQuickAcc.length >= 10 && cleanQuickAcc.length <= 16)
+        : (cleanQuickAcc.startsWith('09') && cleanQuickAcc.length === 11);
+
     const isFormComplete = 
-        numAmt >= 1000 &&
+        numAmt > 0 &&
         paymentMethod !== '' && paymentMethod !== 'cash' &&
         (approvalMethod !== 'manual' || (
             proofBase64 !== '' &&
             subMethod !== '' &&
             accountName.trim() !== '' &&
-            accountNumber.trim().length === 11
+            isQuickAccValid
         ));
 
     return (
@@ -672,11 +840,14 @@ function QuickDepositModal({ goal, goals, onClose }) {
                                 <div className="svm-amount-wrap">
                                     <span className="svm-peso">₱</span>
                                     <input
-                                        className="svm-input svm-input--amount"
+                                        className={`svm-input svm-input--amount ${
+                                            amount.trim() !== '' && numAmt <= 0 ? 'border-rose-500' : ''
+                                        }`}
                                         type="text"
                                         placeholder="0.00"
                                         value={amount}
                                         onChange={e => {
+                                            setError('');
                                             let raw = e.target.value.replace(/[^0-9.]/g, '');
                                             let val = parseFloat(raw) || 0;
                                             const maxAllowed = goal?.targetAmount > 0 ? goal.targetAmount - (goal.savedAmount || 0) : Infinity;
@@ -692,9 +863,15 @@ function QuickDepositModal({ goal, goals, onClose }) {
                                         autoFocus
                                     />
                                 </div>
+                                {amount.trim() !== '' && numAmt <= 0 && (
+                                    <div className="text-[11px] font-semibold text-rose-500 mt-1.5 flex items-center gap-1">
+                                        <span>Please enter a valid deposit amount</span>
+                                    </div>
+                                )}
                                 <div className="svm-quick-pills">
                                     {QUICK_AMOUNTS.map(v => (
                                         <button key={v} className="svm-quick-pill" onClick={() => {
+                                            setError('');
                                             const maxAllowed = goal?.targetAmount > 0 ? goal.targetAmount - (goal.savedAmount || 0) : Infinity;
                                             const toAdd = Math.min(v, maxAllowed);
                                             setAmount(toAdd.toLocaleString('en-US'));
@@ -780,15 +957,75 @@ function QuickDepositModal({ goal, goals, onClose }) {
                                                 />
                                               </div>
                                               <div className="svm-field">
-                                                <label className="svm-label">Sender Account Number</label>
+                                                <div className="flex items-center justify-between mb-1">
+                                                  <label className="svm-label" style={{ marginBottom: 0 }}>
+                                                    {paymentMethod === 'Bank' ? 'Sender Bank Account Number' : 'Sender Mobile Number'}
+                                                  </label>
+                                                  <span className={`text-[11px] font-bold ${
+                                                    paymentMethod === 'Bank'
+                                                      ? (accountNumber.trim().length >= 10 && accountNumber.trim().length <= 16
+                                                          ? 'text-emerald-600 dark:text-emerald-400'
+                                                          : accountNumber.trim().length > 0
+                                                          ? 'text-rose-500 font-semibold'
+                                                          : 'text-slate-400')
+                                                      : (accountNumber.trim().startsWith('09') && accountNumber.trim().length === 11
+                                                          ? 'text-emerald-600 dark:text-emerald-400'
+                                                          : accountNumber.trim().length > 0
+                                                          ? 'text-rose-500 font-semibold'
+                                                          : 'text-slate-400')
+                                                  }`}>
+                                                    {paymentMethod === 'Bank'
+                                                      ? `${accountNumber.trim().length} digits (10-16)`
+                                                      : `${accountNumber.trim().length}/11 digits`
+                                                    }
+                                                  </span>
+                                                </div>
                                                 <input 
                                                   type="text" 
-                                                  className="svm-input" 
-                                                  placeholder="e.g. 09123456789"
-                                                  maxLength={11}
+                                                  className={`svm-input ${
+                                                    accountNumber.trim().length > 0 && (
+                                                      paymentMethod === 'Bank'
+                                                        ? (accountNumber.trim().length < 10 || accountNumber.trim().length > 16)
+                                                        : (!accountNumber.trim().startsWith('09') || accountNumber.trim().length !== 11)
+                                                    )
+                                                      ? 'border-rose-500 focus:border-rose-500'
+                                                      : (
+                                                          paymentMethod === 'Bank'
+                                                            ? (accountNumber.trim().length >= 10 && accountNumber.trim().length <= 16)
+                                                            : (accountNumber.trim().startsWith('09') && accountNumber.trim().length === 11)
+                                                        )
+                                                      ? 'border-emerald-500 focus:border-emerald-500'
+                                                      : ''
+                                                  }`} 
+                                                  placeholder={paymentMethod === 'Bank' ? "e.g. 123456789012" : "e.g. 09123456789"}
+                                                  maxLength={paymentMethod === 'Bank' ? 16 : 11}
                                                   value={accountNumber}
-                                                  onChange={(e) => setAccountNumber(e.target.value.replace(/\D/g, '').slice(0, 11))}
+                                                  onChange={(e) => {
+                                                    setError('');
+                                                    const maxLen = paymentMethod === 'Bank' ? 16 : 11;
+                                                    setAccountNumber(e.target.value.replace(/\D/g, '').slice(0, maxLen));
+                                                  }}
                                                 />
+                                                {paymentMethod === 'Bank' ? (
+                                                  accountNumber.trim().length > 0 && (accountNumber.trim().length < 10 || accountNumber.trim().length > 16) && (
+                                                    <div className="text-[11px] font-semibold text-rose-500 mt-1 flex items-center gap-1">
+                                                      <span>Bank account number must be 10 to 16 digits</span>
+                                                    </div>
+                                                  )
+                                                ) : (
+                                                  <>
+                                                    {accountNumber.trim().length > 0 && !accountNumber.trim().startsWith('09') && (
+                                                      <div className="text-[11px] font-semibold text-rose-500 mt-1 flex items-center gap-1">
+                                                        <span>Mobile number must start with 09</span>
+                                                      </div>
+                                                    )}
+                                                    {accountNumber.trim().length > 0 && accountNumber.trim().startsWith('09') && accountNumber.trim().length !== 11 && (
+                                                      <div className="text-[11px] font-semibold text-rose-500 mt-1 flex items-center gap-1">
+                                                        <span>Must be exactly 11 digits (currently {accountNumber.trim().length}/11)</span>
+                                                      </div>
+                                                    )}
+                                                  </>
+                                                )}
                                               </div>
                                             </div>
 
@@ -828,13 +1065,24 @@ function QuickDepositModal({ goal, goals, onClose }) {
                                                 </div>
                                               </div>
                                             ) : (
-                                              <label className="mt-4 p-3 flex flex-col items-center justify-center border-2 border-dashed border-slate-300 dark:border-white/10 rounded-xl bg-slate-50 dark:bg-slate-800/40 hover:bg-slate-100 dark:hover:bg-slate-800/70 cursor-pointer transition-all text-center">
-                                                <input type="file" accept="image/*" onChange={handleFileChange} className="hidden" />
-                                                <div className="flex flex-col items-center gap-1">
-                                                  <UploadCloud className="text-slate-400 dark:text-slate-300" size={24} />
-                                                  <p className="text-xs font-semibold text-slate-700 dark:text-slate-300"><span className="text-blue-600 dark:text-blue-400 hover:underline">Upload Receipt</span></p>
+                                              <div className="svm-field mt-3">
+                                                <div className="flex items-center justify-between mb-1">
+                                                  <label className="svm-label" style={{ marginBottom: 0 }}>Proof of Payment</label>
+                                                  <span className={`text-[11px] font-bold ${proofBase64 ? 'text-emerald-600 dark:text-emerald-400' : 'text-rose-500'}`}>
+                                                    {proofBase64 ? 'Uploaded' : '* Required'}
+                                                  </span>
                                                 </div>
-                                              </label>
+                                                <label className="p-3 flex flex-col items-center justify-center border-2 border-dashed border-slate-300 dark:border-white/10 rounded-xl bg-slate-50 dark:bg-slate-800/40 hover:bg-slate-100 dark:hover:bg-slate-800/70 cursor-pointer transition-all text-center">
+                                                  <input type="file" accept="image/*" onChange={handleFileChange} className="hidden" />
+                                                  <div className="flex flex-col items-center gap-1">
+                                                    <UploadCloud className="text-slate-400 dark:text-slate-300" size={24} />
+                                                    <p className="text-xs font-semibold text-slate-700 dark:text-slate-300"><span className="text-blue-600 dark:text-blue-400 hover:underline">Upload Receipt</span></p>
+                                                  </div>
+                                                </label>
+                                                {!proofBase64 && (accountName.trim() !== '' || accountNumber.trim() !== '') && (
+                                                  <div className="text-[11px] font-semibold text-rose-500 mt-1">Please upload your payment receipt screenshot</div>
+                                                )}
+                                              </div>
                                             )}
                                         </div>
                                     ) : (
@@ -1721,21 +1969,27 @@ function WithdrawModal({ goals, onClose, onOpenDeposit }) {
                                 <div className="svm-amount-wrap">
                                     <span className="svm-peso">₱</span>
                                     <input
-                                        className="svm-input svm-input--amount"
+                                        className={`svm-input svm-input--amount ${amount.trim() !== '' && (numAmt <= 0 || numAmt > balance) ? 'border-rose-500' : ''}`}
                                         type="text"
                                         placeholder="0.00"
                                         value={amount}
-                                        onChange={e => setAmount(e.target.value.replace(/[^0-9.]/g, ''))}
+                                        onChange={e => {
+                                            setError('');
+                                            setAmount(e.target.value.replace(/[^0-9.]/g, ''));
+                                        }}
                                         autoFocus
                                     />
                                 </div>
+                                {amount.trim() !== '' && numAmt <= 0 && (
+                                    <div className="text-[11px] font-semibold text-rose-500 mt-1">Please enter a valid withdrawal amount</div>
+                                )}
                                 <div className="svm-quick-pills">
                                     {[500, 1000, 2000].filter(v => v <= balance).map(v => (
-                                        <button key={v} className="svm-quick-pill" onClick={() => setAmount(String(v))}>
+                                        <button key={v} type="button" className="svm-quick-pill" onClick={() => { setError(''); setAmount(String(v)); }}>
                                             ₱{v.toLocaleString()}
                                         </button>
                                     ))}
-                                    <button className="svm-quick-pill svm-quick-pill--all" onClick={() => setAmount(String(balance))}>
+                                    <button type="button" className="svm-quick-pill svm-quick-pill--all" onClick={() => { setError(''); setAmount(String(balance)); }}>
                                         Withdraw all
                                     </button>
                                 </div>
@@ -1775,7 +2029,7 @@ function WithdrawModal({ goals, onClose, onOpenDeposit }) {
                                             key={opt.id}
                                             type="button"
                                             className={`svm-payment-btn ${sendMethod === opt.id ? 'active' : ''}`}
-                                            onClick={() => setSendMethod(opt.id)}
+                                            onClick={() => { setError(''); setSendMethod(opt.id); }}
                                         >
                                             <div className={`svm-radio ${sendMethod === opt.id ? 'active' : ''}`} />
                                             {opt.label}
@@ -1785,14 +2039,69 @@ function WithdrawModal({ goals, onClose, onOpenDeposit }) {
                             </div>
 
                             <div className="svm-field">
-                                <label className="svm-label">{sendMethod === 'e-wallet' ? 'E-Wallet Number' : 'Bank Account Number'}</label>
+                                <div className="flex items-center justify-between mb-1">
+                                    <label className="svm-label" style={{ marginBottom: 0 }}>
+                                        {sendMethod === 'bank' ? 'Bank Account Number' : 'E-Wallet Mobile Number'}
+                                    </label>
+                                    <span className={`text-[11px] font-bold ${
+                                        sendMethod === 'bank'
+                                            ? (accountNumber.trim().length >= 10 && accountNumber.trim().length <= 16
+                                                ? 'text-emerald-600 dark:text-emerald-400'
+                                                : accountNumber.trim().length > 0
+                                                ? 'text-rose-500 font-semibold'
+                                                : 'text-slate-400')
+                                            : (accountNumber.trim().startsWith('09') && accountNumber.trim().length === 11
+                                                ? 'text-emerald-600 dark:text-emerald-400'
+                                                : accountNumber.trim().length > 0
+                                                ? 'text-rose-500 font-semibold'
+                                                : 'text-slate-400')
+                                    }`}>
+                                        {sendMethod === 'bank'
+                                            ? `${accountNumber.trim().length} digits (10-16)`
+                                            : `${accountNumber.trim().length}/11 digits`
+                                        }
+                                    </span>
+                                </div>
                                 <input
-                                    className="svm-input"
+                                    className={`svm-input ${
+                                        accountNumber.trim().length > 0 && (
+                                            sendMethod === 'bank'
+                                                ? (accountNumber.trim().length < 10 || accountNumber.trim().length > 16)
+                                                : (!accountNumber.trim().startsWith('09') || accountNumber.trim().length !== 11)
+                                        )
+                                            ? 'border-rose-500 focus:border-rose-500'
+                                            : (
+                                                sendMethod === 'bank'
+                                                    ? (accountNumber.trim().length >= 10 && accountNumber.trim().length <= 16)
+                                                    : (accountNumber.trim().startsWith('09') && accountNumber.trim().length === 11)
+                                              )
+                                            ? 'border-emerald-500 focus:border-emerald-500'
+                                            : ''
+                                    }`}
                                     type="text"
-                                    placeholder={sendMethod === 'e-wallet' ? '09XX XXX XXXX' : 'Account number'}
+                                    placeholder={sendMethod === 'bank' ? 'e.g. 123456789012' : 'e.g. 09123456789'}
+                                    maxLength={sendMethod === 'bank' ? 16 : 11}
                                     value={accountNumber}
-                                    onChange={e => setAccountNumber(e.target.value)}
+                                    onChange={e => {
+                                        setError('');
+                                        const maxLen = sendMethod === 'bank' ? 16 : 11;
+                                        setAccountNumber(e.target.value.replace(/\D/g, '').slice(0, maxLen));
+                                    }}
                                 />
+                                {sendMethod === 'bank' ? (
+                                    accountNumber.trim().length > 0 && (accountNumber.trim().length < 10 || accountNumber.trim().length > 16) && (
+                                        <div className="text-[11px] font-semibold text-rose-500 mt-1">Bank account number must be between 10 and 16 digits</div>
+                                    )
+                                ) : (
+                                    <>
+                                        {accountNumber.trim().length > 0 && !accountNumber.trim().startsWith('09') && (
+                                            <div className="text-[11px] font-semibold text-rose-500 mt-1">Mobile number must start with 09</div>
+                                        )}
+                                        {accountNumber.trim().length > 0 && accountNumber.trim().startsWith('09') && accountNumber.trim().length !== 11 && (
+                                            <div className="text-[11px] font-semibold text-rose-500 mt-1">Must be exactly 11 digits (currently {accountNumber.trim().length}/11)</div>
+                                        )}
+                                    </>
+                                )}
                             </div>
 
                             <div className="svm-field">
@@ -1802,8 +2111,11 @@ function WithdrawModal({ goals, onClose, onOpenDeposit }) {
                                     type="text"
                                     placeholder="Full name as registered"
                                     value={accountName}
-                                    onChange={e => setAccountName(e.target.value)}
+                                    onChange={e => { setError(''); setAccountName(e.target.value); }}
                                 />
+                                {accountName.trim() === '' && (accountNumber.trim() !== '' || numAmt > 0) && (
+                                    <div className="text-[11px] font-semibold text-rose-500 mt-1">Account holder name is required</div>
+                                )}
                             </div>
 
                             <div className="svm-field">
@@ -1812,6 +2124,7 @@ function WithdrawModal({ goals, onClose, onOpenDeposit }) {
                                     className="svm-select"
                                     value={reasonOption}
                                     onChange={e => {
+                                        setError('');
                                         setReasonOption(e.target.value);
                                         if (e.target.value !== 'Others') setCustomReason('');
                                     }}
@@ -1832,8 +2145,11 @@ function WithdrawModal({ goals, onClose, onOpenDeposit }) {
                                         type="text"
                                         placeholder="Please specify your reason..."
                                         value={customReason}
-                                        onChange={e => setCustomReason(e.target.value)}
+                                        onChange={e => { setError(''); setCustomReason(e.target.value); }}
                                     />
+                                )}
+                                {!finalReason.trim() && (numAmt > 0 || accountNumber.trim() !== '') && (
+                                    <div className="text-[11px] font-semibold text-rose-500 mt-1">Please select or enter a reason for withdrawal</div>
                                 )}
                             </div>
                         </>
@@ -1846,7 +2162,16 @@ function WithdrawModal({ goals, onClose, onOpenDeposit }) {
                         <button
                             className="svm-btn-submit svm-btn-submit--withdraw"
                             onClick={handleSubmit}
-                            disabled={loading || !numAmt || numAmt > balance}
+                            disabled={
+                                loading ||
+                                !numAmt ||
+                                numAmt > balance ||
+                                !finalReason.trim() ||
+                                !accountName.trim() ||
+                                (sendMethod === 'bank'
+                                    ? (accountNumber.trim().length < 10 || accountNumber.trim().length > 16)
+                                    : (!accountNumber.trim().startsWith('09') || accountNumber.trim().length !== 11))
+                            }
                         >
                             {loading ? <span className="btn-spinner" /> : `Request withdrawal`}
                         </button>

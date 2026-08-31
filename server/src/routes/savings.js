@@ -243,8 +243,8 @@ router.post('/savings/deposit', authenticateUser, async (req, res) => {
     const email = req.user.email;
     const { goalId, amount, description, source, paymentMethod } = req.body;
 
-    if (!goalId || !amount || Number(amount) < 1000) {
-      return res.status(400).json({ success: false, message: 'Goal and a minimum deposit amount of ₱1,000 are required' });
+    if (!goalId || !amount || Number(amount) <= 0) {
+      return res.status(400).json({ success: false, message: 'Goal and a valid deposit amount are required' });
     }
 
     const goal = await savingsGoals.findOne({ _id: new ObjectId(goalId), email });
