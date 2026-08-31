@@ -7,7 +7,7 @@ import API from '../../utils/api';
 import {
   Heart, CalendarDays, PiggyBank, FileText, Award,
   MapPin, Mail, Phone, Clock, Shield,
-  Star, Flame, Target, Edit2, XCircle, Camera
+  Star, Flame, Target, Edit2, XCircle, Camera, CheckCircle2, AlertCircle
 } from 'lucide-react';
 import VerifyEmailModal from '../components/VerifyEmail';
 import { BarChart, Bar, XAxis, YAxis, CartesianGrid, Tooltip, ResponsiveContainer } from 'recharts';
@@ -37,6 +37,11 @@ export default function Profile() {
 
   const [showEmailOtp, setShowEmailOtp] = useState(false);
   const [pendingEmail, setPendingEmail] = useState('');
+  const [showSaveConfirmModal, setShowSaveConfirmModal] = useState(false);
+  const [showCancelConfirmModal, setShowCancelConfirmModal] = useState(false);
+  const [photoToUpload, setPhotoToUpload] = useState(null);
+  const [showPhotoModal, setShowPhotoModal] = useState(false);
+  const [isUploadingPhoto, setIsUploadingPhoto] = useState(false);
   
 
 
@@ -70,50 +75,59 @@ export default function Profile() {
     if (formError) setFormError('');
   };
 
-  const handlePhotoSelect = async (e) => {
+  const handlePhotoSelect = (e) => {
     const file = e.target.files?.[0];
     if (!file) return;
-    setEditForm(prev => ({ ...prev, photoFile: file }));
     const reader = new FileReader();
-    reader.onload = async (ev) => {
-      const base64Data = ev.target.result;
-      setPhotoPreview(base64Data);
-      try {
-        const token = localStorage.getItem('token');
-        const photoRes = await fetch(`${API}/api/upload-photo`, {
-          method: 'PUT',
-          headers: { 'Content-Type': 'application/json', Authorization: `Bearer ${token}` },
-          body: JSON.stringify({ photoBase64: base64Data })
-        });
-        const photoData = await photoRes.json();
-        if (photoRes.ok && photoData.photoUrl) {
-          await updateProfile({ photoUrl: photoData.photoUrl });
-        }
-      } catch (err) {
-        console.error('Failed to upload profile photo:', err);
-      }
+    reader.onload = (ev) => {
+      setPhotoToUpload({ file, name: file.name, base64: ev.target.result });
+      setShowPhotoModal(true);
     };
     reader.readAsDataURL(file);
+    e.target.value = '';
   };
 
-  const handleSaveChanges = async () => {
+  const handleConfirmPhotoUpload = async () => {
+    if (!photoToUpload?.base64) return;
+    setIsUploadingPhoto(true);
+    try {
+      const token = localStorage.getItem('token');
+      const photoRes = await fetch(`${API}/api/upload-photo`, {
+        method: 'PUT',
+        headers: { 'Content-Type': 'application/json', Authorization: `Bearer ${token}` },
+        body: JSON.stringify({ photoBase64: photoToUpload.base64 })
+      });
+      const photoData = await photoRes.json();
+      if (photoRes.ok && photoData.photoUrl) {
+        await updateProfile({ photoUrl: photoData.photoUrl });
+        setShowPhotoModal(false);
+        setPhotoToUpload(null);
+      } else {
+        setFormError(photoData.message || 'Failed to upload photo');
+      }
+    } catch (err) {
+      console.error('Failed to upload photo:', err);
+    } finally {
+      setIsUploadingPhoto(false);
+    }
+  };
+
+  const handleSaveClick = () => {
+    setFormError('');
+    if (!editForm.fullName.trim()) { setFormError('Full name is required.'); return; }
+    const emailChanged = editForm.email.trim().toLowerCase() !== (user?.email || '').trim().toLowerCase();
+    if (emailChanged && (!editForm.email.includes('@') || !editForm.email.includes('.'))) {
+      setFormError('Please enter a valid email address.'); return;
+    }
+    setShowSaveConfirmModal(true);
+  };
+
+  const executeSaveChanges = async () => {
+    setShowSaveConfirmModal(false);
     setFormError('');
     if (!editForm.fullName.trim()) { setFormError('Full name is required.'); return; }
     setIsSaving(true);
     try {
-      let uploadedPhotoUrl = null;
-      if (editForm.photoFile && photoPreview) {
-        const token = localStorage.getItem('token');
-        const photoRes = await fetch(`${API}/api/upload-photo`, {
-          method: 'PUT',
-          headers: { 'Content-Type': 'application/json', Authorization: `Bearer ${token}` },
-          body: JSON.stringify({ photoBase64: photoPreview })
-        });
-        const photoData = await photoRes.json();
-        if (!photoRes.ok) throw new Error(photoData.message || 'Failed to upload photo');
-        uploadedPhotoUrl = photoData.photoUrl;
-      }
-
       const emailChanged = editForm.email.trim().toLowerCase() !== (user?.email || '').trim().toLowerCase();
       if (emailChanged) {
         if (!editForm.email.includes('@') || !editForm.email.includes('.')) {
@@ -129,7 +143,6 @@ export default function Profile() {
         fullName: editForm.fullName.trim(),
         phone: editForm.phone.trim(),
         branch: editForm.community,
-        photoUrl: uploadedPhotoUrl || profile?.photoUrl,
       });
       if (!result.success) { setFormError(result.message || 'Failed to update profile.'); return; }
       setIsEditing(false);
@@ -152,7 +165,21 @@ export default function Profile() {
   const handleResendEmailOtp = async () => await requestEmailChange(pendingEmail);
   const handleCancelEmailOtp = () => { setShowEmailOtp(false); setPendingEmail(''); setIsSaving(false); };
 
-  const handleCancelEdit = () => {
+  const handleCancelClick = () => {
+    const hasChanges =
+      editForm.email.trim().toLowerCase() !== (user?.email || '').trim().toLowerCase() ||
+      editForm.phone.trim() !== (profile?.phone || '').trim() ||
+      editForm.community !== (profile?.branch || profile?.community || '');
+
+    if (hasChanges) {
+      setShowCancelConfirmModal(true);
+    } else {
+      confirmCancelEdit();
+    }
+  };
+
+  const confirmCancelEdit = () => {
+    setShowCancelConfirmModal(false);
     setEditForm({ fullName: profile?.fullName || '', email: user?.email || '', phone: profile?.phone || '', community: profile?.branch || profile?.community || '', photoFile: null });
     setPhotoPreview(null);
     setFormError('');
@@ -327,6 +354,128 @@ export default function Profile() {
         />
       )}
 
+      {/* ── Save Confirmation Modal ── */}
+      {showSaveConfirmModal && (
+        <div className="fixed inset-0 z-[9999] flex items-center justify-center p-4 bg-slate-900/60 backdrop-blur-sm animate-fadeIn">
+          <div className="bg-white dark:bg-[#1E2130] rounded-2xl max-w-md w-full p-6 border border-slate-200 dark:border-white/10 shadow-2xl space-y-4">
+            <div className="flex items-center gap-3">
+              <div className="w-10 h-10 rounded-xl bg-blue-50 dark:bg-blue-950/60 text-blue-600 dark:text-blue-400 flex items-center justify-center shrink-0">
+                <CheckCircle2 size={22} />
+              </div>
+              <div>
+                <h3 className="text-base font-bold text-slate-900 dark:text-white font-inter">Save Profile Changes?</h3>
+                <p className="text-xs text-slate-500 dark:text-slate-400 font-inter mt-0.5">Are you sure you want to update your profile details?</p>
+              </div>
+            </div>
+            <div className="flex justify-end gap-2 pt-2">
+              <button
+                onClick={() => setShowSaveConfirmModal(false)}
+                disabled={isSaving}
+                className="px-4 py-2 rounded-xl text-xs font-bold bg-slate-100 dark:bg-slate-800 text-slate-700 dark:text-slate-300 hover:bg-slate-200 dark:hover:bg-slate-700 transition-colors cursor-pointer border-none"
+              >
+                Cancel
+              </button>
+              <button
+                onClick={executeSaveChanges}
+                disabled={isSaving}
+                className="px-4 py-2 rounded-xl text-xs font-bold bg-blue-600 text-white hover:bg-blue-700 transition-colors cursor-pointer border-none shadow-sm"
+              >
+                {isSaving ? 'Saving...' : 'Confirm & Save'}
+              </button>
+            </div>
+          </div>
+        </div>
+      )}
+
+      {/* ── Cancel / Discard Confirmation Modal ── */}
+      {showCancelConfirmModal && (
+        <div className="fixed inset-0 z-[9999] flex items-center justify-center p-4 bg-slate-900/60 backdrop-blur-sm animate-fadeIn">
+          <div className="bg-white dark:bg-[#1E2130] rounded-2xl max-w-md w-full p-6 border border-slate-200 dark:border-white/10 shadow-2xl space-y-4">
+            <div className="flex items-center gap-3">
+              <div className="w-10 h-10 rounded-xl bg-amber-50 dark:bg-amber-950/60 text-amber-600 dark:text-amber-400 flex items-center justify-center shrink-0">
+                <AlertCircle size={22} />
+              </div>
+              <div>
+                <h3 className="text-base font-bold text-slate-900 dark:text-white font-inter">Discard Unsaved Changes?</h3>
+                <p className="text-xs text-slate-500 dark:text-slate-400 font-inter mt-0.5">You have modified your profile details. Are you sure you want to discard these edits?</p>
+              </div>
+            </div>
+            <div className="flex justify-end gap-2 pt-2">
+              <button
+                onClick={() => setShowCancelConfirmModal(false)}
+                className="px-4 py-2 rounded-xl text-xs font-bold bg-slate-100 dark:bg-slate-800 text-slate-700 dark:text-slate-300 hover:bg-slate-200 dark:hover:bg-slate-700 transition-colors cursor-pointer border-none"
+              >
+                Keep Editing
+              </button>
+              <button
+                onClick={confirmCancelEdit}
+                className="px-4 py-2 rounded-xl text-xs font-bold bg-red-600 text-white hover:bg-red-700 transition-colors cursor-pointer border-none shadow-sm"
+              >
+                Discard Changes
+              </button>
+            </div>
+          </div>
+        </div>
+      )}
+
+      {/* ── Separate Dedicated Upload Photo Modal ── */}
+      {showPhotoModal && photoToUpload && (
+        <div className="fixed inset-0 z-[9999] flex items-center justify-center p-4 bg-slate-900/60 backdrop-blur-sm animate-fadeIn">
+          <div className="bg-white dark:bg-[#1E2130] rounded-2xl max-w-sm w-full p-6 border border-slate-200 dark:border-white/10 shadow-2xl space-y-4 text-center">
+            <div className="flex items-center justify-between border-b border-slate-100 dark:border-white/10 pb-3">
+              <h3 className="text-base font-bold text-slate-900 dark:text-white font-inter">Update Profile Photo</h3>
+              <button
+                onClick={() => { setShowPhotoModal(false); setPhotoToUpload(null); }}
+                className="text-slate-400 hover:text-slate-600 dark:hover:text-slate-200 border-none bg-transparent cursor-pointer p-1"
+              >
+                <XCircle size={20} />
+              </button>
+            </div>
+
+            {/* Circular Image Preview */}
+            <div className="flex flex-col items-center justify-center space-y-3 py-2">
+              <div className="w-28 h-28 rounded-full overflow-hidden border-4 border-blue-500/20 shadow-xl bg-slate-100 dark:bg-slate-800 flex items-center justify-center">
+                <img src={photoToUpload.base64} alt="Preview" className="w-full h-full object-cover" />
+              </div>
+              {photoToUpload.name && (
+                <span className="inline-flex items-center gap-1.5 px-3 py-1 bg-slate-100 dark:bg-slate-800 text-slate-700 dark:text-slate-200 rounded-full text-[11px] font-semibold max-w-[260px] truncate border border-slate-200/60 dark:border-white/10" title={photoToUpload.name}>
+                  <FileText size={13} className="text-blue-500 shrink-0" />
+                  <span className="truncate">{photoToUpload.name}</span>
+                </span>
+              )}
+              <p className="text-xs text-slate-500 dark:text-slate-400 font-inter px-2">
+                Are you sure you want to set this image as your new profile photo?
+              </p>
+            </div>
+
+            {/* Action Buttons */}
+            <div className="flex justify-end gap-2 pt-2 border-t border-slate-100 dark:border-white/10">
+              <button
+                onClick={() => { setShowPhotoModal(false); setPhotoToUpload(null); }}
+                disabled={isUploadingPhoto}
+                className="px-4 py-2 rounded-xl text-xs font-bold bg-slate-100 dark:bg-slate-800 text-slate-700 dark:text-slate-300 hover:bg-slate-200 dark:hover:bg-slate-700 transition-colors cursor-pointer border-none"
+              >
+                Cancel
+              </button>
+              <button
+                onClick={handleConfirmPhotoUpload}
+                disabled={isUploadingPhoto}
+                className="px-4 py-2 rounded-xl text-xs font-bold bg-blue-600 text-white hover:bg-blue-700 transition-colors cursor-pointer border-none shadow-sm flex items-center gap-1.5"
+              >
+                {isUploadingPhoto ? (
+                  <span>Uploading...</span>
+                ) : (
+                  <>
+                    <Camera size={14} />
+                    <span>Upload &amp; Save</span>
+                  </>
+                )}
+              </button>
+            </div>
+          </div>
+        </div>
+      )}
+
       {/* ── Page Header (Matching Portal Standards) ── */}
       <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-3 pb-2.5 border-b border-slate-200/80 dark:border-white/10 font-inter">
         <div>
@@ -444,8 +593,8 @@ export default function Profile() {
               </div>
             </div>
             <div className="flex justify-end gap-2 pt-2 border-t border-slate-100 dark:border-white/5">
-              <button onClick={handleCancelEdit} disabled={isSaving} className="px-4 py-2 bg-slate-100 dark:bg-slate-800 text-slate-700 dark:text-slate-300 rounded-xl font-bold text-xs border-none cursor-pointer hover:bg-slate-200 transition-colors">Cancel</button>
-              <button onClick={handleSaveChanges} disabled={isSaving} className="px-4 py-2 bg-blue-600 text-white rounded-xl font-bold text-xs border-none cursor-pointer hover:bg-blue-700 transition-colors">
+              <button onClick={handleCancelClick} disabled={isSaving} className="px-4 py-2 bg-slate-100 dark:bg-slate-800 text-slate-700 dark:text-slate-300 rounded-xl font-bold text-xs border-none cursor-pointer hover:bg-slate-200 transition-colors">Cancel</button>
+              <button onClick={handleSaveClick} disabled={isSaving} className="px-4 py-2 bg-blue-600 text-white rounded-xl font-bold text-xs border-none cursor-pointer hover:bg-blue-700 transition-colors">
                 {isSaving ? 'Saving...' : 'Save Changes'}
               </button>
             </div>

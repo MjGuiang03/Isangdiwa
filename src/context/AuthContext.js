@@ -46,16 +46,19 @@ export const AuthProvider = ({ children }) => {
       }
 
       try {
-        // Try to fetch something that requires auth to verify the token
-        const res = await fetch(`${API}/api/verification/status`, {
+        const res = await fetch(`${API}/api/me`, {
           headers: { 'Authorization': `Bearer ${token}` }
         });
 
-        if (!res.ok) {
-          if (res.status === 401) {
-            // Token expired or invalid
-            signOut(true);
+        if (res.ok) {
+          const data = await res.json();
+          if (data.success && data.user) {
+            setUser(data.user);
+            setProfile(data.user);
+            localStorage.setItem('user', JSON.stringify(data.user));
           }
+        } else if (res.status === 401) {
+          signOut(true);
         }
       } catch (err) {
         console.error('Session verification failed:', err);
@@ -339,6 +342,7 @@ export const AuthProvider = ({ children }) => {
           phone:    formData.phone,
           branch:   formData.branch,   // community → branch in the DB
           position: formData.position,
+          photoUrl: formData.photoUrl,
         })
       });
 

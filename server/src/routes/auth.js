@@ -306,13 +306,14 @@ router.post('/login',
         user: isAdminType
           ? {
               email: account.email, role: account.role,
-              fullName: account.fullName || account.email.split('@')[0]
+              fullName: account.fullName || account.email.split('@')[0],
+              photoUrl: account.photoUrl || null
             }
           : {
               email: account.email, fullName: account.fullName, full_name: account.fullName,
               phone: account.phone, branch: account.branch, position: account.position,
-
               gender: account.gender, birthday: account.birthday, created_at: account.createdAt,
+              photoUrl: account.photoUrl || null,
               role: 'user'
             }
       });

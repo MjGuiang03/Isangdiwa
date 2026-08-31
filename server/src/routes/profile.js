@@ -89,7 +89,7 @@ router.put('/change-password', authenticateUser, handlePasswordChange);
 router.put('/update-profile', authenticateUser, async (req, res) => {
   try {
     const email = req.user.email;
-    const { fullName, phone, branch, position, dateOfBirth, emailNotifications, pushNotifications, notifPrefs, pushSubscription, expoPushToken } = req.body;
+    const { fullName, phone, branch, position, dateOfBirth, photoUrl, emailNotifications, pushNotifications, notifPrefs, pushSubscription, expoPushToken } = req.body;
 
     const user = await users.findOne({ email });
     if (!user) return res.status(404).json({ message: 'User not found' });
@@ -100,6 +100,7 @@ router.put('/update-profile', authenticateUser, async (req, res) => {
     if (branch      !== undefined) updateData.branch      = branch;
     if (position    !== undefined) updateData.position    = position;
     if (dateOfBirth !== undefined) updateData.dateOfBirth = dateOfBirth;
+    if (photoUrl    !== undefined) updateData.photoUrl    = photoUrl;
     if (emailNotifications !== undefined) updateData.emailNotifications = emailNotifications;
     if (pushNotifications !== undefined) updateData.pushNotifications = pushNotifications;
     if (notifPrefs !== undefined) updateData.notifPrefs = notifPrefs;
@@ -121,6 +122,7 @@ router.put('/update-profile', authenticateUser, async (req, res) => {
         gender:      updatedUser.gender,
         birthday:    updatedUser.birthday,
         dateOfBirth: updatedUser.dateOfBirth,
+        photoUrl:    updatedUser.photoUrl || null,
         createdAt:   updatedUser.createdAt,
         emailNotifications: updatedUser.emailNotifications,
         pushNotifications: updatedUser.pushNotifications,
