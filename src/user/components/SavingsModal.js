@@ -78,32 +78,6 @@ function DepositModal({ goals, onClose }) {
         ? Math.min(100, Math.round((newSaved / goal.targetAmount) * 100))
         : 0;
 
-    const getRealtimeError = () => {
-        if (amount.trim() !== '' && numAmt <= 0) {
-            return 'Please enter a valid deposit amount.';
-        }
-        if (approvalMethod === 'manual' && paymentMethod !== 'Cash') {
-            const cleanAcc = accountNumber.trim();
-            if (cleanAcc.length > 0) {
-                if (paymentMethod === 'Bank') {
-                    if (cleanAcc.length < 10 || cleanAcc.length > 16) {
-                        return 'Bank account number must be between 10 and 16 digits.';
-                    }
-                } else {
-                    if (!cleanAcc.startsWith('09')) {
-                        return 'Mobile number must start with 09.';
-                    }
-                    if (cleanAcc.length !== 11) {
-                        return 'Mobile number must be exactly 11 digits.';
-                    }
-                }
-            }
-        }
-        return '';
-    };
-
-    const activeError = error || getRealtimeError();
-
     const handleQuick = (val) => {
         setError('');
         const maxAllowed = goal?.targetAmount > 0 ? goal.targetAmount - (goal.savedAmount || 0) : Infinity;
@@ -724,32 +698,6 @@ function QuickDepositModal({ goal, goals, onClose }) {
     const newPct = goal?.targetAmount > 0
         ? Math.min(100, Math.round((newSaved / goal.targetAmount) * 100))
         : 0;
-
-    const getRealtimeError = () => {
-        if (amount.trim() !== '' && numAmt <= 0) {
-            return 'Please enter a valid deposit amount.';
-        }
-        if (approvalMethod === 'manual') {
-            const cleanAcc = accountNumber.trim();
-            if (cleanAcc.length > 0) {
-                if (paymentMethod === 'Bank') {
-                    if (cleanAcc.length < 10 || cleanAcc.length > 16) {
-                        return 'Bank account number must be between 10 and 16 digits.';
-                    }
-                } else {
-                    if (!cleanAcc.startsWith('09')) {
-                        return 'Mobile number must start with 09.';
-                    }
-                    if (cleanAcc.length !== 11) {
-                        return 'Mobile number must be exactly 11 digits.';
-                    }
-                }
-            }
-        }
-        return '';
-    };
-
-    const activeError = error || getRealtimeError();
 
     const handleSubmit = async () => {
         if (!numAmt || numAmt <= 0) { setError('Please enter a valid deposit amount.'); return; }
