@@ -276,6 +276,14 @@ router.post('/savings/deposit', authenticateUser, async (req, res) => {
         return res.status(400).json({ success: false, message: 'Proof of payment is required for manual approval' });
       }
 
+      // Backend validation: proofOfPayment must be a valid image Data URL
+      if (typeof proofOfPayment !== 'string' || !proofOfPayment.startsWith('data:image/')) {
+        return res.status(400).json({ 
+          success: false, 
+          message: 'Invalid proof of payment. Only image files (PNG, JPG, JPEG, WEBP) are allowed.' 
+        });
+      }
+
       const txn = {
         _id: txnId,
         savingsRefId,

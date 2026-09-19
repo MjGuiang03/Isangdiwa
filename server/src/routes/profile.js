@@ -380,54 +380,144 @@ router.post('/read-notifications', authenticateUser, async (req, res) => {
   }
 });
 
+// Mark ALL notifications as read — generates every possible notification ID on the server
+// so the client doesn't need to know about pagination limits or older records.
+router.post('/read-notifications/mark-all', authenticateUser, async (req, res) => {
+  try {
+    const email = req.user.email;
+
+    // Fetch ALL records (no limit) to generate every notification ID
+    const [allPayments, allLoans, allDonations, allAttendance, allSavings, userDoc] = await Promise.all([
+      loanPayments.find({ email }).toArray(),
+      loans.find({ email }).toArray(),
+      donations.find({ email }).toArray(),
+      attendance.find({ email }).toArray(),
+      savingsTransactions.find({ email }).toArray(),
+      users.findOne({ email }),
+    ]);
+
+    const allIds = [];
+
+    allLoans.forEach(l => {
+      if (l.status === 'awaiting_member_approval' && l.modifiedTerms) allIds.push(`loan-terms-${l._id}`);
+      if (l.statusHistory && l.statusHistory.length > 0) {
+        l.statusHistory.forEach(h => {
+          if (h.status === 'pending')   allIds.push(`loan-pending-${l._id}`);
+          if (h.status === 'approved')  allIds.push(`loan-approved-${l._id}`);
+          if (h.status === 'rejected')  allIds.push(`loan-rejected-${l._id}`);
+          if (h.status === 'processed') allIds.push(`loan-processed-${l._id}`);
+        });
+      } else {
+        if (l.status === 'approved' || l.status === 'active') allIds.push(`loan-approved-${l._id}`);
+        if (l.status === 'pending')   allIds.push(`loan-pending-${l._id}`);
+        if (l.status === 'rejected')  allIds.push(`loan-rejected-${l._id}`);
+        if (l.status === 'completed') allIds.push(`loan-done-${l._id}`);
+      }
+      if (l.status === 'active' && l.nextPaymentDate) allIds.push(`loan-reminder-${l._id}`);
+    });
+
+    allPayments.forEach(p => allIds.push(`payment-${p.status}-${p._id}`));
+
+    allDonations.forEach(d => {
+      if (d.status === 'confirmed') allIds.push(`donation-confirmed-${d._id}`);
+      if (d.status === 'pending')   allIds.push(`donation-pending-${d._id}`);
+      if (d.status === 'rejected')  allIds.push(`donation-rejected-${d._id}`);
+    });
+
+    allSavings.filter(s => s.type === 'deposit' && s.status === 'confirmed')
+      .forEach(s => allIds.push(`savings-${s._id}`));
+
+    allAttendance.forEach(a => allIds.push(`attendance-${a._id}`));
+    (userDoc?.securityNotifications || []).forEach(s => allIds.push(s.id));
+
+    if (allIds.length > 0) {
+      await users.updateOne(
+        { email },
+        { $addToSet: { readNotifications: { $each: allIds } } }
+      );
+    }
+
+    res.json({ success: true, marked: allIds.length });
+  } catch (err) {
+    console.error(err);
+    res.status(500).json({ success: false, message: 'Failed to mark all as read' });
+  }
+});
+
 /* ================== UNIFIED NOTIFICATIONS FEED ================== */
 router.get('/notifications/feed', authenticateUser, async (req, res) => {
   try {
     const email = req.user.email;
-    const limit = 10;
+    const limit = 50;
 
     /* 1. Fetch user to get their branch for filtering */
     const userReq = await users.findOne({ email });
     const branch = userReq?.branch || '';
 
-    const [pendingPayments, userLoans, userDonations, userAttendance, userSavings, recentAnnouncements] = await Promise.all([
-      loanPayments.find({ email, status: 'pending' }).sort({ submittedAt: -1 }).limit(limit).toArray(),
-      loans.find({ email }).sort({ updatedAt: -1 }).limit(limit).toArray(),
+    const [allPayments, allLoans, allDonations, allAttendance, allSavings, recentAnnouncements] = await Promise.all([
+      loanPayments.find({ email }).sort({ submittedAt: -1 }).limit(limit).toArray(),
+      loans.find({ email }).sort({ appliedDate: -1 }).limit(limit).toArray(),
       donations.find({ email }).sort({ updatedAt: -1 }).limit(limit).toArray(),
       attendance.find({ email }).sort({ createdAt: -1 }).limit(limit).toArray(),
       savingsTransactions.find({ email }).sort({ date: -1 }).limit(limit).toArray(),
       announcements.find({
         $and: [
-          {
-            $or: [
-              { expiresAt: { $exists: false } },
-              { expiresAt: null },
-              { expiresAt: { $gt: new Date() } }
-            ]
-          },
-          {
-            $or: [
-              { visibility: 'all' },
-              { visibility: { $exists: false } },
-              { visibility: null },
-              { targetBranches: branch }
-            ]
-          }
+          { $or: [{ expiresAt: { $exists: false } }, { expiresAt: null }, { expiresAt: { $gt: new Date() } }] },
+          { $or: [{ visibility: 'all' }, { visibility: { $exists: false } }, { visibility: null }, { targetBranches: branch }] }
         ]
-      }).sort({ createdAt: -1 }).limit(limit).toArray(),
+      }).sort({ createdAt: -1 }).limit(20).toArray(),
     ]);
 
-    const filteredAnnouncements = recentAnnouncements;
+    const readIds = new Set(userReq?.readNotifications || []);
+
+    // Generate notification IDs using the exact same logic as Notifications.js (frontend)
+    // so the unread count is consistent with what the user sees on the notifications page.
+    const notifIds = [];
+
+    allLoans.forEach(l => {
+      if (l.status === 'awaiting_member_approval' && l.modifiedTerms) notifIds.push(`loan-terms-${l._id}`);
+      if (l.statusHistory && l.statusHistory.length > 0) {
+        l.statusHistory.forEach(h => {
+          if (h.status === 'pending')   notifIds.push(`loan-pending-${l._id}`);
+          if (h.status === 'approved')  notifIds.push(`loan-approved-${l._id}`);
+          if (h.status === 'rejected')  notifIds.push(`loan-rejected-${l._id}`);
+          if (h.status === 'processed') notifIds.push(`loan-processed-${l._id}`);
+        });
+      } else {
+        if (l.status === 'approved' || l.status === 'active') notifIds.push(`loan-approved-${l._id}`);
+        if (l.status === 'pending')   notifIds.push(`loan-pending-${l._id}`);
+        if (l.status === 'rejected')  notifIds.push(`loan-rejected-${l._id}`);
+        if (l.status === 'completed') notifIds.push(`loan-done-${l._id}`);
+      }
+      if (l.status === 'active' && l.nextPaymentDate) notifIds.push(`loan-reminder-${l._id}`);
+    });
+
+    allPayments.forEach(p => notifIds.push(`payment-${p.status}-${p._id}`));
+
+    allDonations.forEach(d => {
+      if (d.status === 'confirmed') notifIds.push(`donation-confirmed-${d._id}`);
+      if (d.status === 'pending')   notifIds.push(`donation-pending-${d._id}`);
+      if (d.status === 'rejected')  notifIds.push(`donation-rejected-${d._id}`);
+    });
+
+    allSavings.filter(s => s.type === 'deposit' && s.status === 'confirmed')
+      .forEach(s => notifIds.push(`savings-${s._id}`));
+
+    allAttendance.forEach(a => notifIds.push(`attendance-${a._id}`));
+    (userReq?.securityNotifications || []).forEach(s => notifIds.push(s.id));
+
+    const unreadCount = notifIds.filter(id => !readIds.has(id)).length;
 
     res.json({
       success: true,
       readIds: userReq?.readNotifications || [],
-      payments:   pendingPayments,
-      loans:      userLoans,
-      donations:  userDonations,
-      attendance: userAttendance,
-      savings:    userSavings,
-      announcements: filteredAnnouncements,
+      unreadCount,
+      payments:   allPayments,
+      loans:      allLoans,
+      donations:  allDonations,
+      attendance: allAttendance,
+      savings:    allSavings,
+      announcements: recentAnnouncements,
       securityNotifications: userReq?.securityNotifications || []
     });
   } catch (err) {

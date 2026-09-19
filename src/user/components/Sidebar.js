@@ -7,6 +7,11 @@ import API from '../../utils/api';
 
 import { isOfficerPosition } from '../../utils/officerPositions';
 
+// Module-level Set: stores IDs that the user has locally marked as read.
+// Persists across re-renders and remounts within the same browser session.
+// Merged with server readIds in fetchNotifications so the badge is always correct.
+const _localReadIds = new Set();
+
 export default function Sidebar({ collapsed, setCollapsed, toggleCollapsed }) {
   const navigate = useNavigate();
   const location = useLocation();
@@ -61,57 +66,21 @@ export default function Sidebar({ collapsed, setCollapsed, toggleCollapsed }) {
       const data = await res.json();
       if (!data.success) return;
 
-      const { readIds: readIdsFromData, payments, loans: loansDataFeed, donations: donationsDataFeed, attendance: attendanceDataFeed, savings: savingsDataFeed, securityNotifications: secDataFeed } = data;
-      const currentReadIds = new Set(readIdsFromData || []);
-      const items = [];
-
-      if (loansDataFeed) {
-        loansDataFeed.forEach(l => {
-          if (l.status === 'awaiting_member_approval') items.push({ id: `loan-terms-${l._id}` });
-          if (l.status === 'approved') items.push({ id: `loan-app-${l._id}` });
-          if (l.status === 'active' && l.disbursed) {
-            const term = l.termMonths || 12;
-            const paidMonths = l.paidMonths || 0;
-            if (paidMonths < term && l.disbursementDate) {
-              const startDate = new Date(l.disbursementDate);
-              const nextDue = new Date(startDate);
-              nextDue.setMonth(startDate.getMonth() + paidMonths + 1);
-              const cutoffDate = new Date(nextDue);
-              cutoffDate.setDate(nextDue.getDate() + 3);
-              cutoffDate.setHours(23, 59, 59, 999);
-              if (Date.now() > cutoffDate.getTime()) items.push({ id: `loan-late-${l._id}-${paidMonths}` });
-            }
-            items.push({ id: `loan-disbursed-${l._id}` });
-          }
-          if (l.status === 'rejected') items.push({ id: `loan-rejected-${l._id}` });
-        });
+      // If user has locally marked all as read but server hasn't caught up yet, keep badge at 0
+      if (_localReadIds.size > 0 && (data.unreadCount ?? 0) > 0) {
+        // Server still shows unread — check if server's readIds now includes our local marks
+        const serverReadIds = new Set(data.readIds || []);
+        const serverHasCaughtUp = [..._localReadIds].every(id => serverReadIds.has(id));
+        if (serverHasCaughtUp) {
+          _localReadIds.clear(); // Server confirmed — clear local cache
+          setUnreadNotifCount(data.unreadCount ?? 0);
+        } else {
+          setUnreadNotifCount(0); // Keep at 0 while waiting for server to catch up
+        }
+      } else {
+        if (_localReadIds.size > 0) _localReadIds.clear();
+        setUnreadNotifCount(data.unreadCount ?? 0);
       }
-      if (payments) {
-        payments.forEach(p => {
-          if (p.status === 'pending') items.push({ id: `payment-pending-${p._id}` });
-          if (p.status === 'confirmed') items.push({ id: `payment-confirmed-${p._id}` });
-          if (p.status === 'rejected') items.push({ id: `payment-rejected-${p._id}` });
-        });
-      }
-      if (donationsDataFeed) {
-        donationsDataFeed.filter(d => d.status === 'confirmed').forEach(d => {
-          items.push({ id: `don-${d._id}` });
-        });
-      }
-      if (attendanceDataFeed) {
-        attendanceDataFeed.slice(0, 5).forEach(a => {
-          items.push({ id: `att-${a._id}` });
-        });
-      }
-      if (savingsDataFeed) {
-        savingsDataFeed.filter(s => s.type === 'deposit' && s.status === 'confirmed').forEach(s => items.push({ id: `sav-${s._id}` }));
-        savingsDataFeed.filter(s => s.type === 'withdrawal' && s.status === 'confirmed').forEach(s => items.push({ id: `sav-wd-${s._id}` }));
-      }
-      if (secDataFeed) {
-        secDataFeed.forEach(s => items.push({ id: s.id }));
-      }
-
-      setUnreadNotifCount(items.filter(it => !currentReadIds.has(it.id)).length);
     } catch (err) {
       console.error('Failed to fetch sidebar notifications:', err);
     }
@@ -120,10 +89,20 @@ export default function Sidebar({ collapsed, setCollapsed, toggleCollapsed }) {
   useEffect(() => {
     fetchNotifications();
     const interval = setInterval(fetchNotifications, 120000); // Poll every 2 mins
-    window.addEventListener("admin-notif-read-update", fetchNotifications);
+
+    // Listen for mark-as-read events from Notifications.js
+    const handleNotifRead = (e) => {
+      const ids = e.detail?.ids || [];
+      ids.forEach(id => _localReadIds.add(id));
+      // For mark-all (ids=[]), add a sentinel so we know mark-all was triggered
+      if (ids.length === 0) _localReadIds.add('__mark_all__');
+      setUnreadNotifCount(0); // Immediately clear badge
+    };
+
+    window.addEventListener("user-notif-read", handleNotifRead);
     return () => {
       clearInterval(interval);
-      window.removeEventListener("admin-notif-read-update", fetchNotifications);
+      window.removeEventListener("user-notif-read", handleNotifRead);
     };
   }, [fetchNotifications]);
 
@@ -291,7 +270,7 @@ export default function Sidebar({ collapsed, setCollapsed, toggleCollapsed }) {
                 <span className={`ml-auto bg-rose-600 text-white font-inter text-xs font-bold px-1.5 py-0.5 rounded-full min-w-[19px] h-[19px] flex items-center justify-center animate-badgePop ${
                   collapsed ? 'md:absolute md:top-1 md:right-1 md:ml-0 md:text-[9px] md:h-3.5 md:min-w-[14px]' : ''
                 }`}>
-                  {unreadNotifCount > 9 ? '9+' : unreadNotifCount}
+                  {unreadNotifCount}
                 </span>
               )}
             </button>

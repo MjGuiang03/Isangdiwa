@@ -46,6 +46,8 @@ export default function Notifications() {
   const [detailModal, setDetailModal] = useState(null);
   const [previewImage, setPreviewImage] = useState(null);
   const [expandedGroups, setExpandedGroups] = useState(new Set());
+  const [currentPage, setCurrentPage] = useState(1);
+  const ITEMS_PER_PAGE = 5;
 
   /* ── Modal swipe-down-to-close touch gesture state ── */
   const [modalDragY, setModalDragY] = useState(0);
@@ -332,7 +334,16 @@ export default function Notifications() {
     .filter(n => prefs[n.type] !== false);
 
   const getFilteredItems = () => {
-    let base = notifications;
+    const base = notifications.filter(n => {
+      if (!prefs.loan && n.type === 'loan') return false;
+      if (!prefs.payment_pending && n.type === 'payment_pending') return false;
+      if (!prefs.announcement && n.type === 'announcement') return false;
+      if (!prefs.attendance && n.type === 'attendance') return false;
+      if (!prefs.savings && n.type === 'savings') return false;
+      if (!prefs.donation && n.type === 'donation') return false;
+      if (!prefs.security && n.type === 'security') return false;
+      return true;
+    });
     if (activeFilter === 'unread') return base.filter(n => !n.isRead);
     if (activeFilter === 'loans_payments') return base.filter(n => ['loan', 'payment_pending'].includes(n.type));
     if (activeFilter === 'activity') return base.filter(n => ['attendance', 'savings', 'donation', 'security'].includes(n.type));
@@ -340,6 +351,16 @@ export default function Notifications() {
   };
 
   const filtered = getFilteredItems();
+  const totalPages = Math.max(1, Math.ceil(filtered.filter(n => !n.actionRequired).length / ITEMS_PER_PAGE));
+  const safeCurrentPage = Math.min(currentPage, totalPages);
+
+  // Paginate only the non-pinned items; pinned (action required) always show
+  const paginatedFiltered = (() => {
+    const pinned = filtered.filter(n => n.actionRequired);
+    const rest = filtered.filter(n => !n.actionRequired);
+    const start = (safeCurrentPage - 1) * ITEMS_PER_PAGE;
+    return [...pinned, ...rest.slice(start, start + ITEMS_PER_PAGE)];
+  })();
 
   const getUnreadCount = (tabKey) => {
     if (tabKey === 'all') return notifications.filter(n => !n.isRead).length;
@@ -367,19 +388,30 @@ export default function Notifications() {
       const s = new Set(prev);
       s.add(id);
       performReadUpdate([id]);
+      // Immediately tell sidebar this one ID is now read
+      window.dispatchEvent(new CustomEvent("user-notif-read", { detail: { ids: [id] } }));
       return s;
     });
   };
 
-  const markAllAsRead = () => {
-    const idsToMark = notifications.filter(n => !n.isRead).map(n => n.id);
-    if (idsToMark.length === 0) return;
-    performReadUpdate(idsToMark);
-    setReadIds((prev) => {
-      const s = new Set(prev);
-      idsToMark.forEach(id => s.add(id));
-      return s;
-    });
+  const markAllAsRead = async () => {
+    // Dispatch immediately so sidebar clears at once
+    window.dispatchEvent(new CustomEvent("user-notif-read", { detail: { ids: [] } }));
+    try {
+      const token = localStorage.getItem('token');
+      // Server-side mark-all: generates ALL notification IDs (no pagination limit)
+      // and saves them to the DB in one shot — fixes the "badge comes back" bug
+      await fetch(`${API}/api/read-notifications/mark-all`, {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json', Authorization: `Bearer ${token}` },
+      });
+      // Mark all visible items as read locally too
+      setReadIds(prev => {
+        const s = new Set(prev);
+        notifications.forEach(n => s.add(n.id));
+        return s;
+      });
+    } catch { /* silent */ }
   };
 
   /* ── UI helpers ── */
@@ -450,7 +482,7 @@ export default function Notifications() {
   /* ── Grouping & Collapsing Logic ── */
   const { pinned, groups } = (() => {
     const pinnedItems = notifications.filter(n => n.actionRequired);
-    const others = filtered.filter(n => !n.actionRequired);
+    const others = paginatedFiltered.filter(n => !n.actionRequired);
 
     const g = { today: [], yesterday: [], earlier: [] };
     const now = new Date();
@@ -610,7 +642,7 @@ export default function Notifications() {
     };
 
     return (
-      <div className={`relative overflow-hidden rounded-2xl border transition-all mb-3 font-inter ${isExpanded ? 'ring-2 ring-blue-500/50' : ''
+      <div className={`relative overflow-hidden rounded-xl border transition-all mb-2 font-inter ${isExpanded ? 'ring-2 ring-blue-500/50' : ''
         } ${n.isUrgent
           ? 'border-rose-200/90 dark:border-rose-900/50 bg-rose-50/40 dark:bg-rose-950/20'
           : n.actionRequired
@@ -621,23 +653,23 @@ export default function Notifications() {
         }`}>
         {/* Swipe-to-read blue bg (ONLY visible when swiping left) */}
         {swipeOffset < 0 && (
-          <div className="absolute inset-0 bg-blue-600 flex items-center justify-end px-6 z-0 rounded-2xl">
+          <div className="absolute inset-0 bg-blue-600 flex items-center justify-end px-6 z-0 rounded-xl">
             <div className="flex items-center gap-1.5 text-white text-xs font-bold font-inter">
-              <Check size={16} color="white" />
+              <Check size={14} color="white" />
               <span>Mark Read</span>
             </div>
           </div>
         )}
 
         <div
-          className={`relative z-10 flex items-start gap-3 p-3.5 sm:p-4 transition-transform ${n.isUrgent
-              ? 'bg-rose-50/40 dark:bg-rose-950/30 border-l-4 border-l-rose-500'
+          className={`relative z-10 flex items-start gap-2.5 px-3 py-2.5 transition-transform ${n.isUrgent
+              ? 'bg-rose-50/40 dark:bg-rose-950/30 border-l-3 border-l-rose-500'
               : n.actionRequired
-                ? 'bg-amber-50/40 dark:bg-amber-950/30 border-l-4 border-l-amber-500'
+                ? 'bg-amber-50/40 dark:bg-amber-950/30 border-l-3 border-l-amber-500'
                 : !n.isRead
-                  ? 'bg-white dark:bg-[#1E2130] border-l-4 border-l-blue-600 dark:border-l-blue-500'
-                  : 'bg-slate-50/60 dark:bg-[#1E2130]/60 border-l-4 border-l-transparent'
-            } rounded-2xl`}
+                  ? 'bg-white dark:bg-[#1E2130] border-l-3 border-l-blue-600 dark:border-l-blue-500'
+                  : 'bg-slate-50/60 dark:bg-[#1E2130]/60 border-l-3 border-l-transparent'
+            } rounded-xl`}
           style={{ transform: `translateX(${swipeOffset}px)` }}
           onTouchStart={handleTouchStart}
           onTouchMove={handleTouchMove}
@@ -647,62 +679,66 @@ export default function Notifications() {
             if (!isSwiping) onClick();
           }}
         >
-          {/* Icon Badge */}
+          {/* Icon */}
           <div className="shrink-0 mt-0.5">
-            {getIcon(n.type, n.title)}
+            <div className={`w-7 h-7 rounded-lg flex items-center justify-center shrink-0 ${
+              n.type === 'loan' ? 'bg-blue-100 dark:bg-blue-950/60' :
+              n.type === 'payment_pending' ? 'bg-emerald-100 dark:bg-emerald-950/60' :
+              n.type === 'savings' ? 'bg-amber-100/50 dark:bg-amber-950/60' :
+              n.type === 'donation' ? 'bg-pink-100 dark:bg-pink-950/60' :
+              n.type === 'attendance' ? 'bg-teal-100 dark:bg-teal-950/60' :
+              n.type === 'security' ? 'bg-amber-100 dark:bg-amber-950/60' :
+              'bg-blue-100 dark:bg-blue-950/60'
+            }`}>
+              {getIcon(n.type, n.title) && (
+                <div className="scale-75 -m-1">{getIcon(n.type, n.title)}</div>
+              )}
+            </div>
           </div>
 
-          {/* Main Card Content */}
+          {/* Content */}
           <div className="flex-1 min-w-0 font-inter">
-            {/* Header Row: Title + Category Badge + Read/Unread Status */}
-            <div className="flex items-start justify-between gap-2 mb-1">
-              <div className="flex items-center gap-1.5 flex-wrap min-w-0 flex-1">
-                <h3 className={`text-xs sm:text-sm leading-tight ${n.isRead ? 'font-semibold text-slate-700 dark:text-slate-300' : 'font-extrabold text-slate-900 dark:text-white'}`}>
+            {/* Title row */}
+            <div className="flex items-center justify-between gap-1.5 mb-0.5">
+              <div className="flex items-center gap-1.5 min-w-0 flex-1">
+                <h3 className={`text-xs leading-snug truncate ${n.isRead ? 'font-semibold text-slate-600 dark:text-slate-400' : 'font-bold text-slate-900 dark:text-white'}`}>
                   {n.title}
                 </h3>
                 {!n.isRead && (
-                  <span className="w-2 h-2 rounded-full bg-blue-600 dark:bg-blue-400 shrink-0" title="Unread" />
+                  <span className="w-1.5 h-1.5 rounded-full bg-blue-600 dark:bg-blue-400 shrink-0" />
                 )}
               </div>
-
-              <div className="flex items-center gap-1.5 shrink-0 ml-1">
-                <span className={`px-2 py-0.5 rounded-md text-[10px] font-extrabold uppercase tracking-wider ${badgeClass(n.type)}`}>
-                  {badgeLabel(n.type)}
-                </span>
-              </div>
+              <span className={`px-1.5 py-0.5 rounded text-[9px] font-extrabold uppercase tracking-wide shrink-0 ${badgeClass(n.type)}`}>
+                {badgeLabel(n.type)}
+              </span>
             </div>
 
-            {/* Message Body */}
-            <p className={`text-xs leading-relaxed mb-2.5 ${n.isRead ? 'text-slate-500 dark:text-slate-400 font-normal' : 'text-slate-600 dark:text-slate-300 font-medium'}`}>
+            {/* Message */}
+            <p className={`text-[11px] leading-snug mb-1 line-clamp-2 ${n.isRead ? 'text-slate-400 dark:text-slate-500' : 'text-slate-500 dark:text-slate-400'}`}>
               {n.message}
             </p>
 
-            {/* Footer Row: Timestamp + CTA + Mark Read Action */}
-            <div className="flex items-center justify-between gap-2 pt-1.5 border-t border-slate-100/80 dark:border-white/5">
-              <span className="text-[11px] text-slate-400 dark:text-slate-500 font-medium shrink-0">
+            {/* Footer: timestamp + CTA + mark read — all in one compact row */}
+            <div className="flex items-center gap-2">
+              <span className="text-[10px] text-slate-400 dark:text-slate-500 shrink-0">
                 {fmtTime(n.timestamp, n.isReminder)}
               </span>
-
               <div className="flex items-center gap-2 ml-auto shrink-0">
                 {renderCTA(n)}
                 {n.actionRequired && (
-                  <span className="text-xs font-bold text-amber-600 dark:text-amber-400 hover:underline cursor-pointer">
-                    Review Terms →
+                  <span className="text-[11px] font-bold text-amber-600 dark:text-amber-400 hover:underline cursor-pointer">
+                    Review →
                   </span>
                 )}
-
-                {/* Mark as read button */}
                 {!n.isRead && (
                   <button
-                    className="h-6 px-2.5 rounded-lg bg-blue-50 dark:bg-blue-950/60 hover:bg-blue-600 hover:text-white text-blue-600 dark:text-blue-400 text-[11px] font-bold flex items-center gap-1 transition-all cursor-pointer border border-blue-100 dark:border-blue-900/40 shrink-0"
+                    className="w-5 h-5 rounded-md bg-blue-50 dark:bg-blue-950/60 hover:bg-blue-600 hover:text-white text-blue-600 dark:text-blue-400 flex items-center justify-center transition-all cursor-pointer border border-blue-100 dark:border-blue-900/40 shrink-0"
                     onClick={(e) => { e.stopPropagation(); onMarkRead(); }}
                     title="Mark as read"
                   >
-                    <Check size={12} />
-                    <span>Mark as read</span>
+                    <Check size={11} />
                   </button>
                 )}
-
               </div>
             </div>
           </div>
@@ -739,7 +775,7 @@ export default function Notifications() {
                     ? 'bg-blue-600 text-white shadow-md shadow-blue-500/20'
                     : 'bg-white dark:bg-[#1E2130] border border-slate-200/80 dark:border-white/10 text-slate-700 dark:text-slate-300 hover:bg-slate-50 dark:hover:bg-slate-800/50'
                   }`}
-                onClick={() => setActiveFilter(key)}
+                onClick={() => { setActiveFilter(key); setCurrentPage(1); }}
               >
                 <span className="hidden sm:inline">{label}</span>
                 <span className="inline sm:hidden">{shortLabel}</span>
@@ -782,13 +818,13 @@ export default function Notifications() {
             <h3 className="text-base font-bold text-slate-900 dark:text-white">{emptyStates[activeFilter]?.msg}</h3>
             <p className="text-xs text-slate-500 dark:text-slate-400 max-w-sm mx-auto">{emptyStates[activeFilter]?.hint}</p>
             {activeFilter !== 'all' && (
-              <button className="px-4 py-2 bg-blue-600 text-white text-xs font-bold rounded-xl shadow-md hover:bg-blue-700 transition-all cursor-pointer mt-2 border-none" onClick={() => setActiveFilter('all')}>
+              <button className="px-4 py-2 bg-blue-600 text-white text-xs font-bold rounded-xl shadow-md hover:bg-blue-700 transition-all cursor-pointer mt-2 border-none" onClick={() => { setActiveFilter('all'); setCurrentPage(1); }}>
                 Show all notifications
               </button>
             )}
           </div>
         ) : (
-          <div className="space-y-6">
+          <div className="space-y-4">
 
             {/* Pinned Section */}
             {pinned.length > 0 && (
@@ -814,7 +850,59 @@ export default function Notifications() {
               )
             ))}
 
-            <div className="h-6" />
+            {/* Pagination */}
+            {totalPages > 1 && (
+              <div className="flex items-center justify-between pt-2 mt-2 border-t border-slate-200/60 dark:border-white/10">
+                <p className="text-xs text-slate-500 dark:text-slate-400 font-inter">
+                  Page <span className="font-bold text-slate-700 dark:text-slate-200">{safeCurrentPage}</span> of <span className="font-bold text-slate-700 dark:text-slate-200">{totalPages}</span>
+                </p>
+                <div className="flex items-center gap-1">
+                  {/* Previous */}
+                  <button
+                    disabled={safeCurrentPage === 1}
+                    onClick={() => { setCurrentPage(p => Math.max(1, p - 1)); window.scrollTo({ top: 0, behavior: 'smooth' }); }}
+                    className="px-3 py-1.5 text-xs font-bold rounded-xl border border-slate-200/80 dark:border-white/10 bg-white dark:bg-[#1E2130] text-slate-700 dark:text-slate-300 hover:bg-slate-50 dark:hover:bg-slate-800/50 disabled:opacity-40 disabled:cursor-not-allowed transition-all cursor-pointer"
+                  >
+                    ← Prev
+                  </button>
+
+                  {/* Page numbers */}
+                  {Array.from({ length: totalPages }, (_, i) => i + 1)
+                    .filter(p => p === 1 || p === totalPages || Math.abs(p - safeCurrentPage) <= 1)
+                    .reduce((acc, p, idx, arr) => {
+                      if (idx > 0 && p - arr[idx - 1] > 1) acc.push('...');
+                      acc.push(p);
+                      return acc;
+                    }, [])
+                    .map((p, i) =>
+                      p === '...'
+                        ? <span key={`ellipsis-${i}`} className="px-2 text-xs text-slate-400">…</span>
+                        : <button
+                            key={p}
+                            onClick={() => { setCurrentPage(p); window.scrollTo({ top: 0, behavior: 'smooth' }); }}
+                            className={`w-8 h-8 text-xs font-bold rounded-xl transition-all cursor-pointer border-none ${safeCurrentPage === p
+                              ? 'bg-blue-600 text-white shadow-md shadow-blue-500/20'
+                              : 'bg-white dark:bg-[#1E2130] border border-slate-200/80 dark:border-white/10 text-slate-700 dark:text-slate-300 hover:bg-slate-50 dark:hover:bg-slate-800/50'
+                            }`}
+                          >
+                            {p}
+                          </button>
+                    )
+                  }
+
+                  {/* Next */}
+                  <button
+                    disabled={safeCurrentPage === totalPages}
+                    onClick={() => { setCurrentPage(p => Math.min(totalPages, p + 1)); window.scrollTo({ top: 0, behavior: 'smooth' }); }}
+                    className="px-3 py-1.5 text-xs font-bold rounded-xl border border-slate-200/80 dark:border-white/10 bg-white dark:bg-[#1E2130] text-slate-700 dark:text-slate-300 hover:bg-slate-50 dark:hover:bg-slate-800/50 disabled:opacity-40 disabled:cursor-not-allowed transition-all cursor-pointer"
+                  >
+                    Next →
+                  </button>
+                </div>
+              </div>
+            )}
+
+            <div className="h-4" />
           </div>
         )}
 

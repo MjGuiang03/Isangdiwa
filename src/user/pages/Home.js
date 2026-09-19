@@ -329,31 +329,19 @@ export default function Home() {
 
   const quickActions = [
     {
-      title: 'Make a Donation',
-      description: 'Support the church today',
-      iconBg: 'bg-rose-50 dark:bg-rose-950/40 text-rose-600 dark:text-rose-400',
-      action: () => navigate('/donation'),
-      icon: <Heart size={18} />
-    },
-    {
-      title: 'Check Attendance',
-      description: 'View your attendance record',
-      iconBg: 'bg-blue-50 dark:bg-blue-950/40 text-blue-600 dark:text-blue-400',
-      action: () => navigate('/attendance'),
-      icon: <CalendarDays size={18} />
-    },
-    {
       title: 'Manage Savings',
-      description: 'View and save for your goals',
-      iconBg: 'bg-emerald-50 dark:bg-emerald-950/40 text-emerald-600 dark:text-emerald-400',
+      description: 'Deposit or withdraw funds',
+      cardBg: 'bg-emerald-500 hover:bg-emerald-600 dark:bg-emerald-600 dark:hover:bg-emerald-700',
+      iconBg: 'bg-white/20 text-white',
       action: () => navigate('/savings'),
       icon: <Wallet size={18} />
     },
     ...(isOfficer ? [
       {
         title: 'Loan Services',
-        description: 'See history and apply for loans',
-        iconBg: 'bg-amber-50 dark:bg-amber-950/40 text-amber-600 dark:text-amber-400',
+        description: 'Apply or track repayments',
+        cardBg: 'bg-amber-500 hover:bg-amber-600 dark:bg-amber-600 dark:hover:bg-amber-700',
+        iconBg: 'bg-white/20 text-white',
         action: () => navigate('/loans'),
         icon: <FileText size={18} />
       }
@@ -361,11 +349,28 @@ export default function Home() {
       {
         title: 'Prayer Request',
         description: 'Share a prayer request',
-        iconBg: 'bg-purple-50 dark:bg-purple-950/40 text-purple-600 dark:text-purple-400',
+        cardBg: 'bg-purple-500 hover:bg-purple-600 dark:bg-purple-600 dark:hover:bg-purple-700',
+        iconBg: 'bg-white/20 text-white',
         action: () => setShowPrayerModal(true),
         icon: <Sparkles size={18} />
       }
-    ])
+    ]),
+    {
+      title: 'Make a Donation',
+      description: 'Support your community',
+      cardBg: 'bg-rose-400 hover:bg-rose-500 dark:bg-rose-500 dark:hover:bg-rose-600',
+      iconBg: 'bg-white/20 text-white',
+      action: () => navigate('/donation'),
+      icon: <Heart size={18} />
+    },
+    {
+      title: 'Check Attendance',
+      description: 'Mark today\'s presence',
+      cardBg: 'bg-blue-500 hover:bg-blue-600 dark:bg-blue-600 dark:hover:bg-blue-700',
+      iconBg: 'bg-white/20 text-white',
+      action: () => navigate('/attendance'),
+      icon: <CalendarDays size={18} />
+    },
   ];
 
   const formatCurrency = (val) =>
@@ -516,14 +521,14 @@ export default function Home() {
           {/* Left Column Skeleton */}
           <div className="flex flex-col gap-6">
             {/* Quick Actions Skeleton */}
-            <div className="bg-white dark:bg-[#1E2130] border border-slate-200/80 dark:border-white/10 rounded-2xl p-4 shadow-sm space-y-3">
+            <div className="bg-white dark:bg-[#1E2130] border border-slate-200/80 dark:border-white/10 rounded-2xl p-4 sm:p-5 shadow-sm space-y-3.5">
               <div className="flex items-center justify-between pb-2.5 border-b border-slate-100 dark:border-white/5">
                 <div className="h-4 w-28 bg-slate-200 dark:bg-slate-700/80 rounded" />
                 <div className="h-4 w-16 bg-slate-200 dark:bg-slate-700/80 rounded-full" />
               </div>
-              <div className="grid grid-cols-2 gap-2">
+              <div className="grid grid-cols-2 gap-2.5 sm:gap-3">
                 {[1, 2, 3, 4].map((j) => (
-                  <div key={j} className="h-12 bg-slate-100 dark:bg-slate-800/60 rounded-xl" />
+                  <div key={j} className="h-14 bg-slate-100 dark:bg-slate-800/60 rounded-xl border border-slate-200/60 dark:border-white/5" />
                 ))}
               </div>
             </div>
@@ -731,22 +736,29 @@ export default function Home() {
         <div className="flex flex-col gap-6">
 
           {/* Quick Actions — compact */}
-          <div className="bg-white dark:bg-[#1E2130] border border-slate-200/80 dark:border-white/10 rounded-2xl p-4 shadow-sm">
-            <div className="flex items-center justify-between mb-3 pb-2.5 border-b border-slate-100 dark:border-white/5">
+          <div className="bg-white dark:bg-[#1E2130] border border-slate-200/80 dark:border-white/10 rounded-2xl p-4 sm:p-5 shadow-sm">
+            <div className="flex items-center justify-between mb-3.5 pb-2.5 border-b border-slate-100 dark:border-white/5">
               <h2 className="text-xs font-bold text-slate-900 dark:text-white uppercase tracking-wider font-inter">Quick Actions</h2>
-              <span className="text-[10px] font-semibold px-2 py-0.5 rounded-full bg-slate-100 dark:bg-white/10 text-slate-500 dark:text-slate-400 font-inter">{quickActions.length} Shortcuts</span>
             </div>
-            <div className="grid grid-cols-2 gap-2">
+            <div className="grid grid-cols-2 gap-2.5">
               {quickActions.map((action, i) => (
                 <button
                   key={i}
+                  type="button"
                   onClick={action.action}
-                  className="flex items-center gap-2.5 p-3 rounded-xl border border-slate-100 dark:border-white/5 hover:border-blue-200 dark:hover:border-blue-500/30 bg-slate-50/60 dark:bg-slate-800/40 hover:bg-blue-50/40 dark:hover:bg-slate-800/80 transition-all duration-200 cursor-pointer text-left w-full group"
+                  className={`flex flex-col gap-2 p-3 rounded-xl hover:shadow-lg hover:-translate-y-0.5 active:translate-y-0 active:scale-[0.99] transition-all duration-200 cursor-pointer text-left w-full group ${action.cardBg}`}
                 >
                   <div className={`w-8 h-8 rounded-lg flex items-center justify-center shrink-0 group-hover:scale-105 transition-transform ${action.iconBg}`}>
                     {action.icon}
                   </div>
-                  <span className="font-inter text-xs font-semibold text-slate-800 dark:text-white group-hover:text-blue-600 dark:group-hover:text-blue-400 transition-colors leading-tight">{action.title}</span>
+                  <div>
+                    <span className="block font-inter text-[11px] font-bold text-white leading-tight">
+                      {action.title}
+                    </span>
+                    <span className="block font-inter text-[10px] text-white/80 leading-tight mt-0.5">
+                      {action.description}
+                    </span>
+                  </div>
                 </button>
               ))}
             </div>

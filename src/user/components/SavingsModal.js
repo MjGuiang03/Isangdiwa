@@ -1,7 +1,7 @@
 import { useState, useEffect } from 'react';
 import { useAuth } from '../../context/AuthContext';
 import API from '../../utils/api';
-import { CheckCircle, X, ArrowDownRight, ArrowUpLeft, Repeat, History, CreditCard, Smartphone, Building2, Info, UploadCloud, FileCheck2, PiggyBank, ZoomIn, Trash2, AlertTriangle } from 'lucide-react';
+import { CheckCircle, X, ArrowDownRight, ArrowUpLeft, Repeat, History, CreditCard, Smartphone, Building2, Info, UploadCloud, FileCheck2, PiggyBank, ZoomIn, Trash2, AlertTriangle, Loader2, ShieldCheck } from 'lucide-react';
 import useSwipeToClose, { DragHandle } from '../hooks/useSwipeToClose';
 
 const fmt = (n) =>
@@ -45,6 +45,15 @@ function DepositModal({ goals, onClose }) {
     const [approvalMethod, setApprovalMethod] = useState('gateway');
     const [loading, setLoading] = useState(false);
     const [error, setError] = useState('');
+    const [receiptValidating, setReceiptValidating] = useState(false);
+    const [receiptValid, setReceiptValid] = useState(null);
+    const [receiptReason, setReceiptReason] = useState('');
+
+    useEffect(() => {
+        if (!selectedGoal && goals?.length > 0) {
+            setSelectedGoal(goals[0]._id);
+        }
+    }, [goals, selectedGoal]);
 
     useEffect(() => {
         const fetchSettings = async () => {
@@ -63,9 +72,45 @@ function DepositModal({ goals, onClose }) {
         const file = e.target.files[0];
         if (file) {
             setProofFile(file);
+            setReceiptValid(null);
+            setReceiptReason('');
+            setError('');
             const reader = new FileReader();
-            reader.onloadend = () => {
-                setProofBase64(reader.result);
+            reader.onloadend = async () => {
+                const base64Result = reader.result;
+                setProofBase64(base64Result);
+
+                // AI Receipt Validation
+                setReceiptValidating(true);
+                try {
+                    const token = localStorage.getItem('token');
+                    const res = await fetch(`${API}/api/donations/validate-receipt`, {
+                        method: 'POST',
+                        headers: { 'Content-Type': 'application/json', Authorization: `Bearer ${token}` },
+                        body: JSON.stringify({ image: base64Result }),
+                    });
+                    const data = await res.json();
+
+                    if (data.success && data.isReceipt) {
+                        setReceiptValid(true);
+                        setReceiptReason(data.fallback ? data.reason : '');
+                    } else if (data.success && !data.isReceipt) {
+                        setReceiptValid(false);
+                        setReceiptReason(data.reason || 'This does not appear to be a valid payment receipt.');
+                        setError('Invalid proof of payment. Please upload a real receipt or transaction screenshot.');
+                        setProofFile(null);
+                        setProofBase64('');
+                    } else {
+                        setReceiptValid(true);
+                        setReceiptReason('Could not verify. Accepted for manual review.');
+                    }
+                } catch (err) {
+                    console.error('Receipt validation error:', err);
+                    setReceiptValid(true);
+                    setReceiptReason('Could not verify. Accepted for manual review.');
+                } finally {
+                    setReceiptValidating(false);
+                }
             };
             reader.readAsDataURL(file);
         }
@@ -78,11 +123,11 @@ function DepositModal({ goals, onClose }) {
         ? Math.min(100, Math.round((newSaved / goal.targetAmount) * 100))
         : 0;
 
+    const remainingTarget = goal?.targetAmount > 0 ? Math.max(0, goal.targetAmount - (goal.savedAmount || 0)) : 0;
+    
     const handleQuick = (val) => {
         setError('');
-        const maxAllowed = goal?.targetAmount > 0 ? goal.targetAmount - (goal.savedAmount || 0) : Infinity;
-        const toAdd = Math.min(val, maxAllowed);
-        setAmount(toAdd.toLocaleString('en-US'));
+        setAmount(val.toLocaleString('en-US'));
     };
 
     const handleSubmit = async () => {
@@ -146,6 +191,8 @@ function DepositModal({ goals, onClose }) {
         paymentMethod !== '' &&
         (approvalMethod !== 'manual' || (
             proofBase64 !== '' &&
+            receiptValid === true &&
+            !receiptValidating &&
             (paymentMethod === 'Cash' || (
                 subMethod !== '' &&
                 accountName.trim() !== '' &&
@@ -197,16 +244,12 @@ function DepositModal({ goals, onClose }) {
                                 onChange={e => {
                                     setError('');
                                     let raw = e.target.value.replace(/[^0-9.]/g, '');
-                                    let val = parseFloat(raw) || 0;
-                                    const maxAllowed = goal?.targetAmount > 0 ? goal.targetAmount - (goal.savedAmount || 0) : Infinity;
-                                    if (val > maxAllowed) {
-                                        raw = String(maxAllowed);
-                                    }
                                     const parts = raw.split('.');
                                     if (parts[0]) {
                                         parts[0] = parseInt(parts[0], 10).toLocaleString('en-US');
                                     }
-                                    setAmount(parts.join('.'));
+                                    const formatted = parts.length > 1 ? `${parts[0] || '0'}.${parts.slice(1).join('')}` : (parts[0] || '');
+                                    setAmount(formatted);
                                 }}
                             />
                         </div>
@@ -217,10 +260,24 @@ function DepositModal({ goals, onClose }) {
                         )}
                         <div className="svm-quick-pills">
                             {QUICK_AMOUNTS.map(v => (
-                                <button key={v} className="svm-quick-pill" onClick={() => handleQuick(v)}>
+                                <button
+                                    key={v}
+                                    type="button"
+                                    className={`svm-quick-pill ${numAmt === v ? 'active' : ''}`}
+                                    onClick={() => handleQuick(v)}
+                                >
                                     ₱{v.toLocaleString()}
                                 </button>
                             ))}
+                            {remainingTarget > 0 && !QUICK_AMOUNTS.includes(remainingTarget) && (
+                                <button
+                                    type="button"
+                                    className={`svm-quick-pill ${numAmt === remainingTarget ? 'active' : ''}`}
+                                    onClick={() => handleQuick(remainingTarget)}
+                                >
+                                    Remaining (₱{remainingTarget.toLocaleString()})
+                                </button>
+                            )}
                         </div>
                     </div>
 
@@ -365,7 +422,9 @@ function DepositModal({ goals, onClose }) {
                                     </div>
 
                                     {proofFile && proofBase64 ? (
-                                      <div className="mt-4 relative p-3 bg-slate-50 dark:bg-slate-800/80 border border-slate-200 dark:border-white/10 rounded-xl flex flex-col gap-2.5">
+                                      <div className={`mt-4 relative p-3 bg-slate-50 dark:bg-slate-800/80 border rounded-xl flex flex-col gap-2.5 ${
+                                        receiptValid === true ? 'border-emerald-400/60 dark:border-emerald-500/40' : 'border-slate-200 dark:border-white/10'
+                                      }`}>
                                         <div className="flex items-center justify-between gap-2">
                                           <div className="flex items-center gap-2 text-xs font-bold text-slate-700 dark:text-slate-200 truncate pr-2">
                                             <FileCheck2 size={16} className="text-emerald-500 shrink-0" />
@@ -381,9 +440,13 @@ function DepositModal({ goals, onClose }) {
                                             onClick={() => {
                                               setProofFile(null);
                                               setProofBase64('');
+                                              setReceiptValid(null);
+                                              setReceiptReason('');
+                                              setError('');
                                             }}
                                             className="text-slate-400 hover:text-red-500 p-1 rounded-lg hover:bg-slate-200 dark:hover:bg-white/10 transition-colors cursor-pointer border-none bg-transparent flex items-center justify-center shrink-0"
                                             title="Remove file"
+                                            disabled={receiptValidating}
                                           >
                                             <X size={16} />
                                           </button>
@@ -391,18 +454,39 @@ function DepositModal({ goals, onClose }) {
 
                                         <div 
                                           className="relative w-full max-h-48 overflow-hidden rounded-lg border border-slate-200/80 dark:border-white/10 bg-slate-100 dark:bg-black/30 flex items-center justify-center p-2 cursor-pointer group transition-all"
-                                          onClick={() => setPreviewImage({ src: proofBase64, name: proofFile.name })}
-                                          title="Click to expand image"
+                                          onClick={() => !receiptValidating && setPreviewImage({ src: proofBase64, name: proofFile.name })}
+                                          title={receiptValidating ? 'Scanning receipt...' : 'Click to expand image'}
                                         >
                                           <img
                                             src={proofBase64}
                                             alt="Proof of Payment Preview"
-                                            className="max-h-44 max-w-full object-contain rounded-md shadow-xs group-hover:scale-[1.02] transition-transform duration-200"
+                                            className={`max-h-44 max-w-full object-contain rounded-md shadow-xs transition-all duration-200 ${
+                                              receiptValidating ? 'opacity-40 blur-[1px]' : 'group-hover:scale-[1.02]'
+                                            }`}
                                           />
-                                          <div className="absolute inset-0 bg-slate-900/40 opacity-0 group-hover:opacity-100 transition-opacity flex items-center justify-center text-white text-xs font-bold gap-1.5 backdrop-blur-[2px] rounded-lg">
-                                            <ZoomIn size={18} /> Click to enlarge
-                                          </div>
+                                          {receiptValidating && (
+                                            <div className="absolute inset-0 flex flex-col items-center justify-center gap-2 bg-white/60 dark:bg-slate-900/60 backdrop-blur-[2px] rounded-lg z-10">
+                                              <Loader2 size={28} className="text-blue-600 dark:text-blue-400 animate-spin" />
+                                              <p className="text-xs font-bold text-slate-700 dark:text-slate-200">Scanning receipt...</p>
+                                              <p className="text-[10px] text-slate-500 dark:text-slate-400">Verifying proof of payment</p>
+                                            </div>
+                                          )}
+                                          {!receiptValidating && (
+                                            <div className="absolute inset-0 bg-slate-900/40 opacity-0 group-hover:opacity-100 transition-opacity flex items-center justify-center text-white text-xs font-bold gap-1.5 backdrop-blur-[2px] rounded-lg">
+                                              <ZoomIn size={18} /> Click to enlarge
+                                            </div>
+                                          )}
                                         </div>
+
+                                        {receiptValid === true && !receiptValidating && (
+                                          <div className="flex items-center gap-1.5 px-2.5 py-1.5 bg-emerald-50 dark:bg-emerald-950/40 border border-emerald-200/60 dark:border-emerald-800/40 rounded-lg">
+                                            <ShieldCheck size={14} className="text-emerald-600 dark:text-emerald-400 shrink-0" />
+                                            <span className="text-[11px] font-bold text-emerald-700 dark:text-emerald-300">Verified Receipt</span>
+                                            {receiptReason && (
+                                              <span className="text-[10px] text-emerald-600/70 dark:text-emerald-400/70 ml-1">— {receiptReason}</span>
+                                            )}
+                                          </div>
+                                        )}
                                       </div>
                                     ) : (
                                       <div className="svm-field mt-3">
@@ -667,6 +751,9 @@ function QuickDepositModal({ goal, goals, onClose }) {
     const [loading, setLoading] = useState(false);
     const [error, setError] = useState('');
     const [success, setSuccess] = useState(false);
+    const [receiptValidating, setReceiptValidating] = useState(false);
+    const [receiptValid, setReceiptValid] = useState(null);
+    const [receiptReason, setReceiptReason] = useState('');
 
     useEffect(() => {
         const fetchSettings = async () => {
@@ -685,9 +772,45 @@ function QuickDepositModal({ goal, goals, onClose }) {
         const file = e.target.files[0];
         if (file) {
             setProofFile(file);
+            setReceiptValid(null);
+            setReceiptReason('');
+            setError('');
             const reader = new FileReader();
-            reader.onloadend = () => {
-                setProofBase64(reader.result);
+            reader.onloadend = async () => {
+                const base64Result = reader.result;
+                setProofBase64(base64Result);
+
+                // AI Receipt Validation
+                setReceiptValidating(true);
+                try {
+                    const token = localStorage.getItem('token');
+                    const res = await fetch(`${API}/api/donations/validate-receipt`, {
+                        method: 'POST',
+                        headers: { 'Content-Type': 'application/json', Authorization: `Bearer ${token}` },
+                        body: JSON.stringify({ image: base64Result }),
+                    });
+                    const data = await res.json();
+
+                    if (data.success && data.isReceipt) {
+                        setReceiptValid(true);
+                        setReceiptReason(data.fallback ? data.reason : '');
+                    } else if (data.success && !data.isReceipt) {
+                        setReceiptValid(false);
+                        setReceiptReason(data.reason || 'This does not appear to be a valid payment receipt.');
+                        setError('Invalid proof of payment. Please upload a real receipt or transaction screenshot.');
+                        setProofFile(null);
+                        setProofBase64('');
+                    } else {
+                        setReceiptValid(true);
+                        setReceiptReason('Could not verify. Accepted for manual review.');
+                    }
+                } catch (err) {
+                    console.error('Receipt validation error:', err);
+                    setReceiptValid(true);
+                    setReceiptReason('Could not verify. Accepted for manual review.');
+                } finally {
+                    setReceiptValidating(false);
+                }
             };
             reader.readAsDataURL(file);
         }
@@ -698,6 +821,7 @@ function QuickDepositModal({ goal, goals, onClose }) {
     const newPct = goal?.targetAmount > 0
         ? Math.min(100, Math.round((newSaved / goal.targetAmount) * 100))
         : 0;
+    const remainingTarget = goal?.targetAmount > 0 ? Math.max(0, goal.targetAmount - (goal.savedAmount || 0)) : 0;
 
     const handleSubmit = async () => {
         if (!numAmt || numAmt <= 0) { setError('Please enter a valid deposit amount.'); return; }
@@ -755,6 +879,8 @@ function QuickDepositModal({ goal, goals, onClose }) {
         paymentMethod !== '' && paymentMethod !== 'cash' &&
         (approvalMethod !== 'manual' || (
             proofBase64 !== '' &&
+            receiptValid === true &&
+            !receiptValidating &&
             subMethod !== '' &&
             accountName.trim() !== '' &&
             isQuickAccValid
@@ -797,16 +923,12 @@ function QuickDepositModal({ goal, goals, onClose }) {
                                         onChange={e => {
                                             setError('');
                                             let raw = e.target.value.replace(/[^0-9.]/g, '');
-                                            let val = parseFloat(raw) || 0;
-                                            const maxAllowed = goal?.targetAmount > 0 ? goal.targetAmount - (goal.savedAmount || 0) : Infinity;
-                                            if (val > maxAllowed) {
-                                                raw = String(maxAllowed);
-                                            }
                                             const parts = raw.split('.');
                                             if (parts[0]) {
                                                 parts[0] = parseInt(parts[0], 10).toLocaleString('en-US');
                                             }
-                                            setAmount(parts.join('.'));
+                                            const formatted = parts.length > 1 ? `${parts[0] || '0'}.${parts.slice(1).join('')}` : (parts[0] || '');
+                                            setAmount(formatted);
                                         }}
                                         autoFocus
                                     />
@@ -818,15 +940,30 @@ function QuickDepositModal({ goal, goals, onClose }) {
                                 )}
                                 <div className="svm-quick-pills">
                                     {QUICK_AMOUNTS.map(v => (
-                                        <button key={v} className="svm-quick-pill" onClick={() => {
-                                            setError('');
-                                            const maxAllowed = goal?.targetAmount > 0 ? goal.targetAmount - (goal.savedAmount || 0) : Infinity;
-                                            const toAdd = Math.min(v, maxAllowed);
-                                            setAmount(toAdd.toLocaleString('en-US'));
-                                        }}>
+                                        <button
+                                            key={v}
+                                            type="button"
+                                            className={`svm-quick-pill ${numAmt === v ? 'active' : ''}`}
+                                            onClick={() => {
+                                                setError('');
+                                                setAmount(v.toLocaleString('en-US'));
+                                            }}
+                                        >
                                             ₱{v.toLocaleString()}
                                         </button>
                                     ))}
+                                    {remainingTarget > 0 && !QUICK_AMOUNTS.includes(remainingTarget) && (
+                                        <button
+                                            type="button"
+                                            className={`svm-quick-pill ${numAmt === remainingTarget ? 'active' : ''}`}
+                                            onClick={() => {
+                                                setError('');
+                                                setAmount(remainingTarget.toLocaleString('en-US'));
+                                            }}
+                                        >
+                                            Remaining (₱{remainingTarget.toLocaleString()})
+                                        </button>
+                                    )}
                                 </div>
                             </div>
 
@@ -978,7 +1115,9 @@ function QuickDepositModal({ goal, goals, onClose }) {
                                             </div>
 
                                             {proofFile && proofBase64 ? (
-                                              <div className="mt-4 relative p-3 bg-slate-50 dark:bg-slate-800/80 border border-slate-200 dark:border-white/10 rounded-xl flex flex-col gap-2">
+                                              <div className={`mt-4 relative p-3 bg-slate-50 dark:bg-slate-800/80 border rounded-xl flex flex-col gap-2 ${
+                                                receiptValid === true ? 'border-emerald-400/60 dark:border-emerald-500/40' : 'border-slate-200 dark:border-white/10'
+                                              }`}>
                                                 <div className="flex items-center justify-between gap-2">
                                                   <div className="flex items-center gap-2 text-xs font-bold text-slate-700 dark:text-slate-200 truncate pr-2">
                                                     <FileCheck2 size={14} className="text-emerald-500 shrink-0" />
@@ -989,9 +1128,13 @@ function QuickDepositModal({ goal, goals, onClose }) {
                                                     onClick={() => {
                                                       setProofFile(null);
                                                       setProofBase64('');
+                                                      setReceiptValid(null);
+                                                      setReceiptReason('');
+                                                      setError('');
                                                     }}
                                                     className="text-slate-400 hover:text-red-500 p-1 rounded-lg hover:bg-slate-200 dark:hover:bg-white/10 transition-colors cursor-pointer border-none bg-transparent flex items-center justify-center shrink-0"
                                                     title="Remove file"
+                                                    disabled={receiptValidating}
                                                   >
                                                     <X size={14} />
                                                   </button>
@@ -999,18 +1142,39 @@ function QuickDepositModal({ goal, goals, onClose }) {
 
                                                 <div 
                                                   className="relative w-full max-h-40 overflow-hidden rounded-lg border border-slate-200/80 dark:border-white/10 bg-slate-100 dark:bg-black/30 flex items-center justify-center p-2 cursor-pointer group transition-all"
-                                                  onClick={() => setPreviewImage({ src: proofBase64, name: proofFile.name })}
-                                                  title="Click to expand image"
+                                                  onClick={() => !receiptValidating && setPreviewImage({ src: proofBase64, name: proofFile.name })}
+                                                  title={receiptValidating ? 'Scanning receipt...' : 'Click to expand image'}
                                                 >
                                                   <img
                                                     src={proofBase64}
                                                     alt="Proof of Payment Preview"
-                                                    className="max-h-36 max-w-full object-contain rounded-md shadow-xs group-hover:scale-[1.02] transition-transform duration-200"
+                                                    className={`max-h-36 max-w-full object-contain rounded-md shadow-xs transition-all duration-200 ${
+                                                      receiptValidating ? 'opacity-40 blur-[1px]' : 'group-hover:scale-[1.02]'
+                                                    }`}
                                                   />
-                                                  <div className="absolute inset-0 bg-slate-900/40 opacity-0 group-hover:opacity-100 transition-opacity flex items-center justify-center text-white text-xs font-bold gap-1.5 backdrop-blur-[2px] rounded-lg">
-                                                    <ZoomIn size={16} /> Click to enlarge
-                                                  </div>
+                                                  {receiptValidating && (
+                                                    <div className="absolute inset-0 flex flex-col items-center justify-center gap-2 bg-white/60 dark:bg-slate-900/60 backdrop-blur-[2px] rounded-lg z-10">
+                                                      <Loader2 size={24} className="text-blue-600 dark:text-blue-400 animate-spin" />
+                                                      <p className="text-xs font-bold text-slate-700 dark:text-slate-200">Scanning receipt...</p>
+                                                      <p className="text-[10px] text-slate-500 dark:text-slate-400">Verifying proof of payment</p>
+                                                    </div>
+                                                  )}
+                                                  {!receiptValidating && (
+                                                    <div className="absolute inset-0 bg-slate-900/40 opacity-0 group-hover:opacity-100 transition-opacity flex items-center justify-center text-white text-xs font-bold gap-1.5 backdrop-blur-[2px] rounded-lg">
+                                                      <ZoomIn size={16} /> Click to enlarge
+                                                    </div>
+                                                  )}
                                                 </div>
+
+                                                {receiptValid === true && !receiptValidating && (
+                                                  <div className="flex items-center gap-1.5 px-2 py-1.5 bg-emerald-50 dark:bg-emerald-950/40 border border-emerald-200/60 dark:border-emerald-800/40 rounded-lg">
+                                                    <ShieldCheck size={13} className="text-emerald-600 dark:text-emerald-400 shrink-0" />
+                                                    <span className="text-[11px] font-bold text-emerald-700 dark:text-emerald-300">Verified Receipt</span>
+                                                    {receiptReason && (
+                                                      <span className="text-[10px] text-emerald-600/70 dark:text-emerald-400/70 ml-1">— {receiptReason}</span>
+                                                    )}
+                                                  </div>
+                                                )}
                                               </div>
                                             ) : (
                                               <div className="svm-field mt-3">
@@ -1432,11 +1596,20 @@ function TransferModal({ goal, goals, onClose }) {
                                 {quickAmounts.length > 0 && (
                                     <div className="svm-quick-pills">
                                         {quickAmounts.map(v => (
-                                            <button key={v} className="svm-quick-pill" onClick={() => setAmount(String(v))}>
+                                            <button
+                                                key={v}
+                                                type="button"
+                                                className={`svm-quick-pill ${numAmt === v ? 'active' : ''}`}
+                                                onClick={() => { setError(''); setAmount(v.toLocaleString('en-US')); }}
+                                            >
                                                 ₱{v.toLocaleString()}
                                             </button>
                                         ))}
-                                        <button className="svm-quick-pill" onClick={() => setAmount(String(available))}>
+                                        <button
+                                            type="button"
+                                            className={`svm-quick-pill ${numAmt === available && available > 0 ? 'active' : ''}`}
+                                            onClick={() => { setError(''); setAmount(available.toLocaleString('en-US')); }}
+                                        >
                                             All
                                         </button>
                                     </div>
@@ -1923,7 +2096,15 @@ function WithdrawModal({ goals, onClose, onOpenDeposit }) {
                                         value={amount}
                                         onChange={e => {
                                             setError('');
-                                            setAmount(e.target.value.replace(/[^0-9.]/g, ''));
+                                            let raw = e.target.value.replace(/[^0-9.]/g, '');
+                                            let val = parseFloat(raw) || 0;
+                                            if (val > balance) raw = String(balance);
+                                            const parts = raw.split('.');
+                                            if (parts[0]) {
+                                                parts[0] = parseInt(parts[0], 10).toLocaleString('en-US');
+                                            }
+                                            const formatted = parts.length > 1 ? `${parts[0] || '0'}.${parts.slice(1).join('')}` : (parts[0] || '');
+                                            setAmount(formatted);
                                         }}
                                         autoFocus
                                     />
@@ -1933,11 +2114,20 @@ function WithdrawModal({ goals, onClose, onOpenDeposit }) {
                                 )}
                                 <div className="svm-quick-pills">
                                     {[500, 1000, 2000].filter(v => v <= balance).map(v => (
-                                        <button key={v} type="button" className="svm-quick-pill" onClick={() => { setError(''); setAmount(String(v)); }}>
+                                        <button
+                                            key={v}
+                                            type="button"
+                                            className={`svm-quick-pill ${numAmt === v ? 'active' : ''}`}
+                                            onClick={() => { setError(''); setAmount(v.toLocaleString('en-US')); }}
+                                        >
                                             ₱{v.toLocaleString()}
                                         </button>
                                     ))}
-                                    <button type="button" className="svm-quick-pill svm-quick-pill--all" onClick={() => { setError(''); setAmount(String(balance)); }}>
+                                    <button
+                                        type="button"
+                                        className={`svm-quick-pill svm-quick-pill--all ${numAmt === balance && balance > 0 ? 'active' : ''}`}
+                                        onClick={() => { setError(''); setAmount(balance.toLocaleString('en-US')); }}
+                                    >
                                         Withdraw all
                                     </button>
                                 </div>

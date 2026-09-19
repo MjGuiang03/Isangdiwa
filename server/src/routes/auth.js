@@ -85,8 +85,10 @@ router.post('/register',
 
       const existingUser = await users.findOne({ email });
       if (existingUser) {
-        console.log('ℹ️ Registration attempted on existing email. Returning generic success message.');
-        return res.json({ message: 'Registration received. If your email is valid, you will receive an OTP shortly.' });
+        console.log('ℹ️ Registration attempted on existing email:', email);
+        return res.status(409).json({
+          message: "This email is already registered. Try logging in, or click 'Forgot Password' if you don't remember your credentials."
+        });
       }
 
       console.log('✅ Duplicate check passed.');

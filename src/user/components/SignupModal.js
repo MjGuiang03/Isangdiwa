@@ -336,7 +336,21 @@ export default function SignupModal({ isOpen, onClose, onSwitchToLogin }) {
         body: JSON.stringify(submitData)
       });
       const data = await response.json();
-      if (!response.ok) { toast.error(data.message || 'Registration failed'); return; }
+      if (!response.ok) {
+        if (response.status === 409) {
+          // Duplicate email — show actionable error with login prompt
+          toast.error(data.message || "This email is already registered.", {
+            duration: 6000,
+            action: onSwitchToLogin ? {
+              label: 'Log in instead',
+              onClick: () => onSwitchToLogin()
+            } : undefined
+          });
+        } else {
+          toast.error(data.message || 'Registration failed');
+        }
+        return;
+      }
       setRegisteredEmail(formData.email.trim().toLowerCase());
       setShowVerifyModal(true);
       toast.success('Registration successful! Please verify your email.');

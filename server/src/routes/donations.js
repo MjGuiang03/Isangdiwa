@@ -3,6 +3,7 @@ import { ObjectId } from 'mongodb';
 
 import { users, donations, counters } from '../config/db.js';
 import { authenticateUser, authenticateAdmin } from '../middleware/auth.js';
+import { callGeminiVision } from '../utils/gemini.js';
 
 const router = Router();
 
@@ -10,6 +11,116 @@ const router = Router();
 let donationStatsCache = { data: null, ts: 0 };
 
 import { generatePaymentLink } from '../utils/paymongo.js';
+
+/* ================== VALIDATE RECEIPT IMAGE (AI) ================== */
+router.post('/donations/validate-receipt', authenticateUser, async (req, res) => {
+  try {
+    const { image } = req.body;
+
+    if (!image || typeof image !== 'string' || !image.startsWith('data:image/')) {
+      return res.status(400).json({ success: false, message: 'A valid image is required.' });
+    }
+
+    // Extract base64 data and mime type from the Data URL
+    const match = image.match(/^data:(image\/\w+);base64,(.+)$/);
+    if (!match) {
+      return res.status(400).json({ success: false, message: 'Invalid image format.' });
+    }
+
+    const mimeType = match[1];
+    const base64Data = match[2];
+
+    const systemPrompt = `You are a payment receipt validator. Your job is to analyze images and determine if they are legitimate payment receipts or transaction confirmations.
+
+A VALID receipt/proof of payment includes:
+- GCash transaction confirmations or receipts
+- Maya/PayMaya transaction confirmations
+- Bank transfer confirmations (BPI, BDO, PNB, Metrobank, Unionbank, RCBC, etc.)
+- Online banking transaction screenshots showing amount, date, and reference number
+- Official deposit slips
+- Payment gateway confirmations
+- Any screenshot showing a completed financial transaction with transaction details
+
+An INVALID image (NOT a receipt) includes:
+- Selfies, portraits, or photos of people
+- Memes, jokes, or social media screenshots
+- Landscape or nature photos
+- Screenshots of non-payment apps (games, social media, messaging)
+- Blank, solid color, or mostly empty images
+- Random documents that are not payment-related
+- Edited or obviously fake receipts with no coherent transaction details
+
+Respond with a JSON object only:
+{
+  "isReceipt": true or false,
+  "confidence": 0-100,
+  "reason": "brief explanation in 1 sentence"
+}`;
+
+    const textPrompt = 'Analyze this image. Is it a legitimate payment receipt, transaction confirmation, or proof of payment? Respond with JSON only.';
+
+    const aiResponse = await callGeminiVision(systemPrompt, textPrompt, base64Data, mimeType);
+
+    // Handle rate limiting — allow the image through (Option A: graceful fallback)
+    if (aiResponse === '__RATE_LIMITED__') {
+      console.warn('[Receipt Validation] Rate limited — allowing image through');
+      return res.json({
+        success: true,
+        isReceipt: true,
+        confidence: 0,
+        reason: 'Validation service is temporarily busy. Image accepted for manual review.',
+        fallback: true,
+      });
+    }
+
+    // Handle Gemini failure — allow through with warning
+    if (!aiResponse) {
+      console.warn('[Receipt Validation] Gemini returned null — allowing image through');
+      return res.json({
+        success: true,
+        isReceipt: true,
+        confidence: 0,
+        reason: 'Validation service is temporarily unavailable. Image accepted for manual review.',
+        fallback: true,
+      });
+    }
+
+    // Parse the AI response
+    let result;
+    try {
+      const cleaned = aiResponse.replace(/```json\n?/g, '').replace(/```\n?/g, '').trim();
+      result = JSON.parse(cleaned);
+    } catch (parseErr) {
+      console.error('[Receipt Validation] Failed to parse AI response:', aiResponse);
+      // Graceful fallback — allow through
+      return res.json({
+        success: true,
+        isReceipt: true,
+        confidence: 0,
+        reason: 'Could not verify image. Accepted for manual review.',
+        fallback: true,
+      });
+    }
+
+    return res.json({
+      success: true,
+      isReceipt: !!result.isReceipt,
+      confidence: result.confidence || 0,
+      reason: result.reason || '',
+      fallback: false,
+    });
+  } catch (err) {
+    console.error('[Receipt Validation Error]:', err.message);
+    // Graceful fallback — never block donations due to AI errors
+    return res.json({
+      success: true,
+      isReceipt: true,
+      confidence: 0,
+      reason: 'Validation service encountered an error. Image accepted for manual review.',
+      fallback: true,
+    });
+  }
+});
 
 /* ================== USER - MAKE A DONATION ================== */
 router.post('/donations', authenticateUser, async (req, res) => {

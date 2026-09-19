@@ -1,7 +1,7 @@
 import { useState, useEffect } from 'react';
 import useSWR from 'swr';
 import { useAuth } from '../../context/AuthContext';
-import { Banknote, CalendarDays, ChevronDown, Heart, Receipt, X, UploadCloud, FileCheck2, ZoomIn, AlertCircle, CheckCircle2, ShieldCheck, Edit3, Clock } from 'lucide-react';
+import { Banknote, CalendarDays, ChevronDown, Heart, Receipt, X, UploadCloud, FileCheck2, ZoomIn, AlertCircle, CheckCircle2, ShieldCheck, Edit3, Clock, Loader2 } from 'lucide-react';
 import useSwipeToClose, { DragHandle } from '../hooks/useSwipeToClose';
 
 import { branchData, REGION_ORDER } from '../components/branchData';
@@ -79,6 +79,9 @@ export default function Donation() {
   const [isConfirmModalOpen, setIsConfirmModalOpen] = useState(false);
   const [successData, setSuccessData] = useState(null);
   const [touched, setTouched] = useState({});
+  const [receiptValidating, setReceiptValidating] = useState(false);
+  const [receiptValid, setReceiptValid] = useState(null); // null = not checked, true = valid, false = invalid
+  const [receiptReason, setReceiptReason] = useState('');
 
   const handleBlur = (field) => setTouched(prev => ({ ...prev, [field]: true }));
 
@@ -157,6 +160,8 @@ export default function Donation() {
         setFormError('Only image files (PNG, JPG, JPEG, WEBP) are allowed as proof of payment.');
         setProofFile(null);
         setProofBase64('');
+        setReceiptValid(null);
+        setReceiptReason('');
         e.target.value = '';
         return;
       }
@@ -164,14 +169,53 @@ export default function Donation() {
         setFormError('File size exceeds the 5MB limit. Please upload a smaller image.');
         setProofFile(null);
         setProofBase64('');
+        setReceiptValid(null);
+        setReceiptReason('');
         e.target.value = '';
         return;
       }
       setFormError('');
       setProofFile(file);
+      setReceiptValid(null);
+      setReceiptReason('');
       const reader = new FileReader();
-      reader.onloadend = () => {
-        setProofBase64(reader.result);
+      reader.onloadend = async () => {
+        const base64Result = reader.result;
+        setProofBase64(base64Result);
+
+        // AI Receipt Validation
+        setReceiptValidating(true);
+        try {
+          const token = localStorage.getItem('token');
+          const res = await fetch(`${API}/api/donations/validate-receipt`, {
+            method: 'POST',
+            headers: { 'Content-Type': 'application/json', Authorization: `Bearer ${token}` },
+            body: JSON.stringify({ image: base64Result }),
+          });
+          const data = await res.json();
+
+          if (data.success && data.isReceipt) {
+            setReceiptValid(true);
+            setReceiptReason(data.fallback ? data.reason : '');
+          } else if (data.success && !data.isReceipt) {
+            setReceiptValid(false);
+            setReceiptReason(data.reason || 'This does not appear to be a valid payment receipt.');
+            setFormError('Invalid proof of payment. Please upload a real receipt or transaction screenshot.');
+            setProofFile(null);
+            setProofBase64('');
+          } else {
+            // API error but non-blocking (Option A)
+            setReceiptValid(true);
+            setReceiptReason('Could not verify. Accepted for manual review.');
+          }
+        } catch (err) {
+          console.error('Receipt validation error:', err);
+          // Network error — graceful fallback, allow through
+          setReceiptValid(true);
+          setReceiptReason('Could not verify. Accepted for manual review.');
+        } finally {
+          setReceiptValidating(false);
+        }
       };
       reader.readAsDataURL(file);
     }
@@ -217,6 +261,8 @@ export default function Donation() {
         setAccountNumber('');
         setProofFile(null);
         setProofBase64('');
+        setReceiptValid(null);
+        setReceiptReason('');
         setTouched({});
         mutate(); // Refresh the data via SWR
         setSubmitting(false);
@@ -287,6 +333,8 @@ export default function Donation() {
     paymentMethod !== '' &&
     (approvalMethod !== 'manual' || (
       proofBase64 !== '' &&
+      receiptValid === true &&
+      !receiptValidating &&
       subMethod !== '' &&
       accountName.trim().length >= 2 &&
       isAccountNumValid
@@ -758,7 +806,9 @@ export default function Donation() {
                         </div>
                         
                         {proofFile && proofBase64 ? (
-                          <div className="relative p-3 bg-slate-50 dark:bg-slate-800/80 border border-slate-200 dark:border-white/10 rounded-xl flex flex-col gap-2.5">
+                          <div className={`relative p-3 bg-slate-50 dark:bg-slate-800/80 border rounded-xl flex flex-col gap-2.5 ${
+                            receiptValid === true ? 'border-emerald-400/60 dark:border-emerald-500/40' : 'border-slate-200 dark:border-white/10'
+                          }`}>
                             <div className="flex items-center justify-between gap-2">
                               <div className="flex items-center gap-2 text-xs font-bold text-slate-700 dark:text-slate-200 truncate pr-2">
                                 <FileCheck2 size={16} className="text-emerald-500 shrink-0" />
@@ -774,9 +824,13 @@ export default function Donation() {
                                 onClick={() => {
                                   setProofFile(null);
                                   setProofBase64('');
+                                  setReceiptValid(null);
+                                  setReceiptReason('');
+                                  setFormError('');
                                 }}
                                 className="text-slate-400 hover:text-red-500 p-1.5 rounded-lg hover:bg-slate-200 dark:hover:bg-white/10 transition-colors cursor-pointer border-none bg-transparent flex items-center justify-center shrink-0"
                                 title="Remove file"
+                                disabled={receiptValidating}
                               >
                                 <X size={16} />
                               </button>
@@ -785,18 +839,42 @@ export default function Donation() {
                             {/* Image Preview Container */}
                             <div 
                               className="relative w-full max-h-52 overflow-hidden rounded-lg border border-slate-200/80 dark:border-white/10 bg-slate-100 dark:bg-black/30 flex items-center justify-center p-2 cursor-pointer group transition-all"
-                              onClick={() => setPreviewImage({ src: proofBase64, name: proofFile.name })}
-                              title="Click to expand image"
+                              onClick={() => !receiptValidating && setPreviewImage({ src: proofBase64, name: proofFile.name })}
+                              title={receiptValidating ? 'Scanning receipt...' : 'Click to expand image'}
                             >
                               <img
                                 src={proofBase64}
                                 alt="Proof of Payment Preview"
-                                className="max-h-48 max-w-full object-contain rounded-md shadow-xs group-hover:scale-[1.02] transition-transform duration-200"
+                                className={`max-h-48 max-w-full object-contain rounded-md shadow-xs transition-all duration-200 ${
+                                  receiptValidating ? 'opacity-40 blur-[1px]' : 'group-hover:scale-[1.02]'
+                                }`}
                               />
-                              <div className="absolute inset-0 bg-slate-900/40 opacity-0 group-hover:opacity-100 transition-opacity flex items-center justify-center text-white text-xs font-bold gap-1.5 backdrop-blur-[2px] rounded-lg">
-                                <ZoomIn size={18} /> Click to enlarge
-                              </div>
+                              {/* Scanning Overlay */}
+                              {receiptValidating && (
+                                <div className="absolute inset-0 flex flex-col items-center justify-center gap-2 bg-white/60 dark:bg-slate-900/60 backdrop-blur-[2px] rounded-lg z-10">
+                                  <Loader2 size={28} className="text-blue-600 dark:text-blue-400 animate-spin" />
+                                  <p className="text-xs font-bold text-slate-700 dark:text-slate-200">Scanning receipt...</p>
+                                  <p className="text-[10px] text-slate-500 dark:text-slate-400">Verifying proof of payment</p>
+                                </div>
+                              )}
+                              {/* Zoom Overlay (only when not validating) */}
+                              {!receiptValidating && (
+                                <div className="absolute inset-0 bg-slate-900/40 opacity-0 group-hover:opacity-100 transition-opacity flex items-center justify-center text-white text-xs font-bold gap-1.5 backdrop-blur-[2px] rounded-lg">
+                                  <ZoomIn size={18} /> Click to enlarge
+                                </div>
+                              )}
                             </div>
+
+                            {/* Verified Receipt Badge */}
+                            {receiptValid === true && !receiptValidating && (
+                              <div className="flex items-center gap-1.5 px-2.5 py-1.5 bg-emerald-50 dark:bg-emerald-950/40 border border-emerald-200/60 dark:border-emerald-800/40 rounded-lg">
+                                <ShieldCheck size={14} className="text-emerald-600 dark:text-emerald-400 shrink-0" />
+                                <span className="text-[11px] font-bold text-emerald-700 dark:text-emerald-300">Verified Receipt</span>
+                                {receiptReason && (
+                                  <span className="text-[10px] text-emerald-600/70 dark:text-emerald-400/70 ml-1">— {receiptReason}</span>
+                                )}
+                              </div>
+                            )}
                           </div>
                         ) : (
                           <label className="flex flex-col items-center justify-center p-4 border-2 border-dashed border-slate-300 dark:border-white/10 rounded-xl bg-white dark:bg-slate-800/60 hover:bg-slate-50 dark:hover:bg-slate-800 cursor-pointer transition-all text-center">
