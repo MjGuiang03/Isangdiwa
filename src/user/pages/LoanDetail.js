@@ -19,7 +19,9 @@ import {
   AlertCircle,
   ZoomIn,
   Trash2,
-  History
+  History,
+  Loader2,
+  ShieldCheck
 } from 'lucide-react';
 
 const fileToBase64 = (file) =>
@@ -73,6 +75,9 @@ function PayNowModal({ loan, onClose, onSuccess }) {
   const [uploading, setUploading] = useState(false);
   const [receipt, setReceipt] = useState(null);
   const [receiptPreview, setReceiptPreview] = useState(null);
+  const [receiptValidating, setReceiptValidating] = useState(false);
+  const [receiptValid, setReceiptValid] = useState(null);
+  const [receiptReason, setReceiptReason] = useState('');
   const [enlargedImage, setEnlargedImage] = useState(null);
   const [error, setError] = useState('');
   const [submitted, setSubmitted] = useState(false);
@@ -235,6 +240,8 @@ function PayNowModal({ loan, onClose, onSuccess }) {
       if (!isAccountNameValid) return false;
       if (!isAccountNumValid) return false;
       if (!receipt) return false;
+      if (receiptValidating) return false;
+      if (receiptValid === false) return false;
     }
     return true;
   })();
@@ -260,6 +267,8 @@ function PayNowModal({ loan, onClose, onSuccess }) {
         );
       }
       if (!receipt) return setError('Please upload your proof of payment image before confirming.');
+      if (receiptValidating) return setError('Please wait while we verify your receipt image.');
+      if (receiptValid === false) return setError('Invalid proof of payment. Please upload a real receipt or transaction screenshot.');
     }
 
     setError('');
@@ -452,6 +461,9 @@ function PayNowModal({ loan, onClose, onSuccess }) {
                         setAccountNumber('');
                         setReceipt(null);
                         setReceiptPreview(null);
+                        setReceiptValidating(false);
+                        setReceiptValid(null);
+                        setReceiptReason('');
                         setTouched({ subMethod: false, accountName: false, accountNumber: false, receipt: false, customAmount: false });
                         setError(''); 
                       }}
@@ -677,9 +689,13 @@ function PayNowModal({ loan, onClose, onSuccess }) {
                           onClick={() => {
                             setReceipt(null);
                             setReceiptPreview(null);
+                            setReceiptValidating(false);
+                            setReceiptValid(null);
+                            setReceiptReason('');
                             setTouched((prev) => ({ ...prev, receipt: true }));
                           }}
-                          className="text-slate-400 hover:text-red-500 p-1.5 rounded-lg hover:bg-slate-200 dark:hover:bg-white/10 transition-colors cursor-pointer border-none bg-transparent flex items-center justify-center shrink-0"
+                          disabled={receiptValidating}
+                          className="text-slate-400 hover:text-red-500 p-1.5 rounded-lg hover:bg-slate-200 dark:hover:bg-white/10 transition-colors cursor-pointer border-none bg-transparent flex items-center justify-center shrink-0 disabled:opacity-40"
                           title="Remove image"
                         >
                           <Trash2 size={16} />
@@ -690,22 +706,45 @@ function PayNowModal({ loan, onClose, onSuccess }) {
                       {receiptPreview ? (
                         <div 
                           className="relative w-full max-h-52 overflow-hidden rounded-xl border border-slate-200/80 dark:border-white/10 bg-slate-100 dark:bg-black/40 flex items-center justify-center p-2 cursor-pointer group transition-all"
-                          onClick={() => setEnlargedImage({ src: receiptPreview, name: receipt.name })}
-                          title="Click to expand image"
+                          onClick={() => !receiptValidating && setEnlargedImage({ src: receiptPreview, name: receipt.name })}
+                          title={receiptValidating ? 'Scanning receipt...' : 'Click to expand image'}
                         >
                           <img
                             src={receiptPreview}
                             alt="Proof of Payment Preview"
-                            className="max-h-48 max-w-full object-contain rounded-md shadow-xs group-hover:scale-[1.02] transition-transform duration-200"
+                            className={`max-h-48 max-w-full object-contain rounded-md shadow-xs transition-all duration-200 ${
+                              receiptValidating ? 'opacity-40 blur-[1px]' : 'group-hover:scale-[1.02]'
+                            }`}
                           />
-                          <div className="absolute inset-0 bg-slate-900/50 opacity-0 group-hover:opacity-100 transition-opacity flex items-center justify-center text-white text-xs font-bold gap-1.5 backdrop-blur-[2px] rounded-xl">
-                            <ZoomIn size={18} /> Click to enlarge
-                          </div>
+                          {/* AI Scanning Overlay */}
+                          {receiptValidating && (
+                            <div className="absolute inset-0 flex flex-col items-center justify-center gap-2 bg-white/75 dark:bg-slate-900/75 backdrop-blur-[2px] rounded-xl z-10">
+                              <Loader2 size={28} className="text-emerald-600 dark:text-emerald-400 animate-spin" />
+                              <p className="text-xs font-bold text-slate-800 dark:text-slate-100">Scanning receipt...</p>
+                              <p className="text-[10px] text-slate-500 dark:text-slate-400">Verifying proof of payment with AI</p>
+                            </div>
+                          )}
+                          {!receiptValidating && (
+                            <div className="absolute inset-0 bg-slate-900/50 opacity-0 group-hover:opacity-100 transition-opacity flex items-center justify-center text-white text-xs font-bold gap-1.5 backdrop-blur-[2px] rounded-xl">
+                              <ZoomIn size={18} /> Click to enlarge
+                            </div>
+                          )}
                         </div>
                       ) : (
                         <div className="p-3 bg-white dark:bg-slate-900 rounded-xl border border-slate-200 dark:border-white/10 text-xs text-slate-500 flex items-center gap-2">
                           <FileCheck2 size={18} className="text-emerald-500" />
                           <span>Document attached: <strong>{receipt.name}</strong></span>
+                        </div>
+                      )}
+
+                      {/* AI Verified Receipt Badge */}
+                      {receiptValid === true && !receiptValidating && (
+                        <div className="flex items-center gap-1.5 px-3 py-2 bg-emerald-50 dark:bg-emerald-950/40 border border-emerald-200/60 dark:border-emerald-800/40 rounded-xl animate-in fade-in duration-200">
+                          <ShieldCheck size={16} className="text-emerald-600 dark:text-emerald-400 shrink-0" />
+                          <span className="text-xs font-bold text-emerald-700 dark:text-emerald-300">Verified Receipt</span>
+                          {receiptReason && (
+                            <span className="text-[11px] text-emerald-600/80 dark:text-emerald-400/80 ml-1">— {receiptReason}</span>
+                          )}
                         </div>
                       )}
                     </div>
@@ -716,7 +755,7 @@ function PayNowModal({ loan, onClose, onSuccess }) {
                           type="file"
                           accept="image/png, image/jpeg, image/jpg, image/webp, application/pdf"
                           className="hidden"
-                          onChange={(e) => {
+                          onChange={async (e) => {
                             const file = e.target.files?.[0];
                             if (!file) return;
 
@@ -727,6 +766,7 @@ function PayNowModal({ loan, onClose, onSuccess }) {
                             if (!allowedMimes.includes(file.type) && !allowedExts.includes(ext)) {
                               setReceipt(null);
                               setReceiptPreview(null);
+                              setReceiptValid(null);
                               setTouched(prev => ({ ...prev, receipt: true }));
                               return setError('Security Alert: Invalid file format. Only PNG, JPG, JPEG, WEBP, or PDF files are allowed.');
                             }
@@ -734,6 +774,7 @@ function PayNowModal({ loan, onClose, onSuccess }) {
                             if (file.size > 5 * 1024 * 1024) {
                               setReceipt(null);
                               setReceiptPreview(null);
+                              setReceiptValid(null);
                               setTouched(prev => ({ ...prev, receipt: true }));
                               return setError('File size exceeds the 5MB maximum limit. Please upload a smaller file.');
                             }
@@ -741,6 +782,48 @@ function PayNowModal({ loan, onClose, onSuccess }) {
                             setReceipt(file);
                             setTouched((prev) => ({ ...prev, receipt: true }));
                             setError('');
+                            setReceiptReason('');
+
+                            // AI Receipt Validation for image uploads
+                            if (file.type && file.type.startsWith('image/')) {
+                              setReceiptValidating(true);
+                              setReceiptValid(null);
+                              try {
+                                const base64Result = await fileToBase64(file);
+                                const token = localStorage.getItem('token');
+                                const res = await fetch(`${API}/api/loans/validate-receipt`, {
+                                  method: 'POST',
+                                  headers: { 'Content-Type': 'application/json', Authorization: `Bearer ${token}` },
+                                  body: JSON.stringify({ image: base64Result }),
+                                });
+                                const data = await res.json();
+
+                                if (data.success && data.isReceipt) {
+                                  setReceiptValid(true);
+                                  setReceiptReason(data.fallback ? data.reason : '');
+                                } else if (data.success && !data.isReceipt) {
+                                  setReceiptValid(false);
+                                  setReceipt(null);
+                                  setReceiptPreview(null);
+                                  setReceiptReason(data.reason || 'This does not appear to be a valid payment receipt.');
+                                  setError(data.reason ? `Invalid receipt: ${data.reason}` : 'Invalid proof of payment. Please upload a real payment receipt or transaction screenshot.');
+                                } else {
+                                  // Fallback / API error — accept for manual review
+                                  setReceiptValid(true);
+                                  setReceiptReason('Could not verify. Accepted for manual review.');
+                                }
+                              } catch (err) {
+                                console.error('[Loan Receipt Validation Error]:', err);
+                                setReceiptValid(true);
+                                setReceiptReason('Could not verify. Accepted for manual review.');
+                              } finally {
+                                setReceiptValidating(false);
+                              }
+                            } else {
+                              // Non-image format (PDF) accepted for manual review
+                              setReceiptValid(true);
+                              setReceiptReason('PDF document attached. Subject to manual review.');
+                            }
                           }}
                         />
                         <UploadCloud className={receiptError ? "text-red-500 mb-1" : "text-slate-400 mb-1"} size={28} />
@@ -778,9 +861,18 @@ function PayNowModal({ loan, onClose, onSuccess }) {
             <button 
               className="px-6 py-2.5 rounded-xl bg-gradient-to-r from-emerald-600 to-teal-600 hover:from-emerald-700 hover:to-teal-700 text-white font-bold text-xs shadow-md transition-all active:scale-95 flex items-center gap-2 cursor-pointer disabled:opacity-50"
               onClick={handleConfirm} 
-              disabled={uploading || (!isFormComplete && !uploading)}
+              disabled={uploading || receiptValidating || (!isFormComplete && !uploading)}
             >
-              {uploading ? <span className="btn-spinner" /> : (method === 'cash' || approvalMethod === 'manual' ? 'Submit Payment' : 'Proceed to PayMongo')}
+              {uploading ? (
+                <span className="btn-spinner" />
+              ) : receiptValidating ? (
+                <>
+                  <Loader2 size={14} className="animate-spin" />
+                  <span>Verifying Receipt...</span>
+                </>
+              ) : (
+                method === 'cash' || approvalMethod === 'manual' ? 'Submit Payment' : 'Proceed to PayMongo'
+              )}
             </button>
           </div>
         )}
