@@ -43,6 +43,8 @@
     }
   ],
   "rewrites": [
+    { "source": "/api", "destination": "https://faithly-backend.onrender.com/api" },
+    { "source": "/api/(.*)", "destination": "https://faithly-backend.onrender.com/api/$1" },
     { "source": "/(.*)", "destination": "/index.html" }
   ]
 }
