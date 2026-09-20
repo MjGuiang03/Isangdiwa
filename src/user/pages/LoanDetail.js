@@ -750,7 +750,13 @@ function PayNowModal({ loan, onClose, onSuccess }) {
                     </div>
                   ) : (
                     <div>
-                      <label className={`flex flex-col items-center justify-center p-5 border-2 border-dashed rounded-2xl bg-white dark:bg-slate-800/40 hover:bg-slate-50 dark:hover:bg-slate-800 cursor-pointer transition-all text-center ${receiptError ? 'border-red-500 bg-red-50/30 dark:bg-red-950/20' : 'border-slate-300 dark:border-slate-700 hover:border-emerald-500 dark:hover:border-emerald-500'}`}>
+                      <label className={`flex flex-col items-center justify-center p-5 border-2 border-dashed rounded-2xl cursor-pointer transition-all text-center ${
+                        receiptValid === false
+                          ? 'border-rose-400 bg-rose-50/40 dark:bg-rose-950/20'
+                          : receiptError
+                            ? 'border-red-500 bg-red-50/30 dark:bg-red-950/20'
+                            : 'border-slate-300 dark:border-slate-700 hover:border-emerald-500 dark:hover:border-emerald-500 bg-white dark:bg-slate-800/40 hover:bg-slate-50 dark:hover:bg-slate-800'
+                      }`}>
                         <input
                           type="file"
                           accept="image/png, image/jpeg, image/jpg, image/webp, application/pdf"
@@ -826,13 +832,27 @@ function PayNowModal({ loan, onClose, onSuccess }) {
                             }
                           }}
                         />
-                        <UploadCloud className={receiptError ? "text-red-500 mb-1" : "text-slate-400 mb-1"} size={28} />
+                        <UploadCloud className={receiptValid === false || receiptError ? "text-rose-500 mb-1" : "text-slate-400 mb-1"} size={28} />
                         <p className="text-xs text-slate-700 dark:text-slate-300 font-semibold">
-                          <span className="text-emerald-600 dark:text-emerald-400 hover:underline">Click to upload receipt image</span>
+                          <span className={receiptValid === false ? "text-rose-500 hover:underline" : "text-emerald-600 dark:text-emerald-400 hover:underline"}>Click to upload receipt image</span>
                         </p>
                         <p className="text-[10px] text-slate-400 mt-0.5 m-0">PNG, JPG, JPEG, WEBP or PDF up to 5MB</p>
                       </label>
-                      {receiptError && (
+
+                      {/* AI Rejection Error Message Banner right under upload box */}
+                      {receiptValid === false && (
+                        <div className="p-3 rounded-xl bg-rose-50 dark:bg-rose-950/50 border border-rose-200 dark:border-rose-800/50 text-rose-600 dark:text-rose-300 text-xs font-semibold flex items-start gap-2 mt-2 animate-in fade-in duration-200">
+                          <AlertCircle size={16} className="text-rose-500 shrink-0 mt-0.5" />
+                          <div>
+                            <span className="font-bold block text-rose-700 dark:text-rose-300">Invalid Proof of Payment</span>
+                            <span className="text-[11px] text-rose-600 dark:text-rose-400">
+                              {receiptReason || 'This image does not appear to be a valid payment receipt. Please upload a real payment receipt or transaction screenshot.'}
+                            </span>
+                          </div>
+                        </div>
+                      )}
+
+                      {receiptError && receiptValid !== false && (
                         <p className="text-[11px] font-semibold text-red-500 dark:text-red-400 flex items-center gap-1 mt-1.5">
                           <AlertCircle size={12} /> {receiptError}
                         </p>

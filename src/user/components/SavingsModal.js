@@ -1,7 +1,7 @@
 import { useState, useEffect } from 'react';
 import { useAuth } from '../../context/AuthContext';
 import API from '../../utils/api';
-import { CheckCircle, X, ArrowDownRight, ArrowUpLeft, Repeat, History, CreditCard, Smartphone, Building2, Info, UploadCloud, FileCheck2, PiggyBank, ZoomIn, Trash2, AlertTriangle, Loader2, ShieldCheck } from 'lucide-react';
+import { CheckCircle, X, ArrowDownRight, ArrowUpLeft, Repeat, History, CreditCard, Smartphone, Building2, Info, UploadCloud, FileCheck2, PiggyBank, ZoomIn, Trash2, AlertTriangle, AlertCircle, Loader2, ShieldCheck } from 'lucide-react';
 import useSwipeToClose, { DragHandle } from '../hooks/useSwipeToClose';
 
 const fmt = (n) =>
@@ -496,15 +496,33 @@ function DepositModal({ goals, onClose }) {
                                             {proofBase64 ? 'Uploaded' : '* Required'}
                                           </span>
                                         </div>
-                                        <label className="flex flex-col items-center justify-center p-4 border-2 border-dashed border-slate-300 dark:border-white/10 rounded-xl bg-slate-50 dark:bg-slate-800/40 hover:bg-slate-100 dark:hover:bg-slate-800/70 cursor-pointer transition-all text-center">
+                                        <label className={`flex flex-col items-center justify-center p-4 border-2 border-dashed rounded-xl cursor-pointer transition-all text-center ${
+                                          receiptValid === false
+                                            ? 'border-rose-400 bg-rose-50/40 dark:bg-rose-950/20'
+                                            : 'border-slate-300 dark:border-white/10 bg-slate-50 dark:bg-slate-800/40 hover:bg-slate-100 dark:hover:bg-slate-800/70'
+                                        }`}>
                                           <input type="file" accept="image/*" onChange={handleFileChange} className="hidden" />
                                           <div className="flex flex-col items-center gap-1">
-                                            <UploadCloud className="text-slate-400 dark:text-slate-300" size={28} />
+                                            <UploadCloud className={receiptValid === false ? "text-rose-500" : "text-slate-400 dark:text-slate-300"} size={28} />
                                             <p className="text-xs font-semibold text-slate-700 dark:text-slate-300"><span className="text-blue-600 dark:text-blue-400 hover:underline">Click to upload</span> or drag and drop</p>
                                             <p className="text-[11px] text-slate-400 m-0">PNG, JPG, JPEG up to 5MB</p>
                                           </div>
                                         </label>
-                                        {!proofBase64 && (accountName.trim() !== '' || accountNumber.trim() !== '') && (
+
+                                        {/* AI Rejection Error Message */}
+                                        {receiptValid === false && (
+                                          <div className="p-3 rounded-xl bg-rose-50 dark:bg-rose-950/50 border border-rose-200 dark:border-rose-800/50 text-rose-600 dark:text-rose-300 text-xs font-semibold flex items-start gap-2 mt-2 animate-in fade-in duration-200">
+                                            <AlertCircle size={16} className="text-rose-500 shrink-0 mt-0.5" />
+                                            <div>
+                                              <span className="font-bold block text-rose-700 dark:text-rose-300">Invalid Proof of Payment</span>
+                                              <span className="text-[11px] text-rose-600 dark:text-rose-400">
+                                                {receiptReason || 'This image does not appear to be a valid payment receipt. Please upload a real transaction screenshot.'}
+                                              </span>
+                                            </div>
+                                          </div>
+                                        )}
+
+                                        {!proofBase64 && receiptValid !== false && (accountName.trim() !== '' || accountNumber.trim() !== '') && (
                                           <div className="text-[11px] font-semibold text-rose-500 mt-1">Please upload your payment receipt screenshot</div>
                                         )}
                                       </div>
@@ -1184,14 +1202,32 @@ function QuickDepositModal({ goal, goals, onClose }) {
                                                     {proofBase64 ? 'Uploaded' : '* Required'}
                                                   </span>
                                                 </div>
-                                                <label className="p-3 flex flex-col items-center justify-center border-2 border-dashed border-slate-300 dark:border-white/10 rounded-xl bg-slate-50 dark:bg-slate-800/40 hover:bg-slate-100 dark:hover:bg-slate-800/70 cursor-pointer transition-all text-center">
+                                                <label className={`p-3 flex flex-col items-center justify-center border-2 border-dashed rounded-xl cursor-pointer transition-all text-center ${
+                                                  receiptValid === false
+                                                    ? 'border-rose-400 bg-rose-50/40 dark:bg-rose-950/20'
+                                                    : 'border-slate-300 dark:border-white/10 bg-slate-50 dark:bg-slate-800/40 hover:bg-slate-100 dark:hover:bg-slate-800/70'
+                                                }`}>
                                                   <input type="file" accept="image/*" onChange={handleFileChange} className="hidden" />
                                                   <div className="flex flex-col items-center gap-1">
-                                                    <UploadCloud className="text-slate-400 dark:text-slate-300" size={24} />
+                                                    <UploadCloud className={receiptValid === false ? "text-rose-500" : "text-slate-400 dark:text-slate-300"} size={24} />
                                                     <p className="text-xs font-semibold text-slate-700 dark:text-slate-300"><span className="text-blue-600 dark:text-blue-400 hover:underline">Upload Receipt</span></p>
                                                   </div>
                                                 </label>
-                                                {!proofBase64 && (accountName.trim() !== '' || accountNumber.trim() !== '') && (
+
+                                                {/* AI Rejection Error Message */}
+                                                {receiptValid === false && (
+                                                  <div className="p-3 rounded-xl bg-rose-50 dark:bg-rose-950/50 border border-rose-200 dark:border-rose-800/50 text-rose-600 dark:text-rose-300 text-xs font-semibold flex items-start gap-2 mt-2 animate-in fade-in duration-200">
+                                                    <AlertCircle size={15} className="text-rose-500 shrink-0 mt-0.5" />
+                                                    <div>
+                                                      <span className="font-bold block text-rose-700 dark:text-rose-300">Invalid Proof of Payment</span>
+                                                      <span className="text-[11px] text-rose-600 dark:text-rose-400">
+                                                        {receiptReason || 'This image does not appear to be a valid payment receipt. Please upload a real transaction screenshot.'}
+                                                      </span>
+                                                    </div>
+                                                  </div>
+                                                )}
+
+                                                {!proofBase64 && receiptValid !== false && (accountName.trim() !== '' || accountNumber.trim() !== '') && (
                                                   <div className="text-[11px] font-semibold text-rose-500 mt-1">Please upload your payment receipt screenshot</div>
                                                 )}
                                               </div>
