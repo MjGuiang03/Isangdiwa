@@ -45,6 +45,7 @@ const LoanAdminLoanManagement = lazy(() => import('./loanAdmin/pages/loanAdminLo
 const LoanAdminPaymentStatus = lazy(() => import('./loanAdmin/pages/loanAdminPaymentStatus'));
 const LoanAdminDelinquency = lazy(() => import('./loanAdmin/pages/loanAdminDelinquency'));
 const LoanAdminSettings = lazy(() => import('./loanAdmin/pages/loanAdminSettings'));
+const LoanAdminUserManagement = lazy(() => import('./loanAdmin/pages/loanAdminUserManagement'));
 
 // Secretary Admin Pages
 const SecretaryAdminDashboard = lazy(() => import('./secretaryAdmin/pages/secretaryAdminDashboard'));
@@ -150,6 +151,7 @@ export default function App() {
               <Route path="/loan-admin/payment-status" element={<Navigate to="/loan-admin/payments/loans" replace />} />
               <Route path="/loan-admin/delinquency" element={<AdminProtectedRoute><LoanAdminDelinquency /></AdminProtectedRoute>} />
               <Route path="/loan-admin/settings" element={<AdminProtectedRoute><LoanAdminSettings /></AdminProtectedRoute>} />
+              <Route path="/loan-admin/user-management" element={<AdminProtectedRoute><LoanAdminUserManagement /></AdminProtectedRoute>} />
 
               {/* ========== SECRETARY ADMIN ROUTES ========== */}
               {/* Redirect /secretary-admin → /secretary-admin/dashboard */}

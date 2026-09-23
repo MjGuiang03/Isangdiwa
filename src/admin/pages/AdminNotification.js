@@ -1,4 +1,4 @@
-import { useState, useEffect, useCallback } from 'react';
+import { useState, useEffect, useCallback, useMemo } from 'react';
 import useSWR from 'swr';
 import { useNavigate } from 'react-router-dom';
 import { toast } from 'sonner';
@@ -57,89 +57,116 @@ const getTypeConfig = (type) => {
   }
 };
 
+const fetcherSingle = (url) => {
+  const token = localStorage.getItem('adminToken');
+  return fetch(url, { headers: { Authorization: `Bearer ${token}` } }).then(res => res.json());
+};
+
 export default function AdminNotifications() {
   const navigate = useNavigate();
-  const [notifications, setNotifications] = useState([]);
-  const [readIds,       setReadIds]       = useState(new Set());
+  const [localReadIds, setLocalReadIds] = useState(new Set());
   const [typeFilter,    setTypeFilter]    = useState('all');
   const [page,          setPage]          = useState(1);
-  const [loading,       setLoading]       = useState(true);
   const [detailModal,   setDetailModal]   = useState(null);
 
   const token = localStorage.getItem('adminToken');
-  const fetcherSingle = (url) => fetch(url, { headers: { Authorization: `Bearer ${token}` } }).then(res => res.json());
 
-  const { data: notifData, isValidating: loadingNotifs } = useSWR(
+  const { data: notifData, isValidating: loadingNotifs, mutate: mutateNotifs } = useSWR(
     token ? `${API}/api/admin/notifications` : null,
     fetcherSingle,
-    { revalidateOnFocus: false, revalidateIfStale: true }
+    { revalidateOnFocus: false, dedupingInterval: 30000, keepPreviousData: true }
   );
 
-  useEffect(() => {
-    if (notifData) {
-        if (notifData.success) {
-            setNotifications(notifData.notifications || []);
-            setReadIds(new Set(notifData.readIds || []));
-        } else {
-            toast.error('Failed to load notifications');
+  const notifications = useMemo(() => notifData?.notifications || [], [notifData]);
+  const readIds = useMemo(() => {
+    const set = new Set(notifData?.readIds || []);
+    localReadIds.forEach(id => set.add(id));
+    const lastReadAt = parseInt(localStorage.getItem('adminLastReadNotifsAt') || '0', 10);
+    if (lastReadAt && notifData?.notifications) {
+      notifData.notifications.forEach(n => {
+        if (n.timestamp && new Date(n.timestamp).getTime() <= lastReadAt) {
+          set.add(n.id);
         }
+      });
     }
-  }, [notifData]);
+    return set;
+  }, [notifData, localReadIds]);
 
-  useEffect(() => {
-    setLoading(loadingNotifs && !notifData);
-  }, [loadingNotifs, notifData]);
+  const loading = loadingNotifs && !notifData;
 
   useEffect(() => {
     const token = localStorage.getItem('adminToken');
     if (!token) {
       navigate('/');
     }
-  }, [navigate]);
+    if (notifData && notifData.success === false && notifData.message) {
+      toast.error(notifData.message);
+    }
+  }, [navigate, notifData]);
 
   // Derive isRead from state set
-  const enriched = notifications.map(n => ({ ...n, isRead: readIds.has(n.id) }));
+  const enriched = useMemo(() => 
+    notifications.map(n => ({ ...n, isRead: readIds.has(n.id) })),
+    [notifications, readIds]
+  );
 
-  const filtered = enriched.filter(n => {
-    if (typeFilter !== 'all' && n.type !== typeFilter) return false;
-    return true;
-  });
+  const filtered = useMemo(() => 
+    enriched.filter(n => {
+      if (typeFilter !== 'all' && n.type !== typeFilter) return false;
+      return true;
+    }),
+    [enriched, typeFilter]
+  );
 
-  const totalPages   = Math.ceil(filtered.length / PER_PAGE);
-  const paginated    = filtered.slice((page - 1) * PER_PAGE, page * PER_PAGE);
+  const totalPages   = useMemo(() => Math.ceil(filtered.length / PER_PAGE), [filtered.length]);
+  const paginated    = useMemo(() => filtered.slice((page - 1) * PER_PAGE, page * PER_PAGE), [filtered, page]);
 
-  const performReadUpdate = async (idsArray) => {
+  const performReadUpdate = useCallback(async (idsArray, markAll = false) => {
     try {
       const token = localStorage.getItem('adminToken');
+      if (markAll) {
+        localStorage.setItem('adminLastReadNotifsAt', Date.now().toString());
+      }
+      // Optimistically update local SWR data
+      mutateNotifs((prev) => {
+        if (!prev) return prev;
+        const currentRead = new Set(prev.readIds || []);
+        idsArray.forEach(id => currentRead.add(id));
+        return { ...prev, readIds: Array.from(currentRead) };
+      }, false);
+
+      // Fire custom event with allRead flag so AdminSidebar updates instantly
+      window.dispatchEvent(new CustomEvent("admin-notif-read-update", { detail: { allRead: markAll, ids: idsArray, timestamp: Date.now() } }));
+
       await fetch(`${API}/api/admin/notifications/read`, {
         method: 'POST',
         headers: {
           'Content-Type': 'application/json',
           Authorization: `Bearer ${token}`
         },
-        body: JSON.stringify({ ids: idsArray })
+        body: JSON.stringify({ ids: idsArray, all: markAll })
       });
-      // Fire an event in case AdminSidebar wants to re-fetch
-      window.dispatchEvent(new Event("admin-notif-read-update"));
+      mutateNotifs();
     } catch (err) {
       console.error(err);
     }
-  };
+  }, [mutateNotifs]);
 
   const markAsRead = useCallback((id) => {
-    setReadIds(prev => {
+    setLocalReadIds(prev => {
       const next = new Set(prev);
       next.add(id);
-      performReadUpdate([id]);
       return next;
     });
-  }, []);
+    performReadUpdate([id], false);
+  }, [performReadUpdate]);
 
   const markAllAsRead = useCallback(() => {
     const allIds = notifications.map(n => n.id);
-    setReadIds(new Set(allIds));
-    performReadUpdate(allIds);
-  }, [notifications]);
+    setLocalReadIds(new Set(allIds));
+    performReadUpdate(allIds, true);
+    toast.success('All notifications marked as read');
+  }, [notifications, performReadUpdate]);
 
 
 

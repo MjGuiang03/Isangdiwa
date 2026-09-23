@@ -1,4 +1,4 @@
-import { useState, useEffect } from 'react';
+import { useState, useEffect, useMemo, useRef } from 'react';
 import useSWR from 'swr';
 import { toast } from 'sonner';
 import SecretaryAdminSidebar from '../components/secretaryAdminSidebar';
@@ -12,6 +12,14 @@ import useDebounce from '../../hooks/useDebounce';
 import API from '../../utils/api';
 import { Banknote, Search } from 'lucide-react';
 
+const fetcherSingle = (url) => {
+    const token = localStorage.getItem('secretaryToken') || localStorage.getItem('adminToken') || localStorage.getItem('token');
+    return fetch(url, { headers: { Authorization: `Bearer ${token}` } }).then(async res => {
+        if (!res.ok) throw new Error('Failed to fetch loans');
+        return res.json();
+    });
+};
+
 export default function SecretaryLoanProcess() {
     const [searchQuery, setSearchQuery] = useState('');
     const debouncedSearch = useDebounce(searchQuery, 400);
@@ -19,20 +27,14 @@ export default function SecretaryLoanProcess() {
     const [showProcessModal, setShowProcessModal] = useState(false);
     const [showReceiptModal, setShowReceiptModal] = useState(false);
     const [selectedLoan, setSelectedLoan] = useState(null);
-    const [loading, setLoading] = useState(false);
-
-    const [loans, setLoans] = useState([]);
+    const memberDetailsCache = useRef({});
 
     const token = localStorage.getItem('secretaryToken') || localStorage.getItem('adminToken') || localStorage.getItem('token');
-    const fetcherSingle = (url) => fetch(url, { headers: { Authorization: `Bearer ${token}` } }).then(async res => {
-        if (!res.ok) throw new Error('Failed to fetch loans');
-        return res.json();
-    });
 
     const { data: loansData, error: loansError, isValidating: loadingLoans, mutate: fetchLoans } = useSWR(
         token ? `${API}/api/admin/loans?limit=10000&status=non_completed` : null,
         fetcherSingle,
-        { revalidateOnFocus: false, revalidateIfStale: true }
+        { revalidateOnFocus: false, dedupingInterval: 30000, keepPreviousData: true }
     );
 
     useEffect(() => {
@@ -41,21 +43,40 @@ export default function SecretaryLoanProcess() {
         }
     }, [loansError]);
 
-    useEffect(() => {
-        if (loansData && loansData.success && loansData.loans) {
-            const awaitingDisbursement = loansData.loans.filter(l => l.status === 'approved' || (l.status === 'active' && !l.disbursed));
-            setLoans(awaitingDisbursement);
-        }
+    const loans = useMemo(() => {
+        if (!loansData?.success || !loansData?.loans) return [];
+        return loansData.loans.filter(l => l.status === 'approved' || (l.status === 'active' && !l.disbursed));
     }, [loansData]);
 
-    useEffect(() => {
-        setLoading(loadingLoans && !loansData);
-    }, [loadingLoans, loansData]);
+    const loading = loadingLoans && !loansData;
 
-    const awaitingCount = loans.filter(l => !l.disbursed).length;
-    const processedCount = loans.filter(l => l.disbursed).length;
+    const awaitingCount = useMemo(() => loans.filter(l => !l.disbursed).length, [loans]);
+    const processedCount = useMemo(() => loans.filter(l => l.disbursed).length, [loans]);
 
     const handleViewDetails = async (loan) => {
+        // Fast path: instant load if already in cache
+        if (memberDetailsCache.current[loan.email]) {
+            const cached = memberDetailsCache.current[loan.email];
+            setSelectedLoan({
+                id: loan.loanId,
+                member: loan.memberName,
+                email: loan.email,
+                amount: loan.amount,
+                purpose: loan.purpose,
+                approvedDate: new Date(loan.approvedDate || loan.appliedDate).toLocaleDateString('en-US'),
+                status: loan.disbursed ? 'Processed' : 'Awaiting Processing',
+                position: cached.position,
+                disbursementMethod: loan.disbursementMethod || 'cash',
+                disbursementAccount: loan.disbursementAccount || '',
+                churchActive: 'Active',
+                loanHistory: cached.loanHistory,
+                totalDonations: cached.totalDonations,
+                _id: loan._id
+            });
+            setShowDetailsModal(true);
+            return;
+        }
+
         const token = localStorage.getItem('secretaryToken') || localStorage.getItem('adminToken') || localStorage.getItem('token');
         const headers = { Authorization: `Bearer ${token}` };
 
@@ -101,6 +122,11 @@ export default function SecretaryLoanProcess() {
                 }
             }
 
+            memberDetailsCache.current[loan.email] = {
+                position: userPosition,
+                loanHistory: loanHistoryCount,
+                totalDonations
+            };
         } catch (err) {
             console.error('Failed to fetch user details:', err);
         } finally {

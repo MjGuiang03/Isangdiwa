@@ -187,10 +187,20 @@ router.get('/notifications', authenticateAdmin, async (req, res) => {
     // Sort all by most recent
     notifications.sort((a, b) => new Date(b.timestamp) - new Date(a.timestamp));
 
+    const readIdsSet = new Set(req.admin.readNotifications || []);
+    if (req.admin.lastReadNotificationsAt) {
+      const lastReadTs = new Date(req.admin.lastReadNotificationsAt).getTime();
+      notifications.forEach(n => {
+        if (n.timestamp && new Date(n.timestamp).getTime() <= lastReadTs) {
+          readIdsSet.add(n.id);
+        }
+      });
+    }
+
     res.status(200).json({
       success: true,
       notifications,
-      readIds: req.admin.readNotifications || [],
+      readIds: Array.from(readIdsSet),
       total: notifications.length,
     });
   } catch (err) {
@@ -202,17 +212,27 @@ router.get('/notifications', authenticateAdmin, async (req, res) => {
 /* ================== MARK ADMIN NOTIFICATIONS AS READ ================== */
 router.post('/notifications/read', authenticateAdmin, async (req, res) => {
   try {
-    const { ids } = req.body;
-    if (!ids || !Array.isArray(ids)) {
+    const { ids, all } = req.body;
+    if ((!ids || !Array.isArray(ids)) && !all) {
       return res.status(400).json({ success: false, message: 'Invalid payload' });
     }
     
     // Admins are stored in admins collection, and req.admin contains the auth
     const { admins } = await import('../config/db.js');
-    await admins.updateOne(
-      { email: req.admin.email },
-      { $addToSet: { readNotifications: { $each: ids } } }
-    );
+    const updateOps = {};
+    if (ids && Array.isArray(ids) && ids.length > 0) {
+      updateOps.$addToSet = { readNotifications: { $each: ids } };
+    }
+    if (all) {
+      updateOps.$set = { lastReadNotificationsAt: new Date() };
+    }
+
+    if (Object.keys(updateOps).length > 0) {
+      await admins.updateOne(
+        { email: req.admin.email },
+        updateOps
+      );
+    }
     res.json({ success: true, message: 'Read state updated' });
   } catch (err) {
     console.error(err);

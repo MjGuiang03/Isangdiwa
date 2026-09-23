@@ -4,6 +4,7 @@ import { ArrowLeft, CalendarDays, ChevronDown, Eye, EyeOff, Phone } from 'lucide
 import { toast } from 'sonner';
 
 import VerifyEmailModal from '../components/VerifyEmail';
+import { TermsModal, PrivacyModal } from './PolicyModals';
 import useSwipeDownToClose from '../hooks/useSwipeDownToClose';
 
 /* ─── Regex / Constants ─────────────────────────────────────── */
@@ -645,44 +646,21 @@ export default function SignupModal({ isOpen, onClose, onSwitchToLogin }) {
             {loading ? <span className="w-4 h-4 border-2 border-white border-t-transparent rounded-full animate-spin inline-block" /> : 'Create Account'}
           </button>
         </form>
-
-        {/* TERMS MODAL */}
-        {showTerms && (
-          <div className="fixed inset-0 z-[10000] bg-black/60 backdrop-blur-sm flex items-center justify-center p-4" onClick={() => setShowTerms(false)}>
-            <div className="relative w-full max-w-xl bg-white dark:bg-[#1E2130] rounded-2xl p-6 shadow-2xl border border-slate-200 dark:border-white/10 max-h-[80vh] overflow-y-auto" onClick={e => e.stopPropagation()}>
-              <div className="flex items-center justify-between pb-3 border-b border-slate-200 dark:border-white/10 mb-4">
-                <h3 className="font-bold text-slate-900 dark:text-white">Terms & Conditions</h3>
-                <button className="text-slate-400 hover:text-slate-600 dark:hover:text-white text-xl" onClick={() => setShowTerms(false)}>&times;</button>
-              </div>
-              <div className="text-xs text-slate-600 dark:text-slate-300 space-y-3 leading-relaxed">
-                <ol className="list-decimal pl-4 space-y-2">
-                  <li><strong>Acceptance of Terms</strong><br />By accessing and using IsangDiwa, you agree to comply with these Terms and Conditions.</li>
-                  <li><strong>Purpose of the System</strong><br />IsangDiwa is designed to facilitate transparent management of church-related financial records and loan requests.</li>
-                  <li><strong>Authorized Users</strong><br />Only registered and approved church members, officers, and administrators are permitted to access IsangDiwa.</li>
-                </ol>
-              </div>
-            </div>
-          </div>
-        )}
-
-        {/* PRIVACY MODAL */}
-        {showPrivacy && (
-          <div className="fixed inset-0 z-[10000] bg-black/60 backdrop-blur-sm flex items-center justify-center p-4" onClick={() => setShowPrivacy(false)}>
-            <div className="relative w-full max-w-xl bg-white dark:bg-[#1E2130] rounded-2xl p-6 shadow-2xl border border-slate-200 dark:border-white/10 max-h-[80vh] overflow-y-auto" onClick={e => e.stopPropagation()}>
-              <div className="flex items-center justify-between pb-3 border-b border-slate-200 dark:border-white/10 mb-4">
-                <h3 className="font-bold text-slate-900 dark:text-white">Privacy Policy</h3>
-                <button className="text-slate-400 hover:text-slate-600 dark:hover:text-white text-xl" onClick={() => setShowPrivacy(false)}>&times;</button>
-              </div>
-              <div className="text-xs text-slate-600 dark:text-slate-300 space-y-3 leading-relaxed">
-                <ol className="list-decimal pl-4 space-y-2">
-                  <li><strong>Data Collection</strong><br />IsangDiwa collects personal information necessary for membership and administrative purposes.</li>
-                  <li><strong>Data Protection</strong><br />All personal data is processed in accordance with applicable data privacy regulations.</li>
-                </ol>
-              </div>
-            </div>
-          </div>
-        )}
       </div>
+
+      {/* TERMS MODAL */}
+      <TermsModal 
+        isOpen={showTerms} 
+        onClose={() => setShowTerms(false)} 
+        onAgree={() => setAgreeTerms(true)} 
+      />
+
+      {/* PRIVACY MODAL */}
+      <PrivacyModal 
+        isOpen={showPrivacy} 
+        onClose={() => setShowPrivacy(false)} 
+        onAgree={() => setAgreePrivacy(true)} 
+      />
 
       {showVerifyModal && (
         <VerifyEmailModal isOpen={showVerifyModal} onClose={() => setShowVerifyModal(false)} email={registeredEmail} />

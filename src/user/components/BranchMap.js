@@ -55,6 +55,13 @@ export default function BranchMap({ branches, userBranch, onBranchClick, flyToRe
     }
 
     instanceRef.current = map;
+
+    return () => {
+      if (instanceRef.current) {
+        instanceRef.current.remove();
+        instanceRef.current = null;
+      }
+    };
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, []);
 

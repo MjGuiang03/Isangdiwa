@@ -1,10 +1,11 @@
 /* eslint-disable no-unused-vars */
 import { useNavigate, useLocation } from 'react-router-dom';
-import { useEffect, useState, useRef } from 'react';
+import { useEffect, useState, useRef, useMemo } from 'react';
 import { createPortal } from 'react-dom';
 import { toast } from 'sonner';
+import useSWR from 'swr';
 import {
-  LayoutGrid, Bell, FileText, CreditCard, AlertTriangle, Settings, LogOut, PiggyBank, BarChart, X, Menu
+  LayoutGrid, Bell, FileText, CreditCard, AlertTriangle, Settings, LogOut, PiggyBank, BarChart, X, Menu, Users
 } from 'lucide-react';
 import puacLogo from '../../assets/optimized/puaclogo.webp';
 import { useTheme } from '../../context/ThemeContext';
@@ -12,17 +13,19 @@ import API from '../../utils/api';
 import { processNewNotifications } from '../../utils/desktopNotify';
 import NotificationPrompt from '../../components/NotificationPrompt';
 
+const sidebarFetcher = (url) => {
+  const token = localStorage.getItem('adminToken');
+  if (!token) return null;
+  return fetch(url, { headers: { Authorization: `Bearer ${token}` } }).then(res => {
+    if (!res.ok) return null;
+    return res.json();
+  });
+};
+
 export default function LoanAdminSidebar() {
   const navigate  = useNavigate();
   const location  = useLocation();
   const { theme, toggleTheme } = useTheme();
-  const [unreadCount, setUnreadCount] = useState(0);
-  const [sidebarCounts, setSidebarCounts] = useState({
-    pendingLoans: 0,
-    pendingLoanPayments: 0,
-    pendingSavings: 0,
-    flaggedAccounts: 0
-  });
   const prevNotifIdsRef = useRef(new Set());
   const [showLogoutModal, setShowLogoutModal] = useState(false);
   const [adminName, setAdminName] = useState(localStorage.getItem('adminName') || 'Loan Admin');
@@ -65,66 +68,57 @@ export default function LoanAdminSidebar() {
 
   const isActive = (path) => currentPath === path || (path === '/loan-admin/payments/loans' && currentPath === '/loan-admin/payments');
 
+  const token = localStorage.getItem('adminToken');
+
+  // ── SWR-based data fetching with caching (replaces raw fetch + setInterval) ──
+  const { data: notifData, mutate: mutateNotifs } = useSWR(
+    token ? `${API}/api/admin/notifications` : null,
+    sidebarFetcher,
+    { refreshInterval: 30000, revalidateOnFocus: false, dedupingInterval: 15000, keepPreviousData: true }
+  );
+
+  const { data: countsData, mutate: mutateCounts } = useSWR(
+    token ? `${API}/api/admin/sidebar-counts` : null,
+    sidebarFetcher,
+    { refreshInterval: 30000, revalidateOnFocus: false, dedupingInterval: 15000, keepPreviousData: true }
+  );
+
+  // Derive counts from SWR data (cached across navigations)
+  const unreadCount = useMemo(() => {
+    if (!notifData?.success) return 0;
+    const readIds = new Set(notifData.readIds || []);
+    const loanNotifs = (notifData.notifications || []).filter(n => n.type === 'loan');
+    return loanNotifs.filter(n => !readIds.has(n.id)).length;
+  }, [notifData]);
+
+  const sidebarCounts = useMemo(() => {
+    if (!countsData?.success || !countsData.counts) return { pendingLoans: 0, pendingLoanPayments: 0, pendingSavings: 0, flaggedAccounts: 0 };
+    return countsData.counts;
+  }, [countsData]);
+
+  // Desktop notification processing
   useEffect(() => {
-    const token = localStorage.getItem('adminToken');
-    if (!token) return;
+    if (!notifData?.success) return;
+    const readIds = new Set(notifData.readIds || []);
+    const loanNotifs = (notifData.notifications || []).filter(n => n.type === 'loan');
+    const unreadNotifs = loanNotifs.filter(n => !readIds.has(n.id));
+    prevNotifIdsRef.current = processNewNotifications(
+      prevNotifIdsRef.current,
+      unreadNotifs,
+      '/loan-admin/notifications',
+      (path) => { window.location.href = path; }
+    );
+  }, [notifData]);
 
-    const calcUnread = async () => {
-      try {
-        const res  = await fetch(`${API}/api/admin/notifications`, {
-          headers: { Authorization: `Bearer ${token}` },
-        });
-        if (!res.ok) return;
-        const data = await res.json();
-        if (data.success) {
-          const readIds = new Set(data.readIds || []);
-          const loanNotifs = (data.notifications || []).filter(n => n.type === 'loan');
-          const count = loanNotifs.filter(n => !readIds.has(n.id)).length;
-          setUnreadCount(count);
-
-          const unreadNotifs = loanNotifs.filter(n => !readIds.has(n.id));
-          prevNotifIdsRef.current = processNewNotifications(
-            prevNotifIdsRef.current,
-            unreadNotifs,
-            '/loan-admin/notifications',
-            (path) => { window.location.href = path; }
-          );
-        }
-      } catch { /* silent */ }
-    };
-
-    const calcCounts = async () => {
-      try {
-        const res = await fetch(`${API}/api/admin/sidebar-counts`, {
-          headers: { Authorization: `Bearer ${token}` }
-        });
-        if (!res.ok) return;
-        const data = await res.json();
-        if (data.success && data.counts) {
-          setSidebarCounts(data.counts);
-        }
-      } catch { /* silent */ }
-    };
-
-    calcUnread();
-    calcCounts();
-
+  // Immediately re-fetch on admin notification read update events
+  useEffect(() => {
     const onUpdate = () => {
-      calcUnread();
-      calcCounts();
+      mutateNotifs();
+      mutateCounts();
     };
     window.addEventListener('admin-notif-read-update', onUpdate);
-    const intervalId = setInterval(() => {
-      calcUnread();
-      calcCounts();
-    }, 30000);
-    
-    return () => {
-      window.removeEventListener('admin-notif-read-update', onUpdate);
-      window.removeEventListener('storage', calcUnread);
-      clearInterval(intervalId);
-    };
-  }, []);
+    return () => window.removeEventListener('admin-notif-read-update', onUpdate);
+  }, [mutateNotifs, mutateCounts]);
 
   return (
     <>
@@ -253,6 +247,15 @@ export default function LoanAdminSidebar() {
               {sidebarCounts.pendingSavings > 99 ? '99+' : sidebarCounts.pendingSavings}
             </span>
           )}
+        </button>
+
+        <button
+          title={collapsed ? "User Management" : undefined}
+          className={`flex items-center gap-3 px-3.5 h-[37px] bg-transparent border-none text-white/70 text-sm font-inter rounded-lg cursor-pointer transition-all w-full text-left leading-tight whitespace-nowrap relative hover:bg-white/10 dark:hover:bg-white/5 ${isActive('/loan-admin/user-management') ? 'bg-white/10 text-white font-semibold dark:bg-white/10' : ''} ${collapsed ? 'md:w-9 md:h-9 md:p-0 md:justify-center' : ''}`}
+          onClick={() => handleNav('/loan-admin/user-management')}
+        >
+          <span><Users size={18} className="w-[18px] h-[18px] flex items-center justify-center shrink-0" /></span>
+          {!collapsed && <span className="font-inter text-sm">User Management</span>}
         </button>
 
         {!collapsed ? (

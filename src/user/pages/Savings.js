@@ -1,4 +1,4 @@
-import { useState, useEffect } from 'react';
+import { useState, useEffect, useMemo } from 'react';
 import useSWR from 'swr';
 
 import SavingsModals from '../components/SavingsModal';
@@ -29,6 +29,16 @@ const TxnArrowOut = () => (
     <ArrowUpRight size={14} className="text-[#0D1F45] dark:text-amber-400" />
 );
 
+const fetcherSingle = async (url) => {
+    const token = localStorage.getItem('token');
+    if (!token) return null;
+    const res = await fetch(url, { headers: { 'Content-Type': 'application/json', Authorization: `Bearer ${token}` } });
+    if (res.status === 401) {
+        return { error: 'Unauthorized' };
+    }
+    return res.json();
+};
+
 export default function Savings() {
     /* ── modal state ── */
     const [modal, setModal] = useState(null);
@@ -36,87 +46,55 @@ export default function Savings() {
     const [showAllTxnsModal, setShowAllTxnsModal] = useState(false);
 
     /* ── page data ── */
-    const [goals, setGoals] = useState([]);
-    const [transactions, setTransactions] = useState([]);
-    const [stats, setStats] = useState({
-        totalSavings: 0,
-        thisMonth: 0,
-        activeGoals: 0,
-        completedGoals: 0,
-    });
     const [txnPage] = useState(1);
-    // eslint-disable-next-line no-unused-vars
-    const [txnTotal, setTxnTotal] = useState(0);
     const TXN_LIMIT = 3;
 
     // Goals Pagination
     const [goalPage, setGoalPage] = useState(1);
-    const [goalsTotalCount, setGoalsTotalCount] = useState(0);
     const GOAL_LIMIT = 3;
 
     const [showInstruction, setShowInstruction] = useState(false);
     const [hasClosedInstruction, setHasClosedInstruction] = useState(false);
 
-    const fetcher = async (url) => {
-        const token = localStorage.getItem('token');
-        if (!token) return null;
-        const res = await fetch(url, { headers: { 'Content-Type': 'application/json', Authorization: `Bearer ${token}` } });
-        if (res.status === 401) {
-            localStorage.removeItem('token');
-            window.location.href = '/';
-            return null;
-        }
-        return res.json();
-    };
-
     const { data: overviewData, error: overviewError, isValidating: overviewValidating, mutate: mutateOverview } = useSWR(
         txnPage === 1 ? `${API}/api/savings/overview?txnLimit=${TXN_LIMIT}&goalLimit=${GOAL_LIMIT}` : null,
-        fetcher,
-        { revalidateOnFocus: false, dedupingInterval: 5000 }
+        fetcherSingle,
+        { revalidateOnFocus: false, dedupingInterval: 30000, keepPreviousData: true }
     );
 
     const { data: txnData, error: txnError, isValidating: txnValidating, mutate: mutateTxn } = useSWR(
         txnPage > 1 ? `${API}/api/savings/transactions?page=${txnPage}&limit=${TXN_LIMIT}` : null,
-        fetcher,
-        { revalidateOnFocus: false, dedupingInterval: 5000 }
+        fetcherSingle,
+        { revalidateOnFocus: false, dedupingInterval: 30000, keepPreviousData: true }
+    );
+
+    const { data: goalsData } = useSWR(
+        goalPage > 1 ? `${API}/api/savings/goals?page=${goalPage}&limit=${GOAL_LIMIT}` : null,
+        fetcherSingle,
+        { revalidateOnFocus: false, dedupingInterval: 30000, keepPreviousData: true }
     );
 
     const dataLoading = (txnPage === 1 && overviewValidating && !overviewData) || (txnPage > 1 && txnValidating && !txnData);
     const error = (overviewError || txnError) ? (overviewError?.message || txnError?.message || 'Failed to load savings data') : '';
 
+    const goals = useMemo(() => (goalPage === 1 ? overviewData?.goals : goalsData?.goals) || [], [overviewData, goalsData, goalPage]);
+    const goalsTotalCount = useMemo(() => (goalPage === 1 ? (overviewData?.stats?.totalCount || overviewData?.stats?.totalGoalCount || overviewData?.goals?.length || 0) : goalsData?.totalCount) || 0, [overviewData, goalsData, goalPage]);
+    
+    const transactions = useMemo(() => (txnPage === 1 ? overviewData?.transactions : txnData?.transactions) || [], [overviewData, txnData, txnPage]);
+    
+
+    const stats = useMemo(() => overviewData?.stats || { totalSavings: 0, thisMonth: 0, activeGoals: 0, completedGoals: 0 }, [overviewData]);
+
     useEffect(() => {
         if (txnPage === 1 && overviewData?.success) {
-            setGoals(overviewData.goals || []);
-            setGoalPage(1);
-            setGoalsTotalCount(overviewData.stats?.totalCount || overviewData.stats?.totalGoalCount || overviewData.goals?.length || 0);
-            setTransactions(overviewData.transactions || []);
-            setTxnTotal(overviewData.txnTotal || 0);
-            setStats(overviewData.stats || {});
-
             if ((overviewData.stats?.totalSavings || 0) <= 0 && !hasClosedInstruction) {
                 setShowInstruction(true);
             }
-        } else if (txnPage > 1 && txnData?.success) {
-            setTransactions(txnData.transactions || []);
-            setTxnTotal(txnData.totalCount || 0);
         }
-    }, [overviewData, txnData, txnPage, hasClosedInstruction]);
+    }, [overviewData, txnPage, hasClosedInstruction]);
 
-    const fetchGoalPage = async (page) => {
-        try {
-            const token = localStorage.getItem('token');
-            const res = await fetch(`${API}/api/savings/goals?page=${page}&limit=${GOAL_LIMIT}`, {
-                headers: { 'Content-Type': 'application/json', Authorization: `Bearer ${token}` }
-            });
-            const data = await res.json();
-            if (data.success) {
-                setGoals(data.goals || []);
-                setGoalPage(page);
-                setGoalsTotalCount(data.totalCount || 0);
-            }
-        } catch (err) {
-            console.error('Failed to fetch goals page', err);
-        }
+    const fetchGoalPage = (page) => {
+        setGoalPage(page);
     };
 
     const openDeposit = () => setModal('deposit');

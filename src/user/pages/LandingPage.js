@@ -8,6 +8,7 @@ import {
 import LoginModal from '../components/LoginModal';
 import SignupModal from '../components/SignupModal';
 import ResetPassword from '../components/ResetPassword';
+import { TermsModal, PrivacyModal } from '../components/PolicyModals';
 
 import puacLogo from '../../assets/optimized/puaclogo.webp';
 import puacCongregation from '../../assets/optimized/IMG_8437.webp';
@@ -62,6 +63,8 @@ export default function LandingPage() {
   const [showLoginModal, setShowLoginModal] = useState(false);
   const [showSignupModal, setShowSignupModal] = useState(false);
   const [showResetModal, setShowResetModal] = useState(false);
+  const [showTermsModal, setShowTermsModal] = useState(false);
+  const [showPrivacyModal, setShowPrivacyModal] = useState(false);
   const [navVisible, setNavVisible] = useState(false);
   const [heroVisible, setHeroVisible] = useState(false);
 
@@ -495,6 +498,8 @@ export default function LandingPage() {
             <ul className="space-y-2 sm:space-y-2.5 list-none p-0">
               <li><a href="#features" onClick={(e) => scrollToSection(e, 'features')} className="hover:text-white transition-colors no-underline text-slate-400 text-xs">Member Features</a></li>
               <li><a href="#gallery" onClick={(e) => scrollToSection(e, 'gallery')} className="hover:text-white transition-colors no-underline text-slate-400 text-xs">Branch Gallery</a></li>
+              <li><button type="button" onClick={() => setShowTermsModal(true)} className="hover:text-white transition-colors text-slate-400 text-xs text-left cursor-pointer p-0 bg-transparent border-0">Terms & Conditions</button></li>
+              <li><button type="button" onClick={() => setShowPrivacyModal(true)} className="hover:text-white transition-colors text-slate-400 text-xs text-left cursor-pointer p-0 bg-transparent border-0">Privacy Policy</button></li>
             </ul>
           </div>
 
@@ -523,6 +528,11 @@ export default function LandingPage() {
         {/* Sub-Footer Bar */}
         <div className="max-w-7xl mx-auto pt-6 sm:pt-8 flex flex-col sm:flex-row justify-between items-center gap-3 text-center sm:text-left text-slate-500 text-[11px] sm:text-xs">
           <span>© {new Date().getFullYear()} IsangDiwa · Philippine United Apostolic Church. All rights reserved.</span>
+          <div className="flex items-center gap-2.5 text-slate-400">
+            <button type="button" onClick={() => setShowTermsModal(true)} className="hover:text-white transition-colors cursor-pointer bg-transparent border-0 p-0 text-slate-400 text-[11px] sm:text-xs">Terms & Conditions</button>
+            <span className="text-slate-600">•</span>
+            <button type="button" onClick={() => setShowPrivacyModal(true)} className="hover:text-white transition-colors cursor-pointer bg-transparent border-0 p-0 text-slate-400 text-[11px] sm:text-xs">Privacy Policy</button>
+          </div>
           <span className="text-[#F5C800]/80 font-medium">To God Be All The Glory</span>
         </div>
       </footer>
@@ -545,6 +555,14 @@ export default function LandingPage() {
           setShowResetModal(false);
           if (location.pathname === '/reset-password') navigate('/', { replace: true });
         }}
+      />
+      <TermsModal
+        isOpen={showTermsModal}
+        onClose={() => setShowTermsModal(false)}
+      />
+      <PrivacyModal
+        isOpen={showPrivacyModal}
+        onClose={() => setShowPrivacyModal(false)}
       />
 
     </div>

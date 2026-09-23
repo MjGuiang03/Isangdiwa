@@ -8,20 +8,19 @@ import API from '../../utils/api';
 import { Banknote, CalendarDays, Search } from 'lucide-react';
 import Pagination from '../../components/Pagination';
 
+const fetcherSingle = (url) => {
+    const token = localStorage.getItem('secretaryToken') || localStorage.getItem('adminToken') || localStorage.getItem('token');
+    return fetch(url, { headers: { 'Content-Type': 'application/json', Authorization: `Bearer ${token}` } }).then(res => res.json());
+};
+
 export default function SecretaryLoanRecords() {
     const [searchQuery, setSearchQuery] = useState('');
     const debouncedSearch = useDebounce(searchQuery, 400);
     const [activeFilter, setActiveFilter] = useState('all');
-
-    const [records, setRecords] = useState([]);
-    const [loading, setLoading] = useState(true);
     const [page, setPage] = useState(1);
-    const [totalCount, setTotalCount] = useState(0);
     const LIMIT = 10;
 
     const token = localStorage.getItem('secretaryToken') || localStorage.getItem('adminToken') || localStorage.getItem('token');
-
-    const fetcherSingle = (url) => fetch(url, { headers: { 'Content-Type': 'application/json', Authorization: `Bearer ${token}` } }).then(res => res.json());
 
     const queryParams = useMemo(() => {
         const params = new URLSearchParams();
@@ -36,41 +35,34 @@ export default function SecretaryLoanRecords() {
     const { data: recordsData, isValidating: loadingRecords } = useSWR(
         token ? `${API}/api/admin/loans?${queryParams}` : null,
         fetcherSingle,
-        { revalidateOnFocus: false, revalidateIfStale: true }
+        { revalidateOnFocus: false, dedupingInterval: 30000, keepPreviousData: true }
     );
 
-    useEffect(() => {
-        if (recordsData && recordsData.success && recordsData.loans) {
-            const results = recordsData.loans.map(l => ({
-                id: l.loanId,
-                member: l.memberName,
-                amount: `₱${Number(l.amount).toLocaleString()}`,
-                purpose: l.purpose,
-                processedDate: l.disbursementDate ? new Date(l.disbursementDate).toLocaleDateString('en-US', { month: 'long', day: 'numeric', year: 'numeric' }) : 'N/A',
-                processedTime: l.disbursementDate ? new Date(l.disbursementDate).toLocaleTimeString('en-US', { hour: '2-digit', minute: '2-digit' }) : 'N/A',
-                paymentMethod: l.paymentMethod ? (l.paymentMethod.toLowerCase() === 'e-wallet' ? 'E-Wallet' : l.paymentMethod.toLowerCase() === 'bank' ? 'Bank Transfer' : 'Cash') : 'Cash',
-                reference: l.reference || ''
-            }));
-
-            setRecords(results);
-            setTotalCount(recordsData.totalCount || 0);
-        }
+    const records = useMemo(() => {
+        if (!recordsData?.success || !recordsData?.loans) return [];
+        return recordsData.loans.map(l => ({
+            id: l.loanId,
+            member: l.memberName,
+            amount: `₱${Number(l.amount).toLocaleString()}`,
+            purpose: l.purpose,
+            processedDate: l.disbursementDate ? new Date(l.disbursementDate).toLocaleDateString('en-US', { month: 'long', day: 'numeric', year: 'numeric' }) : 'N/A',
+            processedTime: l.disbursementDate ? new Date(l.disbursementDate).toLocaleTimeString('en-US', { hour: '2-digit', minute: '2-digit' }) : 'N/A',
+            paymentMethod: l.paymentMethod ? (l.paymentMethod.toLowerCase() === 'e-wallet' ? 'E-Wallet' : l.paymentMethod.toLowerCase() === 'bank' ? 'Bank Transfer' : 'Cash') : 'Cash',
+            reference: l.reference || ''
+        }));
     }, [recordsData]);
 
-    useEffect(() => {
-        setLoading(loadingRecords);
-    }, [loadingRecords]);
+    const totalCount = recordsData?.totalCount || 0;
+    const loading = loadingRecords && !recordsData;
 
     useEffect(() => {
         setPage(1);
     }, [debouncedSearch, activeFilter]);
 
-    const totalProcessed = totalCount;
-    // These need to be fetched from backend for accuracy if we want filtered counts
-    // For now keep them as totalCount or similar
-    const cashCount = records.filter(r => r.paymentMethod === 'Cash').length;
-    const gcashCount = records.filter(r => r.paymentMethod === 'E-Wallet').length; 
-    const bankTransferCount = records.filter(r => r.paymentMethod === 'Bank Transfer').length;
+    const totalProcessed = recordsData?.stats?.disbursedCount ?? totalCount;
+    const cashCount = recordsData?.stats?.disbursedCash ?? 0;
+    const gcashCount = recordsData?.stats?.disbursedEWallet ?? 0;
+    const bankTransferCount = recordsData?.stats?.disbursedBank ?? 0;
 
     const filteredRecords = records;
 

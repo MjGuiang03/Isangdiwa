@@ -1,154 +1,148 @@
-import { useState, useEffect, useCallback, useRef } from 'react';
+import { useState, useEffect, useRef, useMemo } from 'react';
 import { useNavigate } from 'react-router';
 import { useAuth } from '../../context/AuthContext';
 import { Bell, Banknote, Heart, CalendarDays, Circle, X, Menu, Lock } from 'lucide-react';
+import useSWR from 'swr';
 import API from '../../utils/api';
+
+const fetcherSingle = (url) => {
+    const token = localStorage.getItem('token');
+    if (!token) return Promise.resolve(null);
+    return fetch(url, { headers: { Authorization: `Bearer ${token}` } }).then(async res => {
+        const ct = res.headers.get('content-type');
+        if (!res.ok || !ct || !ct.includes('application/json')) return null;
+        return res.json();
+    }).catch(() => null);
+};
 
 export default function UserHeader({ toggleSidebar, collapsed }) {
   const navigate = useNavigate();
   const { profile } = useAuth();
   const token = localStorage.getItem('token');
-  const [notifItems, setNotifItems] = useState([]);
-  const [readIds, setReadIds] = useState(new Set());
   const [showNotifDropdown, setShowNotifDropdown] = useState(false);
-  const [unreadNotifCount, setUnreadNotifCount] = useState(0);
 
   const dropdownRef = useRef(null);
 
   /* --- Notification Fetching --- */
-  const fetchNotifications = useCallback(async () => {
-    if (!token) return;
-    const headers = { Authorization: `Bearer ${token}` };
+  const { data: feedData, mutate: mutateFeed } = useSWR(
+    token ? `${API}/api/notifications/feed` : null,
+    fetcherSingle,
+    { revalidateOnFocus: false, dedupingInterval: 30000, refreshInterval: 60000 }
+  );
 
-    try {
-      const res = await fetch(`${API}/api/notifications/feed`, { headers });
-      
-      const contentType = res.headers.get("content-type");
-      if (!res.ok || !contentType || !contentType.includes("application/json")) {
-        return;
-      }
-
-      const data = await res.json();
-      if (!data.success) throw new Error(data.message || 'Failed to fetch feed');
-
-      const { readIds: readIdsFromData, payments, loans: loansDataFeed, donations: donationsDataFeed, attendance: attendanceDataFeed, savings: savingsDataFeed, securityNotifications: secDataFeed } = data;
-
-      const currentReadIds = new Set(readIdsFromData || []);
-      setReadIds(currentReadIds);
-
-      const items = [];
-      if (loansDataFeed) {
-        loansDataFeed.forEach(l => {
-          if (l.status === 'awaiting_member_approval') {
-            items.push({ id: `loan-terms-${l._id}`, type: 'loan', title: 'Terms Modified', message: `Review proposed terms for loan ${l.loanId}.`, timestamp: l.updatedAt || l.createdAt });
-          }
-          if (l.status === 'approved') {
-            items.push({ id: `loan-app-${l._id}`, type: 'loan', title: 'Loan Approved', message: `Your loan ${l.loanId} has been approved.`, timestamp: l.updatedAt || l.createdAt });
-          }
-          if (l.status === 'active' && l.disbursed) {
-            const term = l.termMonths || 12;
-            const paidMonths = l.paidMonths || 0;
-            if (paidMonths < term && l.disbursementDate) {
-              const startDate = new Date(l.disbursementDate);
-              const nextDue = new Date(startDate);
-              nextDue.setMonth(startDate.getMonth() + paidMonths + 1);
-              const cutoffDate = new Date(nextDue);
-              cutoffDate.setDate(nextDue.getDate() + 3);
-              cutoffDate.setHours(23, 59, 59, 999);
-              
-              if (Date.now() > cutoffDate.getTime()) {
-                items.push({ 
-                  id: `loan-late-${l._id}-${paidMonths}`, 
-                  type: 'loan', 
-                  title: 'Payment Overdue', 
-                  message: `Your payment for loan ${l.loanId} is late. Please settle to avoid further penalties.`, 
-                  timestamp: cutoffDate.toISOString() 
-                });
-              }
+  const { notifItems, readIds, unreadNotifCount } = useMemo(() => {
+    if (!feedData?.success) return { notifItems: [], readIds: new Set(), unreadNotifCount: 0 };
+    const { readIds: readIdsFromData, payments, loans: loansDataFeed, donations: donationsDataFeed, attendance: attendanceDataFeed, savings: savingsDataFeed, securityNotifications: secDataFeed } = feedData;
+    const currentReadIds = new Set(readIdsFromData || []);
+    const items = [];
+    
+    if (loansDataFeed) {
+      loansDataFeed.forEach(l => {
+        if (l.status === 'awaiting_member_approval') {
+          items.push({ id: `loan-terms-${l._id}`, type: 'loan', title: 'Terms Modified', message: `Review proposed terms for loan ${l.loanId}.`, timestamp: l.updatedAt || l.createdAt });
+        }
+        if (l.status === 'approved') {
+          items.push({ id: `loan-app-${l._id}`, type: 'loan', title: 'Loan Approved', message: `Your loan ${l.loanId} has been approved.`, timestamp: l.updatedAt || l.createdAt });
+        }
+        if (l.status === 'active' && l.disbursed) {
+          const term = l.termMonths || 12;
+          const paidMonths = l.paidMonths || 0;
+          if (paidMonths < term && l.disbursementDate) {
+            const startDate = new Date(l.disbursementDate);
+            const nextDue = new Date(startDate);
+            nextDue.setMonth(startDate.getMonth() + paidMonths + 1);
+            const cutoffDate = new Date(nextDue);
+            cutoffDate.setDate(nextDue.getDate() + 3);
+            cutoffDate.setHours(23, 59, 59, 999);
+            
+            if (Date.now() > cutoffDate.getTime()) {
+              items.push({ 
+                id: `loan-late-${l._id}-${paidMonths}`, 
+                type: 'loan', 
+                title: 'Payment Overdue', 
+                message: `Your payment for loan ${l.loanId} is late. Please settle to avoid further penalties.`, 
+                timestamp: cutoffDate.toISOString() 
+              });
             }
-            items.push({ id: `loan-disbursed-${l._id}`, type: 'loan', title: 'Loan Disbursed', message: `Your loan ${l.loanId} has been successfully disbursed.`, timestamp: l.disbursementDate || l.updatedAt });
           }
-          if (l.status === 'rejected') {
-            items.push({ id: `loan-rejected-${l._id}`, type: 'loan', title: 'Loan Rejected', message: `Your loan application ${l.loanId} was rejected.`, timestamp: l.rejectedDate || l.updatedAt });
-          }
-        });
-      }
-      if (payments) {
-        payments.forEach(p => {
-          if (p.status === 'pending') {
-            items.push({ id: `payment-pending-${p._id}`, type: 'payment_pending', title: 'Payment Submitted', message: `Month #${p.monthNumber} payment for ${p.loanId} is pending.`, timestamp: p.submittedAt || p.createdAt });
-          }
-          if (p.status === 'confirmed') {
-            items.push({ id: `payment-confirmed-${p._id}`, type: 'payment_confirmed', title: 'Payment Confirmed', message: `Payment of ₱${p.amount.toLocaleString()} for ${p.loanId} confirmed.`, timestamp: p.confirmedAt || p.updatedAt });
-          }
-          if (p.status === 'rejected') {
-            items.push({ id: `payment-rejected-${p._id}`, type: 'payment_rejected', title: 'Payment Rejected', message: `Your payment for ${p.loanId} was rejected.`, timestamp: p.rejectedAt || p.updatedAt });
-          }
-        });
-      }
-      if (donationsDataFeed) {
-        donationsDataFeed.forEach(d => {
-          if (d.status === 'pending') {
-            items.push({ id: `don-pending-${d._id}`, type: 'donation', title: 'Donation Under Approval', message: `₱${Number(d.amount).toLocaleString()} donation pending manual review.`, timestamp: d.createdAt || d.date });
-          } else if (d.status === 'confirmed') {
-            items.push({ id: `don-${d._id}`, type: 'donation', title: 'Donation Received', message: `₱${Number(d.amount).toLocaleString()} donation confirmed.`, timestamp: d.updatedAt || d.date || d.createdAt });
-          }
-        });
-      }
-      if (attendanceDataFeed) {
-        attendanceDataFeed.slice(0, 5).forEach(a => {
-          items.push({ id: `att-${a._id}`, type: 'attendance', title: 'Attendance Recorded', message: `Attended ${a.service || 'Sunday Service'}.`, timestamp: a.createdAt || a.date });
-        });
-      }
-      if (savingsDataFeed) {
-        savingsDataFeed.filter(s => s.type === 'deposit' && s.status === 'confirmed').forEach(s => {
-          items.push({ 
-            id: `sav-${s._id}`, 
-            type: 'savings', 
-            title: 'Savings Validated', 
-            message: `Your deposit of ₱${s.amount.toLocaleString()} is now confirmed.`, 
-            timestamp: s.date || s.createdAt 
-          });
-        });
-        savingsDataFeed.filter(s => s.type === 'withdrawal' && s.status === 'confirmed').forEach(s => {
-          items.push({ 
-            id: `sav-wd-${s._id}`, 
-            type: 'savings_withdrawal', 
-            title: 'Withdrawal Successful', 
-            message: `Your withdrawal of ₱${s.amount.toLocaleString()} from ${s.goalName || 'your savings'} has been approved.`, 
-            timestamp: s.confirmedAt || s.date || s.createdAt 
-          });
-        });
-      }
-      if (secDataFeed) {
-        secDataFeed.forEach(s => {
-          items.push({
-            id: s.id,
-            type: 'security',
-            title: s.title,
-            message: s.message,
-            timestamp: s.timestamp
-          });
-        });
-      }
-
-      items.sort((a, b) => {
-        const timeA = new Date(a.timestamp || 0).getTime();
-        const timeB = new Date(b.timestamp || 0).getTime();
-        return (isNaN(timeB) ? 0 : timeB) - (isNaN(timeA) ? 0 : timeA);
+          items.push({ id: `loan-disbursed-${l._id}`, type: 'loan', title: 'Loan Disbursed', message: `Your loan ${l.loanId} has been successfully disbursed.`, timestamp: l.disbursementDate || l.updatedAt });
+        }
+        if (l.status === 'rejected') {
+          items.push({ id: `loan-rejected-${l._id}`, type: 'loan', title: 'Loan Rejected', message: `Your loan application ${l.loanId} was rejected.`, timestamp: l.rejectedDate || l.updatedAt });
+        }
       });
-      setNotifItems(items.slice(0, 5));
-      setUnreadNotifCount(items.filter(it => !currentReadIds.has(it.id)).length);
-    } catch (err) {
-      console.error('Failed to fetch header notifications:', err);
     }
-  }, [token]);
+    if (payments) {
+      payments.forEach(p => {
+        if (p.status === 'pending') {
+          items.push({ id: `payment-pending-${p._id}`, type: 'payment_pending', title: 'Payment Submitted', message: `Month #${p.monthNumber} payment for ${p.loanId} is pending.`, timestamp: p.submittedAt || p.createdAt });
+        }
+        if (p.status === 'confirmed') {
+          items.push({ id: `payment-confirmed-${p._id}`, type: 'payment_confirmed', title: 'Payment Confirmed', message: `Payment of ₱${p.amount.toLocaleString()} for ${p.loanId} confirmed.`, timestamp: p.confirmedAt || p.updatedAt });
+        }
+        if (p.status === 'rejected') {
+          items.push({ id: `payment-rejected-${p._id}`, type: 'payment_rejected', title: 'Payment Rejected', message: `Your payment for ${p.loanId} was rejected.`, timestamp: p.rejectedAt || p.updatedAt });
+        }
+      });
+    }
+    if (donationsDataFeed) {
+      donationsDataFeed.forEach(d => {
+        if (d.status === 'pending') {
+          items.push({ id: `don-pending-${d._id}`, type: 'donation', title: 'Donation Under Approval', message: `₱${Number(d.amount).toLocaleString()} donation pending manual review.`, timestamp: d.createdAt || d.date });
+        } else if (d.status === 'confirmed') {
+          items.push({ id: `don-${d._id}`, type: 'donation', title: 'Donation Received', message: `₱${Number(d.amount).toLocaleString()} donation confirmed.`, timestamp: d.updatedAt || d.date || d.createdAt });
+        }
+      });
+    }
+    if (attendanceDataFeed) {
+      attendanceDataFeed.slice(0, 5).forEach(a => {
+        items.push({ id: `att-${a._id}`, type: 'attendance', title: 'Attendance Recorded', message: `Attended ${a.service || 'Sunday Service'}.`, timestamp: a.createdAt || a.date });
+      });
+    }
+    if (savingsDataFeed) {
+      savingsDataFeed.filter(s => s.type === 'deposit' && s.status === 'confirmed').forEach(s => {
+        items.push({ 
+          id: `sav-${s._id}`, 
+          type: 'savings', 
+          title: 'Savings Validated', 
+          message: `Your deposit of ₱${s.amount.toLocaleString()} is now confirmed.`, 
+          timestamp: s.date || s.createdAt 
+        });
+      });
+      savingsDataFeed.filter(s => s.type === 'withdrawal' && s.status === 'confirmed').forEach(s => {
+        items.push({ 
+          id: `sav-wd-${s._id}`, 
+          type: 'savings_withdrawal', 
+          title: 'Withdrawal Successful', 
+          message: `Your withdrawal of ₱${s.amount.toLocaleString()} from ${s.goalName || 'your savings'} has been approved.`, 
+          timestamp: s.confirmedAt || s.date || s.createdAt 
+        });
+      });
+    }
+    if (secDataFeed) {
+      secDataFeed.forEach(s => {
+        items.push({
+          id: s.id,
+          type: 'security',
+          title: s.title,
+          message: s.message,
+          timestamp: s.timestamp
+        });
+      });
+    }
 
-  useEffect(() => {
-    fetchNotifications();
-    const interval = setInterval(fetchNotifications, 120000);
-    return () => clearInterval(interval);
-  }, [fetchNotifications]);
+    items.sort((a, b) => {
+      const timeA = new Date(a.timestamp || 0).getTime();
+      const timeB = new Date(b.timestamp || 0).getTime();
+      return (isNaN(timeB) ? 0 : timeB) - (isNaN(timeA) ? 0 : timeA);
+    });
+    
+    return {
+        notifItems: items.slice(0, 5),
+        readIds: currentReadIds,
+        unreadNotifCount: items.filter(it => !currentReadIds.has(it.id)).length
+    };
+  }, [feedData]);
 
   const markAsRead = async (id) => {
     if (readIds.has(id)) return;
@@ -158,8 +152,7 @@ export default function UserHeader({ toggleSidebar, collapsed }) {
         headers: { Authorization: `Bearer ${token}`, 'Content-Type': 'application/json' },
         body: JSON.stringify({ ids: [id] })
       });
-      setReadIds(prev => new Set([...prev, id]));
-      setUnreadNotifCount(c => Math.max(0, c - 1));
+      mutateFeed();
     } catch (e) { console.error(e); }
   };
 
@@ -172,8 +165,7 @@ export default function UserHeader({ toggleSidebar, collapsed }) {
         headers: { Authorization: `Bearer ${token}`, 'Content-Type': 'application/json' },
         body: JSON.stringify({ ids: unread })
       });
-      setReadIds(prev => new Set([...prev, ...unread]));
-      setUnreadNotifCount(0);
+      mutateFeed();
     } catch (e) { console.error(e); }
   };
 

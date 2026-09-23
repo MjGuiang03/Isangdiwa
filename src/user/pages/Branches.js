@@ -10,6 +10,15 @@ import useSwipeToClose, { DragHandle } from '../hooks/useSwipeToClose';
 
 const BranchMap = lazy(() => import('../components/BranchMap'));
 
+const fetcher = (url) => fetch(url).then(res => res.json());
+const authFetcher = async (url) => {
+  const token = localStorage.getItem('token');
+  const res = await fetch(url, {
+    headers: { Authorization: `Bearer ${token}` }
+  });
+  return res.json();
+};
+
 export default function Branches() {
   const { profile } = useAuth();
   const navigate = useNavigate();
@@ -24,17 +33,10 @@ export default function Branches() {
   const flyToRef = useRef(null);
 
   const token = localStorage.getItem('token');
-  const fetcher = (url) => fetch(url).then(res => res.json());
-  const authFetcher = async (url) => {
-    const res = await fetch(url, {
-      headers: { Authorization: `Bearer ${token}` }
-    });
-    return res.json();
-  };
 
-  const { data: branchesData } = useSWR(`${API}/api/public/branches`, fetcher, { revalidateOnFocus: false });
-  const { data: eventsData } = useSWR(`${API}/api/admin/announcements`, fetcher, { revalidateOnFocus: false });
-  const { data: visitedData } = useSWR(token ? `${API}/api/attendance/visited-stats` : null, authFetcher, { revalidateOnFocus: false });
+  const { data: branchesData } = useSWR(`${API}/api/public/branches`, fetcher, { revalidateOnFocus: false, dedupingInterval: 60000, keepPreviousData: true });
+  const { data: eventsData } = useSWR(`${API}/api/admin/announcements`, fetcher, { revalidateOnFocus: false, dedupingInterval: 60000, keepPreviousData: true });
+  const { data: visitedData } = useSWR(token ? `${API}/api/attendance/visited-stats` : null, authFetcher, { revalidateOnFocus: false, dedupingInterval: 60000, keepPreviousData: true });
 
   const allBranches = useMemo(() => {
     const map = new Map();
@@ -97,6 +99,17 @@ export default function Branches() {
       return ev.targetBranches === drawerBranch.name;
     });
   }, [drawerBranch, events]);
+
+  const groupedAndFilteredBranches = useMemo(() => {
+    const searchLower = search.toLowerCase();
+    return REGION_ORDER.map(regionKey => {
+      const regionBranches = allBranches.filter(b => b.region === regionKey);
+      const filtered = search
+        ? regionBranches.filter(b => b.name.toLowerCase().includes(searchLower))
+        : regionBranches;
+      return { regionKey, filtered };
+    });
+  }, [allBranches, search]);
 
   const toggleRegion = (key) => {
     setOpenRegions(prev => {
@@ -223,11 +236,7 @@ export default function Branches() {
 
           {/* Region accordion list */}
           <div className="flex-1 overflow-y-auto divide-y divide-slate-100 dark:divide-white/5">
-            {REGION_ORDER.map(regionKey => {
-              const regionBranches = allBranches.filter(b => b.region === regionKey);
-              const filtered = search
-                ? regionBranches.filter(b => b.name.toLowerCase().includes(search.toLowerCase()))
-                : regionBranches;
+            {groupedAndFilteredBranches.map(({ regionKey, filtered }) => {
               if (filtered.length === 0) return null;
               const isOpen = openRegions.has(regionKey) || !!search;
               return (

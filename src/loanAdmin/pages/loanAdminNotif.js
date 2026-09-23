@@ -1,4 +1,4 @@
-import { useState, useEffect } from 'react';
+import { useState, useEffect, useMemo } from 'react';
 import useSWR from 'swr';
 import { useNavigate } from 'react-router';
 import { toast } from 'sonner';
@@ -62,18 +62,10 @@ const getNotifMetaInfo = (notif) => {
     };
 };
 
-export default function LoanAdminNotif() {
-    const navigate = useNavigate();
-    const [activeFilter, setActiveFilter] = useState('all');
-    const [currentPage, setCurrentPage] = useState(1);
-    const ITEMS_PER_PAGE = 10;
-    
-    const [notifications, setNotifications] = useState([]);
-    const [loading, setLoading] = useState(true);
-    const [detailModal, setDetailModal] = useState(null);
-
+const fetcherSingle = (url) => {
     const token = localStorage.getItem('adminToken');
-    const fetcherSingle = (url) => fetch(url, { headers: { Authorization: `Bearer ${token}` } }).then(async res => {
+    if (!token) throw new Error('AuthError');
+    return fetch(url, { headers: { Authorization: `Bearer ${token}` } }).then(async res => {
         if (!res.ok) {
             if (res.status === 401 || res.status === 403) throw new Error('AuthError');
             const data = await res.json();
@@ -81,12 +73,26 @@ export default function LoanAdminNotif() {
         }
         return res.json();
     });
+};
+
+export default function LoanAdminNotif() {
+    const navigate = useNavigate();
+    const [activeFilter, setActiveFilter] = useState('all');
+    const [currentPage, setCurrentPage] = useState(1);
+    const ITEMS_PER_PAGE = 10;
+    
+    const [notifications, setNotifications] = useState([]);
+    const [detailModal, setDetailModal] = useState(null);
+
+    const token = localStorage.getItem('adminToken');
 
     const { data: notifData, error: notifError, isValidating: loadingNotifs } = useSWR(
         token ? `${API}/api/admin/notifications` : null,
         fetcherSingle,
-        { revalidateOnFocus: false, revalidateIfStale: true }
+        { revalidateOnFocus: false, dedupingInterval: 30000, keepPreviousData: true }
     );
+
+    const loading = loadingNotifs && !notifData;
 
     useEffect(() => {
         if (notifError) {
@@ -109,23 +115,16 @@ export default function LoanAdminNotif() {
     }, [notifData]);
 
     useEffect(() => {
-        setLoading(loadingNotifs && !notifData);
-    }, [loadingNotifs, notifData]);
-
-    useEffect(() => {
         if (!token) { navigate('/'); }
     }, [navigate, token]);
 
-    const getFilteredNotifications = () => {
-        if (activeFilter === 'all') return notifications;
+    const filteredNotifications = useMemo(() => {
         if (activeFilter === 'unread') return notifications.filter(n => !n.isRead);
         if (activeFilter === 'read') return notifications.filter(n => n.isRead);
         return notifications;
-    };
+    }, [notifications, activeFilter]);
 
-    const getUnreadCount = () => {
-        return notifications.filter(n => !n.isRead).length;
-    };
+    const unreadCount = useMemo(() => notifications.filter(n => !n.isRead).length, [notifications]);
 
     const performReadUpdate = async (idsArray) => {
         try {
@@ -152,7 +151,6 @@ export default function LoanAdminNotif() {
         if (ids.length > 0) performReadUpdate(ids);
     };
 
-    const filteredNotifications = getFilteredNotifications();
     const totalPages = Math.ceil(filteredNotifications.length / ITEMS_PER_PAGE);
     const paginatedNotifications = filteredNotifications.slice(
         (currentPage - 1) * ITEMS_PER_PAGE,
@@ -217,7 +215,7 @@ export default function LoanAdminNotif() {
                                 { key: 'unread', label: 'Unread' },
                                 { key: 'read',   label: 'Read' }
                             ].map(({ key, label }) => {
-                                const count = key === 'unread' ? getUnreadCount() : 0;
+                                const count = key === 'unread' ? unreadCount : 0;
                                 return (
                                     <button
                                         key={key}

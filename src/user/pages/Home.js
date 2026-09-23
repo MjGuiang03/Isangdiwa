@@ -4,29 +4,25 @@ import { useNavigate } from 'react-router';
 import { useAuth } from '../../context/AuthContext';
 
 import API from '../../utils/api';
-import { Banknote, CalendarDays, CheckCircle, ChevronRight, ChevronLeft, Clock, Heart, MapPin, PiggyBank, Wallet, FileText, BookOpen, Target, X, Sparkles } from 'lucide-react';
+import { ArrowRight, Banknote, CalendarDays, CheckCircle, ChevronRight, ChevronLeft, Clock, Heart, Landmark, MapPin, PiggyBank, Wallet, BookOpen, Target, X, Sparkles } from 'lucide-react';
 import { isOfficerPosition } from '../../utils/officerPositions';
 
 
+
+const fetcherSingle = (url) => {
+    const token = localStorage.getItem('token');
+    if (!token) return Promise.resolve(null);
+    return fetch(url, { headers: { Authorization: `Bearer ${token}` } }).then(res => {
+        if (res.status === 401) { window.location.href = '/'; return null; }
+        return res.json();
+    }).catch(() => null);
+};
 
 export default function Home() {
   const navigate = useNavigate();
   const { profile } = useAuth();
 
-  const [loanStats, setLoanStats] = useState({ activeCount: 0, remainingBalance: 0 });
-  const [activeLoansList, setActiveLoansList] = useState([]);
-  const [rejectedLoansCount, setRejectedLoansCount] = useState(0);
 
-  const [donationStats, setDonationStats] = useState({ totalDonated: 0 });
-  const [monthlyDonationCount, setMonthlyDonationCount] = useState(0);
-  const [attendanceCount, setAttendanceCount] = useState(0);
-
-  const [recentActivity, setRecentActivity] = useState([]);
-  const [savingsStats, setSavingsStats] = useState({ totalSavings: 0, thisMonth: 0 });
-  const [savingsGoalsList, setSavingsGoalsList] = useState([]);
-  const [upcomingEvents, setUpcomingEvents] = useState([]);
-  const [allAnnouncements, setAllAnnouncements] = useState([]);
-  const [loading, setLoading] = useState(true);
 
   /* User interaction modals */
   const [selectedEvent, setSelectedEvent] = useState(null);
@@ -65,96 +61,66 @@ export default function Home() {
   const token = localStorage.getItem('token');
   const branch = profile?.branch || '';
 
-  const singleFetcher = (url) =>
-    fetch(url, { headers: { Authorization: `Bearer ${token}` } }).then(res => res.ok ? res.json() : { success: false });
+  const { data: loansData, isValidating: isValidatingLoans } = useSWR(token ? `${API}/api/loans/my-loans` : null, fetcherSingle, { revalidateOnFocus: false, dedupingInterval: 30000, keepPreviousData: true });
+  const { data: donationsData } = useSWR(token ? `${API}/api/donations/my-donations` : null, fetcherSingle, { revalidateOnFocus: false, dedupingInterval: 30000, keepPreviousData: true });
+  const { data: attendanceData } = useSWR(token ? `${API}/api/attendance/my-attendance` : null, fetcherSingle, { revalidateOnFocus: false, dedupingInterval: 30000, keepPreviousData: true });
+  const { data: annData } = useSWR(token ? `${API}/api/admin/announcements${branch ? `?branch=${encodeURIComponent(branch)}` : ''}` : null, fetcherSingle, { revalidateOnFocus: false, dedupingInterval: 30000, keepPreviousData: true });
+  const { data: savingsData } = useSWR(token ? `${API}/api/savings/stats` : null, fetcherSingle, { revalidateOnFocus: false, dedupingInterval: 30000, keepPreviousData: true });
+  const { data: savingsGoalsData } = useSWR(token ? `${API}/api/savings/goals` : null, fetcherSingle, { revalidateOnFocus: false, dedupingInterval: 30000, keepPreviousData: true });
+  const { data: prayersData } = useSWR(token ? `${API}/api/prayers` : null, fetcherSingle, { revalidateOnFocus: false, dedupingInterval: 30000, keepPreviousData: true });
+  const { data: savingsTxnData } = useSWR(token ? `${API}/api/savings/transactions?limit=5` : null, fetcherSingle, { revalidateOnFocus: false, dedupingInterval: 30000, keepPreviousData: true });
+  const { data: loanPaymentsData } = useSWR(token ? `${API}/api/loans/my-payments` : null, fetcherSingle, { revalidateOnFocus: false, dedupingInterval: 30000, keepPreviousData: true });
 
-  const { data: loansData } = useSWR(token ? `${API}/api/loans/my-loans` : null, singleFetcher, { revalidateOnFocus: false, dedupingInterval: 10000 });
-  const { data: donationsData } = useSWR(token ? `${API}/api/donations/my-donations` : null, singleFetcher, { revalidateOnFocus: false, dedupingInterval: 10000 });
-  const { data: attendanceData } = useSWR(token ? `${API}/api/attendance/my-attendance` : null, singleFetcher, { revalidateOnFocus: false, dedupingInterval: 10000 });
-  const { data: annData } = useSWR(token ? `${API}/api/admin/announcements${branch ? `?branch=${encodeURIComponent(branch)}` : ''}` : null, singleFetcher, { revalidateOnFocus: false, dedupingInterval: 10000 });
-  const { data: savingsData } = useSWR(token ? `${API}/api/savings/stats` : null, singleFetcher, { revalidateOnFocus: false, dedupingInterval: 10000 });
-  const { data: savingsGoalsData } = useSWR(token ? `${API}/api/savings/goals` : null, singleFetcher, { revalidateOnFocus: false, dedupingInterval: 10000 });
-  const { data: prayersData } = useSWR(token ? `${API}/api/prayers` : null, singleFetcher, { revalidateOnFocus: false, dedupingInterval: 10000 });
-  const { data: savingsTxnData } = useSWR(token ? `${API}/api/savings/transactions?limit=5` : null, singleFetcher, { revalidateOnFocus: false, dedupingInterval: 10000 });
-  const { data: loanPaymentsData } = useSWR(token ? `${API}/api/loans/my-payments` : null, singleFetcher, { revalidateOnFocus: false, dedupingInterval: 10000 });
+  const loanStats = useMemo(() => loansData?.success ? (loansData.stats || { activeCount: 0, remainingBalance: 0 }) : { activeCount: 0, remainingBalance: 0 }, [loansData]);
+  const activeLoansList = useMemo(() => loansData?.success ? (loansData.loans || []).filter(l => l.status === 'active') : [], [loansData]);
+  const rejectedLoansCount = useMemo(() => loansData?.success ? (loansData.loans || []).filter(l => l.status === 'rejected').length : 0, [loansData]);
 
-  /* Update domain states progressively as data arrives */
-  useEffect(() => {
-    if (!loansData) return;
-    if (loansData.success) {
-      setLoanStats(loansData.stats || { activeCount: 0, remainingBalance: 0 });
-      setActiveLoansList((loansData.loans || []).filter(l => l.status === 'active'));
-      setRejectedLoansCount((loansData.loans || []).filter(l => l.status === 'rejected').length);
-    }
-  }, [loansData]);
-
-  useEffect(() => {
-    if (!donationsData) return;
-    if (donationsData.success) {
-      setDonationStats(donationsData.stats || { totalDonated: 0 });
-      const now = new Date();
-      const thisMonth = now.getMonth();
-      const thisYear = now.getFullYear();
-      const monthlyDons = (donationsData.donations || []).filter(d => {
-        const dt = new Date(d.createdAt);
-        return dt.getMonth() === thisMonth && dt.getFullYear() === thisYear;
-      });
-      setMonthlyDonationCount(monthlyDons.length);
-    }
+  const donationStats = useMemo(() => donationsData?.success ? (donationsData.stats || { totalDonated: 0 }) : { totalDonated: 0 }, [donationsData]);
+  const monthlyDonationCount = useMemo(() => {
+    if (!donationsData?.success) return 0;
+    const now = new Date();
+    const thisMonth = now.getMonth();
+    const thisYear = now.getFullYear();
+    const monthlyDons = (donationsData.donations || []).filter(d => {
+      const dt = new Date(d.createdAt);
+      return dt.getMonth() === thisMonth && dt.getFullYear() === thisYear;
+    });
+    return monthlyDons.length;
   }, [donationsData]);
 
-  useEffect(() => {
-    if (!attendanceData) return;
-    if (attendanceData.success) {
-      setAttendanceCount((attendanceData.attendance || []).length);
-    }
-  }, [attendanceData]);
+  const attendanceCount = useMemo(() => attendanceData?.success ? (attendanceData.attendance || []).length : 0, [attendanceData]);
 
-  useEffect(() => {
-    if (!savingsData) return;
-    if (savingsData.success) {
-      setSavingsStats(savingsData.stats || { totalSavings: 0, thisMonth: 0 });
-    }
-  }, [savingsData]);
+  const savingsStats = useMemo(() => savingsData?.success ? (savingsData.stats || { totalSavings: 0, thisMonth: 0 }) : { totalSavings: 0, thisMonth: 0 }, [savingsData]);
+  const savingsGoalsList = useMemo(() => savingsGoalsData?.success ? (savingsGoalsData.goals || []).filter(g => g.status !== 'completed') : [], [savingsGoalsData]);
 
-  useEffect(() => {
-    if (!savingsGoalsData) return;
-    if (savingsGoalsData.success) {
-      setSavingsGoalsList((savingsGoalsData.goals || []).filter(g => g.status !== 'completed'));
-    }
-  }, [savingsGoalsData]);
-
-  useEffect(() => {
-    if (!annData) return;
-    if (annData.success) {
-      const list = (annData.announcements || []).map(ann => {
-        const d = ann.eventDate ? new Date(ann.eventDate) : new Date(ann.createdAt);
-        const text = ann.content || ann.body || '';
-        const vis = ann.visibility;
-        const branches = ann.targetBranches;
-        const branchLabel = (!vis || vis === 'all') ? 'All Branches'
-          : (vis === 'branches' && Array.isArray(branches) && branches.length > 0)
-            ? branches.join(', ')
-            : vis;
-        const timeLabel = ann.eventDate ? new Date(ann.eventDate).toLocaleTimeString('en-US', { hour: 'numeric', minute: '2-digit', hour12: true }) : '';
-        return {
-          ...ann,
-          day: d.getDate().toString(),
-          month: d.toLocaleString('en-US', { month: 'short' }).toUpperCase(),
-          title: ann.title,
-          body: text.length > 80 ? text.substring(0, 80) + '...' : text,
-          fullBody: text,
-          dateObj: d,
-          time: timeLabel,
-          category: ann.category || 'General',
-          branch: branchLabel,
-          tag: ann.category || 'General',
-        };
-      });
-      list.sort((a, b) => b.dateObj - a.dateObj);
-      setAllAnnouncements(list);
-      setUpcomingEvents(list.slice(0, 4));
-    }
+  const { allAnnouncements, upcomingEvents } = useMemo(() => {
+    if (!annData?.success) return { allAnnouncements: [], upcomingEvents: [] };
+    const list = (annData.announcements || []).map(ann => {
+      const d = ann.eventDate ? new Date(ann.eventDate) : new Date(ann.createdAt);
+      const text = ann.content || ann.body || '';
+      const vis = ann.visibility;
+      const branches = ann.targetBranches;
+      const branchLabel = (!vis || vis === 'all') ? 'All Branches'
+        : (vis === 'branches' && Array.isArray(branches) && branches.length > 0)
+          ? branches.join(', ')
+          : vis;
+      const timeLabel = ann.eventDate ? new Date(ann.eventDate).toLocaleTimeString('en-US', { hour: 'numeric', minute: '2-digit', hour12: true }) : '';
+      return {
+        ...ann,
+        day: d.getDate().toString(),
+        month: d.toLocaleString('en-US', { month: 'short' }).toUpperCase(),
+        title: ann.title,
+        body: text.length > 80 ? text.substring(0, 80) + '...' : text,
+        fullBody: text,
+        dateObj: d,
+        time: timeLabel,
+        category: ann.category || 'General',
+        branch: branchLabel,
+        tag: ann.category || 'General',
+      };
+    });
+    list.sort((a, b) => b.dateObj - a.dateObj);
+    return { allAnnouncements: list, upcomingEvents: list.slice(0, 4) };
   }, [annData]);
 
   useEffect(() => {
@@ -164,8 +130,7 @@ export default function Home() {
     }
   }, [prayersData]);
 
-  /* Build recent activity as activity data sources arrive */
-  useEffect(() => {
+  const recentActivity = useMemo(() => {
     const activities = [];
 
     if (loansData?.success && loansData.loans?.length) {
@@ -255,15 +220,10 @@ export default function Home() {
       !(a.type === 'loan' && !a.title.includes('Payment') && loanIdsWithPayments.has(a.loanId))
     );
 
-    setRecentActivity(dedupedActivities.slice(0, 5));
+    return dedupedActivities.slice(0, 5);
   }, [loansData, loanPaymentsData, donationsData, attendanceData, savingsTxnData]);
 
-  /* Unblock full-screen loading state as soon as basic structure or any endpoint arrives */
-  useEffect(() => {
-    if (loansData || donationsData || savingsData || annData || attendanceData) {
-      setLoading(false);
-    }
-  }, [loansData, donationsData, savingsData, annData, attendanceData]);
+  const loading = isValidatingLoans && !loansData && !donationsData && !savingsData && !annData && !attendanceData;
 
   const [carouselFade, setCarouselFade] = useState(true);
 
@@ -327,51 +287,7 @@ export default function Home() {
     return new Date(date).toLocaleDateString('en-US', { month: 'short', day: 'numeric' });
   };
 
-  const quickActions = [
-    {
-      title: 'Manage Savings',
-      description: 'Deposit or withdraw funds',
-      cardBg: 'bg-emerald-500 hover:bg-emerald-600 dark:bg-emerald-600 dark:hover:bg-emerald-700',
-      iconBg: 'bg-white/20 text-white',
-      action: () => navigate('/savings'),
-      icon: <Wallet size={18} />
-    },
-    ...(isOfficer ? [
-      {
-        title: 'Loan Services',
-        description: 'Apply or track repayments',
-        cardBg: 'bg-amber-500 hover:bg-amber-600 dark:bg-amber-600 dark:hover:bg-amber-700',
-        iconBg: 'bg-white/20 text-white',
-        action: () => navigate('/loans'),
-        icon: <FileText size={18} />
-      }
-    ] : [
-      {
-        title: 'Prayer Request',
-        description: 'Share a prayer request',
-        cardBg: 'bg-purple-500 hover:bg-purple-600 dark:bg-purple-600 dark:hover:bg-purple-700',
-        iconBg: 'bg-white/20 text-white',
-        action: () => setShowPrayerModal(true),
-        icon: <Sparkles size={18} />
-      }
-    ]),
-    {
-      title: 'Make a Donation',
-      description: 'Support your community',
-      cardBg: 'bg-rose-400 hover:bg-rose-500 dark:bg-rose-500 dark:hover:bg-rose-600',
-      iconBg: 'bg-white/20 text-white',
-      action: () => navigate('/donation'),
-      icon: <Heart size={18} />
-    },
-    {
-      title: 'Check Attendance',
-      description: 'Mark today\'s presence',
-      cardBg: 'bg-blue-500 hover:bg-blue-600 dark:bg-blue-600 dark:hover:bg-blue-700',
-      iconBg: 'bg-white/20 text-white',
-      action: () => navigate('/attendance'),
-      icon: <CalendarDays size={18} />
-    },
-  ];
+
 
   const formatCurrency = (val) =>
     `₱${Number(val || 0).toLocaleString('en-PH', { minimumFractionDigits: 2, maximumFractionDigits: 2 })}`;
@@ -484,6 +400,70 @@ export default function Home() {
     }
   };
 
+  const calendarData = useMemo(() => {
+    const year = calendarDate.getFullYear();
+    const month = calendarDate.getMonth();
+    const firstDay = new Date(year, month, 1);
+    const startWeekday = (firstDay.getDay() + 6) % 7;
+    const daysInMonth = new Date(year, month + 1, 0).getDate();
+
+    const now = new Date();
+    const isCurrentMonth = now.getFullYear() === year && now.getMonth() === month;
+    const today = isCurrentMonth ? now.getDate() : -1;
+
+    const eventDays = {};
+    allAnnouncements.forEach(evt => {
+      if (evt.dateObj) {
+        const d = new Date(evt.dateObj);
+        if (d.getMonth() === month && d.getFullYear() === year) {
+          const day = d.getDate();
+          if (!eventDays[day]) eventDays[day] = [];
+          eventDays[day].push(evt);
+        }
+      }
+    });
+
+    const loanDueDates = [];
+    activeLoansList.forEach(loan => {
+      if (loan.nextPaymentDate) {
+        const d = new Date(loan.nextPaymentDate);
+        if (d.getMonth() === month && d.getFullYear() === year) {
+          const day = d.getDate();
+          const loanEvt = {
+            title: `Loan Payment Due — ${loan.loanId}`,
+            body: `₱${Number(loan.upcomingPaymentAmount || loan.monthlyPayment || 0).toLocaleString('en-PH', { minimumFractionDigits: 2 })} monthly payment`,
+            fullBody: `Monthly payment of ₱${Number(loan.upcomingPaymentAmount || loan.monthlyPayment || 0).toLocaleString('en-PH', { minimumFractionDigits: 2 })} is due for loan ${loan.loanId} (${loan.loanType || 'Personal'} Loan).`,
+            dateObj: d,
+            category: 'Loan Due',
+            time: '',
+            branch: '',
+            isLoanDue: true,
+            loanId: loan.loanId,
+            isLate: loan.isLate,
+          };
+          if (!eventDays[day]) eventDays[day] = [];
+          eventDays[day].push(loanEvt);
+          loanDueDates.push(loanEvt);
+        }
+      }
+    });
+
+    const cells = [];
+    for (let i = 0; i < startWeekday; i++) cells.push(null);
+    for (let d = 1; d <= daysInMonth; d++) cells.push(d);
+
+    const monthEvents = [
+      ...allAnnouncements.filter(evt => {
+        if (!evt.dateObj) return false;
+        const d = new Date(evt.dateObj);
+        return d.getMonth() === month && d.getFullYear() === year;
+      }),
+      ...loanDueDates
+    ].sort((a, b) => new Date(a.dateObj) - new Date(b.dateObj));
+
+    return { year, month, firstDay, startWeekday, daysInMonth, today, eventDays, cells, monthEvents, now };
+  }, [calendarDate, allAnnouncements, activeLoansList]);
+
 
 
   if (loading) {
@@ -517,19 +497,21 @@ export default function Home() {
         </div>
 
         {/* Main Content Grid Skeleton */}
-        <div className="grid grid-cols-1 lg:grid-cols-[0.85fr_1.5fr] gap-6">
+        <div className="grid grid-cols-1 lg:grid-cols-[1fr_1.2fr] gap-6">
           {/* Left Column Skeleton */}
           <div className="flex flex-col gap-6">
             {/* Quick Actions Skeleton */}
             <div className="bg-white dark:bg-[#1E2130] border border-slate-200/80 dark:border-white/10 rounded-2xl p-4 sm:p-5 shadow-sm space-y-3.5">
               <div className="flex items-center justify-between pb-2.5 border-b border-slate-100 dark:border-white/5">
                 <div className="h-4 w-28 bg-slate-200 dark:bg-slate-700/80 rounded" />
-                <div className="h-4 w-16 bg-slate-200 dark:bg-slate-700/80 rounded-full" />
               </div>
-              <div className="grid grid-cols-2 gap-2.5 sm:gap-3">
-                {[1, 2, 3, 4].map((j) => (
-                  <div key={j} className="h-14 bg-slate-100 dark:bg-slate-800/60 rounded-xl border border-slate-200/60 dark:border-white/5" />
-                ))}
+              <div className="flex flex-col gap-2.5">
+                <div className="h-16 bg-slate-200 dark:bg-slate-700/60 rounded-xl" />
+                <div className="h-14 bg-slate-100 dark:bg-slate-800/60 rounded-xl border border-slate-200/60 dark:border-white/5" />
+                <div className="grid grid-cols-2 gap-2.5">
+                  <div className="h-14 bg-slate-100 dark:bg-slate-800/60 rounded-xl border border-slate-200/60 dark:border-white/5" />
+                  <div className="h-14 bg-slate-100 dark:bg-slate-800/60 rounded-xl border border-slate-200/60 dark:border-white/5" />
+                </div>
               </div>
             </div>
 
@@ -730,37 +712,139 @@ export default function Home() {
       </div>
 
       {/* Main Content Grid: [Left col: QA + Overview] [Right col: Announcements] */}
-      <div className="grid grid-cols-1 lg:grid-cols-[0.85fr_1.5fr] gap-6">
+      <div className="grid grid-cols-1 lg:grid-cols-[1fr_1.2fr] gap-6">
 
         {/* Left column: Quick Actions stacked above My Overview */}
         <div className="flex flex-col gap-6">
 
-          {/* Quick Actions — compact */}
-          <div className="bg-white dark:bg-[#1E2130] border border-slate-200/80 dark:border-white/10 rounded-2xl p-4 sm:p-5 shadow-sm">
-            <div className="flex items-center justify-between mb-3.5 pb-2.5 border-b border-slate-100 dark:border-white/5">
-              <h2 className="text-xs font-bold text-slate-900 dark:text-white uppercase tracking-wider font-inter">Quick Actions</h2>
+          {/* ── Quick Actions — Premium Fintech Layout ── */}
+          <div className="bg-white dark:bg-[#1E2130] border border-slate-200/80 dark:border-white/10 rounded-[20px] p-4 sm:p-5 shadow-sm">
+
+            {/* Header */}
+            <div className="mb-3.5">
+              <h2 className="text-sm font-bold text-slate-900 dark:text-white font-inter m-0">Quick Actions</h2>
             </div>
-            <div className="grid grid-cols-2 gap-2.5">
-              {quickActions.map((action, i) => (
+
+            <div className="flex flex-col gap-2.5">
+
+              {/* ─── Primary Loan Card ─── */}
+              {isOfficer ? (
                 <button
-                  key={i}
                   type="button"
-                  onClick={action.action}
-                  className={`flex flex-col gap-2 p-3 rounded-xl hover:shadow-lg hover:-translate-y-0.5 active:translate-y-0 active:scale-[0.99] transition-all duration-200 cursor-pointer text-left w-full group ${action.cardBg}`}
+                  onClick={() => navigate('/loans')}
+                  className="relative overflow-hidden w-full rounded-2xl bg-gradient-to-r from-[#1a2a5e] via-[#243b8a] to-[#3054b9] dark:from-[#0f1b3d] dark:via-[#162557] dark:to-[#1e3272] p-4 sm:p-5 text-left cursor-pointer border-none group hover:shadow-xl hover:shadow-blue-900/20 dark:hover:shadow-blue-950/40 hover:-translate-y-0.5 active:translate-y-0 transition-all duration-300 focus:outline-none focus:ring-2 focus:ring-blue-500/50 focus:ring-offset-2 dark:focus:ring-offset-[#1E2130]"
                 >
-                  <div className={`w-8 h-8 rounded-lg flex items-center justify-center shrink-0 group-hover:scale-105 transition-transform ${action.iconBg}`}>
-                    {action.icon}
-                  </div>
-                  <div>
-                    <span className="block font-inter text-[11px] font-bold text-white leading-tight">
-                      {action.title}
-                    </span>
-                    <span className="block font-inter text-[10px] text-white/80 leading-tight mt-0.5">
-                      {action.description}
-                    </span>
+                  {/* Decorative background shapes */}
+                  <div className="absolute top-0 right-0 w-40 h-40 bg-white/[0.04] rounded-full -translate-y-1/2 translate-x-1/4 pointer-events-none" />
+                  <div className="absolute bottom-0 right-16 w-28 h-28 bg-white/[0.03] rounded-full translate-y-1/3 pointer-events-none" />
+
+                  <div className="relative flex flex-col gap-3">
+                    {/* Top row: Icon + Text */}
+                    <div className="flex items-start gap-3.5">
+                      <div className="w-12 h-12 rounded-xl bg-white/10 backdrop-blur-sm flex items-center justify-center shrink-0 group-hover:scale-105 transition-transform duration-300 border border-white/10">
+                        <Landmark size={22} className="text-white/90" />
+                      </div>
+                      <div className="flex-1 min-w-0">
+                        <span className="block text-[10px] font-bold text-blue-300/80 uppercase tracking-widest font-inter mb-0.5">Loan Services</span>
+                        <span className="block text-lg font-bold text-white font-inter leading-snug">Apply for a Loan</span>
+                        <span className="block text-[11px] text-white/50 font-inter mt-1 leading-relaxed">Apply for a new loan or manage your existing loans.</span>
+                      </div>
+                    </div>
+                    {/* CTA aligned right */}
+                    <div className="flex justify-end">
+                      <div className="inline-flex items-center gap-1.5 px-3.5 py-1.5 rounded-full bg-white/10 backdrop-blur-sm text-white text-[11px] font-semibold font-inter group-hover:bg-white/20 transition-colors border border-white/10">
+                        <span>View Loan Services</span>
+                        <ArrowRight size={13} className="group-hover:translate-x-0.5 transition-transform" />
+                      </div>
+                    </div>
                   </div>
                 </button>
-              ))}
+              ) : (
+                <button
+                  type="button"
+                  onClick={() => setShowPrayerModal(true)}
+                  className="relative overflow-hidden w-full rounded-2xl bg-gradient-to-r from-purple-700 via-purple-600 to-indigo-600 dark:from-purple-900 dark:via-purple-800 dark:to-indigo-800 p-4 sm:p-5 text-left cursor-pointer border-none group hover:shadow-xl hover:shadow-purple-900/20 hover:-translate-y-0.5 active:translate-y-0 transition-all duration-300 focus:outline-none focus:ring-2 focus:ring-purple-500/50 focus:ring-offset-2 dark:focus:ring-offset-[#1E2130]"
+                >
+                  <div className="absolute top-0 right-0 w-40 h-40 bg-white/[0.04] rounded-full -translate-y-1/2 translate-x-1/4 pointer-events-none" />
+                  <div className="absolute bottom-0 right-16 w-28 h-28 bg-white/[0.03] rounded-full translate-y-1/3 pointer-events-none" />
+
+                  <div className="relative flex items-start gap-3.5">
+                    <div className="w-12 h-12 rounded-xl bg-white/10 backdrop-blur-sm flex items-center justify-center shrink-0 group-hover:scale-105 transition-transform duration-300 border border-white/10">
+                      <Sparkles size={22} className="text-white/90" />
+                    </div>
+                    <div className="flex-1 min-w-0">
+                      <span className="block text-[10px] font-bold text-purple-300/80 uppercase tracking-widest font-inter mb-0.5">Prayer</span>
+                      <span className="block text-lg font-bold text-white font-inter leading-snug">Share a Prayer Request</span>
+                      <span className="block text-[11px] text-white/50 font-inter mt-1 leading-relaxed">Submit a prayer request to your community.</span>
+                    </div>
+                    <div className="w-9 h-9 rounded-full bg-white/10 flex items-center justify-center shrink-0 self-center group-hover:bg-white/20 transition-colors">
+                      <ArrowRight size={16} className="text-white group-hover:translate-x-0.5 transition-transform" />
+                    </div>
+                  </div>
+                </button>
+              )}
+
+              {/* ─── Secondary Cards: Savings + Donation ─── */}
+              <div className="grid grid-cols-1 sm:grid-cols-2 gap-2.5">
+
+                {/* Savings Card */}
+                <button
+                  type="button"
+                  onClick={() => navigate('/savings')}
+                  className="relative overflow-hidden flex items-center gap-3 p-3.5 rounded-xl bg-emerald-50/70 dark:bg-emerald-950/20 hover:bg-emerald-100/80 dark:hover:bg-emerald-950/30 border border-emerald-100 dark:border-emerald-900/30 text-left cursor-pointer group hover:-translate-y-0.5 active:translate-y-0 transition-all duration-200 focus:outline-none focus:ring-2 focus:ring-emerald-500/40 focus:ring-offset-2 dark:focus:ring-offset-[#1E2130]"
+                >
+                  <div className="absolute -bottom-3 -right-3 w-16 h-16 bg-emerald-200/20 dark:bg-emerald-500/5 rounded-full pointer-events-none" />
+                  <div className="w-10 h-10 rounded-full bg-emerald-100 dark:bg-emerald-900/40 flex items-center justify-center shrink-0 group-hover:scale-105 transition-transform">
+                    <Wallet size={18} className="text-emerald-600 dark:text-emerald-400" />
+                  </div>
+                  <div className="flex-1 min-w-0">
+                    <span className="block text-xs font-bold text-slate-800 dark:text-slate-100 font-inter leading-tight">Manage Savings</span>
+                    <span className="block text-[10px] text-slate-500 dark:text-slate-400 font-inter mt-0.5 leading-snug">Deposit, withdraw, or check your savings.</span>
+                  </div>
+                  <div className="w-7 h-7 rounded-full bg-emerald-100 dark:bg-emerald-900/40 flex items-center justify-center shrink-0 group-hover:bg-emerald-200 dark:group-hover:bg-emerald-800/40 transition-colors">
+                    <ArrowRight size={13} className="text-emerald-600 dark:text-emerald-400 group-hover:translate-x-0.5 transition-transform" />
+                  </div>
+                </button>
+
+                {/* Donation Card */}
+                <button
+                  type="button"
+                  onClick={() => navigate('/donation')}
+                  className="relative overflow-hidden flex items-center gap-3 p-3.5 rounded-xl bg-rose-50/70 dark:bg-rose-950/20 hover:bg-rose-100/80 dark:hover:bg-rose-950/30 border border-rose-100 dark:border-rose-900/30 text-left cursor-pointer group hover:-translate-y-0.5 active:translate-y-0 transition-all duration-200 focus:outline-none focus:ring-2 focus:ring-rose-500/40 focus:ring-offset-2 dark:focus:ring-offset-[#1E2130]"
+                >
+                  <div className="absolute -bottom-3 -right-3 w-16 h-16 bg-rose-200/20 dark:bg-rose-500/5 rounded-full pointer-events-none" />
+                  <div className="w-10 h-10 rounded-full bg-rose-100 dark:bg-rose-900/40 flex items-center justify-center shrink-0 group-hover:scale-105 transition-transform">
+                    <Heart size={18} className="text-rose-500 dark:text-rose-400" />
+                  </div>
+                  <div className="flex-1 min-w-0">
+                    <span className="block text-xs font-bold text-slate-800 dark:text-slate-100 font-inter leading-tight">Make a Donation</span>
+                    <span className="block text-[10px] text-slate-500 dark:text-slate-400 font-inter mt-0.5 leading-snug">Support your church community.</span>
+                  </div>
+                  <div className="w-7 h-7 rounded-full bg-rose-100 dark:bg-rose-900/40 flex items-center justify-center shrink-0 group-hover:bg-rose-200 dark:group-hover:bg-rose-800/40 transition-colors">
+                    <ArrowRight size={13} className="text-rose-500 dark:text-rose-400 group-hover:translate-x-0.5 transition-transform" />
+                  </div>
+                </button>
+              </div>
+
+              {/* ─── Attendance Card (compact full-width) ─── */}
+              <button
+                type="button"
+                onClick={() => navigate('/attendance')}
+                className="relative overflow-hidden flex items-center gap-3 p-3.5 rounded-xl bg-blue-50/60 dark:bg-blue-950/15 hover:bg-blue-100/70 dark:hover:bg-blue-950/25 border border-blue-100 dark:border-blue-900/25 text-left cursor-pointer group hover:-translate-y-0.5 active:translate-y-0 transition-all duration-200 w-full focus:outline-none focus:ring-2 focus:ring-blue-500/40 focus:ring-offset-2 dark:focus:ring-offset-[#1E2130]"
+              >
+                <div className="absolute -bottom-3 -right-3 w-16 h-16 bg-blue-200/15 dark:bg-blue-500/5 rounded-full pointer-events-none" />
+                <div className="w-10 h-10 rounded-full bg-blue-100 dark:bg-blue-900/40 flex items-center justify-center shrink-0 group-hover:scale-105 transition-transform">
+                  <CalendarDays size={18} className="text-blue-600 dark:text-blue-400" />
+                </div>
+                <div className="flex-1 min-w-0">
+                  <span className="block text-xs font-bold text-slate-800 dark:text-slate-100 font-inter leading-tight">Check Attendance</span>
+                  <span className="block text-[10px] text-slate-500 dark:text-slate-400 font-inter mt-0.5 leading-snug">Mark today's presence and view your records.</span>
+                </div>
+                <div className="w-7 h-7 rounded-full bg-blue-100 dark:bg-blue-900/40 flex items-center justify-center shrink-0 group-hover:bg-blue-200 dark:group-hover:bg-blue-800/40 transition-colors">
+                  <ArrowRight size={13} className="text-blue-600 dark:text-blue-400 group-hover:translate-x-0.5 transition-transform" />
+                </div>
+              </button>
+
             </div>
           </div>
 
@@ -1007,71 +1091,7 @@ export default function Home() {
         </div>
 
         {/* Calendar + Events — single merged card */}
-        {(() => {
-          const year = calendarDate.getFullYear();
-          const month = calendarDate.getMonth();
-          const firstDay = new Date(year, month, 1);
-          const startWeekday = (firstDay.getDay() + 6) % 7;
-          const daysInMonth = new Date(year, month + 1, 0).getDate();
-
-          const now = new Date();
-          const isCurrentMonth = now.getFullYear() === year && now.getMonth() === month;
-          const today = isCurrentMonth ? now.getDate() : -1;
-
-          const eventDays = {};
-          allAnnouncements.forEach(evt => {
-            if (evt.dateObj) {
-              const d = new Date(evt.dateObj);
-              if (d.getMonth() === month && d.getFullYear() === year) {
-                const day = d.getDate();
-                if (!eventDays[day]) eventDays[day] = [];
-                eventDays[day].push(evt);
-              }
-            }
-          });
-
-          // Inject loan due dates into calendar
-          const loanDueDates = [];
-          activeLoansList.forEach(loan => {
-            if (loan.nextPaymentDate) {
-              const d = new Date(loan.nextPaymentDate);
-              if (d.getMonth() === month && d.getFullYear() === year) {
-                const day = d.getDate();
-                const loanEvt = {
-                  title: `Loan Payment Due — ${loan.loanId}`,
-                  body: `₱${Number(loan.upcomingPaymentAmount || loan.monthlyPayment || 0).toLocaleString('en-PH', { minimumFractionDigits: 2 })} monthly payment`,
-                  fullBody: `Monthly payment of ₱${Number(loan.upcomingPaymentAmount || loan.monthlyPayment || 0).toLocaleString('en-PH', { minimumFractionDigits: 2 })} is due for loan ${loan.loanId} (${loan.loanType || 'Personal'} Loan).`,
-                  dateObj: d,
-                  category: 'Loan Due',
-                  time: '',
-                  branch: '',
-                  isLoanDue: true,
-                  loanId: loan.loanId,
-                  isLate: loan.isLate,
-                };
-                if (!eventDays[day]) eventDays[day] = [];
-                eventDays[day].push(loanEvt);
-                loanDueDates.push(loanEvt);
-              }
-            }
-          });
-
-          const cells = [];
-          for (let i = 0; i < startWeekday; i++) cells.push(null);
-          for (let d = 1; d <= daysInMonth; d++) cells.push(d);
-
-          const monthEvents = [
-            ...allAnnouncements.filter(evt => {
-              if (!evt.dateObj) return false;
-              const d = new Date(evt.dateObj);
-              return d.getMonth() === month && d.getFullYear() === year;
-            }),
-            ...loanDueDates
-          ].sort((a, b) => new Date(a.dateObj) - new Date(b.dateObj));
-
-
-
-          return (
+        {(
             <div className="bg-gradient-to-br from-slate-900 to-slate-800 dark:from-[#0f172a] dark:to-[#1E2130] border border-slate-200/80 dark:border-white/10 rounded-2xl overflow-hidden shadow-sm px-4 pt-3.5 pb-3.5">
               <div>
                 {/* Title header */}
@@ -1088,20 +1108,20 @@ export default function Home() {
                 <div className="flex items-center justify-between mb-2">
                   <div>
                     <h2 className="text-sm font-extrabold text-white font-dm leading-tight">
-                      {firstDay.toLocaleDateString('en-US', { month: 'long' })}{' '}
-                      <span className="text-slate-400 font-medium text-xs">{year}</span>
+                      {calendarData.firstDay.toLocaleDateString('en-US', { month: 'long' })}{' '}
+                      <span className="text-slate-400 font-medium text-xs">{calendarData.year}</span>
                     </h2>
                   </div>
                   <div className="flex items-center gap-1">
                     <button
-                      onClick={() => setCalendarDate(new Date(year, month - 1, 1))}
+                      onClick={() => setCalendarDate(new Date(calendarData.year, calendarData.month - 1, 1))}
                       className="w-7 h-7 rounded-lg bg-white/10 hover:bg-white/20 text-white flex items-center justify-center border-none cursor-pointer transition-colors"
                       aria-label="Previous month"
                     >
                       <ChevronLeft size={14} />
                     </button>
                     <button
-                      onClick={() => setCalendarDate(new Date(year, month + 1, 1))}
+                      onClick={() => setCalendarDate(new Date(calendarData.year, calendarData.month + 1, 1))}
                       className="w-7 h-7 rounded-lg bg-white/10 hover:bg-white/20 text-white flex items-center justify-center border-none cursor-pointer transition-colors"
                       aria-label="Next month"
                     >
@@ -1119,13 +1139,13 @@ export default function Home() {
 
                 {/* Calendar grid */}
                 <div className="grid grid-cols-7 gap-y-1 text-center font-inter">
-                  {cells.map((day, i) => {
-                    const hasEvent = day && eventDays[day] && eventDays[day].some(e => !e.isLoanDue);
-                    const hasLoanDue = day && eventDays[day] && eventDays[day].some(e => e.isLoanDue);
+                  {calendarData.cells.map((day, i) => {
+                    const hasEvent = day && calendarData.eventDays[day] && calendarData.eventDays[day].some(e => !e.isLoanDue);
+                    const hasLoanDue = day && calendarData.eventDays[day] && calendarData.eventDays[day].some(e => e.isLoanDue);
                     const isBoth = hasEvent && hasLoanDue;
 
                     let cellStyle = 'text-slate-400 hover:bg-white/10';
-                    if (day === today) {
+                    if (day === calendarData.today) {
                       cellStyle = 'bg-blue-600 text-white font-extrabold shadow-md shadow-blue-600/40';
                     } else if (isBoth) {
                       cellStyle = 'bg-gradient-to-r from-amber-500/35 to-indigo-600/35 text-white font-bold border border-amber-300/50 shadow-sm hover:brightness-125';
@@ -1139,8 +1159,8 @@ export default function Home() {
                       <div
                         key={i}
                         onClick={() => {
-                          if (day && eventDays[day]) {
-                            const evts = eventDays[day];
+                          if (day && calendarData.eventDays[day]) {
+                            const evts = calendarData.eventDays[day];
                             const churchEvt = evts.find(e => !e.isLoanDue);
                             const loanEvt = evts.find(e => e.isLoanDue);
                             if (churchEvt) {
@@ -1152,11 +1172,11 @@ export default function Home() {
                           }
                         }}
                         className={`h-7 flex flex-col items-center justify-center text-[12px] transition-all relative mx-auto w-7 rounded-lg ${
-                          !day ? 'invisible' : eventDays[day] ? 'cursor-pointer' : 'cursor-default'
+                          !day ? 'invisible' : calendarData.eventDays[day] ? 'cursor-pointer' : 'cursor-default'
                         } ${cellStyle}`}
                       >
                         {day}
-                        {day && eventDays[day] && day !== today && (
+                        {day && calendarData.eventDays[day] && day !== calendarData.today && (
                           <div className="absolute -bottom-0.5 flex items-center justify-center">
                             {isBoth ? (
                               <div className="w-4 h-1 rounded-full bg-gradient-to-r from-amber-400 to-indigo-400 shadow-sm" />
@@ -1175,7 +1195,7 @@ export default function Home() {
                 {/* Legend */}
                 <div className="flex items-center gap-3 mt-3 pt-2.5 border-t border-white/10">
                   <div className="flex items-center gap-1.5">
-                    <div className="w-4 h-4 rounded-md bg-blue-600 flex items-center justify-center"><span className="text-[9px] font-bold text-white">{now.getDate()}</span></div>
+                    <div className="w-4 h-4 rounded-md bg-blue-600 flex items-center justify-center"><span className="text-[9px] font-bold text-white">{calendarData.now.getDate()}</span></div>
                     <span className="text-[10px] text-slate-300 font-inter">Today</span>
                   </div>
                   <div className="flex items-center gap-1.5">
@@ -1192,16 +1212,16 @@ export default function Home() {
                       <span className="text-[10px] text-slate-300 font-inter">Loan due</span>
                     </div>
                   )}
-                  {monthEvents.length > 0 && (
+                  {calendarData.monthEvents.length > 0 && (
                     <div className="ml-auto flex items-center gap-1.5">
-                      {monthEvents.filter(e => !e.isLoanDue).length > 0 && (
+                      {calendarData.monthEvents.filter(e => !e.isLoanDue).length > 0 && (
                         <span className="text-[10px] font-bold px-2 py-0.5 rounded-full bg-amber-400/20 text-amber-300 border border-amber-400/30 font-inter">
-                          {monthEvents.filter(e => !e.isLoanDue).length} event{monthEvents.filter(e => !e.isLoanDue).length !== 1 ? 's' : ''}
+                          {calendarData.monthEvents.filter(e => !e.isLoanDue).length} event{calendarData.monthEvents.filter(e => !e.isLoanDue).length !== 1 ? 's' : ''}
                         </span>
                       )}
-                      {monthEvents.filter(e => e.isLoanDue).length > 0 && (
+                      {calendarData.monthEvents.filter(e => e.isLoanDue).length > 0 && (
                         <span className="text-[10px] font-bold px-2 py-0.5 rounded-full bg-indigo-400/20 text-indigo-300 border border-indigo-400/30 font-inter">
-                          {monthEvents.filter(e => e.isLoanDue).length} loan due{monthEvents.filter(e => e.isLoanDue).length !== 1 ? 's' : ''}
+                          {calendarData.monthEvents.filter(e => e.isLoanDue).length} loan due{calendarData.monthEvents.filter(e => e.isLoanDue).length !== 1 ? 's' : ''}
                         </span>
                       )}
                     </div>
@@ -1209,8 +1229,8 @@ export default function Home() {
                 </div>
               </div>
             </div>
-          );
-        })()}
+          )
+        }
       </div>
 
 

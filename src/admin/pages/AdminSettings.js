@@ -33,6 +33,11 @@ function StrengthBar({ password }) {
     );
 }
 
+const fetcherSingle = (url) => {
+  const token = localStorage.getItem('adminToken');
+  return fetch(url, { headers: { Authorization: `Bearer ${token}` } }).then(res => res.json());
+};
+
 export default function AdminSettings() {
   const navigate = useNavigate();
   const { theme, toggleTheme } = useTheme();
@@ -60,41 +65,37 @@ export default function AdminSettings() {
   const [showMaintenanceModal, setShowMaintenanceModal] = useState(false);
   const [pendingMaintenanceState, setPendingMaintenanceState] = useState(false);
 
+  const token = localStorage.getItem('adminToken');
+
   useEffect(() => {
     const adminEmail = localStorage.getItem('adminEmail');
     if (!adminEmail) {
       navigate('/');
-      return;
-    }
-
-    const token = localStorage.getItem('adminToken');
-    if (token) {
-      fetch(`${API}/api/admin/profile/me`, {
-        headers: { Authorization: `Bearer ${token}` }
-      })
-      .then(res => res.json())
-      .then(data => {
-        if (data.success) {
-          setSettings(prev => ({
-            ...prev,
-            adminName: data.admin.fullName,
-            adminEmail: data.admin.email
-          }));
-          localStorage.setItem('adminName', data.admin.fullName);
-          window.dispatchEvent(new Event('storage'));
-        }
-      })
-      .catch(err => console.error(err));
     }
   }, [navigate]);
 
-  const token = localStorage.getItem('adminToken');
-  const fetcherSingle = (url) => fetch(url, { headers: { Authorization: `Bearer ${token}` } }).then(res => res.json());
+  const { data: profileData } = useSWR(
+    token ? `${API}/api/admin/profile/me` : null,
+    fetcherSingle,
+    { revalidateOnFocus: false, dedupingInterval: 60000, keepPreviousData: true }
+  );
+
+  useEffect(() => {
+    if (profileData && profileData.success && profileData.admin) {
+      setSettings(prev => ({
+        ...prev,
+        adminName: profileData.admin.fullName,
+        adminEmail: profileData.admin.email
+      }));
+      localStorage.setItem('adminName', profileData.admin.fullName);
+      window.dispatchEvent(new Event('storage'));
+    }
+  }, [profileData]);
 
   const { data: settingsData, mutate: refreshSettings } = useSWR(
     token ? `${API}/api/admin/settings` : null,
     fetcherSingle,
-    { revalidateOnFocus: false }
+    { revalidateOnFocus: false, dedupingInterval: 60000, keepPreviousData: true }
   );
 
   useEffect(() => {

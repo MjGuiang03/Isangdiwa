@@ -43,13 +43,17 @@ function getPaymentStatus(daysLate) {
   return { label: 'Default', cls: 'default' };
 }
 
+const fetcherSingle = (url) => {
+    const token = localStorage.getItem('adminToken');
+    return fetch(url, { headers: { Authorization: `Bearer ${token}` } }).then(res => res.json());
+};
+
 export default function LoanAdminPaymentStatus() {
   const location = useLocation();
   const isSavingsRoute = location.pathname.includes('/savings');
 
   const [searchQuery, setSearchQuery] = useState('');
   const debouncedSearch = useDebounce(searchQuery, 400);
-  const [loading, setLoading] = useState(true);
   const [activeTab, setActiveTab] = useState(isSavingsRoute ? 'savings' : 'loans');
   const [selectedLoan, setSelectedLoan] = useState(null);
   const [selectedLoanPayments, setSelectedLoanPayments] = useState([]);
@@ -63,7 +67,9 @@ export default function LoanAdminPaymentStatus() {
   const [loansPage, setLoansPage] = useState(1);
   const LOANS_PER_PAGE = 10;
   const [pendingPage, setPendingPage] = useState(1);
-  const PENDING_PER_PAGE = 10;
+  const PENDING_PER_PAGE = 5;
+  const [depPage, setDepPage] = useState(1);
+  const [wdPage, setWdPage] = useState(1);
   const [historyPage, setHistoryPage] = useState(1);
   const HISTORY_PER_PAGE = 10;
   useEffect(() => {
@@ -71,6 +77,8 @@ export default function LoanAdminPaymentStatus() {
     setSavingsPage(1);
     setHistoryPage(1);
     setPendingPage(1);
+    setDepPage(1);
+    setWdPage(1);
   }, [searchQuery, savingsTypeFilter]);
 
   // Manual Approval State
@@ -98,7 +106,6 @@ export default function LoanAdminPaymentStatus() {
   const [walkinLoading, setWalkinLoading] = useState(false);
 
   const token = localStorage.getItem('adminToken');
-  const fetcherSingle = (url) => fetch(url, { headers: { Authorization: `Bearer ${token}` } }).then(res => res.json());
 
   // Public Settings (to check approval method)
   const { data: settingsData } = useSWR(
@@ -114,7 +121,7 @@ export default function LoanAdminPaymentStatus() {
 
   // Loans
   const { data: loansData, isValidating: loadingLoans, mutate: fetchLoans } = useSWR(
-    token ? `${API}/api/admin/loans` : null,
+    token ? `${API}/api/admin/loans?status=ongoing&limit=500` : null,
     fetcherSingle,
     {
       revalidateOnFocus: false,
@@ -144,8 +151,8 @@ export default function LoanAdminPaymentStatus() {
   const pendingSavUrl = (token && isSavingsRoute) ? `${API}/api/admin/savings/deposits?status=pending&limit=100` : null;
   const pendingLoanUrl = (token && !isSavingsRoute) ? `${API}/api/admin/loan-payments?status=pending&limit=100` : null;
 
-  const { data: pendingSavData, isValidating: pendingLoadingSav, mutate: mutateSavPending } = useSWR(pendingSavUrl, fetcherSingle, { revalidateOnFocus: false });
-  const { data: pendingLoanData, isValidating: pendingLoadingLoan, mutate: mutateLoanPending } = useSWR(pendingLoanUrl, fetcherSingle, { revalidateOnFocus: false });
+  const { data: pendingSavData, isValidating: pendingLoadingSav, mutate: mutateSavPending } = useSWR(pendingSavUrl, fetcherSingle, { revalidateOnFocus: false, dedupingInterval: 15000, keepPreviousData: true });
+  const { data: pendingLoanData, isValidating: pendingLoadingLoan, mutate: mutateLoanPending } = useSWR(pendingLoanUrl, fetcherSingle, { revalidateOnFocus: false, dedupingInterval: 15000, keepPreviousData: true });
 
   const pendingSavings = useMemo(() => pendingSavData?.deposits || [], [pendingSavData]);
   const pendingLoanPayments = useMemo(() => pendingLoanData?.payments || [], [pendingLoanData]);
@@ -187,9 +194,7 @@ export default function LoanAdminPaymentStatus() {
     setPendingLoading(pendingLoadingSav || pendingLoadingLoan);
   }, [pendingLoadingSav, pendingLoadingLoan]);
 
-  useEffect(() => {
-    setLoading(loadingLoans && !loansData);
-  }, [loadingLoans, loansData]);
+  const loading = loadingLoans && !loansData;
 
   useEffect(() => {
     setActiveTab(isSavingsRoute ? 'savings' : 'loans');
@@ -801,16 +806,17 @@ export default function LoanAdminPaymentStatus() {
                     </span>
                   </div>
                 </div>
-                <div className="bg-white dark:bg-[#1E2130] border border-slate-200 dark:border-white/10 rounded-xl overflow-x-auto shadow-sm">
-                  <table className="w-full text-left border-collapse min-w-[480px]">
+                <div className="bg-white dark:bg-[#1E2130] border border-slate-200 dark:border-white/10 rounded-xl overflow-hidden shadow-sm">
+                  <div className="overflow-x-auto">
+                  <table className="w-full text-left border-collapse min-w-[560px]">
                     <thead>
                       <tr>
                         <th className="bg-slate-50 dark:bg-black/20 border-b border-slate-200 dark:border-white/10 px-3.5 py-3 font-inter font-semibold text-[11px] tracking-wider uppercase text-slate-500 dark:text-slate-400">Date</th>
                         <th className="bg-slate-50 dark:bg-black/20 border-b border-slate-200 dark:border-white/10 px-3.5 py-3 font-inter font-semibold text-[11px] tracking-wider uppercase text-slate-500 dark:text-slate-400">Member</th>
                         <th className="bg-slate-50 dark:bg-black/20 border-b border-slate-200 dark:border-white/10 px-3.5 py-3 font-inter font-semibold text-[11px] tracking-wider uppercase text-slate-500 dark:text-slate-400">Amount</th>
                         <th className="bg-slate-50 dark:bg-black/20 border-b border-slate-200 dark:border-white/10 px-3.5 py-3 font-inter font-semibold text-[11px] tracking-wider uppercase text-slate-500 dark:text-slate-400">Method</th>
-                        <th className="bg-slate-50 dark:bg-black/20 border-b border-slate-200 dark:border-white/10 px-3.5 py-3 font-inter font-semibold text-[11px] tracking-wider uppercase text-slate-500 dark:text-slate-400">Proof</th>
-                        <th className="bg-slate-50 dark:bg-black/20 border-b border-slate-200 dark:border-white/10 px-3.5 py-3 font-inter font-semibold text-[11px] tracking-wider uppercase text-slate-500 dark:text-slate-400">Actions</th>
+                        <th className="bg-slate-50 dark:bg-black/20 border-b border-slate-200 dark:border-white/10 px-3.5 py-3 font-inter font-semibold text-[11px] tracking-wider uppercase text-slate-500 dark:text-slate-400 w-[50px]">Proof</th>
+                        <th className="bg-slate-50 dark:bg-black/20 border-b border-slate-200 dark:border-white/10 px-3.5 py-3 font-inter font-semibold text-[11px] tracking-wider uppercase text-slate-500 dark:text-slate-400 w-[70px]">Actions</th>
                       </tr>
                     </thead>
                     <tbody>
@@ -819,7 +825,7 @@ export default function LoanAdminPaymentStatus() {
                       ) : filteredPendingDeposits.length === 0 ? (
                         <tr><td colSpan={6} className="text-center p-8 text-slate-400 text-xs font-inter">No pending deposits</td></tr>
                       ) : (
-                        filteredPendingDeposits.map(txn => (
+                        filteredPendingDeposits.slice((depPage - 1) * PENDING_PER_PAGE, depPage * PENDING_PER_PAGE).map(txn => (
                           <tr key={txn._id} className="border-b border-slate-100 dark:border-white/5 hover:bg-slate-50 dark:hover:bg-white/5 transition-colors cursor-pointer">
                             <td className="px-3.5 py-3 whitespace-nowrap font-inter text-xs text-slate-700 dark:text-slate-300">{fmtDate(txn.submittedAt || txn.createdAt || txn.date)}</td>
                             <td className="px-3.5 py-3 whitespace-nowrap font-inter text-xs text-slate-700 dark:text-slate-300">
@@ -850,6 +856,18 @@ export default function LoanAdminPaymentStatus() {
                       )}
                     </tbody>
                   </table>
+                  </div>
+                  {filteredPendingDeposits.length > PENDING_PER_PAGE && (
+                    <div className="flex items-center justify-between px-4 py-2.5 border-t border-slate-200/80 dark:border-white/10">
+                      <span className="text-[11px] text-slate-500 dark:text-slate-400 font-inter">
+                        {(depPage - 1) * PENDING_PER_PAGE + 1}–{Math.min(depPage * PENDING_PER_PAGE, filteredPendingDeposits.length)} of {filteredPendingDeposits.length}
+                      </span>
+                      <div className="flex items-center gap-1">
+                        <button disabled={depPage <= 1} onClick={() => setDepPage(p => p - 1)} className="px-2 py-1 rounded text-[11px] font-semibold font-inter border border-slate-200 dark:border-white/10 bg-white dark:bg-white/5 text-slate-600 dark:text-slate-300 disabled:opacity-40 cursor-pointer disabled:cursor-default hover:bg-slate-50 dark:hover:bg-white/10 transition-colors">Prev</button>
+                        <button disabled={depPage >= Math.ceil(filteredPendingDeposits.length / PENDING_PER_PAGE)} onClick={() => setDepPage(p => p + 1)} className="px-2 py-1 rounded text-[11px] font-semibold font-inter border border-slate-200 dark:border-white/10 bg-white dark:bg-white/5 text-slate-600 dark:text-slate-300 disabled:opacity-40 cursor-pointer disabled:cursor-default hover:bg-slate-50 dark:hover:bg-white/10 transition-colors">Next</button>
+                      </div>
+                    </div>
+                  )}
                 </div>
               </div>
 
@@ -864,8 +882,9 @@ export default function LoanAdminPaymentStatus() {
                     </span>
                   </div>
                 </div>
-                <div className="bg-white dark:bg-[#1E2130] border border-slate-200 dark:border-white/10 rounded-xl overflow-x-auto shadow-sm">
-                  <table className="w-full text-left border-collapse min-w-[480px]">
+                <div className="bg-white dark:bg-[#1E2130] border border-slate-200 dark:border-white/10 rounded-xl overflow-hidden shadow-sm">
+                  <div className="overflow-x-auto">
+                  <table className="w-full text-left border-collapse min-w-[560px]">
                     <thead>
                       <tr>
                         <th className="bg-slate-50 dark:bg-black/20 border-b border-slate-200 dark:border-white/10 px-3.5 py-3 font-inter font-semibold text-[11px] tracking-wider uppercase text-slate-500 dark:text-slate-400">Date</th>
@@ -873,7 +892,7 @@ export default function LoanAdminPaymentStatus() {
                         <th className="bg-slate-50 dark:bg-black/20 border-b border-slate-200 dark:border-white/10 px-3.5 py-3 font-inter font-semibold text-[11px] tracking-wider uppercase text-slate-500 dark:text-slate-400">Amount</th>
                         <th className="bg-slate-50 dark:bg-black/20 border-b border-slate-200 dark:border-white/10 px-3.5 py-3 font-inter font-semibold text-[11px] tracking-wider uppercase text-slate-500 dark:text-slate-400">Payout Method</th>
                         <th className="bg-slate-50 dark:bg-black/20 border-b border-slate-200 dark:border-white/10 px-3.5 py-3 font-inter font-semibold text-[11px] tracking-wider uppercase text-slate-500 dark:text-slate-400">Reason</th>
-                        <th className="bg-slate-50 dark:bg-black/20 border-b border-slate-200 dark:border-white/10 px-3.5 py-3 font-inter font-semibold text-[11px] tracking-wider uppercase text-slate-500 dark:text-slate-400">Actions</th>
+                        <th className="bg-slate-50 dark:bg-black/20 border-b border-slate-200 dark:border-white/10 px-3.5 py-3 font-inter font-semibold text-[11px] tracking-wider uppercase text-slate-500 dark:text-slate-400 w-[70px]">Actions</th>
                       </tr>
                     </thead>
                     <tbody>
@@ -882,7 +901,7 @@ export default function LoanAdminPaymentStatus() {
                       ) : filteredPendingWithdrawals.length === 0 ? (
                         <tr><td colSpan={6} className="text-center p-8 text-slate-400 text-xs font-inter">No pending withdrawals</td></tr>
                       ) : (
-                        filteredPendingWithdrawals.map(txn => (
+                        filteredPendingWithdrawals.slice((wdPage - 1) * PENDING_PER_PAGE, wdPage * PENDING_PER_PAGE).map(txn => (
                           <tr key={txn._id} className="border-b border-slate-100 dark:border-white/5 hover:bg-slate-50 dark:hover:bg-white/5 transition-colors cursor-pointer">
                             <td className="px-3.5 py-3 whitespace-nowrap font-inter text-xs text-slate-700 dark:text-slate-300">{fmtDate(txn.submittedAt || txn.createdAt || txn.date)}</td>
                             <td className="px-3.5 py-3 whitespace-nowrap font-inter text-xs text-slate-700 dark:text-slate-300">
@@ -902,6 +921,18 @@ export default function LoanAdminPaymentStatus() {
                       )}
                     </tbody>
                   </table>
+                  </div>
+                  {filteredPendingWithdrawals.length > PENDING_PER_PAGE && (
+                    <div className="flex items-center justify-between px-4 py-2.5 border-t border-slate-200/80 dark:border-white/10">
+                      <span className="text-[11px] text-slate-500 dark:text-slate-400 font-inter">
+                        {(wdPage - 1) * PENDING_PER_PAGE + 1}–{Math.min(wdPage * PENDING_PER_PAGE, filteredPendingWithdrawals.length)} of {filteredPendingWithdrawals.length}
+                      </span>
+                      <div className="flex items-center gap-1">
+                        <button disabled={wdPage <= 1} onClick={() => setWdPage(p => p - 1)} className="px-2 py-1 rounded text-[11px] font-semibold font-inter border border-slate-200 dark:border-white/10 bg-white dark:bg-white/5 text-slate-600 dark:text-slate-300 disabled:opacity-40 cursor-pointer disabled:cursor-default hover:bg-slate-50 dark:hover:bg-white/10 transition-colors">Prev</button>
+                        <button disabled={wdPage >= Math.ceil(filteredPendingWithdrawals.length / PENDING_PER_PAGE)} onClick={() => setWdPage(p => p + 1)} className="px-2 py-1 rounded text-[11px] font-semibold font-inter border border-slate-200 dark:border-white/10 bg-white dark:bg-white/5 text-slate-600 dark:text-slate-300 disabled:opacity-40 cursor-pointer disabled:cursor-default hover:bg-slate-50 dark:hover:bg-white/10 transition-colors">Next</button>
+                      </div>
+                    </div>
+                  )}
                 </div>
               </div>
             </div>

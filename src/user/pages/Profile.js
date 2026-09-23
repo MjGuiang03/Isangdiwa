@@ -15,6 +15,12 @@ import { isOfficerPosition } from '../../utils/officerPositions';
 
 const MONTHS_SHORT = ['Jan', 'Feb', 'Mar', 'Apr', 'May', 'Jun', 'Jul', 'Aug', 'Sep', 'Oct', 'Nov', 'Dec'];
 
+const fetcherSingle = (url) => {
+    const token = localStorage.getItem('token');
+    if (!token) return Promise.resolve(null);
+    return fetch(url, { headers: { Authorization: `Bearer ${token}` } }).then(res => res.json()).catch(() => null);
+};
+
 export default function Profile() {
   const navigate = useNavigate();
   const { profile, user, updateProfile, requestEmailChange, verifyEmailChange } = useAuth();
@@ -57,17 +63,19 @@ export default function Profile() {
     loadBranches();
   }, []);
 
-  const groupedBranches = dynamicBranches.reduce((acc, b) => {
-    let province = b.province;
-    if (!province && b.address) {
-      const parts = b.address.split(', ');
-      if (parts.length > 0) province = parts[0];
-    }
-    province = province || 'Other Provinces';
-    if (!acc[province]) acc[province] = [];
-    acc[province].push(b.name);
-    return acc;
-  }, {});
+  const groupedBranches = useMemo(() => {
+    return dynamicBranches.reduce((acc, b) => {
+      let province = b.province;
+      if (!province && b.address) {
+        const parts = b.address.split(', ');
+        if (parts.length > 0) province = parts[0];
+      }
+      province = province || 'Other Provinces';
+      if (!acc[province]) acc[province] = [];
+      acc[province].push(b.name);
+      return acc;
+    }, {});
+  }, [dynamicBranches]);
   const provinceOrder = Object.keys(groupedBranches).sort();
 
   const handleEditChange = (field, value) => {
@@ -185,13 +193,11 @@ export default function Profile() {
     setFormError('');
     setIsEditing(false);
   };
-  const fetcherSingle = (url) => fetch(url, { headers: { Authorization: `Bearer ${localStorage.getItem('token')}` } }).then(res => res.ok ? res.json() : { success: false });
-
-  const { data: dData } = useSWR(token ? `${API}/api/donations/my-donations` : null, fetcherSingle, { revalidateOnFocus: false, dedupingInterval: 5000 });
-  const { data: attData } = useSWR(token ? `${API}/api/attendance/my-attendance` : null, fetcherSingle, { revalidateOnFocus: false, dedupingInterval: 5000 });
-  const { data: loanData } = useSWR(token ? `${API}/api/loans/my-loans` : null, fetcherSingle, { revalidateOnFocus: false, dedupingInterval: 5000 });
-  const { data: savData } = useSWR(token ? `${API}/api/savings/stats` : null, fetcherSingle, { revalidateOnFocus: false, dedupingInterval: 5000 });
-  const { data: savGoalsData } = useSWR(token ? `${API}/api/savings/goals` : null, fetcherSingle, { revalidateOnFocus: false, dedupingInterval: 5000 });
+  const { data: dData } = useSWR(token ? `${API}/api/donations/my-donations` : null, fetcherSingle, { revalidateOnFocus: false, dedupingInterval: 30000, keepPreviousData: true });
+  const { data: attData } = useSWR(token ? `${API}/api/attendance/my-attendance` : null, fetcherSingle, { revalidateOnFocus: false, dedupingInterval: 30000, keepPreviousData: true });
+  const { data: loanData } = useSWR(token ? `${API}/api/loans/my-loans` : null, fetcherSingle, { revalidateOnFocus: false, dedupingInterval: 30000, keepPreviousData: true });
+  const { data: savData } = useSWR(token ? `${API}/api/savings/stats` : null, fetcherSingle, { revalidateOnFocus: false, dedupingInterval: 30000, keepPreviousData: true });
+  const { data: savGoalsData } = useSWR(token ? `${API}/api/savings/goals` : null, fetcherSingle, { revalidateOnFocus: false, dedupingInterval: 30000, keepPreviousData: true });
 
   const loading = !dData && !attData && !loanData && !savData && !savGoalsData;
 

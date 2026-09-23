@@ -102,9 +102,21 @@ try {
     pendingRegistrations.createIndex({ email: 1 }, { unique: true }),
     announcements.createIndex({ createdAt: -1 }),
     savingsGoals.createIndex({ email: 1 }),
+    savingsGoals.createIndex({ email: 1, status: 1 }),
     savingsTransactions.createIndex({ email: 1 }),
     savingsTransactions.createIndex({ date: -1 }),
     savingsTransactions.createIndex({ email: 1, type: 1, status: 1, date: -1 }),
+    savingsTransactions.createIndex({ type: 1, status: 1, date: -1 }),
+    // ── loan_payments (previously had ZERO indexes) ──
+    loanPayments.createIndex({ status: 1, submittedAt: -1 }),
+    loanPayments.createIndex({ loanId: 1, status: 1 }),
+    loanPayments.createIndex({ email: 1, status: 1 }),
+    loanPayments.createIndex({ email: 1, paymentDate: -1 }),
+    // ── loans compound indexes for admin query patterns ──
+    loans.createIndex({ email: 1, appliedDate: -1 }),
+    loans.createIndex({ status: 1, appliedDate: -1 }),
+    loans.createIndex({ status: 1, remainingBalance: 1 }),
+    loans.createIndex({ disbursed: 1, disbursementDate: -1 }),
     prayers.createIndex({ createdAt: 1 }, { expireAfterSeconds: 604800 }),
   ]);
   console.log('✅ Database indexes ensured');

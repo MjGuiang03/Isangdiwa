@@ -59,28 +59,34 @@ router.get('/sidebar-counts', authenticateAdmin, async (req, res) => {
   try {
     const now = new Date();
     const startOfMonth = new Date(now.getFullYear(), now.getMonth(), 1);
+    const yesterday = new Date(now);
+    yesterday.setDate(yesterday.getDate() - 1);
 
-    const [pendingLoansCount, pendingLoanPaymentsCount, pendingSavingsCount, activeLoans, newMembersCount, pendingDonationsCount] = await Promise.all([
+    const [pendingLoansCount, pendingLoanPaymentsCount, pendingSavingsCount, flaggedResult, newMembersCount, pendingDonationsCount] = await Promise.all([
       loans.countDocuments({ status: { $in: ['pending', 'awaiting_member_approval'] } }),
       loanPayments.countDocuments({ status: 'pending' }),
       savingsTransactions.countDocuments({ status: 'pending' }),
-      loans.find({ status: 'active' }).project({ nextPaymentDate: 1, nextDueDate: 1, approvedDate: 1, disbursementDate: 1 }).toArray(),
+      loans.aggregate([
+        { $match: { status: 'active' } },
+        { $addFields: {
+          effectiveDueDate: {
+            $ifNull: [
+              '$nextPaymentDate',
+              { $ifNull: [
+                '$nextDueDate',
+                { $dateAdd: { startDate: { $ifNull: ['$disbursementDate', '$approvedDate'] }, unit: 'month', amount: 1 } }
+              ]}
+            ]
+          }
+        }},
+        { $match: { effectiveDueDate: { $lte: yesterday } } },
+        { $count: 'flagged' }
+      ]).toArray(),
       users.countDocuments({ createdAt: { $gte: startOfMonth }, isDeleted: { $ne: true } }),
       donations.countDocuments({ $or: [{ status: 'pending' }, { status: { $exists: false } }] })
     ]);
 
-    const flaggedAccountsCount = activeLoans.filter(l => {
-      let dueDate = l.nextPaymentDate || l.nextDueDate;
-      if (!dueDate) {
-        // No due date set — first payment due 1 month after disbursement/approval
-        const baseDate = new Date(l.disbursementDate || l.approvedDate);
-        baseDate.setMonth(baseDate.getMonth() + 1);
-        dueDate = baseDate;
-      }
-      if (!dueDate) return false;
-      const diff = Math.floor((now - new Date(dueDate)) / (1000 * 60 * 60 * 24));
-      return diff >= 1;
-    }).length;
+    const flaggedAccountsCount = flaggedResult[0]?.flagged || 0;
 
     res.json({
       success: true,
@@ -1785,6 +1791,175 @@ router.put('/loans/payments/:id/reject', authenticateAdmin, async (req, res) => 
     res.json({ success: true, message: 'Loan payment rejected successfully' });
   } catch (err) {
     res.status(500).json({ success: false, message: 'Failed to reject loan payment' });
+  }
+});
+
+router.get('/loan-users', authenticateAdmin, async (req, res) => {
+  try {
+    const { search, page = 1, limit = 10, filter = 'all' } = req.query;
+    const pageNum = Math.max(1, Number(page));
+    const limitNum = Math.max(1, Math.min(50, Number(limit)));
+    const now = new Date();
+    const oneDayAgo = new Date(now - 86400000);
+
+    // Step 1: Get all emails that have loans or savings (fast distinct queries in parallel)
+    const [loanEmails, savingsEmails] = await Promise.all([
+      loans.distinct('email'),
+      savingsGoals.distinct('email')
+    ]);
+    const targetEmails = [...new Set([...loanEmails, ...savingsEmails])];
+
+    if (targetEmails.length === 0) {
+      return res.json({
+        success: true, users: [],
+        stats: { totalUsersWithLoansOrSavings: 0, activeBorrowers: 0, totalSavingsPool: 0, delinquentMembers: 0 },
+        pagination: { page: pageNum, limit: limitNum, totalUsers: 0, totalPages: 0, hasNext: false, hasPrev: false }
+      });
+    }
+
+    // Step 2: Build user match query
+    const userMatch = { email: { $in: targetEmails } };
+    if (search) {
+      userMatch.$or = [
+        { fullName: { $regex: search, $options: 'i' } },
+        { email: { $regex: search, $options: 'i' } },
+        { memberId: { $regex: search, $options: 'i' } }
+      ];
+    }
+
+    // Step 3: Single aggregation pipeline with $lookup
+    const pipeline = [
+      { $match: userMatch },
+      { $project: { passwordHash: 0 } },
+      { $lookup: {
+        from: 'savings_goals', localField: 'email', foreignField: 'email', as: '_savings',
+        pipeline: [{ $project: { savedAmount: 1 } }]
+      }},
+      { $lookup: {
+        from: 'loans', localField: 'email', foreignField: 'email', as: '_loans',
+        pipeline: [{ $project: { status: 1, remainingBalance: 1, nextPaymentDate: 1, nextDueDate: 1 } }]
+      }},
+      { $addFields: {
+        totalSavings: { $sum: '$_savings.savedAmount' },
+        totalLoans: { $size: '$_loans' },
+        activeLoanCount: { $size: { $filter: { input: '$_loans', cond: { $eq: ['$$this.status', 'active'] } } } },
+        completedLoans: { $size: { $filter: { input: '$_loans', cond: { $eq: ['$$this.status', 'completed'] } } } },
+        activeLoanBalance: { $sum: {
+          $map: { input: { $filter: { input: '$_loans', cond: { $eq: ['$$this.status', 'active'] } } },
+            in: { $ifNull: ['$$this.remainingBalance', 0] } }
+        }},
+        hasDelinquency: { $gt: [
+          { $size: { $filter: {
+            input: '$_loans',
+            cond: { $and: [
+              { $eq: ['$$this.status', 'active'] },
+              { $lte: [{ $ifNull: ['$$this.nextPaymentDate', { $ifNull: ['$$this.nextDueDate', null] }] }, oneDayAgo] },
+              { $ne: [{ $ifNull: ['$$this.nextPaymentDate', { $ifNull: ['$$this.nextDueDate', null] }] }, null] }
+            ]}
+          }}},
+          0
+        ]}
+      }},
+      { $project: { _savings: 0, _loans: 0 } }
+    ];
+
+    // Step 4: Apply filter
+    if (filter === 'hasLoans') pipeline.push({ $match: { totalLoans: { $gt: 0 } } });
+    else if (filter === 'hasSavings') pipeline.push({ $match: { totalSavings: { $gt: 0 } } });
+    else if (filter === 'delinquent') pipeline.push({ $match: { hasDelinquency: true } });
+
+    // Step 5: Use $facet to get paginated results + total count in one query
+    pipeline.push({ $facet: {
+      results: [
+        { $sort: { fullName: 1 } },
+        { $skip: (pageNum - 1) * limitNum },
+        { $limit: limitNum }
+      ],
+      totalCount: [{ $count: 'count' }],
+      delinquentCount: [{ $match: { hasDelinquency: true } }, { $count: 'count' }]
+    }});
+
+    // Step 6: Run aggregation + stats queries in parallel
+    const [aggResult, totalSavingsPoolResult, activeBorrowersList] = await Promise.all([
+      users.aggregate(pipeline).toArray(),
+      savingsGoals.aggregate([{ $group: { _id: null, total: { $sum: '$savedAmount' } } }]).toArray(),
+      loans.distinct('email', { status: 'active' })
+    ]);
+
+    const facet = aggResult[0];
+    const paginatedUsers = facet.results;
+    const totalFilteredUsers = facet.totalCount[0]?.count || 0;
+    const delinquentMembers = facet.delinquentCount[0]?.count || 0;
+
+    res.json({
+      success: true,
+      users: paginatedUsers,
+      stats: {
+        totalUsersWithLoansOrSavings: targetEmails.length,
+        activeBorrowers: activeBorrowersList.length,
+        totalSavingsPool: totalSavingsPoolResult[0]?.total || 0,
+        delinquentMembers
+      },
+      pagination: {
+        page: pageNum,
+        limit: limitNum,
+        totalUsers: totalFilteredUsers,
+        totalPages: Math.ceil(totalFilteredUsers / limitNum),
+        hasNext: pageNum * limitNum < totalFilteredUsers,
+        hasPrev: pageNum > 1
+      }
+    });
+  } catch (err) {
+    console.error('Error in /loan-users:', err);
+    res.status(500).json({ success: false, message: 'Internal server error' });
+  }
+});
+
+router.get('/loan-users/:email/profile', authenticateAdmin, async (req, res) => {
+  try {
+    const email = req.params.email;
+    
+    const [user, userSavings, userLoans, recentSavingsTransactions, recentLoanPayments] = await Promise.all([
+      users.findOne({ email }, { projection: { passwordHash: 0, __v: 0 } }),
+      savingsGoals.find({ email }).project({
+        goalName: 1, savedAmount: 1, targetAmount: 1, status: 1, createdAt: 1
+      }).toArray(),
+      loans.find({ email }).project({
+        loanId: 1, loanType: 1, amount: 1, status: 1, remainingBalance: 1,
+        monthlyPayment: 1, nextPaymentDate: 1, nextDueDate: 1, appliedDate: 1,
+        approvedDate: 1, disbursementDate: 1, interestRate: 1, term: 1
+      }).sort({ appliedDate: -1 }).limit(20).toArray(),
+      savingsTransactions.find({ email }).project({
+        type: 1, amount: 1, date: 1, status: 1, goalName: 1, description: 1
+      }).sort({ date: -1 }).limit(10).toArray(),
+      loanPayments.find({ email }).project({
+        loanId: 1, amount: 1, paymentDate: 1, status: 1, paymentType: 1, paymentMethod: 1
+      }).sort({ paymentDate: -1 }).limit(10).toArray()
+    ]);
+    
+    if (!user) {
+      return res.status(404).json({ success: false, message: 'User not found' });
+    }
+    
+    const totalBalance = userSavings.reduce((sum, goal) => sum + (Number(goal.savedAmount) || 0), 0);
+    
+    res.json({
+      success: true,
+      user,
+      savings: {
+        totalBalance,
+        goals: userSavings
+      },
+      loans: {
+        active: userLoans.filter(l => l.status === 'active'),
+        history: userLoans.filter(l => l.status !== 'active')
+      },
+      recentSavingsTransactions,
+      recentLoanPayments
+    });
+  } catch (err) {
+    console.error('Error in /loan-users/:email/profile:', err);
+    res.status(500).json({ success: false, message: 'Internal server error' });
   }
 });
 

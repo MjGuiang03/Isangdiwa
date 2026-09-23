@@ -1,4 +1,5 @@
-import { useState, useEffect, useRef } from 'react';
+import { useState, useEffect, useRef, useMemo } from 'react';
+import useSWR from 'swr';
 import { createPortal } from 'react-dom';
 import { useLocation, useNavigate } from 'react-router';
 import { toast } from 'sonner';
@@ -11,14 +12,43 @@ import API from '../../utils/api';
 import { processNewNotifications } from '../../utils/desktopNotify';
 import NotificationPrompt from '../../components/NotificationPrompt';
 
+const sidebarFetcher = (url) => {
+    const token = localStorage.getItem('secretaryToken') || localStorage.getItem('adminToken') || localStorage.getItem('token');
+    if (!token) return Promise.resolve({ success: false });
+    return fetch(url, { headers: { Authorization: `Bearer ${token}` } }).then(res => res.json());
+};
+
 export default function SecretaryAdminSidebar() {
     const location = useLocation();
     const navigate = useNavigate();
     const [showLogoutModal, setShowLogoutModal] = useState(false);
     const currentPath = location.pathname;
-    const [unreadCount, setUnreadCount] = useState(0);
-    const [pendingLoansCount, setPendingLoansCount] = useState(0);
     const prevNotifIdsRef = useRef(new Set());
+
+    const token = localStorage.getItem('secretaryToken') || localStorage.getItem('adminToken') || localStorage.getItem('token');
+
+    const { data: notifData, mutate: mutateNotifs } = useSWR(
+        token ? `${API}/api/admin/notifications` : null,
+        sidebarFetcher,
+        { refreshInterval: 30000, dedupingInterval: 15000, keepPreviousData: true, revalidateOnFocus: false }
+    );
+
+    const { data: countsData, mutate: mutateCounts } = useSWR(
+        token ? `${API}/api/admin/sidebar-counts` : null,
+        sidebarFetcher,
+        { refreshInterval: 30000, dedupingInterval: 15000, keepPreviousData: true, revalidateOnFocus: false }
+    );
+
+    const unreadCount = useMemo(() => {
+        if (!notifData?.success) return 0;
+        const readIds = new Set(notifData.readIds || []);
+        const allNotifs = notifData.notifications || [];
+        return allNotifs.filter(n => n.type === 'loan' && !readIds.has(n.id)).length;
+    }, [notifData]);
+
+    const pendingLoansCount = useMemo(() => {
+        return countsData?.counts?.pendingLoans || 0;
+    }, [countsData]);
 
     const [collapsed, setCollapsed] = useState(() => {
         return localStorage.getItem('admin_sidebar_collapsed') === 'true';
@@ -49,71 +79,29 @@ export default function SecretaryAdminSidebar() {
         return () => window.removeEventListener('admin-profile-updated', onProfileUpdate);
     }, []);
 
-
-    /* ── Fetch admin unread count ── */
+    /* ── Desktop push notifications ── */
     useEffect(() => {
-        const token = localStorage.getItem('secretaryToken') || localStorage.getItem('adminToken') || localStorage.getItem('token');
-        if (!token) return;
+        if (!notifData?.success) return;
+        const readIds = new Set(notifData.readIds || []);
+        const allNotifs = notifData.notifications || [];
+        const unreadNotifs = allNotifs.filter(n => n.type === 'loan' && !readIds.has(n.id));
+        prevNotifIdsRef.current = processNewNotifications(
+            prevNotifIdsRef.current,
+            unreadNotifs,
+            '/secretary-admin/notifications',
+            (path) => { window.location.href = path; }
+        );
+    }, [notifData]);
 
-        const calcUnread = async () => {
-            try {
-                const res  = await fetch(`${API}/api/admin/notifications`, {
-                    headers: { Authorization: `Bearer ${token}` },
-                });
-                if (!res.ok) return;
-                const data = await res.json();
-                if (data.success) {
-                    const readIds = new Set(data.readIds || []);
-                    const allNotifs = data.notifications || [];
-                    const count = allNotifs.filter(n => n.type === 'loan' && !readIds.has(n.id)).length;
-                    setUnreadCount(count);
-
-                    /* ── Desktop push notifications ── */
-                    const unreadNotifs = allNotifs.filter(n => n.type === 'loan' && !readIds.has(n.id));
-                    prevNotifIdsRef.current = processNewNotifications(
-                      prevNotifIdsRef.current,
-                      unreadNotifs,
-                      '/secretary-admin/notifications',
-                      (path) => { window.location.href = path; }
-                    );
-                }
-            } catch { /* silent */ }
-        };
-
-        const calcCounts = async () => {
-            try {
-                const res = await fetch(`${API}/api/admin/sidebar-counts`, {
-                    headers: { Authorization: `Bearer ${token}` },
-                });
-                if (!res.ok) return;
-                const data = await res.json();
-                if (data.success && data.counts) {
-                    setPendingLoansCount(data.counts.pendingLoans || 0);
-                }
-            } catch { /* silent */ }
-        };
-
-        calcUnread();
-        calcCounts();
-
+    /* ── Listen for notification read events ── */
+    useEffect(() => {
         const onUpdate = () => {
-            calcUnread();
-            calcCounts();
+            mutateNotifs();
+            mutateCounts();
         };
         window.addEventListener('admin-notif-read-update', onUpdate);
-        
-        // Poll every 30 seconds for live updates
-        const intervalId = setInterval(() => {
-            calcUnread();
-            calcCounts();
-        }, 30000);
-        
-        return () => {
-             window.removeEventListener('admin-notif-read-update', onUpdate);
-             window.removeEventListener('storage', calcUnread);
-             clearInterval(intervalId);
-        };
-    }, []);
+        return () => window.removeEventListener('admin-notif-read-update', onUpdate);
+    }, [mutateNotifs, mutateCounts]);
 
 
     const [mobileOpen, setMobileOpen] = useState(false);

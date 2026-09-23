@@ -89,6 +89,14 @@ const renderDocPreview = (dataUrl) => {
     return <img src={dataUrl} alt="Document preview" style={{ width: '100%', height: '100%', objectFit: 'cover', borderRadius: '4px' }} />;
 };
 
+const fetcherSingle = (url) => {
+    const token = localStorage.getItem('adminToken');
+    return fetch(url, { headers: { Authorization: `Bearer ${token}` } }).then(res => {
+        if (res.status === 401 || res.status === 403) return { success: false, _authError: true };
+        return res.json();
+    });
+};
+
 export default function LoanAdminLoanManagement() {
     const navigate = useNavigate();
     const [searchQuery, setSearchQuery] = useState('');
@@ -124,11 +132,6 @@ export default function LoanAdminLoanManagement() {
     const [isOcrLoading, setIsOcrLoading] = useState(false);
 
     const token = localStorage.getItem('adminToken');
-
-    const fetcherSingle = (url) => fetch(url, { headers: { Authorization: `Bearer ${token}` } }).then(res => {
-        if (res.status === 401 || res.status === 403) { navigate('/'); return { success: false }; }
-        return res.json();
-    });
 
     const queryParams = useMemo(() => {
         const params = new URLSearchParams();
@@ -167,6 +170,10 @@ export default function LoanAdminLoanManagement() {
         completed: loansData?.stats?.completed || 0,
         rejected: loansData?.stats?.rejected || 0,
     }), [loansData]);
+
+    useEffect(() => {
+        if (loansData?._authError) navigate('/');
+    }, [loansData, navigate]);
 
     const loading = loadingLoans;
 

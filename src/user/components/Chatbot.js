@@ -1,8 +1,115 @@
-import { useState, useEffect, useRef } from 'react';
+import React, { useState, useEffect, useRef, memo } from 'react';
 import { useAuth } from '../../context/AuthContext';
-
 import { Send, X, Sparkles, Bot } from 'lucide-react';
 import API from '../../utils/api';
+
+const formatTime = (date) => {
+  return date.toLocaleTimeString('en-US', { hour: 'numeric', minute: '2-digit', hour12: true });
+};
+
+const renderInline = (text, keyPrefix) => {
+  const parts = text.split(/(\*\*[^*]+\*\*)/g);
+  return parts.map((part, i) => {
+    if (part.startsWith('**') && part.endsWith('**')) {
+      return <strong key={`${keyPrefix}-b${i}`}>{part.slice(2, -2)}</strong>;
+    }
+    return <span key={`${keyPrefix}-s${i}`}>{part}</span>;
+  });
+};
+
+const renderText = (text) => {
+  const lines = text.split('\n');
+  const elements = [];
+  let listItems = [];
+  let listType = null;
+
+  const flushList = () => {
+    if (listItems.length === 0) return;
+    if (listType === 'ol') {
+      elements.push(
+        <ol key={`ol-${elements.length}`} className="my-1 ml-4 list-decimal pl-1">
+          {listItems.map((item, i) => <li key={i}>{item}</li>)}
+        </ol>
+      );
+    } else {
+      elements.push(
+        <ul key={`ul-${elements.length}`} className="my-1 ml-4 list-disc pl-1">
+          {listItems.map((item, i) => <li key={i}>{item}</li>)}
+        </ul>
+      );
+    }
+    listItems = [];
+    listType = null;
+  };
+
+  lines.forEach((line, idx) => {
+    const bulletMatch = line.match(/^[-*]\s+(.+)/);
+    const numberedMatch = line.match(/^(\d+)\.\s+(.+)/);
+
+    if (bulletMatch) {
+      if (listType === 'ol') flushList();
+      listType = 'ul';
+      listItems.push(renderInline(bulletMatch[1], `ul-item-${idx}`));
+    } else if (numberedMatch) {
+      if (listType === 'ul') flushList();
+      listType = 'ol';
+      listItems.push(renderInline(numberedMatch[2], `ol-item-${idx}`));
+    } else {
+      flushList();
+      if (line.trim() === '') {
+        elements.push(<br key={`br-${idx}`} />);
+      } else {
+        elements.push(
+          <span key={`line-${idx}`} className="block">
+            {renderInline(line, `line-${idx}`)}
+          </span>
+        );
+      }
+    }
+  });
+
+  flushList();
+  return elements;
+};
+
+const ChatMessage = memo(function ChatMessage({ msg, firstName }) {
+  return (
+    <div className={`flex items-end gap-2.5 text-xs ${msg.sender === 'user' ? 'justify-end' : 'justify-start'}`}>
+      {msg.sender === 'bot' && (
+        <div className="w-8 h-8 rounded-xl bg-gradient-to-tr from-[#0D1F45] to-[#1E3A8A] flex items-center justify-center text-[#F5C800] shrink-0 mb-1 shadow-md shadow-[#0D1F45]/30">
+          <Bot size={16} />
+        </div>
+      )}
+      <div className={`max-w-[85%] p-4 rounded-2xl shadow-xs space-y-2 leading-relaxed ${
+        msg.sender === 'user' 
+          ? 'bg-gradient-to-r from-[#0D1F45] to-[#1E3A8A] text-white rounded-br-xs font-medium' 
+          : 'bg-white dark:bg-slate-800 text-slate-800 dark:text-slate-100 border border-slate-200/80 dark:border-white/10 rounded-bl-xs'
+      }`}>
+        {msg.greeting ? (
+          <p className="text-xs">
+            👋 Hi <strong className="font-bold">{firstName}</strong>! I'm <strong className="font-bold">IsangDiwa Chatbot</strong>, your AI-powered assistant.
+            I can help with <strong className="font-bold">donations</strong>, <strong className="font-bold">savings</strong>, <strong className="font-bold">attendance</strong>, and more.
+            {' '}Type anything to get started!
+          </p>
+        ) : (
+          <div className="text-xs space-y-1">
+            {msg.text ? renderText(msg.text) : null}
+          </div>
+        )}
+        <div className={`flex items-center gap-1.5 text-[10px] ${msg.sender === 'user' ? 'justify-end text-white/50' : 'justify-between text-slate-400 dark:text-slate-500'}`}>
+          {msg.sender === 'bot' && msg.isAI && (
+            <span className="flex items-center gap-1 text-[9px] font-bold text-[#0D1F45] dark:text-[#F5C800] bg-[#0D1F45]/5 dark:bg-[#F5C800]/10 px-1.5 py-0.5 rounded-md border border-[#0D1F45]/10 dark:border-[#F5C800]/20">
+              <Sparkles size={9} /> AI
+            </span>
+          )}
+          <span>{formatTime(msg.timestamp)}</span>
+        </div>
+      </div>
+    </div>
+  );
+});
+
+
 
 
 /* ─────────────────────────────────────────────
@@ -229,74 +336,7 @@ export default function Chatbot({ isOpen, onClose }) {
     }
   };
 
-  const formatTime = (date) => {
-    return date.toLocaleTimeString('en-US', { hour: 'numeric', minute: '2-digit', hour12: true });
-  };
 
-  const renderInline = (text, keyPrefix) => {
-    const parts = text.split(/(\*\*[^*]+\*\*)/g);
-    return parts.map((part, i) => {
-      if (part.startsWith('**') && part.endsWith('**')) {
-        return <strong key={`${keyPrefix}-b${i}`}>{part.slice(2, -2)}</strong>;
-      }
-      return <span key={`${keyPrefix}-s${i}`}>{part}</span>;
-    });
-  };
-
-  const renderText = (text) => {
-    const lines = text.split('\n');
-    const elements = [];
-    let listItems = [];
-    let listType = null;
-
-    const flushList = () => {
-      if (listItems.length === 0) return;
-      if (listType === 'ol') {
-        elements.push(
-          <ol key={`ol-${elements.length}`} className="my-1 ml-4 list-decimal pl-1">
-            {listItems.map((item, i) => <li key={i}>{item}</li>)}
-          </ol>
-        );
-      } else {
-        elements.push(
-          <ul key={`ul-${elements.length}`} className="my-1 ml-4 list-disc pl-1">
-            {listItems.map((item, i) => <li key={i}>{item}</li>)}
-          </ul>
-        );
-      }
-      listItems = [];
-      listType = null;
-    };
-
-    lines.forEach((line, idx) => {
-      const bulletMatch = line.match(/^[-*]\s+(.+)/);
-      const numberedMatch = line.match(/^(\d+)\.\s+(.+)/);
-
-      if (bulletMatch) {
-        if (listType === 'ol') flushList();
-        listType = 'ul';
-        listItems.push(renderInline(bulletMatch[1], `ul-item-${idx}`));
-      } else if (numberedMatch) {
-        if (listType === 'ul') flushList();
-        listType = 'ol';
-        listItems.push(renderInline(numberedMatch[2], `ol-item-${idx}`));
-      } else {
-        flushList();
-        if (line.trim() === '') {
-          elements.push(<br key={`br-${idx}`} />);
-        } else {
-          elements.push(
-            <span key={`line-${idx}`} className="block">
-              {renderInline(line, `line-${idx}`)}
-            </span>
-          );
-        }
-      }
-    });
-
-    flushList();
-    return elements;
-  };
 
   if (!isOpen) return null;
 
@@ -339,38 +379,7 @@ export default function Chatbot({ isOpen, onClose }) {
         {/* Messages */}
         <div className="flex-1 overflow-y-auto p-4 space-y-4 bg-slate-50/70 dark:bg-slate-900/40">
           {messages.map(msg => (
-            <div key={msg.id} className={`flex items-end gap-2.5 text-xs ${msg.sender === 'user' ? 'justify-end' : 'justify-start'}`}>
-              {msg.sender === 'bot' && (
-                <div className="w-8 h-8 rounded-xl bg-gradient-to-tr from-[#0D1F45] to-[#1E3A8A] flex items-center justify-center text-[#F5C800] shrink-0 mb-1 shadow-md shadow-[#0D1F45]/30">
-                  <Bot size={16} />
-                </div>
-              )}
-              <div className={`max-w-[85%] p-4 rounded-2xl shadow-xs space-y-2 leading-relaxed ${
-                msg.sender === 'user' 
-                  ? 'bg-gradient-to-r from-[#0D1F45] to-[#1E3A8A] text-white rounded-br-xs font-medium' 
-                  : 'bg-white dark:bg-slate-800 text-slate-800 dark:text-slate-100 border border-slate-200/80 dark:border-white/10 rounded-bl-xs'
-              }`}>
-                {msg.greeting ? (
-                  <p className="text-xs">
-                    👋 Hi <strong className="font-bold">{firstName}</strong>! I'm <strong className="font-bold">IsangDiwa Chatbot</strong>, your AI-powered assistant.
-                    I can help with <strong className="font-bold">donations</strong>, <strong className="font-bold">savings</strong>, <strong className="font-bold">attendance</strong>, and more.
-                    {' '}Type anything to get started!
-                  </p>
-                ) : (
-                  <div className="text-xs space-y-1">
-                    {msg.text ? renderText(msg.text) : null}
-                  </div>
-                )}
-                <div className={`flex items-center gap-1.5 text-[10px] ${msg.sender === 'user' ? 'justify-end text-white/50' : 'justify-between text-slate-400 dark:text-slate-500'}`}>
-                  {msg.sender === 'bot' && msg.isAI && (
-                    <span className="flex items-center gap-1 text-[9px] font-bold text-[#0D1F45] dark:text-[#F5C800] bg-[#0D1F45]/5 dark:bg-[#F5C800]/10 px-1.5 py-0.5 rounded-md border border-[#0D1F45]/10 dark:border-[#F5C800]/20">
-                      <Sparkles size={9} /> AI
-                    </span>
-                  )}
-                  <span>{formatTime(msg.timestamp)}</span>
-                </div>
-              </div>
-            </div>
+            <ChatMessage key={msg.id} msg={msg} firstName={firstName} />
           ))}
 
           {/* Typing indicator */}

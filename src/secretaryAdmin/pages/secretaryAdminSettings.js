@@ -1,4 +1,5 @@
 import { useState, useEffect } from 'react';
+import useSWR from 'swr';
 import { useNavigate } from 'react-router';
 import { toast } from 'sonner';
 import SecretaryAdminSidebar from '../components/secretaryAdminSidebar';
@@ -6,6 +7,14 @@ import PageHeader from '../components/PageHeader';
 import { useTheme } from '../../context/ThemeContext';
 import { User, Lock, Bell, Moon, LogOut, Eye, EyeOff, Save, CheckCircle2 } from 'lucide-react';
 import API from '../../utils/api';
+
+const fetcherSingle = (url) => {
+    const token = localStorage.getItem('secretaryToken')
+               || localStorage.getItem('adminToken')
+               || localStorage.getItem('token');
+    if (!token) return Promise.resolve({ success: false });
+    return fetch(url, { headers: { Authorization: `Bearer ${token}` } }).then(res => res.json());
+};
 
 /* ── Password strength helper ────────────────────────────────────────────── */
 function getStrength(pw) {
@@ -92,30 +101,25 @@ export default function SecretaryLoanSettings() {
             return NOTIF_DEFAULTS;
         }
     });
+    const { data: profileData, isValidating: loadingProfileSwr, mutate: mutateProfile } = useSWR(
+        token ? `${API}/api/admin/profile` : null,
+        fetcherSingle,
+        { dedupingInterval: 60000, revalidateOnFocus: false, keepPreviousData: true }
+    );
 
-    const [loadingProfile, setLoadingProfile] = useState(true);
+    const loadingProfile = loadingProfileSwr && !profileData && !secEmail;
 
-    /* ── Load profile from API ─────────────────────────────────────────── */
     useEffect(() => {
         if (!token) { navigate('/'); return; }
-        fetch(`${API}/api/admin/profile`, {
-            headers: { Authorization: `Bearer ${token}` }
-        })
-            .then(r => r.json())
-            .then(data => {
-                if (data.success && data.admin) {
-                    setSecName(data.admin.fullName || '');
-                    setSecEmail(data.admin.email || '');
-                }
-            })
-            .catch(() => {
-                setSecName(localStorage.getItem('adminName') || '');
-                setSecEmail(localStorage.getItem('adminEmail') || '');
-            })
-            .finally(() => {
-                setLoadingProfile(false);
-            });
-    }, [token, navigate]);
+        if (profileData?.success && profileData.admin) {
+            setSecName(profileData.admin.fullName || '');
+            setSecEmail(profileData.admin.email || '');
+        } else if (!secName && !secEmail) {
+            setSecName(localStorage.getItem('adminName') || '');
+            setSecEmail(localStorage.getItem('adminEmail') || '');
+        }
+        // eslint-disable-next-line react-hooks/exhaustive-deps
+    }, [token, navigate, profileData]);
 
     /* ── Handlers ──────────────────────────────────────────────────────── */
 
@@ -135,6 +139,7 @@ export default function SecretaryLoanSettings() {
             if (data.success) {
                 localStorage.setItem('adminName', secName.trim());
                 window.dispatchEvent(new Event('admin-profile-updated'));
+                mutateProfile({ ...profileData, admin: { ...profileData?.admin, fullName: secName.trim() } }, false);
                 toast.success('Profile updated successfully');
             } else {
                 toast.error(data.message || 'Failed to update profile');

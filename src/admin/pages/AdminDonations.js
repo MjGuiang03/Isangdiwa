@@ -40,20 +40,23 @@ const StatusBadge = ({ status }) => {
   );
 };
 
+const getToken = () =>
+  localStorage.getItem('adminToken') ||
+  localStorage.getItem('admin_token') ||
+  localStorage.getItem('token');
+
+const fetcherSingle = (url) => fetch(url, { headers: { Authorization: `Bearer ${getToken()}` } }).then(res => {
+  if (res.status === 401 || res.status === 403) {
+    window.location.href = '/';
+    return { success: false };
+  }
+  return res.json();
+});
+
 export default function AdminDonationsNew() {
   const navigate = useNavigate();
 
-  const [donations, setDonations] = useState([]);
-  const [stats, setStats] = useState({
-    totalThisMonth: 0,
-    totalDonors: 0,
-    avgDonation: 0,
-    thisWeek: 0,
-    pendingCount: 0,
-    percentageChange: '0%',
-  });
   const [currentPage, setCurrentPage] = useState(1);
-  const [totalCount, setTotalCount] = useState(0);
   const [search, setSearch] = useState('');
   const [statusFilter, setStatusFilter] = useState('all'); 
   const [showRejectedModal, setShowRejectedModal] = useState(false);
@@ -133,21 +136,16 @@ export default function AdminDonationsNew() {
     }
   };
 
-  const getToken = () =>
-    localStorage.getItem('adminToken') ||
-    localStorage.getItem('admin_token') ||
-    localStorage.getItem('token');
-
   /* ── Auth guard ── */
   useEffect(() => {
     if (!getToken()) navigate('/');
   }, [navigate]);
 
-  /* ── Fetch ── */
-  const fetcherSingle = (url) => fetch(url, { headers: { Authorization: `Bearer ${getToken()}` } }).then(res => {
-    if (res.status === 401 || res.status === 403) { navigate('/'); return { success: false }; }
-    return res.json();
-  });
+  /* ── Mark donations page as viewed so sidebar badge clears ── */
+  useEffect(() => {
+    localStorage.setItem('adminDonationsViewed', 'true');
+    window.dispatchEvent(new Event('admin-donations-viewed'));
+  }, []);
 
   const queryParams = useMemo(() => {
     const params = new URLSearchParams();
@@ -161,24 +159,32 @@ export default function AdminDonationsNew() {
   const { data, isValidating: loading, mutate: fetchDonations } = useSWR(
     `${API}/api/admin/donations?${queryParams}`,
     fetcherSingle,
-    { revalidateOnFocus: false, revalidateIfStale: true, keepPreviousData: true }
+    { revalidateOnFocus: false, dedupingInterval: 30000, keepPreviousData: true }
   );
 
   useEffect(() => {
-    if (data && data.success !== false && !data.message) {
-      setDonations(data.donations || []);
-      setTotalCount(data.totalCount || 0);
-      setStats({
-        totalCount: data.stats?.totalCount || 0,
-        totalThisMonth: data.stats?.thisMonth || 0,
-        totalDonors: data.stats?.totalDonors || 0,
-        avgDonation: data.stats?.avgDonation || 0,
-        rejectedCount: data.stats?.rejectedCount || 0,
-        percentageChange: data.stats?.percentageChange || '0%',
-        communityBreakdown: data.stats?.communityBreakdown || {},
-        categoryBreakdown: data.stats?.categoryBreakdown || {}
-      });
-    } else if (data && data.message) {
+    if (data?.donations || data?.stats) {
+      const pendingCount = (data?.donations || []).filter(d => !d.status || d.status === 'pending').length;
+      localStorage.setItem('adminLastViewedDonationsCount', String(pendingCount));
+      window.dispatchEvent(new Event('admin-donations-viewed'));
+    }
+  }, [data]);
+
+  const donations = useMemo(() => data?.donations || [], [data]);
+  const totalCount = useMemo(() => data?.totalCount || 0, [data]);
+  const stats = useMemo(() => ({
+    totalCount: data?.stats?.totalCount || 0,
+    totalThisMonth: data?.stats?.thisMonth || 0,
+    totalDonors: data?.stats?.totalDonors || 0,
+    avgDonation: data?.stats?.avgDonation || 0,
+    rejectedCount: data?.stats?.rejectedCount || 0,
+    percentageChange: data?.stats?.percentageChange || '0%',
+    communityBreakdown: data?.stats?.communityBreakdown || {},
+    categoryBreakdown: data?.stats?.categoryBreakdown || {}
+  }), [data]);
+
+  useEffect(() => {
+    if (data && data.success === false && data.message) {
       toast.error(data.message);
     }
   }, [data]);

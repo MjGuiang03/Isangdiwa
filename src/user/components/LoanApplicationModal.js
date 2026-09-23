@@ -160,6 +160,7 @@ export default function LoanApplicationModal({
   const bankDropdownRef = useRef(null);
 
   useEffect(() => {
+    if (!isBankDropdownOpen) return;
     const handleClickOutside = (e) => {
       if (bankDropdownRef.current && !bankDropdownRef.current.contains(e.target)) {
         setIsBankDropdownOpen(false);
@@ -167,7 +168,7 @@ export default function LoanApplicationModal({
     };
     document.addEventListener('mousedown', handleClickOutside);
     return () => document.removeEventListener('mousedown', handleClickOutside);
-  }, []);
+  }, [isBankDropdownOpen]);
 
   /* ── Camera state ── */
   const [cameraOpen, setCameraOpen] = useState(false);       // is camera modal visible
@@ -443,6 +444,16 @@ export default function LoanApplicationModal({
       stopCamera();
       setCameraOpen(false);
     }
+    return () => {
+      if (streamRef.current) {
+        streamRef.current.getTracks().forEach(t => t.stop());
+        streamRef.current = null;
+      }
+      if (hintTimerRef.current) {
+        clearInterval(hintTimerRef.current);
+        hintTimerRef.current = null;
+      }
+    };
   }, [isOpen, stopCamera]);
 
   if (!isOpen) return null;

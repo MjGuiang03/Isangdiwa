@@ -82,14 +82,16 @@ function PasswordModal({ title, description, onConfirm, onClose, loading, varian
 
 const EMAIL_REGEX = /^[^\s@]+@[^\s@]+\.[^\s@]+$/;
 
+const fetcherSingle = (url) => {
+  const token = localStorage.getItem('adminToken');
+  return fetch(url, { headers: { Authorization: `Bearer ${token}` } }).then(res => res.json());
+};
+
 /* ══════════════════════════════════════════════════════
    MAIN COMPONENT
 ══════════════════════════════════════════════════════ */
 export default function AdminUserManagement() {
   const navigate = useNavigate();
-  const [adminList, setAdminList] = useState([]);
-  const [stats, setStats] = useState({ total: 0, admins: 0, loanAdmins: 0, secretaryAdmins: 0 });
-  const [loading, setLoading] = useState(true);
   const [searchQuery, setSearchQuery] = useState('');
   const debouncedSearch = useDebounce(searchQuery, 400);
   const [actionLoading, setActionLoading] = useState(false);
@@ -117,6 +119,25 @@ export default function AdminUserManagement() {
   const [createForm, setCreateForm] = useState({ email: '', password: '', role: 'loanAdmin' });
   const [createLoading, setCreateLoading] = useState(false);
   const [showCreateConfirmModal, setShowCreateConfirmModal] = useState(false);
+
+  const token = localStorage.getItem('adminToken');
+  const superAdminEmail = localStorage.getItem('adminEmail');
+
+  const queryParams = useMemo(() => {
+    const params = new URLSearchParams();
+    if (debouncedSearch.trim()) params.set('search', debouncedSearch.trim());
+    return params.toString();
+  }, [debouncedSearch]);
+
+  const { data: adminsData, isValidating: loadingAdmins, mutate: fetchAdmins } = useSWR(
+    token ? `${API}/api/admin/admins?limit=100&${queryParams}` : null,
+    fetcherSingle,
+    { revalidateOnFocus: false, dedupingInterval: 30000, keepPreviousData: true }
+  );
+
+  const adminList = useMemo(() => adminsData?.admins || [], [adminsData]);
+  const stats = useMemo(() => adminsData?.stats || { total: 0, admins: 0, loanAdmins: 0, secretaryAdmins: 0 }, [adminsData]);
+  const loading = loadingAdmins && !adminsData;
 
   /* ── Real-time Validations ── */
   const createEmailError = useMemo(() => {
@@ -161,34 +182,6 @@ export default function AdminUserManagement() {
     if (editPassword.length < 8) return 'Password must be at least 8 characters';
     return '';
   }, [editPassword]);
-
-  const token = localStorage.getItem('adminToken');
-  const superAdminEmail = localStorage.getItem('adminEmail');
-
-  const fetcherSingle = (url) => fetch(url, { headers: { Authorization: `Bearer ${token}` } }).then(res => res.json());
-
-  const queryParams = useMemo(() => {
-    const params = new URLSearchParams();
-    if (debouncedSearch.trim()) params.set('search', debouncedSearch.trim());
-    return params.toString();
-  }, [debouncedSearch]);
-
-  const { data: adminsData, isValidating: loadingAdmins, mutate: fetchAdmins } = useSWR(
-    token ? `${API}/api/admin/admins?limit=100&${queryParams}` : null,
-    fetcherSingle,
-    { revalidateOnFocus: false, revalidateIfStale: true }
-  );
-
-  useEffect(() => {
-    if (adminsData && adminsData.success) {
-        setAdminList(adminsData.admins || []);
-        setStats(adminsData.stats || { total: 0, admins: 0, loanAdmins: 0, secretaryAdmins: 0 });
-    }
-  }, [adminsData]);
-
-  useEffect(() => {
-    setLoading(loadingAdmins && !adminsData);
-  }, [loadingAdmins, adminsData]);
 
   useEffect(() => {
     const role = localStorage.getItem('adminRole');

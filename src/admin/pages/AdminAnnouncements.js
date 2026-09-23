@@ -1,4 +1,4 @@
-import { useState, useEffect } from 'react';
+import { useState, useEffect, useMemo } from 'react';
 import { createPortal } from 'react-dom';
 import useSWR from 'swr';
 import { useNavigate } from 'react-router-dom';
@@ -14,12 +14,14 @@ const fmtDateTime = (d) =>
 
 const isExpired = (d) => d && new Date(d) < new Date();
 
+const fetcherSingle = (url) => {
+  const token = localStorage.getItem('adminToken');
+  return fetch(url, { headers: { Authorization: `Bearer ${token}` } }).then(res => res.json());
+};
+
 export default function AdminAnnouncements() {
   const navigate = useNavigate();
-  const [loading, setLoading] = useState(false);
   const [submitting, setSubmitting] = useState(false);
-  const [items, setItems] = useState([]);
-  const [branches, setBranches] = useState([]);
   const [categoryFilter, setCategoryFilter] = useState('All');
   const [deletingAnnouncement, setDeletingAnnouncement] = useState(null);
   const [editingId, setEditingId] = useState(null);
@@ -33,35 +35,27 @@ export default function AdminAnnouncements() {
   });
 
   const token = localStorage.getItem('adminToken');
-  const fetcherSingle = (url) => fetch(url, { headers: { Authorization: `Bearer ${token}` } }).then(res => res.json());
 
   const { data: announcementsData, isValidating: loadingAnnouncements, mutate: fetchAnnouncements } = useSWR(
     token ? `${API}/api/admin/announcements?admin=true` : null,
     fetcherSingle,
-    { revalidateOnFocus: false, revalidateIfStale: true }
+    { revalidateOnFocus: false, dedupingInterval: 30000, keepPreviousData: true }
   );
-
-  useEffect(() => {
-    if (announcementsData && announcementsData.success) {
-      setItems(announcementsData.announcements || []);
-    }
-  }, [announcementsData]);
 
   const { data: branchesData } = useSWR(
     token ? `${API}/api/admin/branches` : null,
     fetcherSingle,
-    { revalidateOnFocus: false }
+    { revalidateOnFocus: false, dedupingInterval: 30000, keepPreviousData: true }
   );
 
-  useEffect(() => {
-    if (branchesData && branchesData.success) {
-      setBranches((branchesData.branches || []).map(b => b.name));
-    }
-  }, [branchesData]);
+  const items = useMemo(() => announcementsData?.announcements || [], [announcementsData]);
+  const branches = useMemo(() => (branchesData?.branches || []).map(b => b.name), [branchesData]);
+  const loading = loadingAnnouncements && !announcementsData;
 
-  useEffect(() => {
-    setLoading(loadingAnnouncements && !announcementsData);
-  }, [loadingAnnouncements, announcementsData]);
+  const filteredItems = useMemo(() => {
+    if (categoryFilter === 'All') return items;
+    return items.filter(a => a.category === categoryFilter);
+  }, [items, categoryFilter]);
 
   useEffect(() => {
     if (!token) { navigate('/'); }
@@ -240,7 +234,7 @@ export default function AdminAnnouncements() {
       if (res.ok && data.success) {
         toast.success('Announcement deleted');
         setDeletingAnnouncement(null);
-        setItems(prev => prev.filter(a => a._id !== id));
+        fetchAnnouncements();
       } else {
         toast.error(data.message || 'Failed to delete');
       }
@@ -607,7 +601,7 @@ export default function AdminAnnouncements() {
                     <div className="h-3 bg-slate-200 dark:bg-white/10 rounded w-full" />
                   </div>
                 ))
-              ) : (filteredItems => filteredItems.length === 0 ? (
+              ) : filteredItems.length === 0 ? (
                 <div className="flex flex-col items-center justify-center py-10 text-center text-slate-400">
                   <Megaphone size={32} className="mb-2 opacity-40" />
                   <p className="m-0 font-inter text-sm font-medium text-slate-500 dark:text-slate-400">{items.length === 0 ? 'No announcements yet. Post one!' : `No ${categoryFilter} announcements.`}</p>
@@ -646,7 +640,7 @@ export default function AdminAnnouncements() {
                     </div>
                   </div>
                 ))
-              ))(items.filter(a => categoryFilter === 'All' || a.category === categoryFilter))}
+              )}
             </div>
           </div>
 

@@ -1,5 +1,5 @@
 import { useNavigate, useParams, useSearchParams } from 'react-router-dom';
-import { useState, useEffect } from 'react';
+import { useState, useEffect, useMemo } from 'react';
 import { createPortal } from 'react-dom';
 import useSWR from 'swr';
 import { useAuth } from '../../context/AuthContext';
@@ -56,6 +56,15 @@ const STATUS_TEXT = {
   rejected: 'Rejected',
   overdue: 'Overdue',
   awaiting_member_approval: 'Awaiting Signature',
+};
+
+const fetcherSingle = (url) => {
+    const token = localStorage.getItem('token');
+    if (!token) return Promise.resolve(null);
+    return fetch(url, { headers: { 'Content-Type': 'application/json', Authorization: `Bearer ${token}` } }).then(res => {
+        if (res.status === 401) { window.location.href = '/'; return null; }
+        return res.ok ? res.json() : { success: false };
+    }).catch(() => null);
 };
 
 const PAYMENT_TYPES = [
@@ -1038,10 +1047,6 @@ export default function LoanDetail() {
   const navigate = useNavigate();
   useAuth();
 
-  const [loan, setLoan] = useState(null);
-  const [schedule, setSchedule] = useState([]);
-  const [paymentHistory, setPaymentHistory] = useState([]);
-  const [loading, setLoading] = useState(true);
   const [error, setError] = useState('');
   const [showSchedule, setShowSchedule] = useState(false);
   const [showPayNow, setShowPayNow] = useState(false);
@@ -1056,34 +1061,22 @@ export default function LoanDetail() {
   const token = localStorage.getItem('token');
   const encodedId = loanId ? encodeURIComponent(loanId) : null;
 
-  const fetcherSingle = async (url) => {
-    const res = await fetch(url, {
-      headers: { 'Content-Type': 'application/json', Authorization: `Bearer ${token}` }
-    });
-    if (res.status === 401) {
-      localStorage.removeItem('token');
-      navigate('/');
-      return null;
-    }
-    return res.ok ? res.json() : { success: false };
-  };
-
-  const { data: loanData, mutate: mutateLoan } = useSWR(
+  const { data: loanData, mutate: mutateLoan, isValidating: isLoanValidating } = useSWR(
     token && encodedId ? `${API}/api/loans/${encodedId}` : null,
     fetcherSingle,
-    { revalidateOnFocus: false, dedupingInterval: 5000 }
+    { revalidateOnFocus: false, dedupingInterval: 30000, keepPreviousData: true }
   );
 
   const { data: schedData, mutate: mutateSched } = useSWR(
     token && encodedId ? `${API}/api/loans/${encodedId}/schedule` : null,
     fetcherSingle,
-    { revalidateOnFocus: false, dedupingInterval: 5000 }
+    { revalidateOnFocus: false, dedupingInterval: 30000, keepPreviousData: true }
   );
 
   const { data: histData, mutate: mutateHist } = useSWR(
     token && encodedId ? `${API}/api/loans/${encodedId}/payment-history` : null,
     fetcherSingle,
-    { revalidateOnFocus: false, dedupingInterval: 5000 }
+    { revalidateOnFocus: false, dedupingInterval: 30000, keepPreviousData: true }
   );
 
   const mutate = () => {
@@ -1092,30 +1085,25 @@ export default function LoanDetail() {
     mutateHist();
   };
 
+  const loan = useMemo(() => loanData?.success ? loanData.loan : null, [loanData]);
+  const schedule = useMemo(() => schedData?.schedule || [], [schedData]);
+  const paymentHistory = useMemo(() => histData?.payments || [], [histData]);
+  const loading = !loanData && isLoanValidating;
+
   useEffect(() => {
     if (!loanData) return;
     if (loanData.success) {
-      setLoan(loanData.loan);
       setError('');
     } else {
       setError(loanData.message || 'Failed to load loan details.');
     }
-    setLoading(false);
   }, [loanData]);
 
-  useEffect(() => {
-    if (schedData?.schedule) setSchedule(schedData.schedule);
-  }, [schedData]);
-
-  useEffect(() => {
-    if (histData?.payments) setPaymentHistory(histData.payments);
-  }, [histData]);
-
   /* Derived */
-  const paidCount = schedule.filter(r => r.status === 'paid').length;
+  const paidCount = useMemo(() => schedule.filter(r => r.status === 'paid').length, [schedule]);
   const totalMonths = loan?.termMonths || 0;
-  const progressPct = totalMonths > 0 ? Math.max(2, Math.round((paidCount / totalMonths) * 100)) : 2;
-  const paidAmount = schedule.filter(r => r.status === 'paid').reduce((s, r) => s + (r.payment || 0), 0);
+  const progressPct = useMemo(() => totalMonths > 0 ? Math.max(2, Math.round((paidCount / totalMonths) * 100)) : 2, [totalMonths, paidCount]);
+  const paidAmount = useMemo(() => schedule.filter(r => r.status === 'paid').reduce((s, r) => s + (r.payment || 0), 0), [schedule]);
 
   /* Skeleton Loader */
   if (loading) return (

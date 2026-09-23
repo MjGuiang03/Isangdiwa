@@ -733,15 +733,17 @@ function CommunityInfoModal({ branch, onClose, onEdit, totalAllDonations }) {
   );
 }
 
+const fetcherSingle = (url) => {
+  const token = localStorage.getItem('adminToken');
+  return fetch(url, { headers: { Authorization: `Bearer ${token}` } }).then(res => res.json());
+};
+
 export default function AdminBranches() {
   const navigate = useNavigate();
 
-  const [branches, setBranches] = useState([]);
-  const [loading, setLoading] = useState(true);
   const [search, setSearch] = useState('');
   const debouncedSearch = useDebounce(search, 400);
   const [page, setPage] = useState(1);
-  const [totalCount, setTotalCount] = useState(0);
   const [showAddModal, setShowAddModal] = useState(false);
   const [editingBranch, setEditingBranch] = useState(null);
   const [viewingBranch, setViewingBranch] = useState(null);
@@ -751,13 +753,9 @@ export default function AdminBranches() {
   // Track visible count per province for "View More" pagination
   const [visibleCounts, setVisibleCounts] = useState({});
   const [filterActive, setFilterActive] = useState(false);
-  const [totalServices, setTotalServices] = useState(0);
-  const [growthRate, setGrowthRate] = useState(0);
   const LIMIT = 68;
 
   const token = localStorage.getItem('adminToken');
-
-  const fetcherSingle = (url) => fetch(url, { headers: { Authorization: `Bearer ${token}` } }).then(res => res.json());
 
   const queryParams = useMemo(() => {
     const params = new URLSearchParams();
@@ -770,21 +768,14 @@ export default function AdminBranches() {
   const { data: branchesData, isValidating: loadingBranches, mutate: fetchBranches } = useSWR(
     token ? `${API}/api/admin/branches?${queryParams}` : null,
     fetcherSingle,
-    { revalidateOnFocus: false, revalidateIfStale: true }
+    { revalidateOnFocus: false, dedupingInterval: 30000, keepPreviousData: true }
   );
 
-  useEffect(() => {
-    if (branchesData && branchesData.success) {
-      setBranches(branchesData.branches || []);
-      setTotalCount(branchesData.totalCount || 0);
-      setTotalServices(branchesData.totalServices || 0);
-      setGrowthRate(branchesData.growthRate || 0);
-    }
-  }, [branchesData]);
-
-  useEffect(() => {
-    setLoading(loadingBranches);
-  }, [loadingBranches]);
+  const branches = useMemo(() => branchesData?.branches || [], [branchesData]);
+  const totalCount = useMemo(() => branchesData?.totalCount || 0, [branchesData]);
+  const totalServices = useMemo(() => branchesData?.totalServices || 0, [branchesData]);
+  const growthRate = useMemo(() => branchesData?.growthRate || 0, [branchesData]);
+  const loading = loadingBranches && !branchesData;
 
   const handleDeleteBranch = async (id) => {
     try {

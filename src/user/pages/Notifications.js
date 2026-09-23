@@ -38,7 +38,43 @@ const fmtTime = (date, isReminder) => {
   return `${dateStrFull} · ${timeStr}`;
 };
 
-// Persisted read access via db
+const fetcherSingle = (url) => fetch(url, { headers: { Authorization: `Bearer ${localStorage.getItem('token')}` } }).then(res => res.ok ? res.json() : { success: false });
+
+const getIcon = (type, title = '') => {
+  const wrap = (bgClass, iconColorClass, Icon) => (
+    <div className={`w-9 h-9 rounded-xl flex items-center justify-center shrink-0 ${bgClass}`}>
+      <Icon size={18} className={iconColorClass} />
+    </div>
+  );
+  if (type === 'loan') {
+    if (title.includes('Disbursed')) return wrap('bg-blue-100 dark:bg-blue-950/60', 'text-blue-600 dark:text-blue-400', Landmark);
+    if (title.includes('Approved')) return wrap('bg-emerald-100 dark:bg-emerald-950/60', 'text-emerald-600 dark:text-emerald-400', BadgeCheck);
+    if (title.includes('Reminder')) return wrap('bg-rose-100 dark:bg-rose-950/60', 'text-rose-600 dark:text-rose-400', AlertCircle);
+    return wrap('bg-blue-100 dark:bg-blue-950/60', 'text-blue-600 dark:text-blue-400', Banknote);
+  }
+  if (type === 'payment_pending') return wrap('bg-emerald-100 dark:bg-emerald-950/60', 'text-emerald-600 dark:text-emerald-400', CircleCheck);
+  if (type === 'savings') return wrap('bg-[#F0D89A]/30 dark:bg-amber-950/60', 'text-amber-700 dark:text-amber-300', PiggyBank);
+  if (type === 'donation') return wrap('bg-pink-100 dark:bg-pink-950/60', 'text-pink-600 dark:text-pink-400', Heart);
+  if (type === 'attendance') return wrap('bg-teal-100 dark:bg-teal-950/60', 'text-teal-600 dark:text-teal-400', CalendarDays);
+  if (type === 'security') return wrap('bg-amber-100 dark:bg-amber-950/60', 'text-amber-600 dark:text-amber-400', ShieldCheck);
+  return wrap('bg-blue-100 dark:bg-blue-950/60', 'text-blue-600 dark:text-blue-400', Bell);
+};
+
+const badgeClass = (type) =>
+  type === 'loan' ? 'bg-blue-100 dark:bg-blue-950/60 text-blue-700 dark:text-blue-300'
+    : type === 'donation' ? 'bg-pink-100 dark:bg-pink-950/60 text-pink-700 dark:text-pink-300'
+      : type === 'savings' ? 'bg-amber-100 dark:bg-amber-950/60 text-amber-700 dark:text-amber-300'
+        : type === 'payment_pending' ? 'bg-emerald-100 dark:bg-emerald-950/60 text-emerald-700 dark:text-emerald-300'
+          : type === 'security' ? 'bg-amber-100 dark:bg-amber-950/60 text-amber-700 dark:text-amber-300'
+            : 'bg-teal-100 dark:bg-teal-950/60 text-teal-700 dark:text-teal-300';
+
+const badgeLabel = (type) =>
+  type === 'loan' ? 'Loan'
+    : type === 'donation' ? 'Donation'
+      : type === 'savings' ? 'Savings'
+        : type === 'payment_pending' ? 'Payment'
+          : type === 'announcement' ? 'Announcement'
+            : 'Attendance';
 
 export default function Notifications() {
   const [activeFilter, setActiveFilter] = useState('all');
@@ -106,15 +142,13 @@ export default function Notifications() {
   const [declineCustomReason, setDeclineCustomReason] = useState('');
   const [termsLoading, setTermsLoading] = useState(false);
 
-  const fetcherSingle = (url) => fetch(url, { headers: { Authorization: `Bearer ${localStorage.getItem('token')}` } }).then(res => res.ok ? res.json() : { success: false });
-
-  const { data: lData } = useSWR(`${API}/api/loans/my-loans`, fetcherSingle, { revalidateOnFocus: false, dedupingInterval: 5000 });
-  const { data: dData } = useSWR(`${API}/api/donations/my-donations`, fetcherSingle, { revalidateOnFocus: false, dedupingInterval: 5000 });
-  const { data: aData } = useSWR(`${API}/api/attendance/my-attendance`, fetcherSingle, { revalidateOnFocus: false, dedupingInterval: 5000 });
-  const { data: sData } = useSWR(`${API}/api/savings/transactions`, fetcherSingle, { revalidateOnFocus: false, dedupingInterval: 5000 });
-  const { data: ppData } = useSWR(`${API}/api/loans/my-payments`, fetcherSingle, { revalidateOnFocus: false, dedupingInterval: 5000 });
-  const { data: feedData } = useSWR(`${API}/api/notifications/feed`, fetcherSingle, { revalidateOnFocus: true, dedupingInterval: 3000 });
-  const { data: readData, mutate: mutateRead } = useSWR(`${API}/api/read-notifications`, fetcherSingle, { revalidateOnFocus: false, dedupingInterval: 5000 });
+  const { data: lData } = useSWR(`${API}/api/loans/my-loans`, fetcherSingle, { revalidateOnFocus: false, dedupingInterval: 30000, keepPreviousData: true });
+  const { data: dData } = useSWR(`${API}/api/donations/my-donations`, fetcherSingle, { revalidateOnFocus: false, dedupingInterval: 30000, keepPreviousData: true });
+  const { data: aData } = useSWR(`${API}/api/attendance/my-attendance`, fetcherSingle, { revalidateOnFocus: false, dedupingInterval: 30000, keepPreviousData: true });
+  const { data: sData } = useSWR(`${API}/api/savings/transactions`, fetcherSingle, { revalidateOnFocus: false, dedupingInterval: 30000, keepPreviousData: true });
+  const { data: ppData } = useSWR(`${API}/api/loans/my-payments`, fetcherSingle, { revalidateOnFocus: false, dedupingInterval: 30000, keepPreviousData: true });
+  const { data: feedData } = useSWR(`${API}/api/notifications/feed`, fetcherSingle, { revalidateOnFocus: true, dedupingInterval: 30000, keepPreviousData: true });
+  const { data: readData, mutate: mutateRead } = useSWR(`${API}/api/read-notifications`, fetcherSingle, { revalidateOnFocus: false, dedupingInterval: 30000, keepPreviousData: true });
 
   const loading = !lData && !dData && !aData && !sData && !ppData && !readData && !feedData;
 
@@ -414,38 +448,6 @@ export default function Notifications() {
     } catch { /* silent */ }
   };
 
-  /* ── UI helpers ── */
-  const getIcon = (type, title = '') => {
-    const wrap = (bgClass, iconColorClass, Icon) => (
-      <div className={`w-9 h-9 rounded-xl flex items-center justify-center shrink-0 ${bgClass}`}>
-        <Icon size={18} className={iconColorClass} />
-      </div>
-    );
-
-    if (type === 'loan') {
-      if (title.includes('Disbursed')) return wrap('bg-blue-100 dark:bg-blue-950/60', 'text-blue-600 dark:text-blue-400', Landmark);
-      if (title.includes('Approved')) return wrap('bg-emerald-100 dark:bg-emerald-950/60', 'text-emerald-600 dark:text-emerald-400', BadgeCheck);
-      if (title.includes('Reminder')) return wrap('bg-rose-100 dark:bg-rose-950/60', 'text-rose-600 dark:text-rose-400', AlertCircle);
-      return wrap('bg-blue-100 dark:bg-blue-950/60', 'text-blue-600 dark:text-blue-400', Banknote);
-    }
-    if (type === 'payment_pending') return wrap('bg-emerald-100 dark:bg-emerald-950/60', 'text-emerald-600 dark:text-emerald-400', CircleCheck);
-    if (type === 'savings') return wrap('bg-[#F0D89A]/30 dark:bg-amber-950/60', 'text-amber-700 dark:text-amber-300', PiggyBank);
-    if (type === 'donation') return wrap('bg-pink-100 dark:bg-pink-950/60', 'text-pink-600 dark:text-pink-400', Heart);
-    if (type === 'attendance') return wrap('bg-teal-100 dark:bg-teal-950/60', 'text-teal-600 dark:text-teal-400', CalendarDays);
-    if (type === 'security') return wrap('bg-amber-100 dark:bg-amber-950/60', 'text-amber-600 dark:text-amber-400', ShieldCheck);
-    return wrap('bg-blue-100 dark:bg-blue-950/60', 'text-blue-600 dark:text-blue-400', Bell);
-  };
-
-  const badgeClass = (type) =>
-    type === 'loan' ? 'bg-blue-100 dark:bg-blue-950/60 text-blue-700 dark:text-blue-300'
-      : type === 'donation' ? 'bg-pink-100 dark:bg-pink-950/60 text-pink-700 dark:text-pink-300'
-        : type === 'savings' ? 'bg-amber-100 dark:bg-amber-950/60 text-amber-700 dark:text-amber-300'
-          : type === 'payment_pending' ? 'bg-emerald-100 dark:bg-emerald-950/60 text-emerald-700 dark:text-emerald-300'
-            : type === 'security' ? 'bg-amber-100 dark:bg-amber-950/60 text-amber-700 dark:text-amber-300'
-              : 'bg-teal-100 dark:bg-teal-950/60 text-teal-700 dark:text-teal-300';
-
-
-
   const handleTermsResponse = async (accepted, reason = '') => {
     if (!termsModal) return;
     setTermsLoading(true);
@@ -470,14 +472,6 @@ export default function Notifications() {
       setTermsLoading(false);
     }
   };
-
-  const badgeLabel = (type) =>
-    type === 'loan' ? 'Loan'
-      : type === 'donation' ? 'Donation'
-        : type === 'savings' ? 'Savings'
-          : type === 'payment_pending' ? 'Payment'
-            : type === 'announcement' ? 'Announcement'
-              : 'Attendance';
 
   /* ── Grouping & Collapsing Logic ── */
   const { pinned, groups } = (() => {

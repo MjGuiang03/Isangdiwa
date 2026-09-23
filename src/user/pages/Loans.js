@@ -1,5 +1,5 @@
 import { useNavigate } from 'react-router';
-import { useState, useEffect } from 'react';
+import { useState, useEffect, useMemo } from 'react';
 import useSWR from 'swr';
 import { toast } from 'sonner';
 import { useAuth } from '../../context/AuthContext';
@@ -15,7 +15,7 @@ const fmt = (n) =>
 const fmtDate = (d) =>
   d ? new Date(d).toLocaleDateString('en-PH', { month: 'short', day: 'numeric', year: 'numeric' }) : '—';
 
-const LIMIT = 4;
+const LIMIT = 4; // loans per page
 
 const STATUS_CLASS = {
   pending:    'bg-amber-50 dark:bg-amber-950/60 text-amber-700 dark:text-amber-300 border border-amber-100 dark:border-amber-900/30',
@@ -38,19 +38,18 @@ const STATUS_TEXT = {
   cancelled:  'Cancelled',
 };
 
+const fetcher = (url) => {
+  const token = localStorage.getItem('token');
+  return fetch(url, { headers: { Authorization: `Bearer ${token}` } }).then(res => res.ok ? res.json() : { success: false });
+};
+
 export default function Loans() {
   const navigate = useNavigate();
   const { user } = useAuth();
 
-  const [loans,        setLoans]        = useState([]);
-  const [stats,        setStats]        = useState({ totalBorrowed: 0, remainingBalance: 0, activeCount: 0 });
-  const [dataLoading,  setDataLoading]  = useState(true);
   const [error,        setError]        = useState(null);
   const [page,         setPage]         = useState(1);
-  const [totalCount,   setTotalCount]   = useState(0);
 
-  const [totalSavings, setTotalSavings] = useState(0);
-  const [pendingSavings, setPendingSavings] = useState(0);
   const [isLoanModalOpen, setIsLoanModalOpen] = useState(false);
 
   const [cancelModalData, setCancelModalData] = useState({ open: false, loanId: null });
@@ -63,8 +62,6 @@ export default function Loans() {
   /* ── Verification & Active Loan Logic ── */
   const profile = user;
   const isVerified = isOfficerPosition(profile?.position);
-  const hasActiveLoan = loans.some(l => ['active', 'pending', 'approved', 'overdue', 'awaiting_member_approval'].includes(l.status));
-  const nextDueLoan = loans.find(l => l.status === 'active' && l.nextPaymentDate);
 
   // Redirect non-officers away from this page
   useEffect(() => {
@@ -74,18 +71,17 @@ export default function Loans() {
   }, [profile, isVerified, navigate]);
 
   const token = localStorage.getItem('token');
-  const fetcher = (url) => fetch(url, { headers: { Authorization: `Bearer ${token}` } }).then(res => res.ok ? res.json() : { success: false });
 
-  const { data: loansData, mutate: mutateLoans } = useSWR(
+  const { data: loansData, mutate: mutateLoans, isValidating: isLoansValidating } = useSWR(
     token ? `${API}/api/loans/my-loans?page=${page}&limit=${LIMIT}` : null,
     fetcher,
-    { revalidateOnFocus: false, dedupingInterval: 5000 }
+    { revalidateOnFocus: false, dedupingInterval: 30000, keepPreviousData: true }
   );
 
   const { data: statsData, mutate: mutateStats } = useSWR(
     token ? `${API}/api/savings/stats` : null,
     fetcher,
-    { revalidateOnFocus: false, dedupingInterval: 5000 }
+    { revalidateOnFocus: false, dedupingInterval: 30000, keepPreviousData: true }
   );
 
   const mutate = () => {
@@ -93,12 +89,21 @@ export default function Loans() {
     mutateStats();
   };
 
+  const loans = useMemo(() => loansData?.success ? (loansData.loans || []) : [], [loansData]);
+  const stats = useMemo(() => loansData?.success ? (loansData.stats || { totalBorrowed: 0, remainingBalance: 0, activeCount: 0 }) : { totalBorrowed: 0, remainingBalance: 0, activeCount: 0 }, [loansData]);
+  const totalCount = useMemo(() => loansData?.success ? (loansData.pagination?.totalItems || 0) : 0, [loansData]);
+
+  const totalSavings = useMemo(() => statsData?.success ? (statsData.stats?.totalSavings || 0) : 0, [statsData]);
+  const pendingSavings = useMemo(() => statsData?.success ? (statsData.stats?.pendingSavings || 0) : 0, [statsData]);
+
+  const dataLoading = !loansData && isLoansValidating;
+
+  const hasActiveLoan = useMemo(() => loans.some(l => ['active', 'pending', 'approved', 'overdue', 'awaiting_member_approval'].includes(l.status)), [loans]);
+  const nextDueLoan = useMemo(() => loans.find(l => l.status === 'active' && l.nextPaymentDate), [loans]);
+
   useEffect(() => {
     if (!loansData) return;
     if (loansData.success) {
-      setLoans(loansData.loans || []);
-      setStats(loansData.stats || { totalBorrowed: 0, remainingBalance: 0, activeCount: 0 });
-      setTotalCount(loansData.pagination?.totalItems || 0);
       setError(null);
       if ((loansData.loans || []).length === 0 && !hasClosedInstruction) {
         setShowInstruction(true);
@@ -107,18 +112,6 @@ export default function Loans() {
       setError(loansData?.message || 'Failed to fetch loans');
     }
   }, [loansData, hasClosedInstruction]);
-
-  useEffect(() => {
-    if (!statsData) return;
-    if (statsData.success) {
-      setTotalSavings(statsData.stats?.totalSavings || 0);
-      setPendingSavings(statsData.stats?.pendingSavings || 0);
-    }
-  }, [statsData]);
-
-  useEffect(() => {
-    if (loansData) setDataLoading(false);
-  }, [loansData]);
 
   const handleApplyClick = () => {
     if (!isVerified) {

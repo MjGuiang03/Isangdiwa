@@ -1,6 +1,7 @@
 import { useNavigate, useLocation } from 'react-router';
 import { useAuth } from '../../context/AuthContext';
-import { useState, useEffect, useCallback } from 'react';
+import { useState, useEffect, useMemo } from 'react';
+import useSWR from 'swr';
 import { Building2, Calendar, FileText, Heart, LayoutGrid, Menu, Settings, Wallet, X, LogOut, Bell } from 'lucide-react';
 import puacLogo from '../../assets/optimized/puaclogo.webp';
 import API from '../../utils/api';
@@ -10,6 +11,16 @@ import { isOfficerPosition } from '../../utils/officerPositions';
 // Module-level Set: stores IDs that the user has locally marked as read.
 // Persists across re-renders and remounts within the same browser session.
 // Merged with server readIds in fetchNotifications so the badge is always correct.
+const fetcherSingle = (url) => {
+    const token = localStorage.getItem('token');
+    if (!token) return Promise.resolve(null);
+    return fetch(url, { headers: { Authorization: `Bearer ${token}` } }).then(res => {
+        const ct = res.headers.get('content-type');
+        if (!res.ok || !ct || !ct.includes('application/json')) return null;
+        return res.json();
+    }).catch(() => null);
+};
+
 const _localReadIds = new Set();
 
 export default function Sidebar({ collapsed, setCollapsed, toggleCollapsed }) {
@@ -17,7 +28,7 @@ export default function Sidebar({ collapsed, setCollapsed, toggleCollapsed }) {
   const location = useLocation();
   const { profile, user, signOut } = useAuth();
   const [showLogoutModal, setShowLogoutModal] = useState(false);
-  const [unreadNotifCount, setUnreadNotifCount] = useState(0);
+  const [readTrigger, setReadTrigger] = useState(0);
   const token = localStorage.getItem('token');
   
   const handleSignOut = async () => {
@@ -54,57 +65,41 @@ export default function Sidebar({ collapsed, setCollapsed, toggleCollapsed }) {
     return () => window.removeEventListener('resize', handleResize);
   }, [setCollapsed]);
 
-  const fetchNotifications = useCallback(async () => {
-    if (!token) return;
-    const headers = { Authorization: `Bearer ${token}` };
+  const { data: notifData } = useSWR(
+    token ? `${API}/api/notifications/feed` : null,
+    fetcherSingle,
+    { revalidateOnFocus: false, dedupingInterval: 30000, refreshInterval: 60000 }
+  );
 
-    try {
-      const res = await fetch(`${API}/api/notifications/feed`, { headers });
-      const contentType = res.headers.get("content-type");
-      if (!res.ok || !contentType || !contentType.includes("application/json")) return;
-
-      const data = await res.json();
-      if (!data.success) return;
-
-      // If user has locally marked all as read but server hasn't caught up yet, keep badge at 0
-      if (_localReadIds.size > 0 && (data.unreadCount ?? 0) > 0) {
-        // Server still shows unread — check if server's readIds now includes our local marks
-        const serverReadIds = new Set(data.readIds || []);
-        const serverHasCaughtUp = [..._localReadIds].every(id => serverReadIds.has(id));
-        if (serverHasCaughtUp) {
-          _localReadIds.clear(); // Server confirmed — clear local cache
-          setUnreadNotifCount(data.unreadCount ?? 0);
-        } else {
-          setUnreadNotifCount(0); // Keep at 0 while waiting for server to catch up
-        }
-      } else {
-        if (_localReadIds.size > 0) _localReadIds.clear();
-        setUnreadNotifCount(data.unreadCount ?? 0);
+  const unreadNotifCount = useMemo(() => {
+    if (!notifData?.success) return 0;
+    if (_localReadIds.has('__mark_all__')) return 0;
+    if (_localReadIds.size > 0) {
+      const serverReadIds = new Set(notifData.readIds || []);
+      const serverHasCaughtUp = [..._localReadIds].every(id => serverReadIds.has(id));
+      if (serverHasCaughtUp) {
+        _localReadIds.clear();
+        return notifData.unreadCount ?? 0;
       }
-    } catch (err) {
-      console.error('Failed to fetch sidebar notifications:', err);
+      return 0;
     }
-  }, [token]);
+    return notifData.unreadCount ?? 0;
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [notifData, readTrigger]);
 
   useEffect(() => {
-    fetchNotifications();
-    const interval = setInterval(fetchNotifications, 120000); // Poll every 2 mins
-
     // Listen for mark-as-read events from Notifications.js
     const handleNotifRead = (e) => {
       const ids = e.detail?.ids || [];
       ids.forEach(id => _localReadIds.add(id));
       // For mark-all (ids=[]), add a sentinel so we know mark-all was triggered
       if (ids.length === 0) _localReadIds.add('__mark_all__');
-      setUnreadNotifCount(0); // Immediately clear badge
+      setReadTrigger(c => c + 1);
     };
 
     window.addEventListener("user-notif-read", handleNotifRead);
-    return () => {
-      clearInterval(interval);
-      window.removeEventListener("user-notif-read", handleNotifRead);
-    };
-  }, [fetchNotifications]);
+    return () => window.removeEventListener("user-notif-read", handleNotifRead);
+  }, []);
 
   const handleNavClick = (path) => {
     navigate(path);

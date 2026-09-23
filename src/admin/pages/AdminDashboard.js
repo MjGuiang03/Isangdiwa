@@ -63,6 +63,10 @@ const formatK = (num) => {
 };
 
 
+const fetcherSingle = (url) => 
+  fetch(url, { headers: { Authorization: `Bearer ${localStorage.getItem('adminToken')}` } })
+    .then(res => res.ok ? res.json() : { success: false });
+
 export default function AdminDashboard() {
   const navigate = useNavigate();
 
@@ -86,16 +90,7 @@ export default function AdminDashboard() {
     return () => clearTimeout(handler);
   }, [branchSearchInput]);
 
-  /* ── AI Insights State ── */
-  const [aiInsights, setAiInsights] = useState([]);
-  const [aiInsightsLoading, setAiInsightsLoading] = useState(false);
-  const [aiInsightsExpanded, setAiInsightsExpanded] = useState(true);
-  const [aiInsightsTime, setAiInsightsTime] = useState(null);
-
-  const fetcherSingle = (url) => 
-    fetch(url, { headers: { Authorization: `Bearer ${localStorage.getItem('adminToken')}` } })
-      .then(res => res.ok ? res.json() : { success: false });
-
+  /* ── SWR Data Fetching ── */
   const { data: membersData, isValidating: membersValidating } = useSWR(
     `${API}/api/admin/members?limit=5000`, 
     fetcherSingle, 
@@ -135,6 +130,18 @@ export default function AdminDashboard() {
       keepPreviousData: true
     }
   );
+
+  const { data: aiData, isValidating: aiValidating, mutate: mutateAi } = useSWR(
+    `${API}/api/admin/ai-insights`,
+    fetcherSingle,
+    { revalidateOnFocus: false, dedupingInterval: 60000, keepPreviousData: true }
+  );
+
+  const [aiRefreshing, setAiRefreshing] = useState(false);
+  const [aiInsightsExpanded, setAiInsightsExpanded] = useState(true);
+  const aiInsights = useMemo(() => aiData?.insights || [], [aiData]);
+  const aiInsightsTime = useMemo(() => aiData?.generatedAt || null, [aiData]);
+  const aiInsightsLoading = (!aiData && aiValidating) || aiRefreshing;
 
   // Progressive loading states
   const membersLoading = !membersData && membersValidating;
@@ -231,30 +238,29 @@ export default function AdminDashboard() {
       .sort((a, b) => b.total - a.total);
   }, [donationsData, rawMembers]);
 
-  /* ── Fetch AI Insights ── */
+  /* ── Refresh AI Insights ── */
   const fetchAiInsights = useCallback(async (refresh = false) => {
-    setAiInsightsLoading(true);
-    try {
-      const token = localStorage.getItem('adminToken');
-      const url = `${API}/api/admin/ai-insights${refresh ? '?refresh=true' : ''}`;
-      const res = await fetch(url, { headers: { Authorization: `Bearer ${token}` } });
-      const data = await res.json();
-      if (data.success) {
-        setAiInsights(data.insights || []);
-        setAiInsightsTime(data.generatedAt);
+    if (refresh) {
+      setAiRefreshing(true);
+      try {
+        const fresh = await fetcherSingle(`${API}/api/admin/ai-insights?refresh=true`);
+        if (fresh && fresh.success) {
+          mutateAi(fresh, false);
+        }
+      } catch (err) {
+        console.error('[AI Insights] Refresh error:', err);
+      } finally {
+        setAiRefreshing(false);
       }
-    } catch (err) {
-      console.error('[AI Insights] Fetch error:', err);
-    } finally {
-      setAiInsightsLoading(false);
+    } else {
+      mutateAi();
     }
-  }, []);
+  }, [mutateAi]);
 
   useEffect(() => {
     const token = localStorage.getItem('adminToken');
-    if (!token) { navigate('/'); return; }
-    fetchAiInsights();
-  }, [navigate, fetchAiInsights]);
+    if (!token) { navigate('/'); }
+  }, [navigate]);
 
   // --- Derived Growth Data ---
   const growthInfo = useMemo(() => {

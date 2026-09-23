@@ -6,6 +6,7 @@ import SecretaryAdminSidebar from '../components/secretaryAdminSidebar';
 import PageHeader from '../components/PageHeader';
 
 
+import { useNavigate } from 'react-router';
 import API from '../../utils/api';
 import { Banknote, Clock, CheckCircle, CalendarDays, X, Filter, Maximize2 } from 'lucide-react';
 
@@ -19,7 +20,16 @@ const COLORS = ['#155DFC', '#00A63E', '#F59E0B'];
 const MONTH_NAMES = ['Jan', 'Feb', 'Mar', 'Apr', 'May', 'Jun', 'Jul', 'Aug', 'Sep', 'Oct', 'Nov', 'Dec'];
 const YEAR_OPTIONS = Array.from({ length: 5 }, (_, i) => new Date().getFullYear() + i);
 
+const fetcherSingle = (url) => {
+  const token = localStorage.getItem('secretaryToken') || localStorage.getItem('adminToken') || localStorage.getItem('token');
+  return fetch(url, { headers: { Authorization: `Bearer ${token}` } }).then(res => {
+    if (res.status === 401 || res.status === 403) return { success: false, _authError: true };
+    return res.json();
+  });
+};
+
 export default function SecretaryAdminDashboard() {
+  const navigate = useNavigate();
   const [chartYear, setChartYear] = useState(new Date().getFullYear());
   const [expandedChart, setExpandedChart] = useState(null);
 
@@ -51,6 +61,10 @@ export default function SecretaryAdminDashboard() {
       keepPreviousData: true
     }
   );
+
+  useEffect(() => {
+    if (data?._authError) navigate('/');
+  }, [data, navigate]);
 
   const rawLoans = useMemo(() => data?.loans || [], [data]);
   const loading = isValidating && !data;

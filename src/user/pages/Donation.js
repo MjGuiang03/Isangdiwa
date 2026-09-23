@@ -1,4 +1,4 @@
-import { useState, useEffect } from 'react';
+import { useState, useEffect, useMemo } from 'react';
 import useSWR from 'swr';
 import { useAuth } from '../../context/AuthContext';
 import { Banknote, CalendarDays, ChevronDown, Heart, Receipt, X, UploadCloud, FileCheck2, ZoomIn, AlertCircle, CheckCircle2, ShieldCheck, Edit3, Clock, Loader2 } from 'lucide-react';
@@ -52,6 +52,15 @@ const BankIcon = () => (
   />
 );
 
+const fetcherSingle = (url) => {
+    const token = localStorage.getItem('token');
+    if (!token) return Promise.resolve(null);
+    return fetch(url, { headers: { Authorization: `Bearer ${token}` } }).then(res => {
+        if (res.status === 401) { window.location.href = '/'; return null; }
+        return res.json();
+    }).catch(() => null);
+};
+
 export default function Donation() {
   const { user } = useAuth();
   const [donationAmount, setDonationAmount] = useState('');
@@ -64,14 +73,10 @@ export default function Donation() {
   const [isRecurring] = useState(false);
   const [submitting, setSubmitting] = useState(false);
   const [formError, setFormError] = useState('');
-  const [stats, setStats] = useState({ totalDonated: 0, thisYearTotal: 0, totalCount: 0 });
-  const [loading, setLoading] = useState(true);
   // eslint-disable-next-line no-unused-vars
   const [historyPage] = useState(1);
   const [selectedDonation, setSelectedDonation] = useState(null);
   const [isReceiptModalOpen, setIsReceiptModalOpen] = useState(false);
-  // eslint-disable-next-line no-unused-vars
-  const [recentDonations, setRecentDonations] = useState([]);
   const [approvalMethod, setApprovalMethod] = useState('gateway');
   const [proofFile, setProofFile] = useState(null);
   const [proofBase64, setProofBase64] = useState('');
@@ -90,37 +95,27 @@ export default function Donation() {
   const [modalPage, setModalPage] = useState(1);
   const [modalCategory, setModalCategory] = useState('');
   const [modalPaymentMethod, setModalPaymentMethod] = useState('');
-  const [modalHistory, setModalHistory] = useState([]);
-  const [modalTotalPages, setModalTotalPages] = useState(1);
-  const [modalLoading, setModalLoading] = useState(false);
   const MODAL_LIMIT = 5;
   const HISTORY_PER_PAGE = 5;
 
   const token = localStorage.getItem('token');
-  const fetcherSingle = (url, headers = {}) => fetch(url, headers).then(res => res.ok ? res.json() : { success: false });
 
-  const { data: historyData, mutate: mutateHistory } = useSWR(
+  const { data: historyData, mutate: mutateHistory, isValidating: isHistoryValidating } = useSWR(
     token ? `${API}/api/donations/my-donations?page=${historyPage}&limit=${HISTORY_PER_PAGE}` : null,
-    url => fetcherSingle(url, { headers: { Authorization: `Bearer ${token}` } }),
-    { revalidateOnFocus: false, dedupingInterval: 5000 }
+    fetcherSingle,
+    { revalidateOnFocus: false, dedupingInterval: 30000, keepPreviousData: true }
   );
 
   const { data: settingsData } = useSWR(
     `${API}/api/settings/public`,
-    url => fetcherSingle(url),
-    { revalidateOnFocus: false, dedupingInterval: 10000 }
+    fetcherSingle,
+    { revalidateOnFocus: false, dedupingInterval: 30000, keepPreviousData: true }
   );
 
   const mutate = () => mutateHistory();
 
-  useEffect(() => {
-    if (!historyData) return;
-    if (historyData.success) {
-      setStats(historyData.stats || { totalDonated: 0, thisYearTotal: 0, totalCount: 0 });
-      setRecentDonations(historyData.donations || []);
-    }
-    setLoading(false);
-  }, [historyData]);
+  const stats = useMemo(() => historyData?.success ? (historyData.stats || { totalDonated: 0, thisYearTotal: 0, totalCount: 0 }) : { totalDonated: 0, thisYearTotal: 0, totalCount: 0 }, [historyData]);
+  const loading = !historyData && isHistoryValidating;
 
   useEffect(() => {
     if (!settingsData) return;
@@ -133,19 +128,11 @@ export default function Donation() {
     ? `${API}/api/donations/my-donations?page=${modalPage}&limit=${MODAL_LIMIT}${modalCategory ? `&category=${modalCategory}` : ''}${modalPaymentMethod ? `&paymentMethod=${modalPaymentMethod}` : ''}`
     : null;
 
-  const modalFetcher = url => fetch(url, { headers: { Authorization: `Bearer ${localStorage.getItem('token')}` } }).then(r => r.json());
+  const { data: modalData, isValidating: isModalValidating } = useSWR(modalUrl, fetcherSingle, { revalidateOnFocus: false, dedupingInterval: 30000, keepPreviousData: true });
 
-  const { data: modalData, isValidating: isModalValidating } = useSWR(modalUrl, modalFetcher, { revalidateOnFocus: false });
-
-  useEffect(() => {
-    if (!modalData) return;
-    setModalLoading(isModalValidating && !modalData);
-    if (modalData && modalData.success) {
-      setModalHistory(modalData.donations || []);
-      setModalTotalPages(modalData.totalPages || 1);
-    }
-    if (modalData) setModalLoading(false);
-  }, [modalData, isModalValidating]);
+  const modalHistory = useMemo(() => modalData?.success ? (modalData.donations || []) : [], [modalData]);
+  const modalTotalPages = useMemo(() => modalData?.success ? (modalData.totalPages || 1) : 1, [modalData]);
+  const modalLoading = !modalData && isModalValidating;
 
   useEffect(() => {
     if (user?.branch && !donationCommunity) {

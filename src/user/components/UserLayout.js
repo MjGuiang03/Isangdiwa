@@ -6,11 +6,19 @@ import Chatbot from './Chatbot';
 import NotificationPrompt from '../../components/NotificationPrompt';
 import MaintenanceOverlay from './MaintenanceOverlay';
 import { Bot, Sparkles, X, Menu } from 'lucide-react';
+import useSWR from 'swr';
 import API from '../../utils/api';
+
+const fetchSettings = (url) => fetch(url).then(res => res.json()).catch(() => null);
 
 export default function UserLayout() {
   const [chatOpen, setChatOpen] = useState(false);
-  const [isMaintenanceMode, setIsMaintenanceMode] = useState(false);
+  const { data: settingsData } = useSWR(`${API}/api/settings/public`, fetchSettings, {
+    revalidateOnFocus: false, dedupingInterval: 300000
+  });
+
+  const isMaintenanceMode = settingsData?.success && settingsData?.maintenanceMode;
+
   const [sidebarCollapsed, setSidebarCollapsed] = useState(() => {
     return localStorage.getItem('sidebar_collapsed') === 'true' || window.innerWidth < 1024;
   });
@@ -24,19 +32,6 @@ export default function UserLayout() {
   };
 
   useEffect(() => {
-    const checkMaintenance = async () => {
-      try {
-        const res = await fetch(`${API}/api/settings/public`);
-        const data = await res.json();
-        if (data.success && data.maintenanceMode) {
-          setIsMaintenanceMode(true);
-        }
-      } catch (err) {
-        console.error('Maintenance check error:', err);
-      }
-    };
-    checkMaintenance();
-
     const handleResize = () => {
       if (window.innerWidth < 1024) {
         setSidebarCollapsed(true);

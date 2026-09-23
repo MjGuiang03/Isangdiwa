@@ -1,7 +1,7 @@
 import { Router } from 'express';
 import { ObjectId } from 'mongodb';
 
-import { users, admins, loans, savingsGoals, loanPayments, savingsTransactions, counters } from '../config/db.js';
+import { users, admins, loans, savingsGoals, loanPayments, savingsTransactions, counters, reportCache } from '../config/db.js';
 import { authenticateUser } from '../middleware/auth.js';
 import { authenticateAdmin } from '../middleware/auth.js';
 import { generatePaymentLink, sendPaymongoTransfer } from '../utils/paymongo.js';
@@ -437,19 +437,37 @@ router.get('/admin/loans', authenticateAdmin, async (req, res) => {
       { $set: { status: 'completed', nextPaymentDate: null, nextDueDate: null } }
     );
 
-    const { search, status, page: qPage, limit: qLimit } = req.query;
+    const { search, status, page: qPage, limit: qLimit, disbursed, method } = req.query;
     const page  = parseInt(qPage)  || 1;
     const limit = parseInt(qLimit) || 10;
     const skip  = (page - 1) * limit;
 
     const query = {};
+    if (disbursed === 'true') {
+      query.disbursed = true;
+    } else if (disbursed === 'false') {
+      query.disbursed = { $ne: true };
+    }
+
+    if (method && method !== 'all') {
+      if (method === 'cash') {
+        query.paymentMethod = { $regex: /^cash$/i };
+      } else if (method === 'e-wallet') {
+        query.paymentMethod = { $regex: /^(e-wallet|gcash)$/i };
+      } else if (method === 'bank') {
+        query.paymentMethod = { $regex: /^(bank|bank transfer)$/i };
+      } else {
+        query.paymentMethod = new RegExp(`^${method}$`, 'i');
+      }
+    }
+
     if (status === 'non_completed') {
       query.status = { $nin: ['completed', 'cancelled'] };
     } else if (status === 'ongoing') {
       query.status = 'active';
     } else if (status && status !== 'all') {
       query.status = status;
-    } else {
+    } else if (!disbursed) {
       query.status = { $ne: 'cancelled' };
     }
 
@@ -495,6 +513,22 @@ router.get('/admin/loans', authenticateAdmin, async (req, res) => {
           totalDisbursed: [
             { $match: { disbursed: true } },
             { $group: { _id: null, total: { $sum: { $convert: { input: "$amount", to: "double", onError: 0, onNull: 0 } } } } }
+          ],
+          disbursedCount: [
+            { $match: { disbursed: true } },
+            { $count: "count" }
+          ],
+          disbursedCash: [
+            { $match: { disbursed: true, paymentMethod: { $regex: /^cash$/i } } },
+            { $count: "count" }
+          ],
+          disbursedEWallet: [
+            { $match: { disbursed: true, paymentMethod: { $regex: /^(e-wallet|gcash)$/i } } },
+            { $count: "count" }
+          ],
+          disbursedBank: [
+            { $match: { disbursed: true, paymentMethod: { $regex: /^(bank|bank transfer)$/i } } },
+            { $count: "count" }
           ]
         }
       }
@@ -510,7 +544,11 @@ router.get('/admin/loans', authenticateAdmin, async (req, res) => {
       completed: sr.completed[0]?.count || 0,
       rejected: sr.rejected[0]?.count || 0,
       totalThisMonth: sr.totalThisMonth[0]?.count || 0,
-      totalDisbursed: sr.totalDisbursed[0]?.total || 0
+      totalDisbursed: sr.totalDisbursed[0]?.total || 0,
+      disbursedCount: sr.disbursedCount?.[0]?.count || 0,
+      disbursedCash: sr.disbursedCash?.[0]?.count || 0,
+      disbursedEWallet: sr.disbursedEWallet?.[0]?.count || 0,
+      disbursedBank: sr.disbursedBank?.[0]?.count || 0
     };
 
     // Fetch branch/community for all member emails in this batch
@@ -1297,6 +1335,14 @@ router.get('/loans/:id/payment-history', authenticateUser, async (req, res) => {
 router.get('/admin/loan-reports', authenticateAdmin, async (req, res) => {
   try {
     const year = parseInt(req.query.year) || new Date().getFullYear();
+    
+    // ── Server-side cache (5 min TTL) ──
+    const cacheKey = `loan-reports-${year}`;
+    const cached = await reportCache.findOne({ _id: cacheKey });
+    if (cached && cached.expiresAt > new Date()) {
+      return res.json(cached.data);
+    }
+    
     const yearStart = new Date(year, 0, 1);
     const yearEnd = new Date(year + 1, 0, 1);
 
@@ -1584,7 +1630,7 @@ router.get('/admin/loan-reports', authenticateAdmin, async (req, res) => {
       };
     });
 
-    res.json({
+    const responseData = {
       success: true,
       year,
       availableYears,
@@ -1605,7 +1651,16 @@ router.get('/admin/loan-reports', authenticateAdmin, async (req, res) => {
       monthlyStatusTrend,
       totalPenalties,
       branchesAtRisk,
-    });
+    };
+
+    // Cache for 5 minutes
+    await reportCache.updateOne(
+      { _id: cacheKey },
+      { $set: { data: responseData, expiresAt: new Date(Date.now() + 5 * 60 * 1000) } },
+      { upsert: true }
+    ).catch(() => {}); // Non-blocking cache write
+
+    res.json(responseData);
   } catch (err) {
     console.error(err);
     res.status(500).json({ success: false, message: 'Failed to generate loan reports' });

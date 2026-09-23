@@ -1,12 +1,16 @@
-import { useState, useEffect } from 'react';
+import { useState, useMemo } from 'react';
 import useSWR from 'swr';
 import LoanAdminSidebar from './loanAdminSidebar';
 import PageHeader from '../components/PageHeader';
 import useDebounce from '../../hooks/useDebounce';
 
-
 import API from '../../utils/api';
 import { Search } from 'lucide-react';
+
+const fetcherSingle = (url) => {
+    const token = localStorage.getItem('adminToken');
+    return fetch(url, { headers: { Authorization: `Bearer ${token}` } }).then(res => res.json());
+};
 
 
 const fmt = (n) => n != null ? `₱${Number(n).toLocaleString('en-PH', { minimumFractionDigits: 2 })}` : '₱0.00';
@@ -32,31 +36,23 @@ const POLICY_TABLE = [
 ];
 
 export default function LoanAdminDelinquency() {
-  const [loans, setLoans] = useState([]);
   const [searchQuery, setSearchQuery] = useState('');
   const debouncedSearch = useDebounce(searchQuery, 400);
-  const [loading, setLoading] = useState(true);
 
   const token = localStorage.getItem('adminToken');
-  const fetcherSingle = (url) => fetch(url, { headers: { Authorization: `Bearer ${token}` } }).then(res => res.json());
 
   const { data: loansData, isValidating: loadingLoans } = useSWR(
-    token ? `${API}/api/admin/loans` : null,
+    token ? `${API}/api/admin/loans?status=ongoing&limit=500` : null,
     fetcherSingle,
-    { revalidateOnFocus: false, revalidateIfStale: true }
+    { revalidateOnFocus: false, dedupingInterval: 30000, keepPreviousData: true }
   );
 
-  useEffect(() => {
-    if (loansData && loansData.success) {
-      setLoans((loansData.loans || []).filter(l => l.status === 'active'));
-    }
-  }, [loansData]);
+  const loading = loadingLoans && !loansData;
 
-  useEffect(() => {
-    setLoading(loadingLoans && !loansData);
-  }, [loadingLoans, loansData]);
+  const activeLoans = useMemo(() => 
+    (loansData?.loans || []).filter(l => l.status === 'active'), [loansData]);
 
-  const flagged = loans.map(l => {
+  const flagged = useMemo(() => activeLoans.map(l => {
     let dueDate = l.nextDueDate;
     if (!dueDate) {
       // No nextDueDate set — calculate first due date as 1 month after disbursement/approval
@@ -68,19 +64,19 @@ export default function LoanAdminDelinquency() {
     if (daysLate < 1) return null;
     const info = getDelinquencyInfo(daysLate);
     return { ...l, daysLate, delinquency: info };
-  }).filter(Boolean);
+  }).filter(Boolean), [activeLoans]);
 
-  const filtered = flagged.filter(l =>
+  const filtered = useMemo(() => flagged.filter(l =>
     (l.memberName || '').toLowerCase().includes(debouncedSearch.toLowerCase()) ||
     (l.loanId || '').toLowerCase().includes(debouncedSearch.toLowerCase())
-  );
+  ), [flagged, debouncedSearch]);
 
-  const counts = {
+  const counts = useMemo(() => ({
     total: flagged.length,
     suspended: flagged.filter(l => l.delinquency.cls === 'high-risk').length,
     collection: flagged.filter(l => l.delinquency.cls === 'default').length,
-    recovery: loans.length > 0 ? Math.round(((loans.length - flagged.length) / loans.length) * 100) : 100,
-  };
+    recovery: activeLoans.length > 0 ? Math.round(((activeLoans.length - flagged.length) / activeLoans.length) * 100) : 100,
+  }), [flagged, activeLoans]);
 
   if (loading) {
     return (

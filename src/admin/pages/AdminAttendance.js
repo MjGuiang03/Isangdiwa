@@ -173,6 +173,8 @@ function SessionLogsModal({ session, onClose }) {
   );
 }
 
+const fetcherSingle = (url) => fetch(url, { headers: { Authorization: `Bearer ${localStorage.getItem('adminToken')}` } }).then(res => res.json());
+
 export default function AdminAttendance() {
   const navigate = useNavigate();
   
@@ -182,7 +184,6 @@ export default function AdminAttendance() {
   // History Sessions Page
   const [historyPage, setHistoryPage] = useState(1);
 
-  const [loading, setLoading] = useState(true);
   const [showStartModal, setShowStartModal] = useState(false);
   const [showManualModal, setShowManualModal] = useState(false);
 
@@ -204,13 +205,11 @@ export default function AdminAttendance() {
 
   const rfidBuffer = useRef('');
 
-  const fetcherSingle = (url) => fetch(url, { headers: { Authorization: `Bearer ${localStorage.getItem('adminToken')}` } }).then(res => res.json());
-
   // 1. Fetch Active Sessions
   const { data: activeSessionsData } = useSWR(
     `${API}/api/admin/attendance/sessions/active`,
     fetcherSingle,
-    { revalidateOnFocus: false, refreshInterval: 5000 }
+    { revalidateOnFocus: false, refreshInterval: 5000, dedupingInterval: 3000, keepPreviousData: true }
   );
 
   const activeSessions = useMemo(() => activeSessionsData?.sessions || [], [activeSessionsData]);
@@ -259,7 +258,7 @@ export default function AdminAttendance() {
       lateToday: attendanceData?.stats?.lateToday || 0,
   }), [attendanceData]);
 
-  useEffect(() => { setLoading(attendanceLoading && !attendanceData); }, [attendanceLoading, attendanceData]);
+  const loading = attendanceLoading && !attendanceData;
 
   useEffect(() => { setPage(1); }, [debouncedSearch, filterBranch, filterStatus]);
 
@@ -293,9 +292,9 @@ export default function AdminAttendance() {
   };
 
   // Derived: paginated sessions (client-side)
-  const totalSessionsPages = Math.ceil(activeSessions.length / PER_PAGE);
-  const paginatedSessions = activeSessions.slice((sessionsPage - 1) * PER_PAGE, sessionsPage * PER_PAGE);
-  const totalLogsPages = Math.ceil(logsTotalCount / PER_PAGE);
+  const totalSessionsPages = useMemo(() => Math.ceil(activeSessions.length / PER_PAGE), [activeSessions.length]);
+  const paginatedSessions = useMemo(() => activeSessions.slice((sessionsPage - 1) * PER_PAGE, sessionsPage * PER_PAGE), [activeSessions, sessionsPage]);
+  const totalLogsPages = useMemo(() => Math.ceil(logsTotalCount / PER_PAGE), [logsTotalCount]);
 
   const exportCSV = () => {
     if (logs.length === 0) return toast.info('No data to export');

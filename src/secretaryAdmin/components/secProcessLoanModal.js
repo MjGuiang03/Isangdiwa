@@ -22,7 +22,7 @@ export default function SecProcessLoanModal({ loan, onClose, onProcess, onShowRe
     const [errorMsg, setErrorMsg] = useState('');
     const [successData, setSuccessData] = useState(null);
 
-    const { data: publicSettings } = useSWR(`${API}/api/settings/public`, fetcherPublic, { revalidateOnFocus: false });
+    const { data: publicSettings } = useSWR(`${API}/api/settings/public`, fetcherPublic, { revalidateOnFocus: false, dedupingInterval: 60000, keepPreviousData: true });
     const isManualApproval = publicSettings?.paymentApprovalMethod === 'manual';
 
     const isDigital = paymentMethod === 'e-wallet' || paymentMethod === 'bank';

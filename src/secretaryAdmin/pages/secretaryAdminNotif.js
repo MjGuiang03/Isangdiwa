@@ -1,4 +1,4 @@
-import { useState, useEffect } from 'react';
+import { useState, useEffect, useMemo } from 'react';
 import useSWR from 'swr';
 import { useNavigate } from 'react-router';
 import SecretaryAdminSidebar from '../components/secretaryAdminSidebar';
@@ -7,6 +7,19 @@ import PageHeader from '../components/PageHeader';
 import API from '../../utils/api';
 import { Banknote, X, CheckCircle2, User, DollarSign, Tag, ArrowRight } from 'lucide-react';
 import Pagination from '../../components/Pagination';
+
+const fetcherSingle = (url) => {
+    const token = localStorage.getItem('secretaryToken') || localStorage.getItem('adminToken') || localStorage.getItem('token');
+    if (!token) throw new Error('AuthError');
+    return fetch(url, { headers: { Authorization: `Bearer ${token}` } }).then(async res => {
+        if (!res.ok) {
+            if (res.status === 401 || res.status === 403) throw new Error('AuthError');
+            const data = await res.json();
+            throw new Error(data.message || 'Failed to fetch notifications');
+        }
+        return res.json();
+    });
+};
 
 const getNotifMetaInfo = (notif) => {
     const titleLower = (notif.title || '').toLowerCase();
@@ -47,17 +60,23 @@ export default function SecretaryAdminNotif() {
     const ITEMS_PER_PAGE = 10;
 
     const [notifications, setNotifications] = useState([]);
-    const [loading, setLoading] = useState(true);
     const [detailModal, setDetailModal] = useState(null);
 
     const token = localStorage.getItem('secretaryToken') || localStorage.getItem('adminToken') || localStorage.getItem('token');
-    const fetcherSingle = (url) => fetch(url, { headers: { Authorization: `Bearer ${token}` } }).then(res => res.json());
 
-    const { data: notifData, isValidating: loadingNotifs } = useSWR(
+    const { data: notifData, error: notifError, isValidating: loadingNotifs } = useSWR(
         token ? `${API}/api/admin/notifications` : null,
         fetcherSingle,
-        { revalidateOnFocus: false, revalidateIfStale: true }
+        { revalidateOnFocus: false, dedupingInterval: 30000, keepPreviousData: true }
     );
+
+    const loading = loadingNotifs && !notifData;
+
+    useEffect(() => {
+        if (notifError?.message === 'AuthError' || !token) {
+            navigate('/');
+        }
+    }, [notifError, navigate, token]);
 
     useEffect(() => {
         if (notifData && notifData.success && notifData.notifications) {
@@ -82,12 +101,6 @@ export default function SecretaryAdminNotif() {
             setNotifications(notifs);
         }
     }, [notifData]);
-
-    useEffect(() => {
-        setLoading(loadingNotifs && !notifData);
-    }, [loadingNotifs, notifData]);
-
-    const unreadCount = notifications.filter(n => !n.isRead).length;
 
     const performReadUpdate = async (idsArray) => {
         try {
@@ -114,21 +127,23 @@ export default function SecretaryAdminNotif() {
         if (ids.length > 0) performReadUpdate(ids);
     };
 
-    const getFilteredNotifications = () => {
+    const filteredNotifications = useMemo(() => {
         if (activeFilter === 'unread') {
             return notifications.filter(n => !n.isRead);
         } else if (activeFilter === 'read') {
             return notifications.filter(n => n.isRead);
         }
         return notifications;
-    };
+    }, [notifications, activeFilter]);
 
-    const filteredNotifications = getFilteredNotifications();
-    const totalPages = Math.ceil(filteredNotifications.length / ITEMS_PER_PAGE);
-    const paginatedNotifications = filteredNotifications.slice(
+    const unreadCount = useMemo(() => notifications.filter(n => !n.isRead).length, [notifications]);
+
+    const totalPages = useMemo(() => Math.ceil(filteredNotifications.length / ITEMS_PER_PAGE), [filteredNotifications.length, ITEMS_PER_PAGE]);
+    
+    const paginatedNotifications = useMemo(() => filteredNotifications.slice(
         (currentPage - 1) * ITEMS_PER_PAGE,
         currentPage * ITEMS_PER_PAGE
-    );
+    ), [filteredNotifications, currentPage, ITEMS_PER_PAGE]);
 
     const handleFilterChange = (key) => {
         setActiveFilter(key);

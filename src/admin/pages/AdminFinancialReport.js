@@ -237,6 +237,8 @@ const renderFormattedSummary = (text, compact = false) => {
 
 const SESSION_KEY = 'faithly_financial_report';
 
+const fetcherSingle = (url) => fetch(url, { headers: { Authorization: `Bearer ${localStorage.getItem('adminToken')}` } }).then(res => res.json());
+
 export default function AdminFinancialReport() {
   const navigate = useNavigate();
   const now = new Date();
@@ -297,8 +299,6 @@ export default function AdminFinancialReport() {
   }, [adminRole]);
 
   // Fetch communities on mount (admin only)
-  const fetcherSingle = (url) => fetch(url, { headers: { Authorization: `Bearer ${localStorage.getItem('adminToken')}` } }).then(res => res.json());
-  
   const { data: branchesResp } = useSWR(
     localStorage.getItem('adminToken') ? `${API}/api/admin/branches?limit=1000` : null,
     fetcherSingle,

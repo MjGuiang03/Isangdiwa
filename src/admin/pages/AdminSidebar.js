@@ -1,6 +1,7 @@
 /* eslint-disable no-unused-vars */
 import { useNavigate, useLocation } from 'react-router-dom';
-import { useEffect, useState, useRef } from 'react';
+import { useEffect, useState, useRef, useMemo } from 'react';
+import useSWR from 'swr';
 import { createPortal } from 'react-dom';
 import { toast } from 'sonner';
 import {
@@ -15,11 +16,14 @@ import { useTheme } from '../../context/ThemeContext';
 import API from '../../utils/api';
 import { processNewNotifications } from '../../utils/desktopNotify';
 
+const fetcherSingle = (url) => {
+  const token = localStorage.getItem('adminToken');
+  return fetch(url, { headers: { Authorization: `Bearer ${token}` } }).then(res => res.json());
+};
+
 export default function AdminSidebar() {
   const navigate = useNavigate();
   const location = useLocation();
-  const [unreadCount, setUnreadCount] = useState(0);
-  const [sidebarCounts, setSidebarCounts] = useState({ newMembers: 0, pendingDonations: 0 });
   const prevNotifIdsRef = useRef(new Set());
   const [showLogoutModal, setShowLogoutModal] = useState(false);
   const { theme, toggleTheme } = useTheme();
@@ -46,9 +50,20 @@ export default function AdminSidebar() {
     return () => window.removeEventListener('storage', handleStorage);
   }, []);
 
+  const [donationsViewed, setDonationsViewed] = useState(() => localStorage.getItem('adminDonationsViewed') === 'true');
+  const [viewedDonationsCount, setViewedDonationsCount] = useState(() => parseInt(localStorage.getItem('adminLastViewedDonationsCount') || '0', 10));
+  const [localAllReadAt, setLocalAllReadAt] = useState(() => 
+    parseInt(localStorage.getItem('adminLastReadNotifsAt') || '0', 10)
+  );
+
   const handleSignOut = () => {
+    localStorage.removeItem('adminToken');
     localStorage.removeItem('adminEmail');
     localStorage.removeItem('adminRole');
+    localStorage.removeItem('adminName');
+    localStorage.removeItem('adminDonationsViewed');
+    localStorage.removeItem('adminLastViewedDonationsCount');
+    localStorage.removeItem('adminLastReadNotifsAt');
     toast.success('Signed out successfully');
     setShowLogoutModal(false);
     navigate('/');
@@ -57,70 +72,117 @@ export default function AdminSidebar() {
   const isActive = (path) => location.pathname === path;
 
   const handleNav = (path) => {
+    if (path === '/admin/donations') {
+      const current = countsData?.counts?.pendingDonations || 0;
+      localStorage.setItem('adminLastViewedDonationsCount', String(current));
+      localStorage.setItem('adminDonationsViewed', 'true');
+      setDonationsViewed(true);
+      setViewedDonationsCount(current);
+    }
     navigate(path);
     setMobileOpen(false);
   };
 
-  /* ── Fetch admin unread count ── */
+  /* ── SWR Data Fetching with 30s background revalidation ── */
+  const token = localStorage.getItem('adminToken');
+  const { data: notifData, mutate: mutateNotif } = useSWR(
+    token ? `${API}/api/admin/notifications` : null,
+    fetcherSingle,
+    { refreshInterval: 30000, dedupingInterval: 15000, keepPreviousData: true }
+  );
+
+  const { data: countsData, mutate: mutateCounts } = useSWR(
+    token ? `${API}/api/admin/sidebar-counts` : null,
+    fetcherSingle,
+    { refreshInterval: 30000, dedupingInterval: 15000, keepPreviousData: true }
+  );
+
+  const unreadCount = useMemo(() => {
+    if (!notifData?.success) return 0;
+    const lastReadAt = Math.max(
+      localAllReadAt,
+      parseInt(localStorage.getItem('adminLastReadNotifsAt') || '0', 10)
+    );
+    const readIds = new Set(notifData.readIds || []);
+    const allNotifs = notifData.notifications || [];
+    return allNotifs.filter(n => {
+      if (readIds.has(n.id)) return false;
+      if (lastReadAt && n.timestamp && new Date(n.timestamp).getTime() <= lastReadAt) return false;
+      return true;
+    }).length;
+  }, [notifData, localAllReadAt]);
+
+  const sidebarCounts = useMemo(() => {
+    if (!countsData?.success || !countsData?.counts) return { newMembers: 0, pendingDonations: 0 };
+    return countsData.counts;
+  }, [countsData]);
+
+  const pendingDonationsBadge = useMemo(() => {
+    if (location.pathname === '/admin/donations') return 0;
+    const currentPending = countsData?.counts?.pendingDonations || 0;
+    if (donationsViewed && currentPending <= viewedDonationsCount) return 0;
+    if (donationsViewed && currentPending > viewedDonationsCount) return currentPending - viewedDonationsCount;
+    return currentPending;
+  }, [countsData, location.pathname, donationsViewed, viewedDonationsCount]);
+
+  /* ── Desktop push notifications ── */
   useEffect(() => {
-    const token = localStorage.getItem('adminToken');
-    if (!token) return;
+    if (!notifData?.success) return;
+    const readIds = new Set(notifData.readIds || []);
+    const allNotifs = notifData.notifications || [];
+    const unreadNotifs = allNotifs.filter(n => !readIds.has(n.id));
+    prevNotifIdsRef.current = processNewNotifications(
+      prevNotifIdsRef.current,
+      unreadNotifs,
+      '/admin/notification',
+      (path) => { window.location.href = path; }
+    );
+  }, [notifData]);
 
-    const calcUnread = async () => {
-      try {
-        const res = await fetch(`${API}/api/admin/notifications`, {
-          headers: { Authorization: `Bearer ${token}` },
-        });
-        if (!res.ok) return;
-        const data = await res.json();
-        if (data.success) {
-          const readIds = new Set(data.readIds || []);
-          const allNotifs = data.notifications || [];
-          const count = allNotifs.filter(n => !readIds.has(n.id)).length;
-          setUnreadCount(count);
+  useEffect(() => {
+    if (location.pathname === '/admin/donations') {
+      const current = countsData?.counts?.pendingDonations || 0;
+      localStorage.setItem('adminLastViewedDonationsCount', String(current));
+      localStorage.setItem('adminDonationsViewed', 'true');
+      setDonationsViewed(true);
+      setViewedDonationsCount(current);
+    }
+  }, [location.pathname, countsData]);
 
-          /* ── Desktop push notifications ── */
-          const unreadNotifs = allNotifs.filter(n => !readIds.has(n.id));
-          prevNotifIdsRef.current = processNewNotifications(
-            prevNotifIdsRef.current,
-            unreadNotifs,
-            '/admin/notification',
-            (path) => { window.location.href = path; }
-          );
-        }
-      } catch { /* silent */ }
+  useEffect(() => {
+    const onDonationsViewed = () => {
+      setDonationsViewed(localStorage.getItem('adminDonationsViewed') === 'true');
+      setViewedDonationsCount(parseInt(localStorage.getItem('adminLastViewedDonationsCount') || '0', 10));
+      const current = countsData?.counts?.pendingDonations || 0;
+      localStorage.setItem('adminLastViewedDonationsCount', String(current));
+      localStorage.setItem('adminDonationsViewed', 'true');
+      setDonationsViewed(true);
+      setViewedDonationsCount(current);
     };
+    window.addEventListener('admin-donations-viewed', onDonationsViewed);
+    return () => window.removeEventListener('admin-donations-viewed', onDonationsViewed);
+  }, [countsData]);
 
-    const calcCounts = async () => {
-      try {
-        const res = await fetch(`${API}/api/admin/sidebar-counts`, {
-          headers: { Authorization: `Bearer ${token}` }
-        });
-        if (!res.ok) return;
-        const data = await res.json();
-        if (data.success && data.counts) {
-          setSidebarCounts(data.counts);
-        }
-      } catch { /* silent */ }
-    };
-
-    calcUnread();
-    calcCounts();
-
-    const onUpdate = () => {
-      calcUnread();
-      calcCounts();
+  useEffect(() => {
+    const onUpdate = (e) => {
+      if (e?.detail?.allRead) {
+        const ts = e.detail.timestamp || Date.now();
+        setLocalAllReadAt(ts);
+        localStorage.setItem('adminLastReadNotifsAt', ts.toString());
+        mutateNotif(prev => {
+          if (!prev) return prev;
+          const allIds = (prev.notifications || []).map(n => n.id);
+          return { ...prev, readIds: allIds };
+        }, false);
+      }
+      mutateNotif();
+      mutateCounts();
     };
     window.addEventListener('admin-notif-read-update', onUpdate);
-    const intervalId = setInterval(() => {
-      calcUnread();
-      calcCounts();
-    }, 30000);
     return () => {
       window.removeEventListener('admin-notif-read-update', onUpdate);
-      clearInterval(intervalId);
     };
-  }, []);
+  }, [mutateNotif, mutateCounts]);
 
   return (
     <>
@@ -214,11 +276,6 @@ export default function AdminSidebar() {
         >
           <span><Users size={18} className="w-[18px] h-[18px] flex items-center justify-center shrink-0" /></span>
           {!collapsed && <span className="font-inter text-sm">Member List</span>}
-          {sidebarCounts.newMembers > 0 && (
-            <span className={`ml-auto bg-red-500 text-white p-[1px_6px] rounded-[10px] text-xs font-inter font-bold leading-none min-w-[19px] h-[19px] flex items-center justify-center shrink-0 animate-badgePop ${collapsed ? 'md:absolute md:top-1 md:right-1 md:ml-0 md:text-[9px] md:h-3.5 md:min-w-[14px]' : ''}`}>
-              {sidebarCounts.newMembers > 99 ? '99+' : sidebarCounts.newMembers}
-            </span>
-          )}
         </button>
         <button
           onClick={() => handleNav('/admin/branches')}
@@ -241,9 +298,9 @@ export default function AdminSidebar() {
         >
           <span><CreditCard size={18} className="w-[18px] h-[18px] flex items-center justify-center shrink-0" /></span>
           {!collapsed && <span className="font-inter text-sm">Donations</span>}
-          {sidebarCounts.pendingDonations > 0 && (
+          {pendingDonationsBadge > 0 && (
             <span className={`ml-auto bg-red-500 text-white p-[1px_6px] rounded-[10px] text-xs font-inter font-bold leading-none min-w-[19px] h-[19px] flex items-center justify-center shrink-0 animate-badgePop ${collapsed ? 'md:absolute md:top-1 md:right-1 md:ml-0 md:text-[9px] md:h-3.5 md:min-w-[14px]' : ''}`}>
-              {sidebarCounts.pendingDonations > 99 ? '99+' : sidebarCounts.pendingDonations}
+              {pendingDonationsBadge > 99 ? '99+' : pendingDonationsBadge}
             </span>
           )}
         </button>

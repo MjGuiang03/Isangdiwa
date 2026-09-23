@@ -57,13 +57,16 @@ const getBranchProvince = (bName) => {
   return match ? match.province : 'Other';
 };
 
+const fetcherSingle = (url) => {
+    const token = localStorage.getItem('token');
+    if (!token) return Promise.resolve(null);
+    return fetch(url, { headers: { Authorization: `Bearer ${token}` } }).then(res => res.json()).catch(() => null);
+};
+
 export default function Attendance() {
   const { user } = useAuth();
   const navigate = useNavigate();
   const location = useLocation();
-  const [attendanceData, setAttendanceData] = useState([]);
-  const [stats,          setStats]          = useState({ total: 0, thisMonth: 0 });
-  const [loading,        setLoading]        = useState(true);
 
   const [expandedProvinces, setExpandedProvinces] = useState({});
 
@@ -71,6 +74,16 @@ export default function Attendance() {
   const [isScanning, setIsScanning] = useState(false);
 
   const token = localStorage.getItem('token');
+
+  const { data, isValidating, mutate } = useSWR(
+    token ? `${API}/api/attendance/my-attendance?page=1&limit=100` : null,
+    fetcherSingle,
+    { revalidateOnFocus: false, dedupingInterval: 30000, keepPreviousData: true }
+  );
+
+  const attendanceData = useMemo(() => (data?.success ? data.attendance : []) || [], [data]);
+  const stats = useMemo(() => (data?.success ? data.stats : { total: 0, thisMonth: 0 }) || { total: 0, thisMonth: 0 }, [data]);
+  const loading = !data && isValidating;
 
   const groupedAttendance = useMemo(() => {
     const groups = {};
@@ -109,27 +122,6 @@ export default function Attendance() {
     }
   }, [highlightBranch, attendanceData]);
 
-  const fetcher = async (url) => {
-    const res = await fetch(url, { headers: { Authorization: `Bearer ${token}` } });
-    return res.json();
-  };
-
-  const { data, isValidating, mutate } = useSWR(
-    token ? `${API}/api/attendance/my-attendance?page=1&limit=100` : null,
-    fetcher,
-    { revalidateOnFocus: false, dedupingInterval: 5000 }
-  );
-
-  useEffect(() => {
-    if (!data) return;
-    setLoading(isValidating && !data);
-    if (data.success) {
-      setAttendanceData(data.attendance || []);
-      setStats(data.stats || { total: 0, thisMonth: 0 });
-    }
-    if (data) setLoading(false);
-  }, [data, isValidating]);
-
   // Attendance rate = thisMonth / weeks in current month * 100 (capped at 100)
   const attendanceRateNum = useMemo(() => {
     if (!stats.total) return 0;
@@ -140,26 +132,17 @@ export default function Attendance() {
   /* ── History Modal States ── */
   const [isHistoryModalOpen, setIsHistoryModalOpen] = useState(false);
   const [modalPage, setModalPage] = useState(1);
-  const [modalHistory, setModalHistory] = useState([]);
-  const [modalTotalPages, setModalTotalPages] = useState(1);
-  const [modalLoading, setModalLoading] = useState(false);
   const MODAL_LIMIT = 5;
 
   const { data: modalData, isValidating: modalValidating } = useSWR(
     isHistoryModalOpen && token ? `${API}/api/attendance/my-attendance?page=${modalPage}&limit=${MODAL_LIMIT}` : null,
-    fetcher,
-    { revalidateOnFocus: false }
+    fetcherSingle,
+    { revalidateOnFocus: false, dedupingInterval: 30000, keepPreviousData: true }
   );
 
-  useEffect(() => {
-    if (!modalData) return;
-    setModalLoading(modalValidating && !modalData);
-    if (modalData.success) {
-      setModalHistory(modalData.attendance || []);
-      setModalTotalPages(modalData.totalPages || 1);
-    }
-    if (modalData) setModalLoading(false);
-  }, [modalData, modalValidating]);
+  const modalHistory = useMemo(() => (modalData?.success ? modalData.attendance : []) || [], [modalData]);
+  const modalTotalPages = useMemo(() => (modalData?.success ? modalData.totalPages : 1) || 1, [modalData]);
+  const modalLoading = !modalData && modalValidating;
 
   const handleOpenHistory = () => {
     setModalPage(1);
@@ -579,4 +562,4 @@ export default function Attendance() {
       )}
     </>
   );
-}
+}

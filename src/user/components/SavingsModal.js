@@ -1,8 +1,11 @@
-import { useState, useEffect } from 'react';
+import { useState, useEffect, useMemo } from 'react';
+import useSWR from 'swr';
 import { useAuth } from '../../context/AuthContext';
 import API from '../../utils/api';
 import { CheckCircle, X, ArrowDownRight, ArrowUpLeft, Repeat, History, CreditCard, Smartphone, Building2, Info, UploadCloud, FileCheck2, PiggyBank, ZoomIn, Trash2, AlertTriangle, AlertCircle, Loader2, ShieldCheck } from 'lucide-react';
 import useSwipeToClose, { DragHandle } from '../hooks/useSwipeToClose';
+
+const fetchPublicSettings = (url) => fetch(url).then(res => res.json()).catch(() => null);
 
 const fmt = (n) =>
     n != null ? `₱${Number(n).toLocaleString('en-PH', { minimumFractionDigits: 2 })}` : '₱0.00';
@@ -42,7 +45,6 @@ function DepositModal({ goals, onClose }) {
     const [proofFile, setProofFile] = useState(null);
     const [proofBase64, setProofBase64] = useState('');
     const [previewImage, setPreviewImage] = useState(null);
-    const [approvalMethod, setApprovalMethod] = useState('gateway');
     const [loading, setLoading] = useState(false);
     const [error, setError] = useState('');
     const [receiptValidating, setReceiptValidating] = useState(false);
@@ -55,18 +57,10 @@ function DepositModal({ goals, onClose }) {
         }
     }, [goals, selectedGoal]);
 
-    useEffect(() => {
-        const fetchSettings = async () => {
-            try {
-                const res = await fetch(`${API}/api/settings/public`);
-                const data = await res.json();
-                if (res.ok && data.success) {
-                    setApprovalMethod(data.paymentApprovalMethod || 'gateway');
-                }
-            } catch { /* silent */ }
-        };
-        fetchSettings();
-    }, []);
+    const { data: settingsData } = useSWR(`${API}/api/settings/public`, fetchPublicSettings, {
+        revalidateOnFocus: false, dedupingInterval: 300000
+    });
+    const approvalMethod = useMemo(() => settingsData?.success ? (settingsData.paymentApprovalMethod || 'gateway') : 'gateway', [settingsData]);
 
     const handleFileChange = (e) => {
         const file = e.target.files[0];
@@ -765,7 +759,6 @@ function QuickDepositModal({ goal, goals, onClose }) {
     const [proofFile, setProofFile] = useState(null);
     const [proofBase64, setProofBase64] = useState('');
     const [previewImage, setPreviewImage] = useState(null);
-    const [approvalMethod, setApprovalMethod] = useState('gateway');
     const [loading, setLoading] = useState(false);
     const [error, setError] = useState('');
     const [success, setSuccess] = useState(false);
@@ -773,18 +766,10 @@ function QuickDepositModal({ goal, goals, onClose }) {
     const [receiptValid, setReceiptValid] = useState(null);
     const [receiptReason, setReceiptReason] = useState('');
 
-    useEffect(() => {
-        const fetchSettings = async () => {
-            try {
-                const res = await fetch(`${API}/api/settings/public`);
-                const data = await res.json();
-                if (res.ok && data.success) {
-                    setApprovalMethod(data.paymentApprovalMethod || 'gateway');
-                }
-            } catch { /* silent */ }
-        };
-        fetchSettings();
-    }, []);
+    const { data: settingsData } = useSWR(`${API}/api/settings/public`, fetchPublicSettings, {
+        revalidateOnFocus: false, dedupingInterval: 300000
+    });
+    const approvalMethod = useMemo(() => settingsData?.success ? (settingsData.paymentApprovalMethod || 'gateway') : 'gateway', [settingsData]);
 
     const handleFileChange = (e) => {
         const file = e.target.files[0];
@@ -2362,9 +2347,6 @@ function WithdrawModal({ goals, onClose, onOpenDeposit }) {
    ROOT EXPORT  — renders whichever modal is active
 ───────────────────────────────────────────────────────────── */
 export default function SavingsModals({ modal, modalData, goals: propGoals, onClose, onEdit, onTransfer, onQuickDeposit, onOpenDeposit }) {
-    const [allGoals, setAllGoals] = useState(propGoals || []);
-    const [loadingGoals, setLoadingGoals] = useState(false);
-
     /* lock body scroll when a modal is open */
     useEffect(() => {
         if (modal) document.body.style.overflow = 'hidden';
@@ -2372,31 +2354,14 @@ export default function SavingsModals({ modal, modalData, goals: propGoals, onCl
         return () => { document.body.style.overflow = ''; };
     }, [modal]);
 
-    // Fetch all goals to bypass pagination limits when a modal opens
-    useEffect(() => {
-        if (modal && (modal === 'deposit' || modal === 'withdraw' || modal === 'transfer' || modal === 'quickDeposit')) {
-            const fetchAllGoals = async () => {
-                setLoadingGoals(true);
-                try {
-                    const token = localStorage.getItem('token');
-                    const res = await fetch(`${API}/api/savings/goals?all=true`, {
-                        headers: { Authorization: `Bearer ${token}` }
-                    });
-                    const data = await res.json();
-                    if (data.success) {
-                        setAllGoals(data.goals);
-                    }
-                } catch (err) {
-                    console.error('Failed to fetch all goals for modal', err);
-                } finally {
-                    setLoadingGoals(false);
-                }
-            };
-            fetchAllGoals();
-        } else {
-            setAllGoals(propGoals || []);
-        }
-    }, [modal, propGoals]);
+    const needsGoals = modal === 'deposit' || modal === 'withdraw' || modal === 'transfer' || modal === 'quickDeposit';
+    const token = localStorage.getItem('token');
+    const { data: goalsData, isValidating: loadingGoals } = useSWR(
+        needsGoals && token ? `${API}/api/savings/goals?all=true` : null,
+        (url) => fetch(url, { headers: { Authorization: `Bearer ${token}` } }).then(r => r.json()),
+        { revalidateOnFocus: false, dedupingInterval: 30000, keepPreviousData: true }
+    );
+    const allGoals = useMemo(() => goalsData?.goals || propGoals || [], [goalsData, propGoals]);
 
     if (!modal) return null;
 

@@ -158,7 +158,7 @@ function EditModal({ member, onClose, onSave }) {
                 <optgroup label="Tarlac">
                   <option>Pacpaco, San Manuel</option><option>Victoria</option>
                 </optgroup>
-                <optgroup label="Nueva Ecija"><option>Bambanaba,巧Cuyapo</option></optgroup>
+                <optgroup label="Nueva Ecija"><option>Bambanaba, Cuyapo</option></optgroup>
                 <optgroup label="Pangasinan">
                   <option>Dagupan</option><option>Mangatarem</option><option>Laoak Langka</option>
                   <option>Orbiztondo</option><option>Malasiqui, Bolaoit</option><option>Taloyan</option>
@@ -496,7 +496,7 @@ function AddMemberModal({ onClose, onSave }) {
                 <optgroup label="Tarlac">
                   <option>Pacpaco, San Manuel</option><option>Victoria</option>
                 </optgroup>
-                <optgroup label="Nueva Ecija"><option>Bambanaba,巧Cuyapo</option></optgroup>
+                <optgroup label="Nueva Ecija"><option>Bambanaba, Cuyapo</option></optgroup>
                 <optgroup label="Pangasinan">
                   <option>Dagupan</option><option>Mangatarem</option><option>Laoak Langka</option>
                   <option>Orbiztondo</option><option>Malasiqui, Bolaoit</option><option>Taloyan</option>
@@ -646,6 +646,19 @@ function LinkRFIDModal({ member, onClose, onSave }) {
 /* ═══════════════════════════════════════════════════════════════════════════
    MAIN PAGE
 ═══════════════════════════════════════════════════════════════════════════ */
+const getToken = () =>
+  localStorage.getItem('adminToken') ||
+  localStorage.getItem('admin_token') ||
+  localStorage.getItem('token');
+
+const fetcherSingle = (url) => fetch(url, { headers: { Authorization: `Bearer ${getToken()}` } }).then(res => {
+  if (res.status === 401 || res.status === 403) {
+    window.location.href = '/';
+    return { success: false };
+  }
+  return res.json();
+});
+
 const ITEMS_PER_PAGE = 5;
 
 export default function AdminMembers() {
@@ -669,17 +682,7 @@ export default function AdminMembers() {
 
   const debouncedSearchMembers  = useDebounce(searchMembers,  400);
 
-  const getToken = () =>
-    localStorage.getItem('adminToken') ||
-    localStorage.getItem('admin_token') ||
-    localStorage.getItem('token');
-
   useEffect(() => { if (!getToken()) navigate('/'); }, [navigate]);
-
-  const fetcherSingle = (url) => fetch(url, { headers: { Authorization: `Bearer ${getToken()}` } }).then(res => {
-    if (res.status === 401 || res.status === 403) { navigate('/'); return { success: false }; }
-    return res.json();
-  });
 
   const queryParams = useMemo(() => {
     let isOfficerVal = undefined;

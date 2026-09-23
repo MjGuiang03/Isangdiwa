@@ -1,4 +1,5 @@
-import React, { useState, useEffect, useRef, useCallback } from 'react';
+import React, { useState, useEffect, useRef, useMemo } from 'react';
+import useSWR from 'swr';
 import { useNavigate } from 'react-router-dom';
 import { toast } from 'sonner';
 import API from '../../utils/api';
@@ -233,36 +234,37 @@ function EndSessionModal({ onClose, onConfirm }) {
   );
 }
 
+const fetcherSingle = (url) => {
+  const token = localStorage.getItem('adminToken');
+  return fetch(url, { headers: { Authorization: `Bearer ${token}` } }).then(res => res.json());
+};
+
 export default function AdminRFIDPreview() {
   const navigate = useNavigate();
 
-  const [activeSessions, setActiveSessions] = useState([]);
   const [lastTappedUser, setLastTappedUser] = useState(null);
-  const selectedSession = activeSessions.length > 0 ? activeSessions[0] : null;
   const [showStartModal, setShowStartModal] = useState(false);
   const [showEndModal, setShowEndModal] = useState(false);
   const [sessionToEnd, setSessionToEnd] = useState(null);
   const rfidBuffer = useRef('');
 
-  const fetchActiveSessions = useCallback(async () => {
-    try {
-      const token = localStorage.getItem('adminToken');
-      const res = await fetch(`${API}/api/admin/attendance/sessions/active`, {
-        headers: { Authorization: `Bearer ${token}` }
-      });
-      const data = await res.json();
-      if (data.success) {
-        setActiveSessions(data.sessions);
-        if (data.sessions.length === 0) {
-          setShowStartModal(true);
-        }
-      }
-    } catch (err) { console.error('Failed to get active sessions', err); }
-  }, []);
+  const token = localStorage.getItem('adminToken');
+  const { data: sessionsData, mutate: refreshSessions } = useSWR(
+    token ? `${API}/api/admin/attendance/sessions/active` : null,
+    fetcherSingle,
+    { revalidateOnFocus: false, refreshInterval: 5000, dedupingInterval: 3000, keepPreviousData: true }
+  );
+
+  const activeSessions = useMemo(() => sessionsData?.sessions || [], [sessionsData]);
+  const selectedSession = activeSessions.length > 0 ? activeSessions[0] : null;
 
   useEffect(() => {
-    fetchActiveSessions();
-  }, [fetchActiveSessions]);
+    if (sessionsData && sessionsData.success && (sessionsData.sessions || []).length === 0) {
+      setShowStartModal(true);
+    }
+  }, [sessionsData]);
+
+  const fetchActiveSessions = refreshSessions;
 
   // Global RFID Listener
   const lastTapTime = useRef(0);

@@ -61,8 +61,17 @@ export default function WelcomePage() {
 
   useEffect(() => {
     const timer = setTimeout(() => setLoading(false), 2000);
-    const handleScroll = () => setScrolled(window.scrollY > 20);
-    window.addEventListener('scroll', handleScroll);
+    let ticking = false;
+    const handleScroll = () => {
+      if (!ticking) {
+        window.requestAnimationFrame(() => {
+          setScrolled(window.scrollY > 20);
+          ticking = false;
+        });
+        ticking = true;
+      }
+    };
+    window.addEventListener('scroll', handleScroll, { passive: true });
 
     const observer = new IntersectionObserver((entries) => {
       entries.forEach(entry => {
