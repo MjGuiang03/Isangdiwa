@@ -4,7 +4,7 @@ import { useNavigate } from 'react-router';
 import { useAuth } from '../../context/AuthContext';
 
 import API from '../../utils/api';
-import { ArrowRight, Banknote, CalendarDays, CheckCircle, ChevronRight, ChevronLeft, Clock, Heart, Landmark, MapPin, PiggyBank, Wallet, BookOpen, Target, X, Sparkles } from 'lucide-react';
+import { ArrowRight, Banknote, CalendarDays, CheckCircle, ChevronRight, ChevronLeft, Clock, Heart, Landmark, MapPin, PiggyBank, Wallet, BookOpen, Target, X, Sparkles, HandHeart } from 'lucide-react';
 import { isOfficerPosition } from '../../utils/officerPositions';
 
 
@@ -70,6 +70,7 @@ export default function Home() {
   const { data: prayersData } = useSWR(token ? `${API}/api/prayers` : null, fetcherSingle, { revalidateOnFocus: false, dedupingInterval: 30000, keepPreviousData: true });
   const { data: savingsTxnData } = useSWR(token ? `${API}/api/savings/transactions?limit=5` : null, fetcherSingle, { revalidateOnFocus: false, dedupingInterval: 30000, keepPreviousData: true });
   const { data: loanPaymentsData } = useSWR(token ? `${API}/api/loans/my-payments` : null, fetcherSingle, { revalidateOnFocus: false, dedupingInterval: 30000, keepPreviousData: true });
+  const { data: acknowledgedData } = useSWR(token ? `${API}/api/donations/acknowledged` : null, fetcherSingle, { revalidateOnFocus: false, dedupingInterval: 30000, keepPreviousData: true });
 
   const loanStats = useMemo(() => loansData?.success ? (loansData.stats || { activeCount: 0, remainingBalance: 0 }) : { activeCount: 0, remainingBalance: 0 }, [loansData]);
   const activeLoansList = useMemo(() => loansData?.success ? (loansData.loans || []).filter(l => l.status === 'active') : [], [loansData]);
@@ -93,6 +94,7 @@ export default function Home() {
   const savingsStats = useMemo(() => savingsData?.success ? (savingsData.stats || { totalSavings: 0, thisMonth: 0 }) : { totalSavings: 0, thisMonth: 0 }, [savingsData]);
   const savingsGoalsList = useMemo(() => savingsGoalsData?.success ? (savingsGoalsData.goals || []).filter(g => g.status !== 'completed') : [], [savingsGoalsData]);
 
+  const acknowledgedDonors = useMemo(() => acknowledgedData?.success ? (acknowledgedData.donors || []) : [], [acknowledgedData]);
   const { allAnnouncements, upcomingEvents } = useMemo(() => {
     if (!annData?.success) return { allAnnouncements: [], upcomingEvents: [] };
     const list = (annData.announcements || []).map(ann => {
@@ -239,6 +241,23 @@ export default function Home() {
     return () => clearInterval(timer);
   }, [upcomingEvents.length]);
 
+
+
+  const [prayerIndex, setPrayerIndex] = useState(0);
+  const [prayerFade, setPrayerFade] = useState(true);
+
+  useEffect(() => {
+    if (prayers.length <= 1) return;
+    const timer = setInterval(() => {
+      setPrayerFade(false);
+      setTimeout(() => {
+        setPrayerIndex(prev => (prev + 1) % prayers.length);
+        setPrayerFade(true);
+      }, 400);
+    }, 8000);
+    return () => clearInterval(timer);
+  }, [prayers.length]);
+
   const isOfficer = isOfficerPosition(profile?.position);
   
   const processedLoans = activeLoansList.map(l => {
@@ -379,7 +398,9 @@ export default function Home() {
   };
 
   const handlePostPrayer = async () => {
-    if (!newPrayer.trim()) return;
+    // Sanitize: strip HTML tags, trim, and limit length
+    const sanitized = newPrayer.replace(/<[^>]*>/g, '').replace(/[<>]/g, '').trim().slice(0, 250);
+    if (!sanitized) return;
     try {
       const author = formatAuthorName(profile?.fullName);
       const res = await fetch(`${API}/api/prayers`, {
@@ -388,7 +409,7 @@ export default function Home() {
           'Content-Type': 'application/json',
           Authorization: `Bearer ${token}`
         },
-        body: JSON.stringify({ text: newPrayer.trim(), author })
+        body: JSON.stringify({ text: sanitized, author })
       });
       const data = await res.json();
       if (data.success) {
@@ -712,7 +733,7 @@ export default function Home() {
       </div>
 
       {/* Main Content Grid: [Left col: QA + Overview] [Right col: Announcements] */}
-      <div className="grid grid-cols-1 lg:grid-cols-[1fr_1.2fr] gap-6">
+      <div className="grid grid-cols-1 lg:grid-cols-[0.8fr_1.4fr] gap-6 items-start">
 
         {/* Left column: Quick Actions stacked above My Overview */}
         <div className="flex flex-col gap-6">
@@ -918,92 +939,127 @@ export default function Home() {
                 </div>
               )}
             </div>
+          </div>
+        </div>
 
-            {/* Community Prayer Wall Button */}
-            <button
-              onClick={() => setShowPrayerModal(true)}
-              className="w-full mt-4 flex items-center justify-between p-3.5 rounded-xl bg-gradient-to-r from-purple-500/10 via-purple-500/5 to-indigo-500/10 dark:from-purple-950/40 dark:to-indigo-950/40 border border-purple-200/60 dark:border-purple-800/40 text-purple-700 dark:text-purple-300 text-xs font-semibold hover:border-purple-300 dark:hover:border-purple-700/60 transition-all cursor-pointer group"
-            >
-              <div className="flex items-center gap-2.5">
-                <div className="w-7 h-7 rounded-lg bg-purple-600 text-white flex items-center justify-center group-hover:scale-110 transition-transform">
-                  <Heart size={14} />
-                </div>
-                <span className="font-inter">Community Prayer Wall</span>
+        {/* Right Column: Bento Grid */}
+        <div className="grid grid-rows-[auto_auto] gap-4">
+
+          {/* ── Top row: Generous Givers + Prayer Wall ── */}
+          <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
+            {/* Generous Givers Card */}
+            <div className="bg-white dark:bg-[#1E2130] border border-slate-200/80 dark:border-white/10 rounded-2xl p-4 shadow-sm flex flex-col">
+              <div className="flex items-center justify-between mb-3">
+                <h3 className="text-xs font-bold text-slate-900 dark:text-white uppercase tracking-wider font-inter">Generous Givers</h3>
               </div>
-              <span className="bg-purple-200/80 dark:bg-purple-900/80 text-purple-800 dark:text-purple-200 px-2.5 py-0.5 rounded-full text-[11px] font-bold">
-                {prayers.length} Requests
-              </span>
+              {acknowledgedDonors.length > 0 ? (
+                <div className="space-y-2">
+                  {acknowledgedDonors.slice(0, 3).map((donor, i) => (
+                    <div key={i} className="flex items-center justify-between p-2.5 rounded-xl bg-blue-50/50 dark:bg-blue-950/20 border border-blue-100/50 dark:border-white/5">
+                      <div className="flex items-center gap-2 min-w-0">
+                        <div className="w-6 h-6 rounded-full bg-gradient-to-br from-blue-500 to-blue-600 flex items-center justify-center text-white text-[9px] font-bold shrink-0">
+                          {donor.member ? donor.member.split(' ').map(w => w[0]).join('').slice(0, 2).toUpperCase() : '?'}
+                        </div>
+                        <div className="min-w-0 flex-1">
+                          <p className="text-[10px] font-bold text-slate-800 dark:text-slate-200 font-inter truncate m-0">{donor.member}</p>
+                          <p className="text-[10px] text-slate-500 dark:text-slate-400 font-inter m-0">{donor.category}</p>
+                        </div>
+                      </div>
+                      <span className="text-[11px] font-extrabold text-emerald-600 dark:text-emerald-400 font-dm shrink-0 ml-2">
+                        ₱{Number(donor.amount || 0).toLocaleString('en-PH')}
+                      </span>
+                    </div>
+                  ))}
+                </div>
+              ) : (
+                <div className="flex-1 flex flex-col items-center justify-center text-slate-400 dark:text-slate-500 py-4">
+                  <HandHeart size={28} className="mb-2 opacity-40 text-blue-400" />
+                  <p className="text-[11px] font-inter font-medium text-center">No acknowledged donations yet</p>
+                </div>
+              )}
+            </div>
+            {/* Community Prayer Wall Card */}
+            <button onClick={() => setShowPrayerModal(true)}
+              className="bg-white dark:bg-[#1E2130] border border-slate-200/80 dark:border-white/10 rounded-2xl p-4 shadow-sm flex flex-col cursor-pointer hover:border-purple-300 dark:hover:border-purple-700/60 transition-all text-left group">
+              <div className="flex items-center justify-between mb-3">
+                <h3 className="text-xs font-bold text-slate-900 dark:text-white uppercase tracking-wider font-inter">Prayer Wall</h3>
+                <span className="bg-purple-100/80 dark:bg-purple-900/60 text-purple-700 dark:text-purple-300 px-2.5 py-0.5 rounded-full text-[10px] font-bold font-inter">{prayers.length} Requests</span>
+              </div>
+              <div className="flex-1 flex flex-col justify-between">
+                {prayers.length > 0 ? (
+                  <div className={`flex items-start gap-3 p-3.5 rounded-xl bg-purple-50/50 dark:bg-purple-950/20 border border-purple-100/50 dark:border-white/5 transition-opacity duration-500 ${prayerFade ? 'opacity-100' : 'opacity-0'}`}>
+                    <div className="w-9 h-9 rounded-full bg-gradient-to-br from-purple-500 to-indigo-500 flex items-center justify-center text-white text-[11px] font-bold shrink-0 mt-0.5">
+                      {prayers[prayerIndex]?.author ? prayers[prayerIndex].author.split(' ').map(w => w[0]).join('').slice(0, 2).toUpperCase() : '?'}
+                    </div>
+                    <div className="min-w-0 flex-1">
+                      <p className="text-xs font-bold text-purple-700 dark:text-purple-300 font-inter m-0">{prayers[prayerIndex]?.author}</p>
+                      <p className="text-sm text-slate-600 dark:text-slate-400 font-inter line-clamp-2 m-0 mt-1 leading-relaxed">{prayers[prayerIndex]?.text}</p>
+                    </div>
+                  </div>
+                ) : (
+                  <div className="flex-1 flex flex-col items-center justify-center text-slate-400 dark:text-slate-500 py-4">
+                    <Heart size={28} className="mb-2 opacity-40 text-purple-400" />
+                    <p className="text-[11px] font-inter font-medium text-center">Share a prayer request</p>
+                  </div>
+                )}
+                <div className="flex items-center gap-2 mt-3 pt-3 border-t border-slate-100 dark:border-white/5 text-purple-600 dark:text-purple-400 group-hover:text-purple-700 dark:group-hover:text-purple-300 transition-colors">
+                  <Heart size={13} />
+                  <span className="text-[11px] font-bold font-inter">Open Prayer Wall →</span>
+                </div>
+              </div>
             </button>
           </div>
 
-        </div>
-
-        {/* Announcements & Events Carousel Card */}
-        <div className="bg-white dark:bg-[#1E2130] border border-slate-200/80 dark:border-white/10 rounded-2xl p-5 shadow-sm flex flex-col justify-between h-full">
-          <div className="flex flex-col flex-1">
-            <div className="flex items-center justify-between mb-3 pb-3 border-b border-slate-100 dark:border-white/5">
-              <h2 className="text-xs font-bold text-slate-900 dark:text-white uppercase tracking-wider font-inter">Announcements &amp; Events</h2>
-              <button onClick={() => setShowAllEvents(true)} className="text-xs font-semibold text-blue-600 dark:text-blue-400 hover:underline flex items-center gap-1 border-none bg-transparent cursor-pointer">
-                See All →
-              </button>
+          {/* ── Announcements & Events (full width, bottom) ── */}
+          <div className="bg-white dark:bg-[#1E2130] border border-slate-200/80 dark:border-white/10 rounded-[20px] p-5 shadow-sm">
+            <div className="flex items-center justify-between mb-4 pb-3 border-b border-slate-100 dark:border-white/5">
+              <h2 className="text-xs font-bold text-slate-900 dark:text-white uppercase tracking-wider font-inter">Announcements & Events</h2>
+              <button onClick={() => setShowAllEvents(true)} className="text-xs font-semibold text-blue-600 dark:text-blue-400 hover:underline flex items-center gap-1 border-none bg-transparent cursor-pointer">See All →</button>
             </div>
-
             {upcomingEvents.length > 0 ? (
-              <div
-                className={`relative rounded-2xl overflow-hidden bg-slate-900 min-h-[280px] sm:min-h-[310px] flex-1 group cursor-pointer shadow-md mb-2 transition-opacity duration-300 ${carouselFade ? 'opacity-100' : 'opacity-0'}`}
-                onClick={() => { setSelectedEvent(upcomingEvents[currentEventIndex]); setModalImageIndex(0); }}
-              >
-                <img
-                  src={upcomingEvents[currentEventIndex]?.images?.[0] || upcomingEvents[currentEventIndex]?.image || ''}
-                  alt=""
-                  className="w-full h-full object-cover opacity-80 group-hover:scale-105 transition-transform duration-700 absolute inset-0"
-                />
-                <div className="absolute top-3 left-3 bg-white/90 dark:bg-slate-900/90 backdrop-blur-md rounded-xl p-2 text-center border border-white/20 shadow-md z-10">
+              <div className={`relative rounded-2xl overflow-hidden bg-slate-900 min-h-[340px] sm:min-h-[380px] group cursor-pointer shadow-md transition-opacity duration-300 ${carouselFade ? 'opacity-100' : 'opacity-0'}`}
+                onClick={() => { setSelectedEvent(upcomingEvents[currentEventIndex]); setModalImageIndex(0); }}>
+                <img src={upcomingEvents[currentEventIndex]?.images?.[0] || upcomingEvents[currentEventIndex]?.image || ''} alt="" className="w-full h-full object-cover opacity-80 group-hover:scale-105 transition-transform duration-700 absolute inset-0" />
+                <div className="absolute top-4 left-4 bg-white/90 dark:bg-slate-900/90 backdrop-blur-md rounded-xl p-2.5 text-center border border-white/20 shadow-md z-10">
                   <span className="block text-[10px] font-bold uppercase tracking-wider text-blue-600 dark:text-blue-400 font-inter">{upcomingEvents[currentEventIndex]?.month}</span>
                   <span className="block text-base font-extrabold text-slate-900 dark:text-white font-dm leading-none">{upcomingEvents[currentEventIndex]?.day}</span>
                 </div>
-                <div className="absolute inset-0 bg-gradient-to-t from-slate-950 via-slate-950/40 to-transparent p-4 flex flex-col justify-end z-10">
-                  <span className="inline-block self-start text-[10px] font-extrabold uppercase tracking-wider px-2 py-0.5 rounded-full bg-[#F5C800] text-slate-950 font-inter mb-1.5">{upcomingEvents[currentEventIndex]?.category}</span>
-                  <h3 className="text-base font-bold text-white font-inter line-clamp-1 mb-1 group-hover:text-[#F5C800] transition-colors">{upcomingEvents[currentEventIndex]?.title}</h3>
-                  <div className="flex items-center gap-3 text-xs text-slate-300 font-inter">
-                    <span className="flex items-center gap-1"><Clock size={12} className="text-[#F5C800]" /> {upcomingEvents[currentEventIndex]?.time || 'All Day'}</span>
-                    <span className="flex items-center gap-1"><MapPin size={12} className="text-emerald-400" /> {upcomingEvents[currentEventIndex]?.branch?.split(',')[0]}</span>
+                <div className="absolute inset-0 bg-gradient-to-t from-slate-950 via-slate-950/40 to-transparent p-5 flex flex-col justify-end z-10">
+                  <span className="inline-block self-start text-[10px] font-extrabold uppercase tracking-wider px-2.5 py-0.5 rounded-full bg-white/90 dark:bg-slate-900/90 text-slate-900 dark:text-white font-inter mb-2">{upcomingEvents[currentEventIndex]?.category}</span>
+                  <h3 className="text-lg font-bold text-white font-inter line-clamp-1 mb-1.5 group-hover:text-blue-200 transition-colors">{upcomingEvents[currentEventIndex]?.title}</h3>
+                  <div className="flex items-center gap-3.5 text-xs text-slate-300 font-inter">
+                    <span className="flex items-center gap-1.5"><Clock size={13} className="text-[#F5C800]" /> {upcomingEvents[currentEventIndex]?.time || 'All Day'}</span>
+                    <span className="flex items-center gap-1.5"><MapPin size={13} className="text-emerald-400" /> {upcomingEvents[currentEventIndex]?.branch?.split(',')[0]}</span>
                   </div>
                 </div>
               </div>
             ) : (
-              <div className="min-h-[260px] flex-1 flex flex-col items-center justify-center text-slate-400 dark:text-slate-500 bg-slate-50 dark:bg-white/5 rounded-2xl border border-dashed border-slate-200 dark:border-white/10 mb-2">
+              <div className="min-h-[240px] flex flex-col items-center justify-center text-slate-400 dark:text-slate-500 bg-slate-50 dark:bg-white/5 rounded-2xl border border-dashed border-slate-200 dark:border-white/10">
                 <CalendarDays size={36} className="mb-2 opacity-40 text-blue-500" />
                 <p className="text-xs font-inter font-medium">No upcoming events scheduled</p>
               </div>
             )}
+            {upcomingEvents.length > 1 && (
+              <div className="flex items-center justify-between pt-3.5">
+                <div className="flex gap-1.5">
+                  {upcomingEvents.map((_, i) => (
+                    <button key={i} onClick={() => setCurrentEventIndex(i)}
+                      className={`h-2 rounded-full transition-all duration-300 border-none cursor-pointer ${i === currentEventIndex ? 'w-6 bg-blue-600 dark:bg-blue-400' : 'w-2 bg-slate-300 dark:bg-slate-700'}`}
+                      aria-label={`Go to slide ${i + 1}`} />
+                  ))}
+                </div>
+                <div className="flex items-center gap-1">
+                  <button onClick={() => setCurrentEventIndex((prev) => (prev === 0 ? upcomingEvents.length - 1 : prev - 1))} className="w-8 h-8 rounded-lg bg-slate-100 dark:bg-slate-800 text-slate-600 dark:text-slate-300 hover:bg-blue-50 hover:text-blue-600 dark:hover:bg-slate-700 flex items-center justify-center cursor-pointer transition-colors border-none">
+                    <ChevronLeft size={16} />
+                  </button>
+                  <button onClick={() => setCurrentEventIndex((prev) => (prev + 1) % upcomingEvents.length)} className="w-8 h-8 rounded-lg bg-slate-100 dark:bg-slate-800 text-slate-600 dark:text-slate-300 hover:bg-blue-50 hover:text-blue-600 dark:hover:bg-slate-700 flex items-center justify-center cursor-pointer transition-colors border-none">
+                    <ChevronRight size={16} />
+                  </button>
+                </div>
+              </div>
+            )}
           </div>
 
-          {/* Dots & Nav Controls */}
-          {upcomingEvents.length > 1 && (
-            <div className="flex items-center justify-between pt-2">
-              <div className="flex gap-1.5">
-                {upcomingEvents.map((_, i) => (
-                  <button
-                    key={i}
-                    onClick={() => setCurrentEventIndex(i)}
-                    className={`h-2 rounded-full transition-all duration-300 border-none cursor-pointer ${
-                      i === currentEventIndex ? 'w-6 bg-blue-600 dark:bg-blue-400' : 'w-2 bg-slate-300 dark:bg-slate-700'
-                    }`}
-                    aria-label={`Go to slide ${i + 1}`}
-                  />
-                ))}
-              </div>
-              <div className="flex items-center gap-1">
-                <button onClick={() => setCurrentEventIndex((prev) => (prev === 0 ? upcomingEvents.length - 1 : prev - 1))} className="w-7 h-7 rounded-lg bg-slate-100 dark:bg-slate-800 text-slate-600 dark:text-slate-300 hover:bg-blue-50 hover:text-blue-600 dark:hover:bg-slate-700 flex items-center justify-center cursor-pointer transition-colors border-none">
-                  <ChevronLeft size={14} />
-                </button>
-                <button onClick={() => setCurrentEventIndex((prev) => (prev + 1) % upcomingEvents.length)} className="w-7 h-7 rounded-lg bg-slate-100 dark:bg-slate-800 text-slate-600 dark:text-slate-300 hover:bg-blue-50 hover:text-blue-600 dark:hover:bg-slate-700 flex items-center justify-center cursor-pointer transition-colors border-none">
-                  <ChevronRight size={14} />
-                </button>
-              </div>
-            </div>
-          )}
         </div>
 
       </div>
@@ -1244,18 +1300,22 @@ export default function Home() {
                 <X size={18} />
               </button>
             </div>
-            <div className="p-4 border-b border-slate-100 dark:border-white/5 flex gap-2">
-              <input
-                type="text"
-                className="flex-1 h-10 px-3 rounded-xl border border-slate-200 dark:border-white/10 bg-slate-50 dark:bg-white/5 text-sm text-slate-900 dark:text-white outline-none focus:border-[#1E3A8A]"
-                placeholder="Share your prayer request..."
-                value={newPrayer}
-                onChange={(e) => setNewPrayer(e.target.value)}
-                onKeyDown={(e) => { if (e.key === 'Enter') handlePostPrayer(); }}
-              />
+            <div className="p-4 border-b border-slate-100 dark:border-white/5 flex gap-2 items-start">
+              <div className="flex-1">
+                <input
+                  type="text"
+                  className="w-full h-10 px-3 rounded-xl border border-slate-200 dark:border-white/10 bg-slate-50 dark:bg-white/5 text-sm text-slate-900 dark:text-white outline-none focus:border-[#1E3A8A]"
+                  placeholder="Share your prayer request..."
+                  maxLength={250}
+                  value={newPrayer}
+                  onChange={(e) => setNewPrayer(e.target.value)}
+                  onKeyDown={(e) => { if (e.key === 'Enter') handlePostPrayer(); }}
+                />
+                <p className={`text-[10px] font-inter text-right m-0 mt-1 ${newPrayer.length >= 230 ? 'text-red-500' : 'text-slate-400 dark:text-slate-500'}`}>{newPrayer.length}/250</p>
+              </div>
               <button
                 onClick={handlePostPrayer}
-                className="bg-[#1E3A8A] hover:bg-[#2B4EAF] text-white px-4 text-xs font-semibold rounded-xl"
+                className="bg-[#1E3A8A] hover:bg-[#2B4EAF] text-white px-4 h-10 text-xs font-semibold rounded-xl shrink-0"
               >
                 Post
               </button>

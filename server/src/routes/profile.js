@@ -457,7 +457,7 @@ router.get('/notifications/feed', authenticateUser, async (req, res) => {
     const [allPayments, allLoans, allDonations, allAttendance, allSavings, recentAnnouncements] = await Promise.all([
       loanPayments.find({ email }).sort({ submittedAt: -1 }).limit(limit).toArray(),
       loans.find({ email }).sort({ appliedDate: -1 }).limit(limit).toArray(),
-      donations.find({ email }).sort({ updatedAt: -1 }).limit(limit).toArray(),
+      donations.find({ email }).project({ proofOfPayment: 0 }).sort({ createdAt: -1 }).limit(limit).toArray(),
       attendance.find({ email }).sort({ createdAt: -1 }).limit(limit).toArray(),
       savingsTransactions.find({ email }).sort({ date: -1 }).limit(limit).toArray(),
       announcements.find({

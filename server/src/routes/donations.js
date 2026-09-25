@@ -126,7 +126,7 @@ Respond with a JSON object only:
 router.post('/donations', authenticateUser, async (req, res) => {
   try {
     const email = req.user.email;
-    const { amount, category, community, isRecurring, paymentMethod } = req.body;
+    const { amount, category, community, isRecurring, paymentMethod, acknowledged } = req.body;
 
     const parsedAmount = Number(amount);
     if (!amount || !category || isNaN(parsedAmount) || !Number.isInteger(parsedAmount) || parsedAmount <= 0) {
@@ -178,6 +178,7 @@ router.post('/donations', authenticateUser, async (req, res) => {
         type: isRecurring ? 'Recurring' : 'One-time',
         status: 'pending',
         proofOfPayment, // Store base64 string
+        acknowledged: !!acknowledged,
         date: new Date(),
         createdAt: new Date(),
       };
@@ -211,6 +212,7 @@ router.post('/donations', authenticateUser, async (req, res) => {
       status: 'pending',
       paymongoLinkId: paymentLinkData.id,
       checkoutUrl: paymentLinkData.attributes.checkout_url,
+      acknowledged: !!acknowledged,
       date: new Date(),
       createdAt: new Date(),
     };
@@ -282,6 +284,29 @@ router.get('/donations/my-donations', authenticateUser, async (req, res) => {
   } catch (err) {
     console.error(err);
     res.status(500).json({ success: false, message: 'Failed to fetch donations' });
+  }
+});
+
+/* ================== USER - GET ACKNOWLEDGED DONATIONS ================== */
+router.get('/donations/acknowledged', authenticateUser, async (req, res) => {
+  try {
+    const acknowledgedDonations = await donations
+      .find({ acknowledged: true, status: 'confirmed' })
+      .sort({ createdAt: -1 })
+      .limit(20)
+      .project({
+        member: 1,
+        amount: 1,
+        category: 1,
+        community: 1,
+        createdAt: 1
+      })
+      .toArray();
+
+    res.json({ success: true, donors: acknowledgedDonations });
+  } catch (err) {
+    console.error('❌ GET /donations/acknowledged error:', err);
+    res.status(500).json({ success: false, message: 'Failed to fetch acknowledged donations' });
   }
 });
 

@@ -30,9 +30,17 @@ router.post('/prayers', authenticateUser, async (req, res) => {
       return res.status(400).json({ success: false, message: 'Prayer text is required' });
     }
 
+    // Sanitize: strip HTML tags and limit length
+    const sanitizedText = text.replace(/<[^>]*>/g, '').replace(/[<>]/g, '').trim().slice(0, 250);
+    const sanitizedAuthor = (author || 'Anonymous').replace(/<[^>]*>/g, '').replace(/[<>]/g, '').trim().slice(0, 100);
+
+    if (!sanitizedText) {
+      return res.status(400).json({ success: false, message: 'Prayer text is required' });
+    }
+
     const newPrayer = {
-      text: text.trim(),
-      author: author || 'Anonymous',
+      text: sanitizedText,
+      author: sanitizedAuthor,
       createdAt: new Date(),
     };
 

@@ -87,6 +87,7 @@ export default function Donation() {
   const [receiptValidating, setReceiptValidating] = useState(false);
   const [receiptValid, setReceiptValid] = useState(null); // null = not checked, true = valid, false = invalid
   const [receiptReason, setReceiptReason] = useState('');
+  const [acknowledgePublicly, setAcknowledgePublicly] = useState(false);
 
   const handleBlur = (field) => setTouched(prev => ({ ...prev, [field]: true }));
 
@@ -231,7 +232,7 @@ export default function Donation() {
       const res = await fetch(`${API}/api/donations`, {
         method: 'POST',
         headers: { 'Content-Type': 'application/json', Authorization: `Bearer ${token}` },
-        body: JSON.stringify({ amount: num, category: donationCategory, community: donationCommunity, paymentMethod, subMethod, accountName, accountNumber, isRecurring, proofOfPayment: proofBase64 }),
+        body: JSON.stringify({ amount: num, category: donationCategory, community: donationCommunity, paymentMethod, subMethod, accountName, accountNumber, isRecurring, proofOfPayment: proofBase64, acknowledged: acknowledgePublicly }),
       });
       const data = await res.json();
       if (!res.ok) throw new Error(data.message || 'Failed to record donation');
@@ -250,6 +251,7 @@ export default function Donation() {
         setProofBase64('');
         setReceiptValid(null);
         setReceiptReason('');
+        setAcknowledgePublicly(false);
         setTouched({});
         mutate(); // Refresh the data via SWR
         setSubmitting(false);
@@ -885,6 +887,24 @@ export default function Donation() {
 
               {formError && <p className="text-xs font-semibold text-red-600 dark:text-red-400">{formError}</p>}
 
+              {/* Public Acknowledgement Checkbox */}
+              <label className="flex items-start gap-3 p-3.5 rounded-xl cursor-pointer group hover:bg-slate-50 dark:hover:bg-white/5 transition-all">
+                <div className="relative flex items-center justify-center mt-0.5 shrink-0">
+                  <input
+                    type="checkbox"
+                    className="appearance-none w-4 h-4 border-2 border-slate-300 dark:border-white/20 rounded bg-white dark:bg-[#1E2130] checked:bg-blue-600 checked:border-blue-600 dark:checked:bg-blue-500 dark:checked:border-blue-500 focus:ring-2 focus:ring-blue-500/20 transition-all cursor-pointer"
+                    checked={acknowledgePublicly}
+                    onChange={(e) => setAcknowledgePublicly(e.target.checked)}
+                    disabled={submitting}
+                  />
+                  <svg className={`absolute w-3 h-3 text-white pointer-events-none transition-opacity ${acknowledgePublicly ? 'opacity-100' : 'opacity-0'}`} viewBox="0 0 12 12" fill="none" stroke="currentColor" strokeWidth="2.5" strokeLinecap="round" strokeLinejoin="round"><path d="M2.5 6.5L5 9L9.5 3.5" /></svg>
+                </div>
+                <div className="flex flex-col gap-0.5">
+                  <span className="text-xs font-bold text-slate-800 dark:text-slate-200 group-hover:text-slate-900 dark:group-hover:text-white transition-colors leading-tight">Acknowledge my donation publicly</span>
+                  <span className="text-[10px] text-slate-500 dark:text-slate-400 leading-snug">Your name and donation will be visible to all community members.</span>
+                </div>
+              </label>
+
               <button 
                 className="w-full h-11 bg-[#1E3A8A] hover:bg-[#2B4EAF] text-white font-bold font-inter rounded-xl shadow-md transition-all flex items-center justify-center gap-2 text-xs cursor-pointer border-none disabled:opacity-60 disabled:cursor-not-allowed active:scale-[0.99]" 
                 onClick={() => {
@@ -1226,9 +1246,10 @@ function DonationHistoryModal({
   modalHistory,
   handleOpenReceipt,
   modalTotalPages,
-  modalPage
+  modalPage,
 }) {
   const { modalStyle, touchHandlers } = useSwipeToClose(onClose);
+
   if (!isOpen) return null;
 
   return (
@@ -1295,25 +1316,27 @@ function DonationHistoryModal({
               {modalHistory.map((d) => (
                 <div
                   key={d._id || d.donationId}
-                  className="flex items-center justify-between p-3 bg-slate-50/70 dark:bg-slate-800/40 hover:bg-slate-100 dark:hover:bg-slate-800/70 rounded-xl border border-slate-200/60 dark:border-white/5 cursor-pointer transition-all"
+                  className="p-3 bg-slate-50/70 dark:bg-slate-800/40 hover:bg-slate-100 dark:hover:bg-slate-800/70 rounded-xl border border-slate-200/60 dark:border-white/5 cursor-pointer transition-all"
                   onClick={() => handleOpenReceipt(d)}
                 >
-                  <div className="flex items-center gap-3 min-w-0">
-                    <div className="w-9 h-9 rounded-xl bg-blue-50 dark:bg-blue-950/40 border border-blue-100 dark:border-blue-900/30 flex items-center justify-center text-blue-600 dark:text-blue-400 shrink-0">
-                      <Receipt size={16} />
+                  <div className="flex items-center justify-between">
+                    <div className="flex items-center gap-3 min-w-0">
+                      <div className="w-9 h-9 rounded-xl bg-blue-50 dark:bg-blue-950/40 border border-blue-100 dark:border-blue-900/30 flex items-center justify-center text-blue-600 dark:text-blue-400 shrink-0">
+                        <Receipt size={16} />
+                      </div>
+                      <div className="min-w-0">
+                        <h3 className="text-xs font-bold text-slate-900 dark:text-white truncate">{d.category}</h3>
+                        <p className="text-[11px] text-slate-400 leading-tight mt-0.5">{d.donationId} · {fmtDate(d.createdAt || d.date)}</p>
+                      </div>
                     </div>
-                    <div className="min-w-0">
-                      <h3 className="text-xs font-bold text-slate-900 dark:text-white truncate">{d.category}</h3>
-                      <p className="text-[11px] text-slate-400 leading-tight mt-0.5">{d.donationId} · {fmtDate(d.createdAt || d.date)}</p>
+                    <div className="text-right shrink-0">
+                      <p className="text-xs font-extrabold font-dm text-slate-900 dark:text-white">{fmt(d.amount)}</p>
+                      <span className={`inline-block px-2 py-0.5 text-[9px] font-extrabold uppercase tracking-wider rounded-full mt-0.5 ${
+                        d.status === 'confirmed' ? 'text-emerald-600 bg-emerald-50 dark:bg-emerald-950/50 border border-emerald-100 dark:border-emerald-900/30' : d.status === 'rejected' ? 'text-red-600 bg-red-50 dark:bg-red-950/50 border border-red-100 dark:border-red-900/30' : 'text-amber-600 bg-amber-50 dark:bg-amber-950/50 border border-amber-100 dark:border-amber-900/30'
+                      }`}>
+                        {d.status === 'confirmed' ? 'Successful' : d.status === 'rejected' ? 'Failed' : 'Pending'}
+                      </span>
                     </div>
-                  </div>
-                  <div className="text-right shrink-0">
-                    <p className="text-xs font-extrabold font-dm text-slate-900 dark:text-white">{fmt(d.amount)}</p>
-                    <span className={`inline-block px-2 py-0.5 text-[9px] font-extrabold uppercase tracking-wider rounded-full mt-0.5 ${
-                      d.status === 'confirmed' ? 'text-emerald-600 bg-emerald-50 dark:bg-emerald-950/50 border border-emerald-100 dark:border-emerald-900/30' : d.status === 'rejected' ? 'text-red-600 bg-red-50 dark:bg-red-950/50 border border-red-100 dark:border-red-900/30' : 'text-amber-600 bg-amber-50 dark:bg-amber-950/50 border border-amber-100 dark:border-amber-900/30'
-                    }`}>
-                      {d.status === 'confirmed' ? 'Successful' : d.status === 'rejected' ? 'Failed' : 'Pending'}
-                    </span>
                   </div>
                 </div>
               ))}

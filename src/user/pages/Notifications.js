@@ -143,14 +143,14 @@ export default function Notifications() {
   const [termsLoading, setTermsLoading] = useState(false);
 
   const { data: lData } = useSWR(`${API}/api/loans/my-loans`, fetcherSingle, { revalidateOnFocus: false, dedupingInterval: 30000, keepPreviousData: true });
-  const { data: dData } = useSWR(`${API}/api/donations/my-donations`, fetcherSingle, { revalidateOnFocus: false, dedupingInterval: 30000, keepPreviousData: true });
+  // Donations are fetched via feedData (notifications/feed) — no separate call needed
   const { data: aData } = useSWR(`${API}/api/attendance/my-attendance`, fetcherSingle, { revalidateOnFocus: false, dedupingInterval: 30000, keepPreviousData: true });
   const { data: sData } = useSWR(`${API}/api/savings/transactions`, fetcherSingle, { revalidateOnFocus: false, dedupingInterval: 30000, keepPreviousData: true });
   const { data: ppData } = useSWR(`${API}/api/loans/my-payments`, fetcherSingle, { revalidateOnFocus: false, dedupingInterval: 30000, keepPreviousData: true });
   const { data: feedData } = useSWR(`${API}/api/notifications/feed`, fetcherSingle, { revalidateOnFocus: true, dedupingInterval: 30000, keepPreviousData: true });
   const { data: readData, mutate: mutateRead } = useSWR(`${API}/api/read-notifications`, fetcherSingle, { revalidateOnFocus: false, dedupingInterval: 30000, keepPreviousData: true });
 
-  const loading = !lData && !dData && !aData && !sData && !ppData && !readData && !feedData;
+  const loading = !lData && !aData && !sData && !ppData && !readData && !feedData;
 
   useEffect(() => {
     if (readData && readData.readIds) {
@@ -273,8 +273,8 @@ export default function Notifications() {
     }
 
     /* Donations → notifications */
-    if (dData && dData.donations) {
-      dData.donations.forEach((d) => {
+    if (feedData && feedData.donations) {
+      feedData.donations.forEach((d) => {
         if (d.status === 'confirmed') {
           items.push({
             id: `donation-confirmed-${d._id}`,
@@ -360,7 +360,7 @@ export default function Notifications() {
 
     items.sort((a, b) => new Date(b.timestamp) - new Date(a.timestamp));
     return items;
-  }, [lData, ppData, dData, sData, aData, feedData]);
+  }, [lData, ppData, sData, aData, feedData]);
 
   /* ── Derived state ── */
   const notifications = rawItems
