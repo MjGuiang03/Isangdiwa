@@ -733,10 +733,10 @@ export default function Home() {
       </div>
 
       {/* Main Content Grid: [Left col: QA + Overview] [Right col: Announcements] */}
-      <div className="grid grid-cols-1 lg:grid-cols-[0.8fr_1.4fr] gap-6 items-start">
+      <div className="grid grid-cols-1 lg:grid-cols-[1fr_1.25fr] gap-6">
 
         {/* Left column: Quick Actions stacked above My Overview */}
-        <div className="flex flex-col gap-6">
+        <div className="flex flex-col gap-6 h-full">
 
           {/* ── Quick Actions — Premium Fintech Layout ── */}
           <div className="bg-white dark:bg-[#1E2130] border border-slate-200/80 dark:border-white/10 rounded-[20px] p-4 sm:p-5 shadow-sm">
@@ -812,18 +812,17 @@ export default function Home() {
                 <button
                   type="button"
                   onClick={() => navigate('/savings')}
-                  className="relative overflow-hidden flex items-center gap-3 p-3.5 rounded-xl bg-emerald-50/70 dark:bg-emerald-950/20 hover:bg-emerald-100/80 dark:hover:bg-emerald-950/30 border border-emerald-100 dark:border-emerald-900/30 text-left cursor-pointer group hover:-translate-y-0.5 active:translate-y-0 transition-all duration-200 focus:outline-none focus:ring-2 focus:ring-emerald-500/40 focus:ring-offset-2 dark:focus:ring-offset-[#1E2130]"
+                  className="relative overflow-hidden flex items-center gap-3 py-2 px-3 rounded-xl bg-emerald-100 dark:bg-emerald-950/60 hover:bg-emerald-200/80 dark:hover:bg-emerald-900/60 border border-emerald-300/80 dark:border-emerald-700/60 text-left cursor-pointer group hover:-translate-y-0.5 active:translate-y-0 transition-all duration-200 shadow-xs hover:shadow-md hover:shadow-emerald-900/10 focus:outline-none focus:ring-2 focus:ring-emerald-500/40 focus:ring-offset-2 dark:focus:ring-offset-[#1E2130]"
                 >
-                  <div className="absolute -bottom-3 -right-3 w-16 h-16 bg-emerald-200/20 dark:bg-emerald-500/5 rounded-full pointer-events-none" />
-                  <div className="w-10 h-10 rounded-full bg-emerald-100 dark:bg-emerald-900/40 flex items-center justify-center shrink-0 group-hover:scale-105 transition-transform">
-                    <Wallet size={18} className="text-emerald-600 dark:text-emerald-400" />
+                  <div className="w-10 h-10 min-w-[40px] min-h-[40px] rounded-xl bg-emerald-600 text-white flex items-center justify-center shrink-0 shadow-sm group-hover:scale-105 transition-transform">
+                    <Wallet size={20} className="text-white" />
                   </div>
                   <div className="flex-1 min-w-0">
-                    <span className="block text-xs font-bold text-slate-800 dark:text-slate-100 font-inter leading-tight">Manage Savings</span>
-                    <span className="block text-[10px] text-slate-500 dark:text-slate-400 font-inter mt-0.5 leading-snug">Deposit, withdraw, or check your savings.</span>
+                    <span className="block text-xs font-bold text-slate-900 dark:text-white font-inter leading-tight whitespace-nowrap">Manage Savings</span>
+                    <span className="block text-[10.5px] font-medium text-slate-600 dark:text-slate-300 font-inter mt-0.5 leading-tight truncate">Deposit & track</span>
                   </div>
-                  <div className="w-7 h-7 rounded-full bg-emerald-100 dark:bg-emerald-900/40 flex items-center justify-center shrink-0 group-hover:bg-emerald-200 dark:group-hover:bg-emerald-800/40 transition-colors">
-                    <ArrowRight size={13} className="text-emerald-600 dark:text-emerald-400 group-hover:translate-x-0.5 transition-transform" />
+                  <div className="w-7 h-7 rounded-full bg-emerald-200 dark:bg-emerald-800 flex items-center justify-center text-emerald-800 dark:text-emerald-100 group-hover:bg-emerald-600 group-hover:text-white transition-all shrink-0 ml-auto">
+                    <ArrowRight size={13} className="group-hover:translate-x-0.5 transition-transform" />
                   </div>
                 </button>
 
@@ -831,18 +830,17 @@ export default function Home() {
                 <button
                   type="button"
                   onClick={() => navigate('/donation')}
-                  className="relative overflow-hidden flex items-center gap-3 p-3.5 rounded-xl bg-rose-50/70 dark:bg-rose-950/20 hover:bg-rose-100/80 dark:hover:bg-rose-950/30 border border-rose-100 dark:border-rose-900/30 text-left cursor-pointer group hover:-translate-y-0.5 active:translate-y-0 transition-all duration-200 focus:outline-none focus:ring-2 focus:ring-rose-500/40 focus:ring-offset-2 dark:focus:ring-offset-[#1E2130]"
+                  className="relative overflow-hidden flex items-center gap-3 py-2 px-3 rounded-xl bg-rose-100 dark:bg-rose-950/60 hover:bg-rose-200/80 dark:hover:bg-rose-900/60 border border-rose-300/80 dark:border-rose-700/60 text-left cursor-pointer group hover:-translate-y-0.5 active:translate-y-0 transition-all duration-200 shadow-xs hover:shadow-md hover:shadow-rose-900/10 focus:outline-none focus:ring-2 focus:ring-rose-500/40 focus:ring-offset-2 dark:focus:ring-offset-[#1E2130]"
                 >
-                  <div className="absolute -bottom-3 -right-3 w-16 h-16 bg-rose-200/20 dark:bg-rose-500/5 rounded-full pointer-events-none" />
-                  <div className="w-10 h-10 rounded-full bg-rose-100 dark:bg-rose-900/40 flex items-center justify-center shrink-0 group-hover:scale-105 transition-transform">
-                    <Heart size={18} className="text-rose-500 dark:text-rose-400" />
+                  <div className="w-10 h-10 min-w-[40px] min-h-[40px] rounded-xl bg-rose-500 text-white flex items-center justify-center shrink-0 shadow-sm group-hover:scale-105 transition-transform">
+                    <Heart size={20} className="text-white fill-white/20" />
                   </div>
                   <div className="flex-1 min-w-0">
-                    <span className="block text-xs font-bold text-slate-800 dark:text-slate-100 font-inter leading-tight">Make a Donation</span>
-                    <span className="block text-[10px] text-slate-500 dark:text-slate-400 font-inter mt-0.5 leading-snug">Support your church community.</span>
+                    <span className="block text-xs font-bold text-slate-900 dark:text-white font-inter leading-tight whitespace-nowrap">Make a Donation</span>
+                    <span className="block text-[10.5px] font-medium text-slate-600 dark:text-slate-300 font-inter mt-0.5 leading-tight truncate">Support church</span>
                   </div>
-                  <div className="w-7 h-7 rounded-full bg-rose-100 dark:bg-rose-900/40 flex items-center justify-center shrink-0 group-hover:bg-rose-200 dark:group-hover:bg-rose-800/40 transition-colors">
-                    <ArrowRight size={13} className="text-rose-500 dark:text-rose-400 group-hover:translate-x-0.5 transition-transform" />
+                  <div className="w-7 h-7 rounded-full bg-rose-200 dark:bg-rose-800 flex items-center justify-center text-rose-800 dark:text-rose-100 group-hover:bg-rose-500 group-hover:text-white transition-all shrink-0 ml-auto">
+                    <ArrowRight size={13} className="group-hover:translate-x-0.5 transition-transform" />
                   </div>
                 </button>
               </div>
@@ -851,18 +849,17 @@ export default function Home() {
               <button
                 type="button"
                 onClick={() => navigate('/attendance')}
-                className="relative overflow-hidden flex items-center gap-3 p-3.5 rounded-xl bg-blue-50/60 dark:bg-blue-950/15 hover:bg-blue-100/70 dark:hover:bg-blue-950/25 border border-blue-100 dark:border-blue-900/25 text-left cursor-pointer group hover:-translate-y-0.5 active:translate-y-0 transition-all duration-200 w-full focus:outline-none focus:ring-2 focus:ring-blue-500/40 focus:ring-offset-2 dark:focus:ring-offset-[#1E2130]"
+                className="relative overflow-hidden flex items-center gap-3 py-2.5 px-3.5 rounded-xl bg-blue-100 dark:bg-blue-950/60 hover:bg-blue-200/80 dark:hover:bg-blue-900/60 border border-blue-300/80 dark:border-blue-700/60 text-left cursor-pointer group hover:-translate-y-0.5 active:translate-y-0 transition-all duration-200 w-full shadow-xs hover:shadow-md hover:shadow-blue-900/10 focus:outline-none focus:ring-2 focus:ring-blue-500/40 focus:ring-offset-2 dark:focus:ring-offset-[#1E2130]"
               >
-                <div className="absolute -bottom-3 -right-3 w-16 h-16 bg-blue-200/15 dark:bg-blue-500/5 rounded-full pointer-events-none" />
-                <div className="w-10 h-10 rounded-full bg-blue-100 dark:bg-blue-900/40 flex items-center justify-center shrink-0 group-hover:scale-105 transition-transform">
-                  <CalendarDays size={18} className="text-blue-600 dark:text-blue-400" />
+                <div className="w-10 h-10 min-w-[40px] min-h-[40px] rounded-xl bg-blue-600 text-white flex items-center justify-center shrink-0 shadow-sm group-hover:scale-105 transition-transform">
+                  <CalendarDays size={20} className="text-white" />
                 </div>
                 <div className="flex-1 min-w-0">
-                  <span className="block text-xs font-bold text-slate-800 dark:text-slate-100 font-inter leading-tight">Check Attendance</span>
-                  <span className="block text-[10px] text-slate-500 dark:text-slate-400 font-inter mt-0.5 leading-snug">Mark today's presence and view your records.</span>
+                  <span className="block text-xs font-bold text-slate-900 dark:text-white font-inter leading-tight truncate">Check Attendance</span>
+                  <span className="block text-[10.5px] font-medium text-slate-600 dark:text-slate-300 font-inter mt-0.5 leading-tight truncate">Mark today's presence and view records</span>
                 </div>
-                <div className="w-7 h-7 rounded-full bg-blue-100 dark:bg-blue-900/40 flex items-center justify-center shrink-0 group-hover:bg-blue-200 dark:group-hover:bg-blue-800/40 transition-colors">
-                  <ArrowRight size={13} className="text-blue-600 dark:text-blue-400 group-hover:translate-x-0.5 transition-transform" />
+                <div className="w-7 h-7 rounded-full bg-blue-200 dark:bg-blue-800 flex items-center justify-center text-blue-800 dark:text-blue-100 group-hover:bg-blue-600 group-hover:text-white transition-all shrink-0 ml-auto">
+                  <ArrowRight size={13} className="group-hover:translate-x-0.5 transition-transform" />
                 </div>
               </button>
 
@@ -943,7 +940,7 @@ export default function Home() {
         </div>
 
         {/* Right Column: Bento Grid */}
-        <div className="grid grid-rows-[auto_auto] gap-4">
+        <div className="flex flex-col gap-4 h-full">
 
           {/* ── Top row: Generous Givers + Prayer Wall ── */}
           <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
@@ -951,109 +948,145 @@ export default function Home() {
             <div className="bg-white dark:bg-[#1E2130] border border-slate-200/80 dark:border-white/10 rounded-2xl p-4 shadow-sm flex flex-col">
               <div className="flex items-center justify-between mb-3">
                 <h3 className="text-xs font-bold text-slate-900 dark:text-white uppercase tracking-wider font-inter">Generous Givers</h3>
+                {acknowledgedDonors.length > 0 && (
+                  <button onClick={() => navigate('/donation')} className="text-[10.5px] font-semibold text-blue-600 dark:text-blue-400 hover:underline border-none bg-transparent cursor-pointer flex items-center gap-0.5">
+                    Give →
+                  </button>
+                )}
               </div>
               {acknowledgedDonors.length > 0 ? (
-                <div className="space-y-2">
+                <div className="space-y-1.5 flex-1">
                   {acknowledgedDonors.slice(0, 3).map((donor, i) => (
-                    <div key={i} className="flex items-center justify-between p-2.5 rounded-xl bg-blue-50/50 dark:bg-blue-950/20 border border-blue-100/50 dark:border-white/5">
-                      <div className="flex items-center gap-2 min-w-0">
-                        <div className="w-6 h-6 rounded-full bg-gradient-to-br from-blue-500 to-blue-600 flex items-center justify-center text-white text-[9px] font-bold shrink-0">
-                          {donor.member ? donor.member.split(' ').map(w => w[0]).join('').slice(0, 2).toUpperCase() : '?'}
-                        </div>
+                    <div key={i} className="flex items-center justify-between py-1.5 px-2.5 rounded-xl bg-blue-50/40 dark:bg-blue-950/20 border border-blue-100/40 dark:border-white/5">
+                      <div className="flex items-center gap-2.5 min-w-0">
+                        {donor.photoUrl ? (
+                          <img
+                            src={donor.photoUrl}
+                            alt={donor.member || 'Donor'}
+                            className="w-7 h-7 rounded-full object-cover shrink-0 ring-1 ring-blue-200/60 dark:ring-white/10"
+                          />
+                        ) : (
+                          <div className="w-7 h-7 rounded-full bg-gradient-to-br from-blue-500 to-blue-600 flex items-center justify-center text-white text-[10px] font-bold shrink-0 shadow-xs">
+                            {donor.member ? donor.member.split(' ').map(w => w[0]).join('').slice(0, 2).toUpperCase() : '?'}
+                          </div>
+                        )}
                         <div className="min-w-0 flex-1">
-                          <p className="text-[10px] font-bold text-slate-800 dark:text-slate-200 font-inter truncate m-0">{donor.member}</p>
-                          <p className="text-[10px] text-slate-500 dark:text-slate-400 font-inter m-0">{donor.category}</p>
+                          <p className="text-xs font-bold text-slate-800 dark:text-slate-200 font-inter truncate m-0 leading-tight">{donor.member}</p>
+                          <p className="text-[10px] text-slate-500 dark:text-slate-400 font-inter m-0 truncate leading-tight">{donor.category}</p>
                         </div>
                       </div>
-                      <span className="text-[11px] font-extrabold text-emerald-600 dark:text-emerald-400 font-dm shrink-0 ml-2">
+                      <span className="text-xs font-extrabold text-emerald-600 dark:text-emerald-400 font-dm shrink-0 ml-2">
                         ₱{Number(donor.amount || 0).toLocaleString('en-PH')}
                       </span>
                     </div>
                   ))}
                 </div>
               ) : (
-                <div className="flex-1 flex flex-col items-center justify-center text-slate-400 dark:text-slate-500 py-4">
-                  <HandHeart size={28} className="mb-2 opacity-40 text-blue-400" />
-                  <p className="text-[11px] font-inter font-medium text-center">No acknowledged donations yet</p>
+                <div
+                  onClick={() => navigate('/donation')}
+                  className="flex-1 flex flex-col items-center justify-center p-3 rounded-xl bg-blue-50/40 dark:bg-blue-950/15 border border-dashed border-blue-200 dark:border-blue-900/40 hover:border-blue-400 dark:hover:border-blue-700/60 hover:bg-blue-50/70 dark:hover:bg-blue-950/25 transition-all cursor-pointer group text-center"
+                >
+                  <div className="w-8 h-8 rounded-full bg-blue-100 dark:bg-blue-900/40 text-blue-600 dark:text-blue-400 flex items-center justify-center mb-1.5 group-hover:scale-110 group-hover:bg-blue-600 group-hover:text-white transition-all shadow-xs">
+                    <HandHeart size={16} />
+                  </div>
+                  <p className="text-xs font-bold text-slate-800 dark:text-slate-200 font-inter m-0">Be the First Generous Giver</p>
+                  <p className="text-[10px] text-slate-500 dark:text-slate-400 font-inter mt-0.5 mb-2 leading-snug">Inspire others by publicly acknowledging your gift</p>
+                  <span className="inline-flex items-center gap-1 px-3 py-1 rounded-full bg-blue-600 group-hover:bg-blue-700 text-white text-[10px] font-bold font-inter shadow-xs transition-colors">
+                    <span>Make a Donation</span>
+                    <ArrowRight size={11} className="group-hover:translate-x-0.5 transition-transform" />
+                  </span>
                 </div>
               )}
             </div>
+
             {/* Community Prayer Wall Card */}
-            <button onClick={() => setShowPrayerModal(true)}
-              className="bg-white dark:bg-[#1E2130] border border-slate-200/80 dark:border-white/10 rounded-2xl p-4 shadow-sm flex flex-col cursor-pointer hover:border-purple-300 dark:hover:border-purple-700/60 transition-all text-left group">
+            <div className="bg-white dark:bg-[#1E2130] border border-slate-200/80 dark:border-white/10 rounded-2xl p-4 shadow-sm flex flex-col">
               <div className="flex items-center justify-between mb-3">
                 <h3 className="text-xs font-bold text-slate-900 dark:text-white uppercase tracking-wider font-inter">Prayer Wall</h3>
-                <span className="bg-purple-100/80 dark:bg-purple-900/60 text-purple-700 dark:text-purple-300 px-2.5 py-0.5 rounded-full text-[10px] font-bold font-inter">{prayers.length} Requests</span>
+                <button
+                  onClick={() => setShowPrayerModal(true)}
+                  className="text-[10.5px] font-semibold text-blue-600 dark:text-blue-400 hover:underline border-none bg-transparent cursor-pointer flex items-center gap-0.5"
+                >
+                  Open Prayer Wall →
+                </button>
               </div>
               <div className="flex-1 flex flex-col justify-between">
                 {prayers.length > 0 ? (
-                  <div className={`flex items-start gap-3 p-3.5 rounded-xl bg-purple-50/50 dark:bg-purple-950/20 border border-purple-100/50 dark:border-white/5 transition-opacity duration-500 ${prayerFade ? 'opacity-100' : 'opacity-0'}`}>
-                    <div className="w-9 h-9 rounded-full bg-gradient-to-br from-purple-500 to-indigo-500 flex items-center justify-center text-white text-[11px] font-bold shrink-0 mt-0.5">
-                      {prayers[prayerIndex]?.author ? prayers[prayerIndex].author.split(' ').map(w => w[0]).join('').slice(0, 2).toUpperCase() : '?'}
-                    </div>
-                    <div className="min-w-0 flex-1">
-                      <p className="text-xs font-bold text-purple-700 dark:text-purple-300 font-inter m-0">{prayers[prayerIndex]?.author}</p>
-                      <p className="text-sm text-slate-600 dark:text-slate-400 font-inter line-clamp-2 m-0 mt-1 leading-relaxed">{prayers[prayerIndex]?.text}</p>
-                    </div>
+                  <div
+                    onClick={() => setShowPrayerModal(true)}
+                    className={`flex flex-col justify-between p-3.5 rounded-xl bg-blue-50/50 dark:bg-blue-950/20 border border-blue-100/50 dark:border-white/5 transition-opacity duration-500 cursor-pointer hover:border-blue-300 dark:hover:border-blue-700/60 ${prayerFade ? 'opacity-100' : 'opacity-0'}`}
+                  >
+                    <p className="text-[13px] text-slate-700 dark:text-slate-200 font-inter italic line-clamp-3 m-0 leading-relaxed">
+                      "{prayers[prayerIndex]?.text}"
+                    </p>
+                    <p className="text-xs font-bold text-blue-600 dark:text-blue-400 font-inter m-0 mt-2">
+                      — {prayers[prayerIndex]?.author}
+                    </p>
                   </div>
                 ) : (
-                  <div className="flex-1 flex flex-col items-center justify-center text-slate-400 dark:text-slate-500 py-4">
-                    <Heart size={28} className="mb-2 opacity-40 text-purple-400" />
-                    <p className="text-[11px] font-inter font-medium text-center">Share a prayer request</p>
+                  <div
+                    onClick={() => setShowPrayerModal(true)}
+                    className="flex-1 flex flex-col items-center justify-center p-3 rounded-xl bg-blue-50/40 dark:bg-blue-950/15 border border-dashed border-blue-200 dark:border-blue-900/40 hover:border-blue-400 dark:hover:border-blue-700/60 hover:bg-blue-50/70 dark:hover:bg-blue-950/25 transition-all cursor-pointer group text-center"
+                  >
+                    <div className="w-8 h-8 rounded-full bg-blue-100 dark:bg-blue-900/40 text-blue-600 dark:text-blue-400 flex items-center justify-center mb-1.5 group-hover:scale-110 group-hover:bg-[#1E3A8A] group-hover:text-white transition-all shadow-xs">
+                      <Sparkles size={16} />
+                    </div>
+                    <p className="text-xs font-bold text-slate-800 dark:text-slate-200 font-inter m-0">No Prayer Requests Yet</p>
+                    <p className="text-[10px] text-slate-500 dark:text-slate-400 font-inter mt-0.5 mb-2 leading-snug">Bring your requests to the community in faith</p>
+                    <span className="inline-flex items-center gap-1 px-3 py-1 rounded-full bg-[#1E3A8A] group-hover:bg-[#2B4EAF] text-white text-[10px] font-bold font-inter shadow-xs transition-colors">
+                      <span>Share a Prayer Request</span>
+                      <ArrowRight size={11} className="group-hover:translate-x-0.5 transition-transform" />
+                    </span>
                   </div>
                 )}
-                <div className="flex items-center gap-2 mt-3 pt-3 border-t border-slate-100 dark:border-white/5 text-purple-600 dark:text-purple-400 group-hover:text-purple-700 dark:group-hover:text-purple-300 transition-colors">
-                  <Heart size={13} />
-                  <span className="text-[11px] font-bold font-inter">Open Prayer Wall →</span>
-                </div>
               </div>
-            </button>
+            </div>
           </div>
 
           {/* ── Announcements & Events (full width, bottom) ── */}
-          <div className="bg-white dark:bg-[#1E2130] border border-slate-200/80 dark:border-white/10 rounded-[20px] p-5 shadow-sm">
-            <div className="flex items-center justify-between mb-4 pb-3 border-b border-slate-100 dark:border-white/5">
+          <div className="bg-white dark:bg-[#1E2130] border border-slate-200/80 dark:border-white/10 rounded-2xl p-4 shadow-sm flex-1 flex flex-col justify-between">
+            <div className="flex items-center justify-between mb-3 pb-2.5 border-b border-slate-100 dark:border-white/5 shrink-0">
               <h2 className="text-xs font-bold text-slate-900 dark:text-white uppercase tracking-wider font-inter">Announcements & Events</h2>
               <button onClick={() => setShowAllEvents(true)} className="text-xs font-semibold text-blue-600 dark:text-blue-400 hover:underline flex items-center gap-1 border-none bg-transparent cursor-pointer">See All →</button>
             </div>
             {upcomingEvents.length > 0 ? (
-              <div className={`relative rounded-2xl overflow-hidden bg-slate-900 min-h-[340px] sm:min-h-[380px] group cursor-pointer shadow-md transition-opacity duration-300 ${carouselFade ? 'opacity-100' : 'opacity-0'}`}
+              <div className={`relative rounded-2xl overflow-hidden bg-slate-900 flex-1 min-h-[220px] group cursor-pointer shadow-md transition-opacity duration-300 ${carouselFade ? 'opacity-100' : 'opacity-0'}`}
                 onClick={() => { setSelectedEvent(upcomingEvents[currentEventIndex]); setModalImageIndex(0); }}>
                 <img src={upcomingEvents[currentEventIndex]?.images?.[0] || upcomingEvents[currentEventIndex]?.image || ''} alt="" className="w-full h-full object-cover opacity-80 group-hover:scale-105 transition-transform duration-700 absolute inset-0" />
-                <div className="absolute top-4 left-4 bg-white/90 dark:bg-slate-900/90 backdrop-blur-md rounded-xl p-2.5 text-center border border-white/20 shadow-md z-10">
+                <div className="absolute top-3 left-3 bg-white/90 dark:bg-slate-900/90 backdrop-blur-md rounded-xl p-2 text-center border border-white/20 shadow-md z-10">
                   <span className="block text-[10px] font-bold uppercase tracking-wider text-blue-600 dark:text-blue-400 font-inter">{upcomingEvents[currentEventIndex]?.month}</span>
                   <span className="block text-base font-extrabold text-slate-900 dark:text-white font-dm leading-none">{upcomingEvents[currentEventIndex]?.day}</span>
                 </div>
-                <div className="absolute inset-0 bg-gradient-to-t from-slate-950 via-slate-950/40 to-transparent p-5 flex flex-col justify-end z-10">
-                  <span className="inline-block self-start text-[10px] font-extrabold uppercase tracking-wider px-2.5 py-0.5 rounded-full bg-white/90 dark:bg-slate-900/90 text-slate-900 dark:text-white font-inter mb-2">{upcomingEvents[currentEventIndex]?.category}</span>
-                  <h3 className="text-lg font-bold text-white font-inter line-clamp-1 mb-1.5 group-hover:text-blue-200 transition-colors">{upcomingEvents[currentEventIndex]?.title}</h3>
-                  <div className="flex items-center gap-3.5 text-xs text-slate-300 font-inter">
-                    <span className="flex items-center gap-1.5"><Clock size={13} className="text-[#F5C800]" /> {upcomingEvents[currentEventIndex]?.time || 'All Day'}</span>
-                    <span className="flex items-center gap-1.5"><MapPin size={13} className="text-emerald-400" /> {upcomingEvents[currentEventIndex]?.branch?.split(',')[0]}</span>
+                <div className="absolute inset-0 bg-gradient-to-t from-slate-950 via-slate-950/40 to-transparent p-4 flex flex-col justify-end z-10">
+                  <span className="inline-block self-start text-[10px] font-extrabold uppercase tracking-wider px-2 py-0.5 rounded-full bg-white/90 dark:bg-slate-900/90 text-slate-900 dark:text-white font-inter mb-1.5">{upcomingEvents[currentEventIndex]?.category}</span>
+                  <h3 className="text-base font-bold text-white font-inter line-clamp-1 mb-1 group-hover:text-blue-200 transition-colors">{upcomingEvents[currentEventIndex]?.title}</h3>
+                  <div className="flex items-center gap-3 text-xs text-slate-300 font-inter">
+                    <span className="flex items-center gap-1.5"><Clock size={12} className="text-[#F5C800]" /> {upcomingEvents[currentEventIndex]?.time || 'All Day'}</span>
+                    <span className="flex items-center gap-1.5"><MapPin size={12} className="text-emerald-400" /> {upcomingEvents[currentEventIndex]?.branch?.split(',')[0]}</span>
                   </div>
                 </div>
               </div>
             ) : (
-              <div className="min-h-[240px] flex flex-col items-center justify-center text-slate-400 dark:text-slate-500 bg-slate-50 dark:bg-white/5 rounded-2xl border border-dashed border-slate-200 dark:border-white/10">
+              <div className="flex-1 min-h-[200px] flex flex-col items-center justify-center text-slate-400 dark:text-slate-500 bg-slate-50 dark:bg-white/5 rounded-2xl border border-dashed border-slate-200 dark:border-white/10">
                 <CalendarDays size={36} className="mb-2 opacity-40 text-blue-500" />
                 <p className="text-xs font-inter font-medium">No upcoming events scheduled</p>
               </div>
             )}
             {upcomingEvents.length > 1 && (
-              <div className="flex items-center justify-between pt-3.5">
+              <div className="flex items-center justify-between pt-2.5 shrink-0">
                 <div className="flex gap-1.5">
                   {upcomingEvents.map((_, i) => (
                     <button key={i} onClick={() => setCurrentEventIndex(i)}
-                      className={`h-2 rounded-full transition-all duration-300 border-none cursor-pointer ${i === currentEventIndex ? 'w-6 bg-blue-600 dark:bg-blue-400' : 'w-2 bg-slate-300 dark:bg-slate-700'}`}
+                      className={`h-1.5 rounded-full transition-all duration-300 border-none cursor-pointer ${i === currentEventIndex ? 'w-5 bg-blue-600 dark:bg-blue-400' : 'w-1.5 bg-slate-300 dark:bg-slate-700'}`}
                       aria-label={`Go to slide ${i + 1}`} />
                   ))}
                 </div>
                 <div className="flex items-center gap-1">
-                  <button onClick={() => setCurrentEventIndex((prev) => (prev === 0 ? upcomingEvents.length - 1 : prev - 1))} className="w-8 h-8 rounded-lg bg-slate-100 dark:bg-slate-800 text-slate-600 dark:text-slate-300 hover:bg-blue-50 hover:text-blue-600 dark:hover:bg-slate-700 flex items-center justify-center cursor-pointer transition-colors border-none">
-                    <ChevronLeft size={16} />
+                  <button onClick={() => setCurrentEventIndex((prev) => (prev === 0 ? upcomingEvents.length - 1 : prev - 1))} className="w-7 h-7 rounded-lg bg-slate-100 dark:bg-slate-800 text-slate-600 dark:text-slate-300 hover:bg-blue-50 hover:text-blue-600 dark:hover:bg-slate-700 flex items-center justify-center cursor-pointer transition-colors border-none">
+                    <ChevronLeft size={14} />
                   </button>
-                  <button onClick={() => setCurrentEventIndex((prev) => (prev + 1) % upcomingEvents.length)} className="w-8 h-8 rounded-lg bg-slate-100 dark:bg-slate-800 text-slate-600 dark:text-slate-300 hover:bg-blue-50 hover:text-blue-600 dark:hover:bg-slate-700 flex items-center justify-center cursor-pointer transition-colors border-none">
-                    <ChevronRight size={16} />
+                  <button onClick={() => setCurrentEventIndex((prev) => (prev + 1) % upcomingEvents.length)} className="w-7 h-7 rounded-lg bg-slate-100 dark:bg-slate-800 text-slate-600 dark:text-slate-300 hover:bg-blue-50 hover:text-blue-600 dark:hover:bg-slate-700 flex items-center justify-center cursor-pointer transition-colors border-none">
+                    <ChevronRight size={14} />
                   </button>
                 </div>
               </div>

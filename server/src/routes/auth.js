@@ -7,7 +7,7 @@ dotenv.config();
 
 import { users, admins, otps, pendingRegistrations, branches } from '../config/db.js';
 import { validate } from '../middleware/validate.js';
-import { loginLimiter, registerLimiter, otpLimiter, resendOtpLimiter } from '../middleware/rateLimiter.js';
+import { loginLimiter, registerLimiter, otpLimiter, resendOtpLimiter, emailCheckLimiter } from '../middleware/rateLimiter.js';
 import { authenticateUser } from '../middleware/auth.js';
 import { generateOTP, sendOTP } from '../utils/email.js';
 
@@ -50,6 +50,34 @@ if (!JWT_SECRET) {
   process.exit(1);
 }
 const DUMMY_HASH = bcrypt.hashSync('dummy_secure_password_salt_xyz', 10);
+
+/* ================== CHECK EMAIL AVAILABILITY ================== */
+/* Security: Returns the same shape for invalid-format and existing-email
+   so attackers cannot distinguish "taken" from "bad input".
+   Rate-limited to 10 req / 15 min per IP to block bulk enumeration. */
+router.post('/check-email',
+  emailCheckLimiter,
+  async (req, res) => {
+    try {
+      const email = req.body.email?.trim().toLowerCase();
+
+      // Add random delay (50-150ms) to prevent timing-based enumeration
+      await new Promise(r => setTimeout(r, 50 + Math.random() * 100));
+
+      // Basic format check — reject obviously invalid input without hitting DB
+      if (!email || !email.includes('@') || email.length > 100) {
+        return res.json({ available: false });
+      }
+
+      const existing = await users.findOne({ email }, { projection: { _id: 1 } });
+      return res.json({ available: !existing });
+    } catch {
+      // On error, fail open (don't block signup UX). The register endpoint
+      // still performs the authoritative duplicate check on submit.
+      return res.json({ available: true });
+    }
+  }
+);
 
 /* ================== REGISTER ================== */
 router.post('/register',

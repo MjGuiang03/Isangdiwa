@@ -1,12 +1,12 @@
 import { useState, useEffect, useMemo } from 'react';
 import useSWR from 'swr';
 import { useAuth } from '../../context/AuthContext';
-import { Banknote, CalendarDays, ChevronDown, Heart, Receipt, X, UploadCloud, FileCheck2, ZoomIn, AlertCircle, CheckCircle2, ShieldCheck, Edit3, Clock, Loader2 } from 'lucide-react';
+import { Banknote, CalendarDays, ChevronDown, Heart, Receipt, X, UploadCloud, FileCheck2, ZoomIn, AlertCircle, CheckCircle2, ShieldCheck, Edit3, Clock, Loader2, Copy, Check, Wallet, Landmark } from 'lucide-react';
 import useSwipeToClose, { DragHandle } from '../hooks/useSwipeToClose';
 
 import { branchData, REGION_ORDER } from '../components/branchData';
-import ewalletLogo from '../../assets/gcashlogo.png';
-import bank from '../../assets/bank.png';
+import gcashQr from '../../assets/gcash_qr.jpg';
+import puacLogo from '../../assets/optimized/puaclogo.webp';
 import iconGeneral from '../../assets/icon_general.png';
 import iconChildren from '../../assets/icon_children.png';
 import iconBuilding from '../../assets/icon_building.png';
@@ -22,6 +22,27 @@ const fmt = (n) =>
 const fmtDate = (d) =>
   d ? new Date(d).toLocaleDateString('en-PH', { month: 'short', day: 'numeric', year: 'numeric' }) : '—';
 
+const formatPhoneForInput = (raw) => {
+  if (!raw) return '';
+  const digits = String(raw).replace(/\D/g, '');
+  if (digits.startsWith('63') && digits.length === 12) {
+    return '0' + digits.slice(2);
+  }
+  if (digits.startsWith('09') && digits.length === 11) {
+    return digits;
+  }
+  if (digits.length === 10 && digits.startsWith('9')) {
+    return '0' + digits;
+  }
+  return digits.slice(0, 11);
+};
+
+const formatBankAccountNumber = (val) => {
+  if (!val) return '';
+  const digits = String(val).replace(/\D/g, '').slice(0, 20);
+  return digits.replace(/(\d{4})(?=\d)/g, '$1 ');
+};
+
 const QUICK_AMOUNTS = [25, 50, 100, 250];
 
 const CATEGORIES = [
@@ -33,25 +54,6 @@ const CATEGORIES = [
   { name: 'Mission Fund', description: 'Missionary work and outreach programs', icon: <img src={iconMission} alt="Mission Fund" className="user-3d-cat-icon" /> },
 ];
 
-
-
-/* ── Payment method icons ── */
-const EWalletIcon = () => (
-  <img
-    src={ewalletLogo}
-    alt="E-Wallet"
-    className="w-5 h-5 object-contain shrink-0"
-  />
-);
-
-const BankIcon = () => (
-  <img
-    src={bank}
-    alt="Bank Transfer"
-    className="w-5 h-5 object-contain shrink-0 brightness-0 invert opacity-90 dark:invert-0"
-  />
-);
-
 const fetcherSingle = (url) => {
     const token = localStorage.getItem('token');
     if (!token) return Promise.resolve(null);
@@ -62,20 +64,49 @@ const fetcherSingle = (url) => {
 };
 
 export default function Donation() {
-  const { user } = useAuth();
+  const { user, profile } = useAuth();
+  const currentUser = profile || user;
+
+  const defaultName = useMemo(() => {
+    return currentUser?.fullName || currentUser?.full_name || currentUser?.name || '';
+  }, [currentUser]);
+
+  const defaultPhone = useMemo(() => {
+    const raw = currentUser?.phone || currentUser?.phoneNumber || currentUser?.contact || '';
+    return formatPhoneForInput(raw);
+  }, [currentUser]);
+
   const [donationAmount, setDonationAmount] = useState('');
   const [donationCategory, setDonationCategory] = useState('');
-  const [donationCommunity, setDonationCommunity] = useState(user?.branch || '');
+  const [donationCommunity, setDonationCommunity] = useState(currentUser?.branch || '');
   const [paymentMethod, setPaymentMethod] = useState('');
   const [subMethod, setSubMethod] = useState('');
-  const [accountName, setAccountName] = useState('');
-  const [accountNumber, setAccountNumber] = useState('');
+  const [isAnotherAccount, setIsAnotherAccount] = useState(false);
+  const [customAccountName, setCustomAccountName] = useState('');
+  const [customAccountNumber, setCustomAccountNumber] = useState('');
+  const [bankAccountNumber, setBankAccountNumber] = useState('');
   const [isRecurring] = useState(false);
   const [submitting, setSubmitting] = useState(false);
   const [formError, setFormError] = useState('');
   // eslint-disable-next-line no-unused-vars
   const [historyPage] = useState(1);
   const [selectedDonation, setSelectedDonation] = useState(null);
+
+  const handleSelectPaymentMethod = (method) => {
+    if (paymentMethod === method) {
+      setPaymentMethod('');
+      setSubMethod('');
+      return;
+    }
+    setPaymentMethod(method);
+    setTouched(prev => ({ ...prev, paymentMethod: true }));
+
+    if (method === 'E-Wallet') {
+      if (!subMethod || subMethod === 'Bank') setSubMethod('GCash');
+    } else if (method === 'Bank') {
+      setSubMethod('');
+    }
+  };
   const [isReceiptModalOpen, setIsReceiptModalOpen] = useState(false);
   const [approvalMethod, setApprovalMethod] = useState('gateway');
   const [proofFile, setProofFile] = useState(null);
@@ -88,6 +119,15 @@ export default function Donation() {
   const [receiptValid, setReceiptValid] = useState(null); // null = not checked, true = valid, false = invalid
   const [receiptReason, setReceiptReason] = useState('');
   const [acknowledgePublicly, setAcknowledgePublicly] = useState(false);
+  const [copiedField, setCopiedField] = useState('');
+
+  const handleCopy = (text, field) => {
+    if (navigator?.clipboard?.writeText) {
+      navigator.clipboard.writeText(text);
+      setCopiedField(field);
+      setTimeout(() => setCopiedField(''), 2000);
+    }
+  };
 
   const handleBlur = (field) => setTouched(prev => ({ ...prev, [field]: true }));
 
@@ -136,10 +176,10 @@ export default function Donation() {
   const modalLoading = !modalData && isModalValidating;
 
   useEffect(() => {
-    if (user?.branch && !donationCommunity) {
-      setDonationCommunity(user.branch);
+    if (currentUser?.branch && !donationCommunity) {
+      setDonationCommunity(currentUser.branch);
     }
-  }, [user, donationCommunity]);
+  }, [currentUser, donationCommunity]);
 
   const handleFileChange = (e) => {
     const file = e.target.files[0];
@@ -219,11 +259,32 @@ export default function Donation() {
     if (!donationCommunity) { setFormError('Please select a community/branch.'); return; }
     if (!paymentMethod) { setFormError('Please select a payment method.'); return; }
     
+    const resolvedAccountName = isAnotherAccount 
+      ? customAccountName 
+      : (defaultName || 'Faithly Member');
+
+    const resolvedAccountNumber = isAnotherAccount 
+      ? customAccountNumber 
+      : (paymentMethod === 'E-Wallet' ? defaultPhone : bankAccountNumber);
+
     if (approvalMethod === 'manual') {
       if (!proofBase64) { setFormError('Please upload your proof of payment.'); return; }
       if (!subMethod) { setFormError(`Please select a ${paymentMethod} option.`); return; }
-      if (!accountName.trim()) { setFormError('Please enter the account name.'); return; }
-      if (accountNumber.trim().length !== 11) { setFormError('Sender Account Number must be exactly 11 digits.'); return; }
+      if (!resolvedAccountName.trim() || resolvedAccountName.trim().length < 2) { 
+        setFormError(paymentMethod === 'Bank' ? 'Please enter the sender bank account name.' : 'Please enter the sender account name.'); 
+        return; 
+      }
+      if (paymentMethod === 'E-Wallet') {
+        if (!resolvedAccountNumber.startsWith('09') || resolvedAccountNumber.trim().length !== 11) {
+          setFormError('Sender Mobile Number must be an 11-digit number starting with 09 (e.g. 09123456789).');
+          return;
+        }
+      } else if (paymentMethod === 'Bank') {
+        if (resolvedAccountNumber.trim().length < 8 || resolvedAccountNumber.trim().length > 20) {
+          setFormError('Sender Bank Account Number must be between 8 and 20 digits.');
+          return;
+        }
+      }
     }
 
     setSubmitting(true);
@@ -232,7 +293,18 @@ export default function Donation() {
       const res = await fetch(`${API}/api/donations`, {
         method: 'POST',
         headers: { 'Content-Type': 'application/json', Authorization: `Bearer ${token}` },
-        body: JSON.stringify({ amount: num, category: donationCategory, community: donationCommunity, paymentMethod, subMethod, accountName, accountNumber, isRecurring, proofOfPayment: proofBase64, acknowledged: acknowledgePublicly }),
+        body: JSON.stringify({ 
+          amount: num, 
+          category: donationCategory, 
+          community: donationCommunity, 
+          paymentMethod, 
+          subMethod, 
+          accountName: resolvedAccountName, 
+          accountNumber: resolvedAccountNumber, 
+          isRecurring, 
+          proofOfPayment: proofBase64, 
+          acknowledged: acknowledgePublicly 
+        }),
       });
       const data = await res.json();
       if (!res.ok) throw new Error(data.message || 'Failed to record donation');
@@ -242,11 +314,13 @@ export default function Donation() {
         setSuccessData({ amount: num, category: donationCategory });
         setDonationAmount('');
         setDonationCategory('');
-        setDonationCommunity('');
+        setDonationCommunity(currentUser?.branch || '');
         setPaymentMethod('');
         setSubMethod('');
-        setAccountName('');
-        setAccountNumber('');
+        setIsAnotherAccount(false);
+        setCustomAccountName('');
+        setCustomAccountNumber('');
+        setBankAccountNumber('');
         setProofFile(null);
         setProofBase64('');
         setReceiptValid(null);
@@ -294,25 +368,52 @@ export default function Donation() {
   const communityError = touched.community && !donationCommunity ? 'Please select a community.' : '';
   const subMethodError = touched.subMethod && approvalMethod === 'manual' && paymentMethod && !subMethod ? `Please select a ${paymentMethod} option.` : '';
   
-  const accountNameError = touched.accountName && approvalMethod === 'manual' && paymentMethod
-    ? !accountName.trim()
-      ? 'Sender account name is required.'
-      : accountName.trim().length < 2
+  const resolvedAccountName = isAnotherAccount 
+    ? customAccountName 
+    : (defaultName || 'Faithly Member');
+
+  const resolvedAccountNumber = isAnotherAccount 
+    ? customAccountNumber 
+    : (paymentMethod === 'E-Wallet' ? defaultPhone : bankAccountNumber);
+
+  const isAccountNameValid = resolvedAccountName.trim().length >= 2;
+
+  const isAccountNumValid = 
+    paymentMethod === 'E-Wallet'
+      ? resolvedAccountNumber.trim().length === 11 && resolvedAccountNumber.startsWith('09')
+      : paymentMethod === 'Bank'
+      ? resolvedAccountNumber.trim().length >= 8 && resolvedAccountNumber.trim().length <= 20
+      : false;
+
+  const accountNameError = isAnotherAccount && touched.customAccountName && approvalMethod === 'manual' && paymentMethod
+    ? !customAccountName.trim()
+      ? paymentMethod === 'Bank' ? 'Sender bank account name is required.' : 'Sender account name is required.'
+      : customAccountName.trim().length < 2
       ? 'Account name must be at least 2 characters.'
       : ''
     : '';
 
-  const accountNumberError = touched.accountNumber && approvalMethod === 'manual' && paymentMethod
-    ? !accountNumber
-      ? 'Sender account number is required.'
-      : !accountNumber.startsWith('09')
-      ? 'Account number must start with 09 (e.g. 09123456789).'
-      : accountNumber.length !== 11
-      ? `Account number must be exactly 11 digits (${accountNumber.length}/11).`
-      : ''
-    : '';
+  const isNumTouched = isAnotherAccount 
+    ? touched.customAccountNumber 
+    : (paymentMethod === 'Bank' ? touched.bankAccountNumber : false);
 
-  const isAccountNumValid = accountNumber.trim().length === 11 && accountNumber.startsWith('09');
+  const accountNumberError = isNumTouched && approvalMethod === 'manual' && paymentMethod
+    ? !resolvedAccountNumber.trim()
+      ? paymentMethod === 'Bank' ? 'Sender bank account number is required.' : 'Sender mobile number is required.'
+      : paymentMethod === 'E-Wallet'
+        ? !resolvedAccountNumber.startsWith('09')
+          ? 'Mobile number must start with 09 (e.g. 09123456789).'
+          : resolvedAccountNumber.length !== 11
+          ? `Mobile number must be exactly 11 digits (${resolvedAccountNumber.length}/11).`
+          : ''
+        : paymentMethod === 'Bank'
+          ? resolvedAccountNumber.length < 8
+            ? `Bank account number must be at least 8 digits (${resolvedAccountNumber.length} entered).`
+            : resolvedAccountNumber.length > 20
+            ? 'Bank account number cannot exceed 20 digits.'
+            : ''
+          : ''
+    : '';
 
   const isFormComplete = 
     currentNum > 0 &&
@@ -325,7 +426,7 @@ export default function Donation() {
       receiptValid === true &&
       !receiptValidating &&
       subMethod !== '' &&
-      accountName.trim().length >= 2 &&
+      isAccountNameValid &&
       isAccountNumValid
     ));
 
@@ -639,35 +740,206 @@ export default function Donation() {
                   <button
                     className={`p-3 rounded-xl border flex items-center justify-center gap-2 text-xs font-semibold transition-all cursor-pointer ${
                       paymentMethod === 'E-Wallet' 
-                        ? 'bg-blue-50 dark:bg-blue-950/50 border-blue-600 text-blue-600 dark:text-blue-400 shadow-sm' 
-                        : 'bg-slate-50 dark:bg-slate-800/60 border-slate-200/80 dark:border-white/10 text-slate-700 dark:text-slate-300'
+                        ? 'bg-blue-600 text-white border-blue-600 shadow-md shadow-blue-600/20 font-bold' 
+                        : 'bg-blue-50/70 dark:bg-blue-950/30 text-blue-700 dark:text-blue-300 border-blue-200/80 dark:border-blue-800/60 hover:bg-blue-100/80'
                     }`}
-                    onClick={() => setPaymentMethod(paymentMethod === 'E-Wallet' ? '' : 'E-Wallet')}
+                    onClick={() => handleSelectPaymentMethod('E-Wallet')}
                     disabled={submitting}
                   >
-                    <EWalletIcon />
+                    <Wallet size={18} className="shrink-0" />
                     <span>E-Wallet</span>
                   </button>
                   <button
                     className={`p-3 rounded-xl border flex items-center justify-center gap-2 text-xs font-semibold transition-all cursor-pointer ${
                       paymentMethod === 'Bank' 
-                        ? 'bg-blue-50 dark:bg-blue-950/50 border-blue-600 text-blue-600 dark:text-blue-400 shadow-sm' 
-                        : 'bg-slate-50 dark:bg-slate-800/60 border-slate-200/80 dark:border-white/10 text-slate-700 dark:text-slate-300'
+                        ? 'bg-indigo-600 text-white border-indigo-600 shadow-md shadow-indigo-600/20 font-bold' 
+                        : 'bg-indigo-50/70 dark:bg-indigo-950/30 text-indigo-700 dark:text-indigo-300 border-indigo-200/80 dark:border-indigo-800/60 hover:bg-indigo-100/80'
                     }`}
-                    onClick={() => setPaymentMethod(paymentMethod === 'Bank' ? '' : 'Bank')}
+                    onClick={() => handleSelectPaymentMethod('Bank')}
                     disabled={submitting}
                   >
-                    <BankIcon />
+                    <Landmark size={18} className="shrink-0" />
                     <span>Bank Transfer</span>
                   </button>
                 </div>
                 {paymentMethod && (
                   <div className="pt-2 space-y-3">
                     {approvalMethod === 'manual' ? (
-                      <div className="p-4 bg-slate-50 dark:bg-slate-800/40 border border-slate-200/80 dark:border-white/10 rounded-xl space-y-3">
+                      <div className="p-4 bg-slate-50 dark:bg-slate-800/40 border border-slate-200/80 dark:border-white/10 rounded-xl space-y-3.5">
                         <p className="text-xs text-slate-500 dark:text-slate-400">
                           Please transfer your donation to our <strong className="font-bold text-slate-900 dark:text-white">{paymentMethod}</strong> account and upload the receipt below.
                         </p>
+
+                        {/* ── IsangDiwa Official Account Info Card (Formal Styling) ── */}
+                        <div className="p-4 rounded-xl bg-white dark:bg-[#1E2130] border border-slate-200 dark:border-white/10 shadow-xs space-y-3.5 font-inter">
+                          <div className="flex items-center justify-between pb-2.5 border-b border-slate-100 dark:border-white/5">
+                            <div className="flex items-center gap-2.5">
+                              <img
+                                src={puacLogo}
+                                alt="PUAC Logo"
+                                className="w-8 h-8 rounded-full object-cover border border-slate-200 dark:border-white/10 shadow-xs shrink-0 bg-white"
+                              />
+                              <div>
+                                <h4 className="text-xs font-bold text-slate-900 dark:text-white leading-tight font-inter">IsangDiwa Official Receiving Account</h4>
+                                <p className="text-[10px] text-slate-500 dark:text-slate-400 leading-tight">Philippine United Apostolic Church</p>
+                              </div>
+                            </div>
+                            <span className="text-[10px] font-semibold px-2 py-0.5 rounded bg-slate-100 dark:bg-slate-800 text-slate-600 dark:text-slate-300 border border-slate-200/80 dark:border-white/10 font-inter">
+                              Official Account
+                            </span>
+                          </div>
+
+                          {paymentMethod === 'E-Wallet' ? (
+                            <div className="space-y-3">
+                              {/* E-Wallet brand buttons */}
+                              <div className="grid grid-cols-2 gap-2.5">
+                                <button
+                                  type="button"
+                                  onClick={() => { 
+                                    setSubMethod('GCash'); 
+                                    setTouched(prev => ({ ...prev, subMethod: true })); 
+                                  }}
+                                  className={`py-2 px-3.5 rounded-xl text-xs font-inter font-bold transition-all flex items-center justify-center gap-2 cursor-pointer border ${
+                                    subMethod === 'GCash' || (!subMethod && paymentMethod === 'E-Wallet')
+                                      ? 'bg-blue-600 text-white border-blue-600 shadow-sm shadow-blue-600/25 ring-2 ring-blue-600/20'
+                                      : 'bg-blue-50/70 dark:bg-blue-950/30 text-blue-700 dark:text-blue-300 border-blue-200/80 dark:border-blue-900/50 hover:bg-blue-100/80'
+                                  }`}
+                                >
+                                  <span className={`w-2 h-2 rounded-full ${subMethod === 'GCash' || (!subMethod && paymentMethod === 'E-Wallet') ? 'bg-white' : 'bg-blue-600 dark:bg-blue-400'}`} />
+                                  <span>GCash</span>
+                                </button>
+                                <button
+                                  type="button"
+                                  onClick={() => { 
+                                    setSubMethod('Maya'); 
+                                    setTouched(prev => ({ ...prev, subMethod: true })); 
+                                  }}
+                                  className={`py-2 px-3.5 rounded-xl text-xs font-inter font-bold transition-all flex items-center justify-center gap-2 cursor-pointer border ${
+                                    subMethod === 'Maya'
+                                      ? 'bg-emerald-600 text-white border-emerald-600 shadow-sm shadow-emerald-600/25 ring-2 ring-emerald-600/20'
+                                      : 'bg-emerald-50/70 dark:bg-emerald-950/30 text-emerald-700 dark:text-emerald-300 border-emerald-200/80 dark:border-emerald-900/50 hover:bg-emerald-100/80'
+                                  }`}
+                                >
+                                  <span className={`w-2 h-2 rounded-full ${subMethod === 'Maya' ? 'bg-white' : 'bg-emerald-600 dark:bg-emerald-400'}`} />
+                                  <span>Maya</span>
+                                </button>
+                              </div>
+
+                              {/* Details based on active subMethod */}
+                              {subMethod === 'Maya' ? (
+                                <div className="bg-slate-50/70 dark:bg-slate-800/40 p-3.5 rounded-xl border border-slate-200/80 dark:border-white/5 space-y-2.5 text-xs font-inter">
+                                  <div className="flex items-center justify-between py-1 border-b border-slate-200/60 dark:border-white/5">
+                                    <span className="text-slate-500 dark:text-slate-400 text-xs font-medium">Account Name:</span>
+                                    <span className="font-bold text-slate-900 dark:text-white">IsangDiwa Church</span>
+                                  </div>
+                                  <div className="flex items-center justify-between py-1">
+                                    <span className="text-slate-500 dark:text-slate-400 text-xs font-medium">Maya Number:</span>
+                                    <div className="flex items-center gap-2">
+                                      <span className="font-bold font-mono text-slate-900 dark:text-white text-xs sm:text-sm">0998 765 4321</span>
+                                      <button
+                                        type="button"
+                                        onClick={() => handleCopy('09987654321', 'maya')}
+                                        className="inline-flex items-center gap-1 px-2.5 py-1 rounded-md bg-emerald-50 dark:bg-emerald-950/50 hover:bg-emerald-100 dark:hover:bg-emerald-900/60 text-emerald-600 dark:text-emerald-400 border border-emerald-200 dark:border-emerald-800/60 transition-colors cursor-pointer text-xs font-semibold shadow-2xs"
+                                        title="Copy Maya Number"
+                                      >
+                                        {copiedField === 'maya' ? (
+                                          <span className="flex items-center gap-1 text-[11px] text-emerald-600 dark:text-emerald-400 font-bold"><Check size={12} /> Copied!</span>
+                                        ) : (
+                                          <span className="flex items-center gap-1 text-[11px]"><Copy size={12} /> Copy</span>
+                                        )}
+                                      </button>
+                                    </div>
+                                  </div>
+                                  <p className="text-[10.5px] text-slate-400 dark:text-slate-500 pt-0.5 m-0">
+                                    Send via Maya app Express Send to the number above.
+                                  </p>
+                                </div>
+                              ) : (
+                                <div className="flex flex-col sm:flex-row items-center gap-4 bg-slate-50/70 dark:bg-slate-800/40 p-3.5 rounded-xl border border-slate-200/80 dark:border-white/5">
+                                  {/* GCash QR Thumbnail */}
+                                  <div
+                                    className="relative group cursor-pointer shrink-0 rounded-lg overflow-hidden border border-slate-200 dark:border-white/10 shadow-xs bg-white p-1 hover:border-blue-400 transition-colors"
+                                    onClick={() => setPreviewImage({ src: gcashQr, name: 'IsangDiwa GCash QR Code' })}
+                                    title="Click to enlarge QR Code"
+                                  >
+                                    <img src={gcashQr} alt="IsangDiwa GCash QR" className="w-20 h-20 sm:w-22 sm:h-22 object-contain rounded" />
+                                    <div className="absolute inset-0 bg-slate-900/60 opacity-0 group-hover:opacity-100 transition-opacity flex flex-col items-center justify-center text-white text-[9px] font-bold rounded backdrop-blur-[1px]">
+                                      <ZoomIn size={16} className="mb-0.5" />
+                                      <span>Click to Scan</span>
+                                    </div>
+                                  </div>
+                                  {/* GCash Account Text Info */}
+                                  <div className="flex-1 w-full space-y-2 text-xs font-inter">
+                                    <div className="flex items-center justify-between py-1 border-b border-slate-200/60 dark:border-white/5">
+                                      <span className="text-slate-500 dark:text-slate-400 text-xs font-medium">Account Name:</span>
+                                      <span className="font-bold text-slate-900 dark:text-white">IsangDiwa Church</span>
+                                    </div>
+                                    <div className="flex items-center justify-between py-1">
+                                      <span className="text-slate-500 dark:text-slate-400 text-xs font-medium">GCash Number:</span>
+                                      <div className="flex items-center gap-2">
+                                        <span className="font-bold font-mono text-slate-900 dark:text-white text-xs sm:text-sm">0912 345 6789</span>
+                                        <button
+                                          type="button"
+                                          onClick={() => handleCopy('09123456789', 'gcash')}
+                                          className="inline-flex items-center gap-1 px-2.5 py-1 rounded-md bg-blue-50 dark:bg-blue-950/50 hover:bg-blue-100 dark:hover:bg-blue-900/60 text-blue-600 dark:text-blue-400 border border-blue-200 dark:border-blue-800/60 transition-colors cursor-pointer text-xs font-semibold shadow-2xs"
+                                          title="Copy GCash Number"
+                                        >
+                                          {copiedField === 'gcash' ? (
+                                            <span className="flex items-center gap-1 text-[11px] text-emerald-600 dark:text-emerald-400 font-bold"><Check size={12} /> Copied!</span>
+                                          ) : (
+                                            <span className="flex items-center gap-1 text-[11px]"><Copy size={12} /> Copy</span>
+                                          )}
+                                        </button>
+                                      </div>
+                                    </div>
+                                    <p className="text-[10.5px] text-slate-400 dark:text-slate-500 pt-0.5 m-0">
+                                      Scan the QR code directly or copy the number to transfer via GCash.
+                                    </p>
+                                  </div>
+                                </div>
+                              )}
+                            </div>
+                          ) : (
+                            /* Bank Account Details */
+                            <div className="bg-slate-50/70 dark:bg-slate-800/40 p-3.5 rounded-xl border border-slate-200/80 dark:border-white/5 space-y-2.5 text-xs font-inter">
+                              <div className="flex items-center justify-between py-1 border-b border-slate-200/60 dark:border-white/5">
+                                <span className="text-slate-500 dark:text-slate-400 text-xs font-medium">Bank:</span>
+                                <span className="font-bold text-slate-900 dark:text-white">BDO Unibank</span>
+                              </div>
+                              <div className="flex items-center justify-between py-1 border-b border-slate-200/60 dark:border-white/5">
+                                <span className="text-slate-500 dark:text-slate-400 text-xs font-medium">Account Name:</span>
+                                <span className="font-bold text-slate-900 dark:text-white text-right">Philippine United Apostolic Church</span>
+                              </div>
+                              <div className="flex items-center justify-between py-1">
+                                <span className="text-slate-500 dark:text-slate-400 text-xs font-medium">Account Number:</span>
+                                <div className="flex items-center gap-2">
+                                  <span className="font-bold font-mono text-slate-900 dark:text-white text-xs sm:text-sm">0012 3456 7890</span>
+                                  <button
+                                    type="button"
+                                    onClick={() => handleCopy('001234567890', 'bank')}
+                                    className="inline-flex items-center gap-1 px-2.5 py-1 rounded-md bg-indigo-50 dark:bg-indigo-950/50 hover:bg-indigo-100 dark:hover:bg-indigo-900/60 text-indigo-600 dark:text-indigo-400 border border-indigo-200 dark:border-indigo-800/60 transition-colors cursor-pointer text-xs font-semibold shadow-2xs"
+                                    title="Copy Account Number"
+                                  >
+                                    {copiedField === 'bank' ? (
+                                      <span className="flex items-center gap-1 text-[11px] text-emerald-600 dark:text-emerald-400 font-bold"><Check size={12} /> Copied!</span>
+                                    ) : (
+                                      <span className="flex items-center gap-1 text-[11px]"><Copy size={12} /> Copy</span>
+                                    )}
+                                  </button>
+                                </div>
+                              </div>
+                              <p className="text-[10.5px] text-slate-400 dark:text-slate-500 pt-0.5 m-0">
+                                Accepts online bank transfers from BDO, BPI, Metrobank, Unionbank, etc. via InstaPay or PESONet.
+                              </p>
+                            </div>
+                          )}
+                        </div>
+
+                        <div className="border-t border-slate-200/80 dark:border-white/10 pt-2">
+                          <p className="text-[11px] font-bold text-slate-700 dark:text-slate-300 font-inter uppercase tracking-wide mb-1">
+                            Your Transfer Details
+                          </p>
+                        </div>
 
                         <div className="space-y-3">
                           <div className="space-y-1">
@@ -722,76 +994,271 @@ export default function Donation() {
                               </p>
                             )}
                           </div>
-                          <div className="space-y-1">
-                            <div className="flex items-center justify-between">
-                              <label className="block text-xs font-semibold text-slate-700 dark:text-slate-300">Sender Account Name <span className="text-red-500">*</span></label>
-                              {touched.accountName && accountName.trim().length >= 2 && !accountNameError && (
-                                <span className="text-[11px] font-bold text-emerald-600 dark:text-emerald-400 flex items-center gap-1">
-                                  <CheckCircle2 size={12} /> Valid
+                          {/* ── Sender Account Selector: Selected User (User 1) vs Another Account ── */}
+                          <div className="space-y-2">
+                            <label className="block text-xs font-semibold text-slate-700 dark:text-slate-300">
+                              Sender Information <span className="text-red-500">*</span>
+                            </label>
+
+                            <div className="grid grid-cols-1 sm:grid-cols-2 gap-2.5">
+                              {/* Option 1: Selected User (User 1 / My Account) */}
+                              <button
+                                type="button"
+                                onClick={() => {
+                                  setIsAnotherAccount(false);
+                                  setTouched(prev => ({ ...prev, customAccountName: false, customAccountNumber: false }));
+                                }}
+                                className={`p-3 rounded-xl border text-left transition-all cursor-pointer flex items-center gap-2.5 ${
+                                  !isAnotherAccount
+                                    ? 'bg-blue-50/80 dark:bg-blue-950/40 border-blue-600 dark:border-blue-500 ring-2 ring-blue-600/20 shadow-xs'
+                                    : 'bg-white dark:bg-slate-800/60 border-slate-200/80 dark:border-white/10 hover:bg-slate-50 dark:hover:bg-slate-800 text-slate-600 dark:text-slate-300'
+                                }`}
+                              >
+                                <div className={`w-4 h-4 rounded-full border flex items-center justify-center shrink-0 ${
+                                  !isAnotherAccount ? 'border-blue-600 bg-blue-600' : 'border-slate-300 dark:border-slate-600'
+                                }`}>
+                                  {!isAnotherAccount && <div className="w-1.5 h-1.5 rounded-full bg-white" />}
+                                </div>
+                                <div className="min-w-0 flex-1">
+                                  <div className="flex items-center gap-1.5">
+                                    <span className="text-xs font-bold text-slate-900 dark:text-white truncate">
+                                      {defaultName || 'My Profile Account'}
+                                    </span>
+                                    <span className="text-[9px] font-bold px-1.5 py-0.2 rounded bg-blue-100 dark:bg-blue-900/60 text-blue-700 dark:text-blue-300 shrink-0">
+                                      You
+                                    </span>
+                                  </div>
+                                  <p className="text-[11px] text-slate-500 dark:text-slate-400 font-mono truncate mt-0.5">
+                                    {paymentMethod === 'E-Wallet' 
+                                      ? (defaultPhone || 'Registered Mobile') 
+                                      : 'Account Holder'}
+                                  </p>
+                                </div>
+                              </button>
+
+                              {/* Option 2: Another Account? */}
+                              <button
+                                type="button"
+                                onClick={() => {
+                                  setIsAnotherAccount(true);
+                                  setTouched(prev => ({ ...prev, customAccountName: true, customAccountNumber: true }));
+                                }}
+                                className={`p-3 rounded-xl border text-left transition-all cursor-pointer flex items-center gap-2.5 ${
+                                  isAnotherAccount
+                                    ? 'bg-blue-50/80 dark:bg-blue-950/40 border-blue-600 dark:border-blue-500 ring-2 ring-blue-600/20 shadow-xs'
+                                    : 'bg-white dark:bg-slate-800/60 border-slate-200/80 dark:border-white/10 hover:bg-slate-50 dark:hover:bg-slate-800 text-slate-600 dark:text-slate-300'
+                                }`}
+                              >
+                                <div className={`w-4 h-4 rounded-full border flex items-center justify-center shrink-0 ${
+                                  isAnotherAccount ? 'border-blue-600 bg-blue-600' : 'border-slate-300 dark:border-slate-600'
+                                }`}>
+                                  {isAnotherAccount && <div className="w-1.5 h-1.5 rounded-full bg-white" />}
+                                </div>
+                                <div className="min-w-0 flex-1">
+                                  <span className="text-xs font-bold text-slate-900 dark:text-white">
+                                    Another account?
+                                  </span>
+                                  <p className="text-[11px] text-slate-500 dark:text-slate-400 truncate mt-0.5">
+                                    Donate using someone else's account
+                                  </p>
+                                </div>
+                              </button>
+                            </div>
+                          </div>
+
+                          {/* ── Case 1: My Account Selected (Default) ── */}
+                          {!isAnotherAccount ? (
+                            paymentMethod === 'E-Wallet' ? (
+                              /* E-Wallet with My Account: All info pre-filled from signup, zero inputs required! */
+                              <div className="p-3.5 bg-slate-50/90 dark:bg-slate-800/50 border border-slate-200/80 dark:border-white/10 rounded-xl space-y-2 text-xs">
+                                <div className="flex items-center justify-between py-1 border-b border-slate-200/60 dark:border-white/5">
+                                  <span className="text-slate-500 dark:text-slate-400 font-medium">Sender Name:</span>
+                                  <span className="font-bold text-slate-900 dark:text-white">{defaultName || 'Faithly Member'}</span>
+                                </div>
+                                <div className="flex items-center justify-between py-1 border-b border-slate-200/60 dark:border-white/5">
+                                  <span className="text-slate-500 dark:text-slate-400 font-medium">Sender Mobile Number:</span>
+                                  <span className="font-bold font-mono text-slate-900 dark:text-white">{defaultPhone || '09XXXXXXXXX'}</span>
+                                </div>
+                                <div className="pt-1 flex items-center justify-between text-[11px]">
+                                  <span className="text-emerald-600 dark:text-emerald-400 font-medium flex items-center gap-1">
+                                    <CheckCircle2 size={13} /> Auto-filled from your profile
+                                  </span>
+                                  <button
+                                    type="button"
+                                    onClick={() => setIsAnotherAccount(true)}
+                                    className="text-blue-600 dark:text-blue-400 font-semibold hover:underline cursor-pointer"
+                                  >
+                                    Use another account?
+                                  </button>
+                                </div>
+                              </div>
+                            ) : (
+                              /* Bank Transfer with My Account: Name is user's name, only ask for their Bank Account Number with Formatter */
+                              <div className="space-y-3">
+                                <div className="p-3 bg-slate-50/90 dark:bg-slate-800/50 border border-slate-200/80 dark:border-white/10 rounded-xl flex items-center justify-between text-xs">
+                                  <span className="text-slate-500 dark:text-slate-400 font-medium">Account Holder Name:</span>
+                                  <span className="font-bold text-slate-900 dark:text-white">{defaultName || 'Faithly Member'} (You)</span>
+                                </div>
+                                <div className="space-y-1">
+                                  <div className="flex items-center justify-between">
+                                    <label className="block text-xs font-semibold text-slate-700 dark:text-slate-300">
+                                      Your Bank Account Number <span className="text-red-500">*</span>
+                                    </label>
+                                    <span className={`text-[11px] font-bold flex items-center gap-1 ${
+                                      isAccountNumValid 
+                                        ? 'text-emerald-600 dark:text-emerald-400' 
+                                        : accountNumberError
+                                        ? 'text-red-500'
+                                        : 'text-slate-400 dark:text-slate-500'
+                                    }`}>
+                                      {isAccountNumValid && <CheckCircle2 size={12} />}
+                                      {bankAccountNumber.length} digits {isAccountNumValid ? '' : '(8–20 digits)'}
+                                    </span>
+                                  </div>
+                                  <input 
+                                    type="text" 
+                                    inputMode="numeric"
+                                    className={`w-full px-3 py-2 bg-white dark:bg-slate-800 border rounded-xl text-xs font-mono text-slate-900 dark:text-white outline-none transition-all ${
+                                      accountNumberError 
+                                        ? 'border-red-500 focus:ring-2 focus:ring-red-500/20' 
+                                        : isAccountNumValid 
+                                        ? 'border-emerald-500/80' 
+                                        : 'border-slate-200/80 dark:border-white/10 focus:ring-2 focus:ring-blue-600'
+                                    }`} 
+                                    placeholder="0012 3456 7890 (8–20 digits)"
+                                    maxLength={24}
+                                    value={formatBankAccountNumber(bankAccountNumber)}
+                                    onBlur={() => handleBlur('bankAccountNumber')}
+                                    onChange={(e) => {
+                                      const raw = e.target.value.replace(/\D/g, '').slice(0, 20);
+                                      setBankAccountNumber(raw);
+                                      setTouched(prev => ({ ...prev, bankAccountNumber: true }));
+                                    }}
+                                  />
+                                  <p className="text-[10px] text-slate-400 dark:text-slate-500">
+                                    Enter 8 to 20 digits. Formatted automatically with spaces for readability.
+                                  </p>
+                                  {accountNumberError && (
+                                    <p className="text-[11px] font-semibold text-red-500 dark:text-red-400 flex items-center gap-1 mt-0.5">
+                                      <AlertCircle size={12} /> {accountNumberError}
+                                    </p>
+                                  )}
+                                </div>
+                              </div>
+                            )
+                          ) : (
+                            /* ── Case 2: Another Account Selected ("may lalabas na bagong inputs") ── */
+                            <div className="space-y-3 p-3.5 bg-blue-50/30 dark:bg-blue-950/20 border border-blue-200/70 dark:border-blue-900/40 rounded-xl">
+                              <div className="flex items-center justify-between pb-1.5 border-b border-blue-100 dark:border-blue-900/40">
+                                <span className="text-xs font-bold text-blue-950 dark:text-blue-300">
+                                  Enter Details of Another Account
                                 </span>
-                              )}
+                                <button
+                                  type="button"
+                                  onClick={() => setIsAnotherAccount(false)}
+                                  className="text-[11px] text-blue-600 dark:text-blue-400 font-semibold hover:underline cursor-pointer"
+                                >
+                                  Cancel • Back to my account
+                                </button>
+                              </div>
+
+                              {/* New Input 1: Sender Account Name */}
+                              <div className="space-y-1">
+                                <div className="flex items-center justify-between">
+                                  <label className="block text-xs font-semibold text-slate-700 dark:text-slate-300">
+                                    {paymentMethod === 'Bank' ? 'Sender Bank Account Name' : 'Sender Account Name'} <span className="text-red-500">*</span>
+                                  </label>
+                                  {touched.customAccountName && customAccountName.trim().length >= 2 && !accountNameError && (
+                                    <span className="text-[11px] font-bold text-emerald-600 dark:text-emerald-400 flex items-center gap-1">
+                                      <CheckCircle2 size={12} /> Valid
+                                    </span>
+                                  )}
+                                </div>
+                                <input 
+                                  type="text" 
+                                  className={`w-full px-3 py-2 bg-white dark:bg-slate-800 border rounded-xl text-xs text-slate-900 dark:text-white outline-none transition-all ${
+                                    accountNameError 
+                                      ? 'border-red-500 focus:ring-2 focus:ring-red-500/20' 
+                                      : touched.customAccountName && customAccountName.trim().length >= 2
+                                      ? 'border-emerald-500/80' 
+                                      : 'border-slate-200/80 dark:border-white/10 focus:ring-2 focus:ring-blue-600'
+                                  }`} 
+                                  placeholder="Enter account holder name (e.g. Maria Santos)"
+                                  value={customAccountName}
+                                  onBlur={() => handleBlur('customAccountName')}
+                                  onChange={(e) => {
+                                    setCustomAccountName(e.target.value);
+                                    setTouched(prev => ({ ...prev, customAccountName: true }));
+                                  }}
+                                />
+                                {accountNameError && (
+                                  <p className="text-[11px] font-semibold text-red-500 dark:text-red-400 flex items-center gap-1 mt-0.5">
+                                    <AlertCircle size={12} /> {accountNameError}
+                                  </p>
+                                )}
+                              </div>
+
+                              {/* New Input 2: Sender Account Number */}
+                              <div className="space-y-1">
+                                <div className="flex items-center justify-between">
+                                  <label className="block text-xs font-semibold text-slate-700 dark:text-slate-300">
+                                    {paymentMethod === 'Bank' ? 'Sender Bank Account Number' : 'Sender Mobile / E-Wallet Number'} <span className="text-red-500">*</span>
+                                  </label>
+                                  <span className={`text-[11px] font-bold flex items-center gap-1 ${
+                                    isAccountNumValid 
+                                      ? 'text-emerald-600 dark:text-emerald-400' 
+                                      : accountNumberError
+                                      ? 'text-red-500'
+                                      : 'text-slate-400 dark:text-slate-500'
+                                  }`}>
+                                    {isAccountNumValid && <CheckCircle2 size={12} />}
+                                    {paymentMethod === 'Bank'
+                                      ? `${customAccountNumber.length} digits ${isAccountNumValid ? '' : '(8–20 digits)'}`
+                                      : `${customAccountNumber.length}/11 digits`
+                                    }
+                                  </span>
+                                </div>
+                                <input 
+                                  type={paymentMethod === 'Bank' ? 'text' : 'tel'}
+                                  inputMode="numeric"
+                                  className={`w-full px-3 py-2 bg-white dark:bg-slate-800 border rounded-xl text-xs font-mono text-slate-900 dark:text-white outline-none transition-all ${
+                                    accountNumberError 
+                                      ? 'border-red-500 focus:ring-2 focus:ring-red-500/20' 
+                                      : isAccountNumValid 
+                                      ? 'border-emerald-500/80' 
+                                      : 'border-slate-200/80 dark:border-white/10 focus:ring-2 focus:ring-blue-600'
+                                  }`} 
+                                  placeholder={
+                                    paymentMethod === 'Bank' 
+                                      ? '0012 3456 7890 (8–20 digits)' 
+                                      : '09123456789'
+                                  }
+                                  maxLength={paymentMethod === 'Bank' ? 24 : 11}
+                                  value={paymentMethod === 'Bank' ? formatBankAccountNumber(customAccountNumber) : customAccountNumber}
+                                  onBlur={() => handleBlur('customAccountNumber')}
+                                  onChange={(e) => {
+                                    if (paymentMethod === 'Bank') {
+                                      const raw = e.target.value.replace(/\D/g, '').slice(0, 20);
+                                      setCustomAccountNumber(raw);
+                                    } else {
+                                      setCustomAccountNumber(e.target.value.replace(/\D/g, '').slice(0, 11));
+                                    }
+                                    setTouched(prev => ({ ...prev, customAccountNumber: true }));
+                                  }}
+                                />
+                                <p className="text-[10px] text-slate-400 dark:text-slate-500">
+                                  {paymentMethod === 'Bank' 
+                                    ? 'Enter 8 to 20 digits. Formatted automatically with spaces for readability.' 
+                                    : 'Enter 11-digit mobile number starting with 09.'}
+                                </p>
+                                {accountNumberError && (
+                                  <p className="text-[11px] font-semibold text-red-500 dark:text-red-400 flex items-center gap-1 mt-0.5">
+                                    <AlertCircle size={12} /> {accountNumberError}
+                                  </p>
+                                )}
+                              </div>
                             </div>
-                            <input 
-                              type="text" 
-                              className={`w-full px-3 py-2 bg-white dark:bg-slate-800 border rounded-xl text-xs text-slate-900 dark:text-white outline-none transition-all ${
-                                accountNameError 
-                                  ? 'border-red-500 focus:ring-2 focus:ring-red-500/20' 
-                                  : touched.accountName && accountName.trim().length >= 2
-                                  ? 'border-emerald-500/80' 
-                                  : 'border-slate-200/80 dark:border-white/10 focus:ring-2 focus:ring-blue-600'
-                              }`} 
-                              placeholder="Juan Dela Cruz"
-                              value={accountName}
-                              onBlur={() => handleBlur('accountName')}
-                              onChange={(e) => {
-                                setAccountName(e.target.value);
-                                setTouched(prev => ({ ...prev, accountName: true }));
-                              }}
-                            />
-                            {accountNameError && (
-                              <p className="text-[11px] font-semibold text-red-500 dark:text-red-400 flex items-center gap-1 mt-0.5">
-                                <AlertCircle size={12} /> {accountNameError}
-                              </p>
-                            )}
-                          </div>
-                          <div className="space-y-1">
-                            <div className="flex items-center justify-between">
-                              <label className="block text-xs font-semibold text-slate-700 dark:text-slate-300">Sender Account Number <span className="text-red-500">*</span></label>
-                              <span className={`text-[11px] font-bold flex items-center gap-1 ${
-                                isAccountNumValid 
-                                  ? 'text-emerald-600 dark:text-emerald-400' 
-                                  : accountNumberError
-                                  ? 'text-red-500'
-                                  : 'text-slate-400 dark:text-slate-500'
-                              }`}>
-                                {isAccountNumValid && <CheckCircle2 size={12} />}
-                                {accountNumber.length}/11 digits
-                              </span>
-                            </div>
-                            <input 
-                              type="text" 
-                              className={`w-full px-3 py-2 bg-white dark:bg-slate-800 border rounded-xl text-xs text-slate-900 dark:text-white outline-none transition-all ${
-                                accountNumberError 
-                                  ? 'border-red-500 focus:ring-2 focus:ring-red-500/20' 
-                                  : isAccountNumValid 
-                                  ? 'border-emerald-500/80' 
-                                  : 'border-slate-200/80 dark:border-white/10 focus:ring-2 focus:ring-blue-600'
-                              }`} 
-                              placeholder="09123456789"
-                              maxLength={11}
-                              value={accountNumber}
-                              onBlur={() => handleBlur('accountNumber')}
-                              onChange={(e) => {
-                                setAccountNumber(e.target.value.replace(/\D/g, '').slice(0, 11));
-                                setTouched(prev => ({ ...prev, accountNumber: true }));
-                              }}
-                            />
-                            {accountNumberError && (
-                              <p className="text-[11px] font-semibold text-red-500 dark:text-red-400 flex items-center gap-1 mt-0.5">
-                                <AlertCircle size={12} /> {accountNumberError}
-                              </p>
-                            )}
-                          </div>
+                          )}
                         </div>
                         
                         {proofFile && proofBase64 ? (
@@ -914,8 +1381,9 @@ export default function Donation() {
                     community: true,
                     paymentMethod: true,
                     subMethod: true,
-                    accountName: true,
-                    accountNumber: true
+                    customAccountName: true,
+                    customAccountNumber: true,
+                    bankAccountNumber: true,
                   });
                   if (isFormComplete) {
                     setIsConfirmModalOpen(true);
@@ -1160,13 +1628,26 @@ export default function Donation() {
                 {approvalMethod === 'manual' && (
                   <>
                     <div className="flex justify-between items-center py-1 border-b border-slate-200/50 dark:border-white/5">
-                      <span className="text-slate-500 dark:text-slate-400 font-medium">Sender Account Name</span>
-                      <span className="font-bold text-slate-900 dark:text-white">{accountName}</span>
+                      <span className="text-slate-500 dark:text-slate-400 font-medium">
+                        {paymentMethod === 'Bank' ? 'Sender Bank Account Name' : 'Sender Account Name'}
+                      </span>
+                      <span className="font-bold text-slate-900 dark:text-white flex items-center gap-1.5">
+                        {resolvedAccountName}
+                        {!isAnotherAccount && (
+                          <span className="text-[10px] font-normal px-1.5 py-0.2 rounded bg-blue-100 dark:bg-blue-900/60 text-blue-700 dark:text-blue-300">
+                            You
+                          </span>
+                        )}
+                      </span>
                     </div>
 
                     <div className="flex justify-between items-center py-1 border-b border-slate-200/50 dark:border-white/5">
-                      <span className="text-slate-500 dark:text-slate-400 font-medium">Sender Account Number</span>
-                      <span className="font-bold text-slate-900 dark:text-white font-mono">{accountNumber}</span>
+                      <span className="text-slate-500 dark:text-slate-400 font-medium">
+                        {paymentMethod === 'Bank' ? 'Sender Bank Account Number' : 'Sender Mobile / Account Number'}
+                      </span>
+                      <span className="font-bold text-slate-900 dark:text-white font-mono">
+                        {paymentMethod === 'Bank' ? formatBankAccountNumber(resolvedAccountNumber) : resolvedAccountNumber}
+                      </span>
                     </div>
                   </>
                 )}
@@ -1464,7 +1945,11 @@ function DonationReceiptModal({ isOpen, onClose, selectedDonation, user, onPrevi
             {selectedDonation.accountNumber && (
               <div className="flex items-center justify-between py-1.5 border-b border-slate-100 dark:border-white/5">
                 <span className="text-slate-500 dark:text-slate-400 font-medium">Sender Account No.</span>
-                <span className="text-slate-900 dark:text-white font-bold font-mono">{selectedDonation.accountNumber}</span>
+                <span className="text-slate-900 dark:text-white font-bold font-mono">
+                  {(selectedDonation.method === 'Bank' || selectedDonation.paymentMethod === 'Bank') 
+                    ? formatBankAccountNumber(selectedDonation.accountNumber) 
+                    : selectedDonation.accountNumber}
+                </span>
               </div>
             )}
             <div className="flex items-center justify-between py-1.5 border-b border-slate-100 dark:border-white/5">

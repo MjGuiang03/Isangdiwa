@@ -1,5 +1,6 @@
-import { useState, useEffect } from 'react';
+import { useState, useEffect, useRef } from 'react';
 import API from '../../utils/api';
+import useDebounce from '../../hooks/useDebounce';
 import { ArrowLeft, CalendarDays, ChevronDown, Eye, EyeOff, Phone } from 'lucide-react';
 import { toast } from 'sonner';
 
@@ -260,6 +261,56 @@ export default function SignupModal({ isOpen, onClose, onSwitchToLogin }) {
 
   const isAllAgreed = agreeTerms && agreePrivacy;
 
+  /* ── Email availability check (debounced) ── */
+  const [emailChecking, setEmailChecking] = useState(false);
+  const [emailTaken, setEmailTaken] = useState(false);
+  const debouncedEmail = useDebounce(formData.email, 600);
+  const emailCheckController = useRef(null);
+
+  useEffect(() => {
+    // Reset when email changes
+    setEmailTaken(false);
+
+    // Only check if email passes client-side format validation
+    const formatError = validateEmailAdvanced(debouncedEmail);
+    if (formatError) {
+      setEmailChecking(false);
+      return;
+    }
+
+    const checkEmail = async () => {
+      // Abort any previous in-flight request
+      if (emailCheckController.current) emailCheckController.current.abort();
+      const controller = new AbortController();
+      emailCheckController.current = controller;
+
+      setEmailChecking(true);
+      try {
+        const res = await fetch(`${API}/api/check-email`, {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify({ email: debouncedEmail.trim().toLowerCase() }),
+          signal: controller.signal
+        });
+        const data = await res.json();
+        if (!controller.signal.aborted) {
+          setEmailTaken(!data.available);
+        }
+      } catch (err) {
+        // Ignore abort errors; on network failure, let submit-time check handle it
+        if (err.name !== 'AbortError') console.error('Email check failed:', err);
+      } finally {
+        if (!controller.signal.aborted) setEmailChecking(false);
+      }
+    };
+
+    checkEmail();
+
+    return () => {
+      if (emailCheckController.current) emailCheckController.current.abort();
+    };
+  }, [debouncedEmail]);
+
   if (!isOpen) return null;
 
   /* ── Validate single field ── */
@@ -369,6 +420,7 @@ export default function SignupModal({ isOpen, onClose, onSwitchToLogin }) {
     formData.firstName && formData.lastName && formData.email &&
     formData.phone && formData.birthday && formData.gender &&
     formData.community && formData.password && formData.confirmPassword &&
+    !emailTaken && !emailChecking &&
     Object.entries(errors).every(([, err]) => {
       return Array.isArray(err) ? err.length === 0 : !err;
     }) &&
@@ -439,16 +491,46 @@ export default function SignupModal({ isOpen, onClose, onSwitchToLogin }) {
           <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
             <div className="space-y-1">
               <label htmlFor="email" className="block text-xs font-semibold text-slate-700 dark:text-slate-300">Email:</label>
-              <input
-                id="email" name="email" type="email"
-                value={formData.email}
-                onChange={handleChange} onBlur={handleBlur}
-                className={`w-full px-3.5 py-2.5 bg-slate-50 dark:bg-slate-800/60 border ${touched.email && errors.email ? 'border-red-500' : 'border-slate-200 dark:border-white/10 focus:ring-blue-600'} rounded-xl text-xs text-slate-900 dark:text-white outline-none focus:ring-2 transition-all`}
-                placeholder="your.email@example.com"
-                autoComplete="email"
-              />
+              <div className="relative">
+                <input
+                  id="email" name="email" type="email"
+                  value={formData.email}
+                  onChange={handleChange} onBlur={handleBlur}
+                  className={`w-full px-3.5 py-2.5 pr-9 bg-slate-50 dark:bg-slate-800/60 border ${
+                    touched.email && (errors.email || emailTaken)
+                      ? 'border-red-500'
+                      : touched.email && !errors.email && !emailChecking && formData.email && !emailTaken
+                        ? 'border-emerald-500'
+                        : 'border-slate-200 dark:border-white/10 focus:ring-blue-600'
+                  } rounded-xl text-xs text-slate-900 dark:text-white outline-none focus:ring-2 transition-all`}
+                  placeholder="your.email@example.com"
+                  autoComplete="email"
+                />
+                {/* Status indicator inside input */}
+                <div className="absolute right-3 top-1/2 -translate-y-1/2">
+                  {emailChecking && (
+                    <span className="w-4 h-4 border-2 border-blue-500 border-t-transparent rounded-full animate-spin inline-block" />
+                  )}
+                  {!emailChecking && touched.email && !errors.email && formData.email && !emailTaken && (
+                    <span className="text-emerald-500 text-sm font-bold">✓</span>
+                  )}
+                  {!emailChecking && emailTaken && !errors.email && (
+                    <span className="text-red-500 text-sm font-bold">✕</span>
+                  )}
+                </div>
+              </div>
               {touched.email && errors.email && (
                 <span className="text-[11px] text-red-500 font-medium block">{errors.email}</span>
+              )}
+              {!errors.email && emailTaken && (
+                <span className="text-[11px] text-red-500 font-medium block">
+                  This email is not available.{' '}
+                  {onSwitchToLogin && (
+                    <button type="button" onClick={onSwitchToLogin} className="text-blue-600 dark:text-blue-400 font-semibold hover:underline">
+                      Log in instead
+                    </button>
+                  )}
+                </span>
               )}
             </div>
 

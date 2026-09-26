@@ -179,6 +179,7 @@ router.post('/donations', authenticateUser, async (req, res) => {
         status: 'pending',
         proofOfPayment, // Store base64 string
         acknowledged: !!acknowledged,
+        photoUrl: user.photoUrl || null,
         date: new Date(),
         createdAt: new Date(),
       };
@@ -213,6 +214,7 @@ router.post('/donations', authenticateUser, async (req, res) => {
       paymongoLinkId: paymentLinkData.id,
       checkoutUrl: paymentLinkData.attributes.checkout_url,
       acknowledged: !!acknowledged,
+      photoUrl: user.photoUrl || null,
       date: new Date(),
       createdAt: new Date(),
     };
@@ -291,16 +293,47 @@ router.get('/donations/my-donations', authenticateUser, async (req, res) => {
 router.get('/donations/acknowledged', authenticateUser, async (req, res) => {
   try {
     const acknowledgedDonations = await donations
-      .find({ acknowledged: true, status: 'confirmed' })
-      .sort({ createdAt: -1 })
-      .limit(20)
-      .project({
-        member: 1,
-        amount: 1,
-        category: 1,
-        community: 1,
-        createdAt: 1
-      })
+      .aggregate([
+        { $match: { acknowledged: true, status: 'confirmed' } },
+        { $sort: { createdAt: -1 } },
+        { $limit: 20 },
+        {
+          $lookup: {
+            from: 'users',
+            let: { donorEmail: '$email' },
+            pipeline: [
+              {
+                $match: {
+                  $expr: {
+                    $eq: [
+                      { $toLower: { $ifNull: ['$email', ''] } },
+                      { $toLower: { $ifNull: ['$$donorEmail', ''] } }
+                    ]
+                  }
+                }
+              },
+              { $project: { photoUrl: 1 } }
+            ],
+            as: 'userInfo'
+          }
+        },
+        {
+          $project: {
+            member: 1,
+            amount: 1,
+            category: 1,
+            community: 1,
+            createdAt: 1,
+            photoUrl: {
+              $ifNull: [
+                '$photoUrl',
+                { $arrayElemAt: ['$userInfo.photoUrl', 0] },
+                null
+              ]
+            }
+          }
+        }
+      ])
       .toArray();
 
     res.json({ success: true, donors: acknowledgedDonations });

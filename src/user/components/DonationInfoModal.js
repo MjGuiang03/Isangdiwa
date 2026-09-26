@@ -3,7 +3,7 @@ import { X, Copy, Check } from 'lucide-react';
 import useSwipeToClose, { DragHandle } from '../hooks/useSwipeToClose';
 
 // You might need to adjust the path to your gcash QR code if you have one
-import gcashQr from '../../assets/gcash_qr.png';
+import gcashQr from '../../assets/gcash_qr.jpg';
 
 export default function DonationInfoModal({ isOpen, onClose }) {
   const { modalStyle, touchHandlers } = useSwipeToClose(onClose);
