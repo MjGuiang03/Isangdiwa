@@ -2,6 +2,7 @@ import { Router } from 'express';
 import { authenticateAdmin } from '../middleware/auth.js';
 import { users, loans, donations, savingsGoals, savingsTransactions, attendance, loanPayments, settings, reportCache, branches } from '../config/db.js';
 import { callGemini } from '../utils/gemini.js';
+import { sendEmailNotification } from '../utils/email.js';
 
 const router = Router();
 
@@ -841,6 +842,307 @@ router.get('/financial-report', authenticateAdmin, async (req, res) => {
   } catch (err) {
     console.error('[Financial Report Error]:', err);
     res.status(500).json({ success: false, message: 'Failed to generate financial report' });
+  }
+});
+
+/* ================== MEMBER CHURN RISK PREDICTION ================== */
+router.get('/churn-risk', authenticateAdmin, async (req, res) => {
+  try {
+    const branchFilter = req.query.branch || '';
+
+    // Check cache (6-hour TTL)
+    const cached = await settings.findOne({ _id: 'churn_risk_cache' });
+    if (cached && cached.generatedAt && !req.query.refresh) {
+      const ageMs = Date.now() - new Date(cached.generatedAt).getTime();
+      if (ageMs < 6 * 60 * 60 * 1000) {
+        // Apply branch filter on cached data
+        let data = { ...cached.data };
+        if (branchFilter) {
+          const filtered = data.atRiskMembers.filter(m => m.branch === branchFilter);
+          const allFiltered = data.allRisks.filter(r => r.branch === branchFilter);
+          data = {
+            ...data,
+            summary: {
+              total: allFiltered.length,
+              low: allFiltered.filter(m => m.riskLabel === 'Low').length,
+              moderate: allFiltered.filter(m => m.riskLabel === 'Moderate').length,
+              high: allFiltered.filter(m => m.riskLabel === 'High').length,
+              critical: allFiltered.filter(m => m.riskLabel === 'Critical').length,
+            },
+            atRiskMembers: filtered,
+          };
+        }
+        return res.json({ success: true, ...data, branches: cached.data.branches || [], cached: true, generatedAt: cached.generatedAt });
+      }
+    }
+
+    const now = new Date();
+
+    // Use aggregation pipelines to fetch only last dates per member (much faster than loading all records)
+    const [allMembers, lastAttendanceByEmail, lastDonationByEmail, attendanceTrends] = await Promise.all([
+      users.find({ isDeleted: { $ne: true } }).project({ email: 1, fullName: 1, name: 1, branch: 1, position: 1, lastLogin: 1, createdAt: 1 }).toArray(),
+      attendance.aggregate([
+        { $match: { email: { $exists: true, $ne: null } } },
+        { $group: { _id: '$email', lastDate: { $max: { $ifNull: ['$date', '$createdAt'] } } } }
+      ]).toArray(),
+      donations.aggregate([
+        { $match: { status: 'confirmed', email: { $exists: true, $ne: null } } },
+        { $group: { _id: '$email', lastDate: { $max: { $ifNull: ['$createdAt', '$date'] } } } }
+      ]).toArray(),
+      // Attendance counts per member for this quarter vs last quarter
+      (() => {
+        const quarterAgo = new Date(now); quarterAgo.setMonth(quarterAgo.getMonth() - 3);
+        const twoQuartersAgo = new Date(now); twoQuartersAgo.setMonth(twoQuartersAgo.getMonth() - 6);
+        return attendance.aggregate([
+          { $match: { email: { $exists: true, $ne: null } } },
+          { $addFields: { dateVal: { $ifNull: ['$date', '$createdAt'] } } },
+          { $match: { dateVal: { $gte: twoQuartersAgo } } },
+          { $group: {
+            _id: '$email',
+            thisQuarter: { $sum: { $cond: [{ $gte: ['$dateVal', quarterAgo] }, 1, 0] } },
+            lastQuarter: { $sum: { $cond: [{ $and: [{ $gte: ['$dateVal', twoQuartersAgo] }, { $lt: ['$dateVal', quarterAgo] }] }, 1, 0] } },
+          }}
+        ]).toArray();
+      })(),
+    ]);
+
+    // Build fast lookup maps from aggregation results
+    const attMap = Object.fromEntries(lastAttendanceByEmail.map(a => [a._id, a.lastDate]));
+    const donMap = Object.fromEntries(lastDonationByEmail.map(d => [d._id, d.lastDate]));
+    const trendMap = Object.fromEntries(attendanceTrends.map(t => [t._id, { thisQ: t.thisQuarter, lastQ: t.lastQuarter }]));
+
+    // Compute risk for each member
+    const memberRisks = allMembers.map(member => {
+      let riskScore = 0;
+      const factors = [];
+      const email = member.email;
+
+      // --- ATTENDANCE SIGNALS (max 40) ---
+      const lastAttDate = attMap[email] ? new Date(attMap[email]) : null;
+      let daysSinceLastAttendance = null;
+      if (lastAttDate && !isNaN(lastAttDate)) {
+        daysSinceLastAttendance = Math.floor((now - lastAttDate) / (1000 * 60 * 60 * 24));
+        if (daysSinceLastAttendance > 60) { riskScore += 40; factors.push(`No attendance in ${daysSinceLastAttendance} days`); }
+        else if (daysSinceLastAttendance > 30) { riskScore += 25; factors.push(`No attendance in ${daysSinceLastAttendance} days`); }
+        else if (daysSinceLastAttendance > 14) { riskScore += 10; factors.push(`Last attended ${daysSinceLastAttendance} days ago`); }
+      } else {
+        riskScore += 40;
+        factors.push('No attendance records found');
+        daysSinceLastAttendance = -1;
+      }
+
+      // Attendance trend (this quarter vs last quarter)
+      const trend = trendMap[email];
+      let attendanceTrendDrop = 0;
+      if (trend && trend.lastQ > 0) {
+        attendanceTrendDrop = Math.round(((trend.lastQ - trend.thisQ) / trend.lastQ) * 100);
+        if (attendanceTrendDrop > 50) { riskScore += 10; factors.push(`Attendance dropped ${attendanceTrendDrop}% vs last quarter`); }
+        else if (attendanceTrendDrop > 25) { riskScore += 5; factors.push(`Attendance dropped ${attendanceTrendDrop}% vs last quarter`); }
+      }
+
+      // --- DONATION SIGNALS (max 25) ---
+      const lastDonDate = donMap[email] ? new Date(donMap[email]) : null;
+      let daysSinceLastDonation = null;
+      if (lastDonDate && !isNaN(lastDonDate)) {
+        daysSinceLastDonation = Math.floor((now - lastDonDate) / (1000 * 60 * 60 * 24));
+        if (daysSinceLastDonation > 90) { riskScore += 25; factors.push(`No donation in ${daysSinceLastDonation} days`); }
+        else if (daysSinceLastDonation > 60) { riskScore += 15; factors.push(`No donation in ${daysSinceLastDonation} days`); }
+        else if (daysSinceLastDonation > 30) { riskScore += 5; factors.push(`Last donation ${daysSinceLastDonation} days ago`); }
+      } else {
+        daysSinceLastDonation = -1;
+      }
+
+      // --- PLATFORM ENGAGEMENT (max 15) ---
+      let daysSinceLastLogin = null;
+      if (member.lastLogin) {
+        daysSinceLastLogin = Math.floor((now - new Date(member.lastLogin)) / (1000 * 60 * 60 * 24));
+        if (daysSinceLastLogin > 60) { riskScore += 15; factors.push(`No login in ${daysSinceLastLogin} days`); }
+        else if (daysSinceLastLogin > 30) { riskScore += 10; factors.push(`No login in ${daysSinceLastLogin} days`); }
+        else if (daysSinceLastLogin > 14) { riskScore += 5; factors.push(`Last login ${daysSinceLastLogin} days ago`); }
+      }
+
+      // --- ACCOUNT AGE (max 20) ---
+      const accountAgeDays = member.createdAt
+        ? Math.floor((now - new Date(member.createdAt)) / (1000 * 60 * 60 * 24))
+        : 365;
+      if (accountAgeDays < 90) { riskScore += 20; factors.push(`New member (${Math.round(accountAgeDays / 30)} months)`); }
+      else if (accountAgeDays < 180) { riskScore += 10; factors.push(`Member for ${Math.round(accountAgeDays / 30)} months`); }
+      else if (accountAgeDays < 365) { riskScore += 5; }
+
+      riskScore = Math.min(100, riskScore);
+
+      let riskLabel;
+      if (riskScore >= 76) riskLabel = 'Critical';
+      else if (riskScore >= 51) riskLabel = 'High';
+      else if (riskScore >= 26) riskLabel = 'Moderate';
+      else riskLabel = 'Low';
+
+      return {
+        email: member.email,
+        fullName: member.fullName || member.name || 'Unknown',
+        branch: member.branch || 'Unknown',
+        position: member.position || 'Member',
+        riskScore, riskLabel, accountAgeDays,
+        daysSinceLastAttendance, daysSinceLastDonation, daysSinceLastLogin,
+        attendanceTrendDrop: Math.max(0, attendanceTrendDrop),
+        factors,
+      };
+    });
+
+    memberRisks.sort((a, b) => b.riskScore - a.riskScore);
+
+    const summary = {
+      total: memberRisks.length,
+      low: memberRisks.filter(m => m.riskLabel === 'Low').length,
+      moderate: memberRisks.filter(m => m.riskLabel === 'Moderate').length,
+      high: memberRisks.filter(m => m.riskLabel === 'High').length,
+      critical: memberRisks.filter(m => m.riskLabel === 'Critical').length,
+    };
+
+    const atRiskMembers = memberRisks.filter(m => m.riskScore >= 26);
+
+    // Collect unique branches for the filter dropdown
+    const branchesList = [...new Set(allMembers.map(m => m.branch).filter(Boolean))].sort();
+
+    const responseData = {
+      summary,
+      atRiskMembers: atRiskMembers.slice(0, 50),
+      allRisks: memberRisks.map(m => ({ email: m.email, riskScore: m.riskScore, riskLabel: m.riskLabel, branch: m.branch })),
+      aiNarrative: '',
+      branches: branchesList,
+    };
+
+    // Cache ALL data (unfiltered) so branch filter works from cache
+    const generatedAt = new Date();
+    await settings.updateOne(
+      { _id: 'churn_risk_cache' },
+      { $set: { data: responseData, generatedAt } },
+      { upsert: true }
+    );
+
+    // Apply branch filter for this response if requested
+    let finalResponse = responseData;
+    if (branchFilter) {
+      const filtered = atRiskMembers.filter(m => m.branch === branchFilter);
+      const allFiltered = memberRisks.filter(m => m.branch === branchFilter);
+      finalResponse = {
+        ...responseData,
+        summary: {
+          total: allFiltered.length,
+          low: allFiltered.filter(m => m.riskLabel === 'Low').length,
+          moderate: allFiltered.filter(m => m.riskLabel === 'Moderate').length,
+          high: allFiltered.filter(m => m.riskLabel === 'High').length,
+          critical: allFiltered.filter(m => m.riskLabel === 'Critical').length,
+        },
+        atRiskMembers: filtered.slice(0, 50),
+      };
+    }
+
+    // Send response immediately
+    res.json({ success: true, ...finalResponse, cached: false, generatedAt });
+
+    // Fire-and-forget: generate AI narrative in background and update cache
+    (async () => {
+      try {
+        const topRisk = atRiskMembers.slice(0, 10);
+        if (topRisk.length === 0) return;
+
+        const riskDataText = `Member Churn Risk Summary:
+- Total members: ${summary.total}
+- Low risk: ${summary.low}, Moderate: ${summary.moderate}, High: ${summary.high}, Critical: ${summary.critical}
+
+Top at-risk members:
+${topRisk.map(m => `- ${m.fullName} (${m.branch}): Score ${m.riskScore}/100 [${m.riskLabel}]. ${m.factors.join(', ')}`).join('\n')}
+
+Branch breakdown:
+${Object.entries(
+  atRiskMembers.reduce((acc, m) => { acc[m.branch] = (acc[m.branch] || 0) + 1; return acc; }, {})
+).sort((a, b) => b[1] - a[1]).slice(0, 5).map(([branch, count]) => `- ${branch}: ${count}`).join('\n')}`;
+
+        const narrative = await callGemini(
+          `You are a church engagement analyst for IsangDiwa (PUAC). Write a concise 2-3 sentence summary for the admin dashboard. Focus on how many members need attention, which branches are most affected, and whether new or established members are more at risk. Keep it under 60 words. Plain text only.`,
+          riskDataText,
+          { temperature: 0.4 }
+        );
+
+        if (narrative) {
+          responseData.aiNarrative = narrative;
+          await settings.updateOne(
+            { _id: 'churn_risk_cache' },
+            { $set: { 'data.aiNarrative': narrative } }
+          );
+        }
+      } catch (err) {
+        console.error('[Churn Risk Background AI Error]:', err.message);
+      }
+    })();
+  } catch (err) {
+    console.error('[Churn Risk Error]:', err);
+    res.status(500).json({ success: false, message: 'Failed to compute churn risk' });
+  }
+});
+
+
+/* ================== SEND CHURN REMINDER ================== */
+router.post('/send-churn-reminder', authenticateAdmin, async (req, res) => {
+  try {
+    const { email } = req.body;
+    if (!email) return res.status(400).json({ success: false, message: 'Email is required' });
+
+    // Check cooldown — max 1 reminder per member per 7 days
+    const member = await users.findOne({ email });
+    if (!member) return res.status(404).json({ success: false, message: 'Member not found' });
+
+    const lastReminder = member.lastChurnReminder ? new Date(member.lastChurnReminder) : null;
+    if (lastReminder) {
+      const daysSince = (Date.now() - lastReminder.getTime()) / (1000 * 60 * 60 * 24);
+      if (daysSince < 7) {
+        const nextAvailable = Math.ceil(7 - daysSince);
+        return res.status(429).json({
+          success: false,
+          message: `A reminder was already sent ${Math.floor(daysSince)} day(s) ago. You can send another in ${nextAvailable} day(s).`,
+        });
+      }
+    }
+
+    const firstName = (member.fullName || 'Member').split(' ')[0];
+    const branch = member.branch || 'your community';
+
+    // Send email
+    const htmlContent = `
+      <div style="font-family: 'Inter', Arial, sans-serif; max-width: 480px; margin: 0 auto; background: #ffffff; border-radius: 12px; overflow: hidden; border: 1px solid #e2e8f0;">
+        <div style="background: linear-gradient(135deg, #0D1F45 0%, #1E3A8A 100%); padding: 32px 24px; text-align: center;">
+          <h1 style="color: #F5C800; font-size: 24px; margin: 0; font-weight: 700;">IsangDiwa</h1>
+          <p style="color: rgba(255,255,255,0.8); font-size: 13px; margin: 8px 0 0;">Philippine United Apostolic Church</p>
+        </div>
+        <div style="padding: 32px 24px;">
+          <h2 style="color: #1e293b; font-size: 20px; margin: 0 0 16px;">We miss you, ${firstName}! 🙏</h2>
+          <p style="color: #475569; font-size: 14px; line-height: 1.7; margin: 0 0 16px;">
+            It's been a while since we last saw you at <strong>${branch}</strong>. Your presence means so much to our church family.
+          </p>
+          <p style="color: #475569; font-size: 14px; line-height: 1.7; margin: 0 0 24px;">
+            Every gathering is a chance to grow together in faith, and we'd love to have you back. Whether it's a Sunday service, a fellowship, or just catching up — you're always welcome.
+          </p>
+          <p style="color: #475569; font-size: 14px; line-height: 1.7; margin: 0;">
+            See you soon! 💛<br/>
+            <em>— Your IsangDiwa Church Family</em>
+          </p>
+        </div>
+        <div style="background: #f8fafc; padding: 16px 24px; text-align: center; border-top: 1px solid #e2e8f0;">
+          <p style="color: #94a3b8; font-size: 11px; margin: 0;">Philippine United Apostolic Church · IsangDiwa Portal</p>
+        </div>
+      </div>
+    `;
+
+    await sendEmailNotification(email, 'We miss you at church! 🙏 — IsangDiwa', htmlContent);
+
+    // Update cooldown timestamp
+    await users.updateOne({ email }, { $set: { lastChurnReminder: new Date() } });
+
+    res.json({ success: true, message: `Reminder sent to ${member.fullName || email}` });
+  } catch (err) {
+    console.error('[Churn Reminder Error]:', err);
+    res.status(500).json({ success: false, message: 'Failed to send reminder' });
   }
 });
 

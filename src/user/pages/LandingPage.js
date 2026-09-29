@@ -3,11 +3,13 @@ import React, { useState, useEffect, useRef } from 'react';
 import { useLocation, useNavigate } from 'react-router-dom';
 import { 
   ArrowRight, ChevronRight, CheckCircle2
+  ArrowRight, ChevronRight, CheckCircle2, Copy, Check
 } from 'lucide-react';
 
 import LoginModal from '../components/LoginModal';
 import SignupModal from '../components/SignupModal';
 import ResetPassword from '../components/ResetPassword';
+import OfferingModal from '../components/OfferingModal';
 import { TermsModal, PrivacyModal } from '../components/PolicyModals';
 
 import puacLogo from '../../assets/optimized/puaclogo.webp';
@@ -20,6 +22,8 @@ import missionImg from '../../assets/optimized/events/pic5.webp';
 import featureSavings from '../../assets/optimized/features/savings.webp';
 import featureChatbot from '../../assets/optimized/features/chatbot1.webp';
 import featureAttendance from '../../assets/optimized/features/attendance.webp';
+import featureDonation from '../../assets/optimized/features/transactions1.webp';
+import gcashQrOnly from '../../assets/gcash_qr_only.jpg';
 
 /* ── Small count-up component for hero stats ── */
 function AnimatedCounter({ value, suffix = '', duration = 1600 }) {
@@ -65,6 +69,8 @@ export default function LandingPage() {
   const [showResetModal, setShowResetModal] = useState(false);
   const [showTermsModal, setShowTermsModal] = useState(false);
   const [showPrivacyModal, setShowPrivacyModal] = useState(false);
+  const [showOfferingModal, setShowOfferingModal] = useState(false);
+  const [copiedField, setCopiedField] = useState(null);
   const [navVisible, setNavVisible] = useState(false);
   const [heroVisible, setHeroVisible] = useState(false);
 
@@ -140,6 +146,13 @@ export default function LandingPage() {
   const handleSwitchToSignup = () => { setShowLoginModal(false); setShowSignupModal(true); };
   const handleSwitchToReset = () => { setShowLoginModal(false); setShowResetModal(true); };
   const handleSwitchToLoginFromSignup = () => { setShowSignupModal(false); setShowLoginModal(true); };
+  const handleOpenOffering = () => setShowOfferingModal(true);
+  const handleCloseOffering = () => setShowOfferingModal(false);
+  const handleCopy = (text, field) => {
+    navigator.clipboard.writeText(text);
+    setCopiedField(field);
+    setTimeout(() => setCopiedField(null), 2000);
+  };
 
   const scrollToSection = (e, id) => {
     e.preventDefault();
@@ -196,6 +209,8 @@ export default function LandingPage() {
             {/* Frosted glass pill with matched height */}
             <div className="hidden md:flex items-center gap-1 h-11 px-1.5 rounded-full bg-white/15 backdrop-blur-md border border-white/25 shadow-sm">
               <a href="#features" onClick={(e) => scrollToSection(e, 'features')} className="no-underline text-xs font-bold h-8 flex items-center px-4 rounded-full text-white drop-shadow-[0_1px_3px_rgba(0,0,0,0.8)] hover:bg-white/20 transition-all duration-300">Features</a>
+              <a href="#gallery" onClick={(e) => scrollToSection(e, 'gallery')} className="no-underline text-xs font-bold h-8 flex items-center px-4 rounded-full text-white drop-shadow-[0_1px_3px_rgba(0,0,0,0.8)] hover:bg-white/20 transition-all duration-300">Events</a>
+              <a href="#giving" onClick={(e) => scrollToSection(e, 'giving')} className="no-underline text-xs font-bold h-8 flex items-center px-4 rounded-full text-white drop-shadow-[0_1px_3px_rgba(0,0,0,0.8)] hover:bg-white/20 transition-all duration-300">Giving</a>
               <a href="#gallery" onClick={(e) => scrollToSection(e, 'gallery')} className="no-underline text-xs font-bold h-8 flex items-center px-4 rounded-full text-white drop-shadow-[0_1px_3px_rgba(0,0,0,0.8)] hover:bg-white/20 transition-all duration-300">Events</a>
             </div>
 
@@ -337,6 +352,43 @@ export default function LandingPage() {
           </div>
         </div>
 
+        {/* Feature 4: Tithes & Digital Offerings */}
+        <div id="giving" className="grid grid-cols-1 lg:grid-cols-12 gap-10 lg:gap-14 items-center opacity-0 translate-y-10 transition-all duration-700" ref={addToRefs}>
+          <div className="lg:col-span-5 lg:order-2 space-y-4">
+            <span className="text-xs font-bold uppercase tracking-wider text-rose-600">Digital Tithes &amp; Giving</span>
+            <h3 className="font-dm text-2xl sm:text-4xl font-extrabold text-[#0D1F45]">
+              Give with Joy &amp; Complete Transparency
+            </h3>
+            <p className="text-slate-600 text-sm sm:text-base leading-relaxed">
+              Support church ministries and missionary outreach with complete peace of mind. Give through secure GCash or bank transfers, designate your offering to specific church departments, and receive instant verifiable digital receipts.
+            </p>
+            <ul className="space-y-2 text-sm text-slate-700 font-medium">
+              <li className="feature-li flex items-center gap-2"><CheckCircle2 size={16} className="text-emerald-500 shrink-0" /> Direct offerings to General, Missions, Youth, or Department funds</li>
+              <li className="feature-li flex items-center gap-2"><CheckCircle2 size={16} className="text-emerald-500 shrink-0" /> Instant verifiable digital receipts with official transaction IDs</li>
+              <li className="feature-li flex items-center gap-2"><CheckCircle2 size={16} className="text-emerald-500 shrink-0" /> Weekly Generous Givers honor roll celebrating cheerful givers</li>
+              <li className="feature-li flex items-center gap-2"><CheckCircle2 size={16} className="text-emerald-500 shrink-0" /> Permanent personal giving ledger stored in your member account</li>
+            </ul>
+            <div className="pt-2">
+              <button 
+                onClick={handleOpenOffering}
+                className="shine-btn bg-[#0E254A] hover:bg-[#142E54] text-white font-bold text-xs sm:text-sm px-6 py-3 rounded-xl transition-all duration-300 flex items-center gap-2 cursor-pointer shadow-md hover:-translate-y-0.5 active:scale-95"
+              >
+                Make an Offering <ArrowRight size={15} />
+              </button>
+            </div>
+          </div>
+          <div className="lg:col-span-7 lg:order-1">
+            <div className="bg-white p-2 sm:p-3 rounded-3xl shadow-2xl border border-slate-200 overflow-hidden transform hover:scale-[1.01] transition-transform duration-500">
+              <img 
+                src={featureDonation} 
+                alt="Digital Tithes and Offerings UI" 
+                className="w-full h-auto rounded-2xl object-cover object-top max-h-[550px]" 
+                loading="lazy" width="1000" height="600" 
+              />
+            </div>
+          </div>
+        </div>
+
       </section>
 
       {/* ── BENTO GRID GALLERY — CHURCH EVENTS & CELEBRATIONS ── */}
@@ -443,6 +495,130 @@ export default function LandingPage() {
         </div>
       </section>
 
+      {/* ── SEPARATE GIVING SECTION (MINIMAL DESIGN) ── */}
+      <section id="giving" className="py-20 sm:py-24 bg-white text-[#0D1F45] px-4 sm:px-8 border-t border-slate-200/80">
+        <div className="max-w-4xl mx-auto space-y-10 opacity-0 translate-y-10 transition-all duration-700" ref={addToRefs}>
+          
+          {/* Section Header */}
+          <div className="text-center space-y-3">
+            <span className="text-xs font-bold uppercase tracking-wider text-rose-600 bg-rose-50 px-3.5 py-1.5 rounded-full border border-rose-100">
+              Tithes &amp; Offerings
+            </span>
+            <h2 className="font-dm text-3xl sm:text-4xl font-extrabold text-[#0D1F45]">
+              Support Our Church Ministry
+            </h2>
+            <p className="text-slate-600 text-sm sm:text-base max-w-xl mx-auto leading-relaxed">
+              Scan the official QR code below or transfer directly to support PUAC church operations, missions, and community outreach.
+            </p>
+          </div>
+
+          {/* Minimal Giving Card */}
+          <div className="bg-[#F8FAFC] border border-slate-200/90 rounded-3xl p-6 sm:p-10 shadow-lg flex flex-col md:flex-row items-center gap-8 md:gap-12">
+            
+            {/* QR Code Container */}
+            <div className="bg-white p-4 sm:p-5 rounded-2xl border border-slate-200 shadow-md shrink-0 flex flex-col items-center">
+              <img 
+                src={gcashQrOnly} 
+                alt="PUAC GCash / InstaPay QR Code" 
+                className="w-56 h-56 sm:w-64 sm:h-64 object-contain rounded-xl"
+                loading="lazy"
+                width="256"
+                height="256"
+              />
+              <span className="text-[11px] font-bold text-slate-500 uppercase tracking-wider mt-3 flex items-center gap-1.5">
+                Scan via GCash / InstaPay
+              </span>
+            </div>
+
+            {/* Account Details */}
+            <div className="flex-1 w-full space-y-4 text-xs font-inter">
+              
+              {/* GCash / InstaPay Info */}
+              <div className="bg-white p-4 rounded-2xl border border-slate-200 space-y-2 shadow-xs">
+                <span className="text-[11px] font-bold uppercase tracking-wider text-blue-600 block">
+                  GCash / E-Wallet
+                </span>
+                <div className="flex items-center justify-between py-1 border-b border-slate-100">
+                  <span className="text-slate-500 font-medium">Account Name:</span>
+                  <span className="font-bold text-slate-900 text-sm">IsangDiwa Church</span>
+                </div>
+                <div className="flex items-center justify-between py-1">
+                  <span className="text-slate-500 font-medium">GCash Number:</span>
+                  <div className="flex items-center gap-2">
+                    <span className="font-mono font-bold text-slate-900 text-sm">0912 345 6789</span>
+                    <button
+                      type="button"
+                      onClick={() => handleCopy('09123456789', 'gcash')}
+                      className="inline-flex items-center gap-1 px-2.5 py-1 rounded-lg bg-blue-50 hover:bg-blue-100 text-blue-600 border border-blue-200 font-bold text-[11px] transition-colors cursor-pointer"
+                      title="Copy GCash Number"
+                    >
+                      {copiedField === 'gcash' ? (
+                        <>
+                          <Check size={12} className="text-emerald-600" />
+                          <span className="text-emerald-600">Copied!</span>
+                        </>
+                      ) : (
+                        <>
+                          <Copy size={12} />
+                          <span>Copy</span>
+                        </>
+                      )}
+                    </button>
+                  </div>
+                </div>
+              </div>
+
+              {/* BDO Bank Info */}
+              <div className="bg-white p-4 rounded-2xl border border-slate-200 space-y-2 shadow-xs">
+                <span className="text-[11px] font-bold uppercase tracking-wider text-indigo-600 block">
+                  Bank Transfer (BDO)
+                </span>
+                <div className="flex items-center justify-between py-1 border-b border-slate-100">
+                  <span className="text-slate-500 font-medium">Bank Name:</span>
+                  <span className="font-bold text-slate-900 text-sm">BDO Unibank</span>
+                </div>
+                <div className="flex items-center justify-between py-1 border-b border-slate-100">
+                  <span className="text-slate-500 font-medium">Account Name:</span>
+                  <span className="font-bold text-slate-900 text-xs sm:text-sm text-right">Philippine United Apostolic Church</span>
+                </div>
+                <div className="flex items-center justify-between py-1">
+                  <span className="text-slate-500 font-medium">Account Number:</span>
+                  <div className="flex items-center gap-2">
+                    <span className="font-mono font-bold text-slate-900 text-sm">0012 3456 7890</span>
+                    <button
+                      type="button"
+                      onClick={() => handleCopy('001234567890', 'bank')}
+                      className="inline-flex items-center gap-1 px-2.5 py-1 rounded-lg bg-indigo-50 hover:bg-indigo-100 text-indigo-600 border border-indigo-200 font-bold text-[11px] transition-colors cursor-pointer"
+                      title="Copy Account Number"
+                    >
+                      {copiedField === 'bank' ? (
+                        <>
+                          <Check size={12} className="text-emerald-600" />
+                          <span className="text-emerald-600">Copied!</span>
+                        </>
+                      ) : (
+                        <>
+                          <Copy size={12} />
+                          <span>Copy</span>
+                        </>
+                      )}
+                    </button>
+                  </div>
+                </div>
+              </div>
+
+              {/* Short Note */}
+              <p className="text-[11px] text-slate-500 leading-relaxed m-0 pt-1 text-center md:text-left">
+                Please include your name and designated ministry (General Fund, Missions, Youth, Children's) in the transfer notes or remarks.
+              </p>
+
+            </div>
+
+          </div>
+
+        </div>
+      </section>
+
       {/* ── CTA BANNER: TASTESKILL CINEMATIC FULL-BLEED ── */}
       <section className="py-16 sm:py-24 px-5 sm:px-10 bg-[#0E254A] text-white text-center relative overflow-hidden">
         <div className="max-w-4xl mx-auto space-y-5 sm:space-y-6 relative z-10 opacity-0 translate-y-10 transition-all duration-700" ref={addToRefs}>
@@ -498,6 +674,7 @@ export default function LandingPage() {
             <ul className="space-y-2 sm:space-y-2.5 list-none p-0">
               <li><a href="#features" onClick={(e) => scrollToSection(e, 'features')} className="hover:text-white transition-colors no-underline text-slate-400 text-xs">Member Features</a></li>
               <li><a href="#gallery" onClick={(e) => scrollToSection(e, 'gallery')} className="hover:text-white transition-colors no-underline text-slate-400 text-xs">Branch Gallery</a></li>
+              <li><a href="#giving" onClick={(e) => scrollToSection(e, 'giving')} className="hover:text-white transition-colors no-underline text-slate-400 text-xs">Giving &amp; Stewardship</a></li>
               <li><button type="button" onClick={() => setShowTermsModal(true)} className="hover:text-white transition-colors text-slate-400 text-xs text-left cursor-pointer p-0 bg-transparent border-0">Terms & Conditions</button></li>
               <li><button type="button" onClick={() => setShowPrivacyModal(true)} className="hover:text-white transition-colors text-slate-400 text-xs text-left cursor-pointer p-0 bg-transparent border-0">Privacy Policy</button></li>
             </ul>
@@ -563,6 +740,12 @@ export default function LandingPage() {
       <PrivacyModal
         isOpen={showPrivacyModal}
         onClose={() => setShowPrivacyModal(false)}
+      />
+      <OfferingModal
+        isOpen={showOfferingModal}
+        onClose={handleCloseOffering}
+        onOpenLogin={handleOpenLogin}
+        onOpenSignup={handleOpenSignup}
       />
 
     </div>

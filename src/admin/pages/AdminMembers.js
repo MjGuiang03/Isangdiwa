@@ -8,7 +8,7 @@ import useDebounce from '../../hooks/useDebounce';
 import React from 'react';
 
 import API from '../../utils/api';
-/* ─── query-string builder ──────────────────────────────────────────────── */
+/* Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬ query-string builder Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬ */
 function buildQuery(params) {
   return Object.entries(params)
     .filter(([, v]) => v !== '' && v !== 'all' && v != null && v !== false)
@@ -16,19 +16,19 @@ function buildQuery(params) {
     .join('&');
 }
 
-/* ─── Pencil (Edit) icon ────────────────────────────────────────────────── */
+/* Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬ Pencil (Edit) icon Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬ */
 const IconEdit = () => (
   <Edit size={17} color="#155DFC" />
 );
 
-/* ─── Trash (Delete) icon ───────────────────────────────────────────────── */
+/* Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬ Trash (Delete) icon Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬ */
 const IconTrash = () => (
   <Trash2 size={17} color="#F04438" />
 );
 
-/* ═══════════════════════════════════════════════════════════════════════════
+/* Ã¢â€¢ÂÃ¢â€¢ÂÃ¢â€¢ÂÃ¢â€¢ÂÃ¢â€¢ÂÃ¢â€¢ÂÃ¢â€¢ÂÃ¢â€¢ÂÃ¢â€¢ÂÃ¢â€¢ÂÃ¢â€¢ÂÃ¢â€¢ÂÃ¢â€¢ÂÃ¢â€¢ÂÃ¢â€¢ÂÃ¢â€¢ÂÃ¢â€¢ÂÃ¢â€¢ÂÃ¢â€¢ÂÃ¢â€¢ÂÃ¢â€¢ÂÃ¢â€¢ÂÃ¢â€¢ÂÃ¢â€¢ÂÃ¢â€¢ÂÃ¢â€¢ÂÃ¢â€¢ÂÃ¢â€¢ÂÃ¢â€¢ÂÃ¢â€¢ÂÃ¢â€¢ÂÃ¢â€¢ÂÃ¢â€¢ÂÃ¢â€¢ÂÃ¢â€¢ÂÃ¢â€¢ÂÃ¢â€¢ÂÃ¢â€¢ÂÃ¢â€¢ÂÃ¢â€¢ÂÃ¢â€¢ÂÃ¢â€¢ÂÃ¢â€¢ÂÃ¢â€¢ÂÃ¢â€¢ÂÃ¢â€¢ÂÃ¢â€¢ÂÃ¢â€¢ÂÃ¢â€¢ÂÃ¢â€¢ÂÃ¢â€¢ÂÃ¢â€¢ÂÃ¢â€¢ÂÃ¢â€¢ÂÃ¢â€¢ÂÃ¢â€¢ÂÃ¢â€¢ÂÃ¢â€¢ÂÃ¢â€¢ÂÃ¢â€¢ÂÃ¢â€¢ÂÃ¢â€¢ÂÃ¢â€¢ÂÃ¢â€¢ÂÃ¢â€¢ÂÃ¢â€¢ÂÃ¢â€¢ÂÃ¢â€¢ÂÃ¢â€¢ÂÃ¢â€¢ÂÃ¢â€¢ÂÃ¢â€¢ÂÃ¢â€¢ÂÃ¢â€¢ÂÃ¢â€¢Â
    EDIT MODAL
-═══════════════════════════════════════════════════════════════════════════ */
+Ã¢â€¢ÂÃ¢â€¢ÂÃ¢â€¢ÂÃ¢â€¢ÂÃ¢â€¢ÂÃ¢â€¢ÂÃ¢â€¢ÂÃ¢â€¢ÂÃ¢â€¢ÂÃ¢â€¢ÂÃ¢â€¢ÂÃ¢â€¢ÂÃ¢â€¢ÂÃ¢â€¢ÂÃ¢â€¢ÂÃ¢â€¢ÂÃ¢â€¢ÂÃ¢â€¢ÂÃ¢â€¢ÂÃ¢â€¢ÂÃ¢â€¢ÂÃ¢â€¢ÂÃ¢â€¢ÂÃ¢â€¢ÂÃ¢â€¢ÂÃ¢â€¢ÂÃ¢â€¢ÂÃ¢â€¢ÂÃ¢â€¢ÂÃ¢â€¢ÂÃ¢â€¢ÂÃ¢â€¢ÂÃ¢â€¢ÂÃ¢â€¢ÂÃ¢â€¢ÂÃ¢â€¢ÂÃ¢â€¢ÂÃ¢â€¢ÂÃ¢â€¢ÂÃ¢â€¢ÂÃ¢â€¢ÂÃ¢â€¢ÂÃ¢â€¢ÂÃ¢â€¢ÂÃ¢â€¢ÂÃ¢â€¢ÂÃ¢â€¢ÂÃ¢â€¢ÂÃ¢â€¢ÂÃ¢â€¢ÂÃ¢â€¢ÂÃ¢â€¢ÂÃ¢â€¢ÂÃ¢â€¢ÂÃ¢â€¢ÂÃ¢â€¢ÂÃ¢â€¢ÂÃ¢â€¢ÂÃ¢â€¢ÂÃ¢â€¢ÂÃ¢â€¢ÂÃ¢â€¢ÂÃ¢â€¢ÂÃ¢â€¢ÂÃ¢â€¢ÂÃ¢â€¢ÂÃ¢â€¢ÂÃ¢â€¢ÂÃ¢â€¢ÂÃ¢â€¢ÂÃ¢â€¢ÂÃ¢â€¢ÂÃ¢â€¢ÂÃ¢â€¢ÂÃ¢â€¢Â */
 function EditModal({ member, onClose, onSave }) {
   const [form, setForm] = useState({
     fullName: member.fullName || member.name || '',
@@ -245,9 +245,9 @@ function EditModal({ member, onClose, onSave }) {
   );
 }
 
-/* ═══════════════════════════════════════════════════════════════════════════
+/* Ã¢â€¢ÂÃ¢â€¢ÂÃ¢â€¢ÂÃ¢â€¢ÂÃ¢â€¢ÂÃ¢â€¢ÂÃ¢â€¢ÂÃ¢â€¢ÂÃ¢â€¢ÂÃ¢â€¢ÂÃ¢â€¢ÂÃ¢â€¢ÂÃ¢â€¢ÂÃ¢â€¢ÂÃ¢â€¢ÂÃ¢â€¢ÂÃ¢â€¢ÂÃ¢â€¢ÂÃ¢â€¢ÂÃ¢â€¢ÂÃ¢â€¢ÂÃ¢â€¢ÂÃ¢â€¢ÂÃ¢â€¢ÂÃ¢â€¢ÂÃ¢â€¢ÂÃ¢â€¢ÂÃ¢â€¢ÂÃ¢â€¢ÂÃ¢â€¢ÂÃ¢â€¢ÂÃ¢â€¢ÂÃ¢â€¢ÂÃ¢â€¢ÂÃ¢â€¢ÂÃ¢â€¢ÂÃ¢â€¢ÂÃ¢â€¢ÂÃ¢â€¢ÂÃ¢â€¢ÂÃ¢â€¢ÂÃ¢â€¢ÂÃ¢â€¢ÂÃ¢â€¢ÂÃ¢â€¢ÂÃ¢â€¢ÂÃ¢â€¢ÂÃ¢â€¢ÂÃ¢â€¢ÂÃ¢â€¢ÂÃ¢â€¢ÂÃ¢â€¢ÂÃ¢â€¢ÂÃ¢â€¢ÂÃ¢â€¢ÂÃ¢â€¢ÂÃ¢â€¢ÂÃ¢â€¢ÂÃ¢â€¢ÂÃ¢â€¢ÂÃ¢â€¢ÂÃ¢â€¢ÂÃ¢â€¢ÂÃ¢â€¢ÂÃ¢â€¢ÂÃ¢â€¢ÂÃ¢â€¢ÂÃ¢â€¢ÂÃ¢â€¢ÂÃ¢â€¢ÂÃ¢â€¢ÂÃ¢â€¢ÂÃ¢â€¢ÂÃ¢â€¢ÂÃ¢â€¢Â
    DELETE MODAL
-═══════════════════════════════════════════════════════════════════════════ */
+Ã¢â€¢ÂÃ¢â€¢ÂÃ¢â€¢ÂÃ¢â€¢ÂÃ¢â€¢ÂÃ¢â€¢ÂÃ¢â€¢ÂÃ¢â€¢ÂÃ¢â€¢ÂÃ¢â€¢ÂÃ¢â€¢ÂÃ¢â€¢ÂÃ¢â€¢ÂÃ¢â€¢ÂÃ¢â€¢ÂÃ¢â€¢ÂÃ¢â€¢ÂÃ¢â€¢ÂÃ¢â€¢ÂÃ¢â€¢ÂÃ¢â€¢ÂÃ¢â€¢ÂÃ¢â€¢ÂÃ¢â€¢ÂÃ¢â€¢ÂÃ¢â€¢ÂÃ¢â€¢ÂÃ¢â€¢ÂÃ¢â€¢ÂÃ¢â€¢ÂÃ¢â€¢ÂÃ¢â€¢ÂÃ¢â€¢ÂÃ¢â€¢ÂÃ¢â€¢ÂÃ¢â€¢ÂÃ¢â€¢ÂÃ¢â€¢ÂÃ¢â€¢ÂÃ¢â€¢ÂÃ¢â€¢ÂÃ¢â€¢ÂÃ¢â€¢ÂÃ¢â€¢ÂÃ¢â€¢ÂÃ¢â€¢ÂÃ¢â€¢ÂÃ¢â€¢ÂÃ¢â€¢ÂÃ¢â€¢ÂÃ¢â€¢ÂÃ¢â€¢ÂÃ¢â€¢ÂÃ¢â€¢ÂÃ¢â€¢ÂÃ¢â€¢ÂÃ¢â€¢ÂÃ¢â€¢ÂÃ¢â€¢ÂÃ¢â€¢ÂÃ¢â€¢ÂÃ¢â€¢ÂÃ¢â€¢ÂÃ¢â€¢ÂÃ¢â€¢ÂÃ¢â€¢ÂÃ¢â€¢ÂÃ¢â€¢ÂÃ¢â€¢ÂÃ¢â€¢ÂÃ¢â€¢ÂÃ¢â€¢ÂÃ¢â€¢ÂÃ¢â€¢ÂÃ¢â€¢Â */
 function DeleteModal({ member, onClose, onConfirm }) {
   const [adminPassword, setAdminPassword] = useState('');
   const [showPassword,  setShowPassword]  = useState(false);
@@ -343,9 +343,9 @@ function DeleteModal({ member, onClose, onConfirm }) {
   );
 }
 
-/* ═══════════════════════════════════════════════════════════════════════════
+/* Ã¢â€¢ÂÃ¢â€¢ÂÃ¢â€¢ÂÃ¢â€¢ÂÃ¢â€¢ÂÃ¢â€¢ÂÃ¢â€¢ÂÃ¢â€¢ÂÃ¢â€¢ÂÃ¢â€¢ÂÃ¢â€¢ÂÃ¢â€¢ÂÃ¢â€¢ÂÃ¢â€¢ÂÃ¢â€¢ÂÃ¢â€¢ÂÃ¢â€¢ÂÃ¢â€¢ÂÃ¢â€¢ÂÃ¢â€¢ÂÃ¢â€¢ÂÃ¢â€¢ÂÃ¢â€¢ÂÃ¢â€¢ÂÃ¢â€¢ÂÃ¢â€¢ÂÃ¢â€¢ÂÃ¢â€¢ÂÃ¢â€¢ÂÃ¢â€¢ÂÃ¢â€¢ÂÃ¢â€¢ÂÃ¢â€¢ÂÃ¢â€¢ÂÃ¢â€¢ÂÃ¢â€¢ÂÃ¢â€¢ÂÃ¢â€¢ÂÃ¢â€¢ÂÃ¢â€¢ÂÃ¢â€¢ÂÃ¢â€¢ÂÃ¢â€¢ÂÃ¢â€¢ÂÃ¢â€¢ÂÃ¢â€¢ÂÃ¢â€¢ÂÃ¢â€¢ÂÃ¢â€¢ÂÃ¢â€¢ÂÃ¢â€¢ÂÃ¢â€¢ÂÃ¢â€¢ÂÃ¢â€¢ÂÃ¢â€¢ÂÃ¢â€¢ÂÃ¢â€¢ÂÃ¢â€¢ÂÃ¢â€¢ÂÃ¢â€¢ÂÃ¢â€¢ÂÃ¢â€¢ÂÃ¢â€¢ÂÃ¢â€¢ÂÃ¢â€¢ÂÃ¢â€¢ÂÃ¢â€¢ÂÃ¢â€¢ÂÃ¢â€¢ÂÃ¢â€¢ÂÃ¢â€¢ÂÃ¢â€¢ÂÃ¢â€¢ÂÃ¢â€¢ÂÃ¢â€¢Â
    ADD MEMBER MODAL
-═══════════════════════════════════════════════════════════════════════════ */
+Ã¢â€¢ÂÃ¢â€¢ÂÃ¢â€¢ÂÃ¢â€¢ÂÃ¢â€¢ÂÃ¢â€¢ÂÃ¢â€¢ÂÃ¢â€¢ÂÃ¢â€¢ÂÃ¢â€¢ÂÃ¢â€¢ÂÃ¢â€¢ÂÃ¢â€¢ÂÃ¢â€¢ÂÃ¢â€¢ÂÃ¢â€¢ÂÃ¢â€¢ÂÃ¢â€¢ÂÃ¢â€¢ÂÃ¢â€¢ÂÃ¢â€¢ÂÃ¢â€¢ÂÃ¢â€¢ÂÃ¢â€¢ÂÃ¢â€¢ÂÃ¢â€¢ÂÃ¢â€¢ÂÃ¢â€¢ÂÃ¢â€¢ÂÃ¢â€¢ÂÃ¢â€¢ÂÃ¢â€¢ÂÃ¢â€¢ÂÃ¢â€¢ÂÃ¢â€¢ÂÃ¢â€¢ÂÃ¢â€¢ÂÃ¢â€¢ÂÃ¢â€¢ÂÃ¢â€¢ÂÃ¢â€¢ÂÃ¢â€¢ÂÃ¢â€¢ÂÃ¢â€¢ÂÃ¢â€¢ÂÃ¢â€¢ÂÃ¢â€¢ÂÃ¢â€¢ÂÃ¢â€¢ÂÃ¢â€¢ÂÃ¢â€¢ÂÃ¢â€¢ÂÃ¢â€¢ÂÃ¢â€¢ÂÃ¢â€¢ÂÃ¢â€¢ÂÃ¢â€¢ÂÃ¢â€¢ÂÃ¢â€¢ÂÃ¢â€¢ÂÃ¢â€¢ÂÃ¢â€¢ÂÃ¢â€¢ÂÃ¢â€¢ÂÃ¢â€¢ÂÃ¢â€¢ÂÃ¢â€¢ÂÃ¢â€¢ÂÃ¢â€¢ÂÃ¢â€¢ÂÃ¢â€¢ÂÃ¢â€¢ÂÃ¢â€¢ÂÃ¢â€¢ÂÃ¢â€¢Â */
 function AddMemberModal({ onClose, onSave }) {
   const [form, setForm] = useState({
     fullName: '', email: '', password: '', phone: '', branch: '', position: 'Member'
@@ -552,9 +552,9 @@ function AddMemberModal({ onClose, onSave }) {
   );
 }
 
-/* ═══════════════════════════════════════════════════════════════════════════
+/* Ã¢â€¢ÂÃ¢â€¢ÂÃ¢â€¢ÂÃ¢â€¢ÂÃ¢â€¢ÂÃ¢â€¢ÂÃ¢â€¢ÂÃ¢â€¢ÂÃ¢â€¢ÂÃ¢â€¢ÂÃ¢â€¢ÂÃ¢â€¢ÂÃ¢â€¢ÂÃ¢â€¢ÂÃ¢â€¢ÂÃ¢â€¢ÂÃ¢â€¢ÂÃ¢â€¢ÂÃ¢â€¢ÂÃ¢â€¢ÂÃ¢â€¢ÂÃ¢â€¢ÂÃ¢â€¢ÂÃ¢â€¢ÂÃ¢â€¢ÂÃ¢â€¢ÂÃ¢â€¢ÂÃ¢â€¢ÂÃ¢â€¢ÂÃ¢â€¢ÂÃ¢â€¢ÂÃ¢â€¢ÂÃ¢â€¢ÂÃ¢â€¢ÂÃ¢â€¢ÂÃ¢â€¢ÂÃ¢â€¢ÂÃ¢â€¢ÂÃ¢â€¢ÂÃ¢â€¢ÂÃ¢â€¢ÂÃ¢â€¢ÂÃ¢â€¢ÂÃ¢â€¢ÂÃ¢â€¢ÂÃ¢â€¢ÂÃ¢â€¢ÂÃ¢â€¢ÂÃ¢â€¢ÂÃ¢â€¢ÂÃ¢â€¢ÂÃ¢â€¢ÂÃ¢â€¢ÂÃ¢â€¢ÂÃ¢â€¢ÂÃ¢â€¢ÂÃ¢â€¢ÂÃ¢â€¢ÂÃ¢â€¢ÂÃ¢â€¢ÂÃ¢â€¢ÂÃ¢â€¢ÂÃ¢â€¢ÂÃ¢â€¢ÂÃ¢â€¢ÂÃ¢â€¢ÂÃ¢â€¢ÂÃ¢â€¢ÂÃ¢â€¢ÂÃ¢â€¢ÂÃ¢â€¢ÂÃ¢â€¢ÂÃ¢â€¢ÂÃ¢â€¢ÂÃ¢â€¢Â
    LINK RFID MODAL
-═══════════════════════════════════════════════════════════════════════════ */
+Ã¢â€¢ÂÃ¢â€¢ÂÃ¢â€¢ÂÃ¢â€¢ÂÃ¢â€¢ÂÃ¢â€¢ÂÃ¢â€¢ÂÃ¢â€¢ÂÃ¢â€¢ÂÃ¢â€¢ÂÃ¢â€¢ÂÃ¢â€¢ÂÃ¢â€¢ÂÃ¢â€¢ÂÃ¢â€¢ÂÃ¢â€¢ÂÃ¢â€¢ÂÃ¢â€¢ÂÃ¢â€¢ÂÃ¢â€¢ÂÃ¢â€¢ÂÃ¢â€¢ÂÃ¢â€¢ÂÃ¢â€¢ÂÃ¢â€¢ÂÃ¢â€¢ÂÃ¢â€¢ÂÃ¢â€¢ÂÃ¢â€¢ÂÃ¢â€¢ÂÃ¢â€¢ÂÃ¢â€¢ÂÃ¢â€¢ÂÃ¢â€¢ÂÃ¢â€¢ÂÃ¢â€¢ÂÃ¢â€¢ÂÃ¢â€¢ÂÃ¢â€¢ÂÃ¢â€¢ÂÃ¢â€¢ÂÃ¢â€¢ÂÃ¢â€¢ÂÃ¢â€¢ÂÃ¢â€¢ÂÃ¢â€¢ÂÃ¢â€¢ÂÃ¢â€¢ÂÃ¢â€¢ÂÃ¢â€¢ÂÃ¢â€¢ÂÃ¢â€¢ÂÃ¢â€¢ÂÃ¢â€¢ÂÃ¢â€¢ÂÃ¢â€¢ÂÃ¢â€¢ÂÃ¢â€¢ÂÃ¢â€¢ÂÃ¢â€¢ÂÃ¢â€¢ÂÃ¢â€¢ÂÃ¢â€¢ÂÃ¢â€¢ÂÃ¢â€¢ÂÃ¢â€¢ÂÃ¢â€¢ÂÃ¢â€¢ÂÃ¢â€¢ÂÃ¢â€¢ÂÃ¢â€¢ÂÃ¢â€¢ÂÃ¢â€¢ÂÃ¢â€¢ÂÃ¢â€¢Â */
 function LinkRFIDModal({ member, onClose, onSave }) {
   const [rfidCode, setRfidCode] = useState('');
   const [saving, setSaving] = useState(false);
@@ -643,9 +643,9 @@ function LinkRFIDModal({ member, onClose, onSave }) {
 }
 
 
-/* ═══════════════════════════════════════════════════════════════════════════
+/* Ã¢â€¢ÂÃ¢â€¢ÂÃ¢â€¢ÂÃ¢â€¢ÂÃ¢â€¢ÂÃ¢â€¢ÂÃ¢â€¢ÂÃ¢â€¢ÂÃ¢â€¢ÂÃ¢â€¢ÂÃ¢â€¢ÂÃ¢â€¢ÂÃ¢â€¢ÂÃ¢â€¢ÂÃ¢â€¢ÂÃ¢â€¢ÂÃ¢â€¢ÂÃ¢â€¢ÂÃ¢â€¢ÂÃ¢â€¢ÂÃ¢â€¢ÂÃ¢â€¢ÂÃ¢â€¢ÂÃ¢â€¢ÂÃ¢â€¢ÂÃ¢â€¢ÂÃ¢â€¢ÂÃ¢â€¢ÂÃ¢â€¢ÂÃ¢â€¢ÂÃ¢â€¢ÂÃ¢â€¢ÂÃ¢â€¢ÂÃ¢â€¢ÂÃ¢â€¢ÂÃ¢â€¢ÂÃ¢â€¢ÂÃ¢â€¢ÂÃ¢â€¢ÂÃ¢â€¢ÂÃ¢â€¢ÂÃ¢â€¢ÂÃ¢â€¢ÂÃ¢â€¢ÂÃ¢â€¢ÂÃ¢â€¢ÂÃ¢â€¢ÂÃ¢â€¢ÂÃ¢â€¢ÂÃ¢â€¢ÂÃ¢â€¢ÂÃ¢â€¢ÂÃ¢â€¢ÂÃ¢â€¢ÂÃ¢â€¢ÂÃ¢â€¢ÂÃ¢â€¢ÂÃ¢â€¢ÂÃ¢â€¢ÂÃ¢â€¢ÂÃ¢â€¢ÂÃ¢â€¢ÂÃ¢â€¢ÂÃ¢â€¢ÂÃ¢â€¢ÂÃ¢â€¢ÂÃ¢â€¢ÂÃ¢â€¢ÂÃ¢â€¢ÂÃ¢â€¢ÂÃ¢â€¢ÂÃ¢â€¢ÂÃ¢â€¢ÂÃ¢â€¢ÂÃ¢â€¢Â
    MAIN PAGE
-═══════════════════════════════════════════════════════════════════════════ */
+Ã¢â€¢ÂÃ¢â€¢ÂÃ¢â€¢ÂÃ¢â€¢ÂÃ¢â€¢ÂÃ¢â€¢ÂÃ¢â€¢ÂÃ¢â€¢ÂÃ¢â€¢ÂÃ¢â€¢ÂÃ¢â€¢ÂÃ¢â€¢ÂÃ¢â€¢ÂÃ¢â€¢ÂÃ¢â€¢ÂÃ¢â€¢ÂÃ¢â€¢ÂÃ¢â€¢ÂÃ¢â€¢ÂÃ¢â€¢ÂÃ¢â€¢ÂÃ¢â€¢ÂÃ¢â€¢ÂÃ¢â€¢ÂÃ¢â€¢ÂÃ¢â€¢ÂÃ¢â€¢ÂÃ¢â€¢ÂÃ¢â€¢ÂÃ¢â€¢ÂÃ¢â€¢ÂÃ¢â€¢ÂÃ¢â€¢ÂÃ¢â€¢ÂÃ¢â€¢ÂÃ¢â€¢ÂÃ¢â€¢ÂÃ¢â€¢ÂÃ¢â€¢ÂÃ¢â€¢ÂÃ¢â€¢ÂÃ¢â€¢ÂÃ¢â€¢ÂÃ¢â€¢ÂÃ¢â€¢ÂÃ¢â€¢ÂÃ¢â€¢ÂÃ¢â€¢ÂÃ¢â€¢ÂÃ¢â€¢ÂÃ¢â€¢ÂÃ¢â€¢ÂÃ¢â€¢ÂÃ¢â€¢ÂÃ¢â€¢ÂÃ¢â€¢ÂÃ¢â€¢ÂÃ¢â€¢ÂÃ¢â€¢ÂÃ¢â€¢ÂÃ¢â€¢ÂÃ¢â€¢ÂÃ¢â€¢ÂÃ¢â€¢ÂÃ¢â€¢ÂÃ¢â€¢ÂÃ¢â€¢ÂÃ¢â€¢ÂÃ¢â€¢ÂÃ¢â€¢ÂÃ¢â€¢ÂÃ¢â€¢ÂÃ¢â€¢ÂÃ¢â€¢ÂÃ¢â€¢Â */
 const getToken = () =>
   localStorage.getItem('adminToken') ||
   localStorage.getItem('admin_token') ||
@@ -670,6 +670,11 @@ export default function AdminMembers() {
   const [editMember,     setEditMember]     = useState(null);
   const [deleteMember,   setDeleteMember]   = useState(null);
   const [viewMember,     setViewMember]     = useState(null);
+  const { data: profileData, isLoading: profileLoading } = useSWR(
+    viewMember?.email ? `${API}/api/admin/members/${encodeURIComponent(viewMember.email)}/profile` : null,
+    url => fetch(url, { headers: { Authorization: `Bearer ${localStorage.getItem('adminToken')}` } }).then(r => r.json()),
+    { revalidateOnFocus: false }
+  );
   const [showAddModal,   setShowAddModal]   = useState(false);
   const [enrollRFIDMember, setEnrollRFIDMember] = useState(null);
   const [openDropdownId, setOpenDropdownId] = useState(null);
@@ -787,88 +792,123 @@ export default function AdminMembers() {
 
       {viewMember   && (
         <div className="fixed inset-0 bg-black/50 backdrop-blur-sm z-[1000] flex items-center justify-center p-4" onClick={() => setViewMember(null)}>
-          <div className="bg-white dark:bg-[#1E2130] rounded-2xl w-full max-w-[600px] shadow-2xl border border-slate-200 dark:border-white/10 flex flex-col max-h-[90vh] overflow-hidden" onClick={e => e.stopPropagation()}>
-            <div className="flex items-center gap-4 p-5 border-b border-slate-200 dark:border-white/10 shrink-0 relative bg-slate-50 dark:bg-black/20">
-              <div className="w-12 h-12 rounded-xl flex items-center justify-center shrink-0 bg-white dark:bg-white/10 shadow-sm text-blue-600 dark:text-blue-400 border border-slate-200 dark:border-white/5">
-                <Eye size={22} strokeWidth={2.5} />
-              </div>
-              <div className="flex flex-col">
-                <h2 className="m-0 font-inter text-lg font-bold text-slate-800 dark:text-white">Member Details</h2>
-                <p className="m-0 font-inter text-[13px] text-slate-500 dark:text-slate-400 mt-0.5">View complete profile information</p>
-              </div>
-              <button className="absolute top-5 right-5 w-8 h-8 flex items-center justify-center rounded-lg bg-transparent text-slate-400 hover:bg-slate-200 dark:hover:bg-white/10 transition-colors cursor-pointer border-none" onClick={() => setViewMember(null)}>
-                <X size={20} />
+          <div className="bg-white dark:bg-[#1E2130] rounded-2xl w-full max-w-[640px] shadow-2xl border border-slate-200 dark:border-white/10 flex flex-col max-h-[90vh] overflow-hidden" onClick={e => e.stopPropagation()}>
+
+            {/* Header */}
+            <div className="px-6 pt-6 pb-5 border-b border-slate-100 dark:border-white/5 shrink-0 relative">
+              <button className="absolute top-4 right-4 w-8 h-8 flex items-center justify-center rounded-lg text-slate-400 hover:bg-slate-100 dark:hover:bg-white/10 transition-colors cursor-pointer border-none bg-transparent" onClick={() => setViewMember(null)}>
+                <X size={18} />
               </button>
-            </div>
-
-            <div className="p-6 overflow-y-auto custom-scrollbar flex-1 flex flex-col gap-6">
-              {/* Profile Header Card */}
-              <div className="flex items-start gap-4 p-5 rounded-2xl bg-gradient-to-br from-blue-50 to-blue-100/50 dark:from-blue-500/10 dark:to-blue-500/5 border border-blue-100 dark:border-blue-500/20 relative overflow-hidden">
-                <div className="w-16 h-16 rounded-full bg-white dark:bg-white/10 flex items-center justify-center shrink-0 text-blue-600 dark:text-blue-400 text-2xl font-bold shadow-sm border border-blue-200 dark:border-blue-500/30">
-                  {(viewMember.fullName || viewMember.name || 'M').charAt(0)}
+              <div className="flex items-center gap-4">
+                <div className="w-14 h-14 rounded-full bg-slate-100 dark:bg-white/10 flex items-center justify-center shrink-0 text-slate-600 dark:text-slate-300 text-xl font-bold border border-slate-200 dark:border-white/10">
+                  {(viewMember.fullName || viewMember.name || 'M').charAt(0).toUpperCase()}
                 </div>
-                <div className="flex flex-col pt-1 z-10">
-                  <h3 className="m-0 font-inter text-xl font-bold text-slate-800 dark:text-white">{viewMember.fullName || viewMember.name}</h3>
-                  <p className="m-0 font-inter text-[13px] text-slate-500 dark:text-slate-400 mt-1">{viewMember.email}</p>
-                  <div className="flex items-center gap-2 mt-3">
-                    <span className="inline-flex items-center px-2.5 py-1 rounded-md text-[10px] font-bold tracking-wide uppercase bg-blue-100/50 text-blue-700 dark:bg-blue-500/20 dark:text-blue-300 border border-blue-200/50 dark:border-blue-500/30">
-                      {viewMember.position || 'Member'}
-                    </span>
-                    <span className={`inline-flex items-center px-2.5 py-1 rounded-md text-[10px] font-bold tracking-wide uppercase border ${viewMember.status?.toLowerCase() === 'active' ? 'bg-emerald-50/50 text-emerald-700 border-emerald-200/50 dark:bg-emerald-500/10 dark:text-emerald-400 dark:border-emerald-500/20' : 'bg-slate-100/50 text-slate-600 border-slate-200/50 dark:bg-white/5 dark:text-slate-400 dark:border-white/10'}`}>
-                      {viewMember.status || 'Active'}
-                    </span>
-                  </div>
-                </div>
-                <div className="absolute -right-6 -bottom-6 w-32 h-32 bg-blue-500/10 rounded-full blur-2xl pointer-events-none"></div>
-              </div>
-
-              {/* Structured Details Sections */}
-              <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
-                <div className="flex flex-col gap-5">
-                  <div>
-                    <p className="font-inter text-[11px] uppercase tracking-widest font-bold text-slate-500 dark:text-slate-400 mb-2 pl-1">Contact Details</p>
-                    <div className="bg-slate-50 dark:bg-[#252836] rounded-xl p-4 border border-slate-100 dark:border-white/5">
-                      <div className="flex flex-col gap-4">
-                        <div>
-                          <p className="text-[12px] text-slate-500 dark:text-slate-400 font-medium m-0">Phone Number</p>
-                          <p className="text-[13px] font-semibold text-slate-800 dark:text-white m-0 mt-1">{viewMember.phone || '—'}</p>
-                        </div>
-                      </div>
-                    </div>
-                  </div>
-                  <div>
-                    <p className="font-inter text-[11px] uppercase tracking-widest font-bold text-slate-500 dark:text-slate-400 mb-2 pl-1">Affiliation</p>
-                    <div className="bg-slate-50 dark:bg-[#252836] rounded-xl p-4 border border-slate-100 dark:border-white/5">
-                      <div className="flex flex-col gap-4">
-                        <div>
-                          <p className="text-[12px] text-slate-500 dark:text-slate-400 font-medium m-0">Community Branch</p>
-                          <p className="text-[13px] font-semibold text-slate-800 dark:text-white m-0 mt-1">{viewMember.branch || '—'}</p>
-                        </div>
-
-                      </div>
-                    </div>
-                  </div>
-                </div>
-
-                <div className="flex flex-col gap-5">
-                  <div>
-                    <p className="font-inter text-[11px] uppercase tracking-widest font-bold text-slate-500 dark:text-slate-400 mb-2 pl-1">System Identification</p>
-                    <div className="bg-slate-50 dark:bg-[#252836] rounded-xl p-4 border border-slate-100 dark:border-white/5">
-                      <div className="flex flex-col gap-4">
-                        <div>
-                          <p className="text-[12px] text-slate-500 dark:text-slate-400 font-medium m-0">Member ID</p>
-                          <p className="text-[13px] font-mono font-semibold text-slate-800 dark:text-white m-0 mt-1">{viewMember.memberId || '—'}</p>
-                        </div>
-                        <div>
-                          <p className="text-[12px] text-slate-500 dark:text-slate-400 font-medium m-0">RFID Card ID</p>
-                          <p className="text-[13px] font-mono font-semibold text-slate-800 dark:text-white m-0 mt-1">{viewMember.rfidCardId || 'Not Linked'}</p>
-                        </div>
-                      </div>
-                    </div>
+                <div className="min-w-0">
+                  <h2 className="m-0 font-inter text-[18px] font-bold text-slate-800 dark:text-white truncate">{viewMember.fullName || viewMember.name}</h2>
+                  <p className="m-0 font-inter text-[13px] text-slate-400 dark:text-slate-500 mt-0.5 truncate">{viewMember.email}</p>
+                  <div className="flex items-center gap-1.5 mt-2.5 flex-wrap">
+                    <span className="px-2 py-0.5 rounded text-[10px] font-bold uppercase tracking-wider bg-slate-800 text-white dark:bg-white/15 dark:text-slate-200">{viewMember.position || 'Member'}</span>
+                    <span className={`px-2 py-0.5 rounded text-[10px] font-bold uppercase tracking-wider ${viewMember.status?.toLowerCase() === 'active' ? 'bg-emerald-100 text-emerald-700 dark:bg-emerald-500/15 dark:text-emerald-400' : 'bg-slate-100 text-slate-500 dark:bg-white/5 dark:text-slate-400'}`}>{viewMember.status || 'Active'}</span>
+                    <span className="px-2 py-0.5 rounded text-[10px] font-medium text-slate-400 dark:text-slate-500 bg-slate-50 dark:bg-white/5">{viewMember.branch || ''}</span>
+                    {viewMember.createdAt && <span className="text-[10px] text-slate-400 dark:text-slate-500">{'\u00B7'} Joined {new Date(viewMember.createdAt).toLocaleDateString('en-US', { month: 'short', year: 'numeric' })}</span>}
                   </div>
                 </div>
               </div>
             </div>
+
+            {/* Body */}
+            <div className="flex-1 overflow-y-auto" style={{ scrollbarWidth: 'thin' }}>
+
+              {profileLoading ? (
+                <div className="flex items-center justify-center py-10">
+                  <div className="w-5 h-5 border-2 border-slate-200 dark:border-white/10 border-t-slate-600 dark:border-t-slate-300 rounded-full animate-spin mr-2.5"></div>
+                  <span className="font-inter text-[13px] text-slate-400">Loading activity...</span>
+                </div>
+              ) : profileData?.success ? (
+                <>
+                  {/* Stats Row */}
+                  <div className="grid grid-cols-4 border-b border-slate-100 dark:border-white/5">
+                    <div className="px-4 py-4 text-center border-r border-slate-100 dark:border-white/5">
+                      <p className="font-inter text-[17px] font-bold text-slate-800 dark:text-white m-0 tabular-nums">{'\u20B1'}{(profileData.donations?.total || 0).toLocaleString()}</p>
+                      <p className="font-inter text-[10px] font-semibold text-slate-400 dark:text-slate-500 uppercase tracking-wider m-0 mt-1">{profileData.donations?.count || 0} Donations</p>
+                    </div>
+                    <div className="px-4 py-4 text-center border-r border-slate-100 dark:border-white/5">
+                      <p className="font-inter text-[17px] font-bold text-slate-800 dark:text-white m-0 tabular-nums">{profileData.attendance?.total || 0}</p>
+                      <p className="font-inter text-[10px] font-semibold text-slate-400 dark:text-slate-500 uppercase tracking-wider m-0 mt-1">Services</p>
+                    </div>
+                    <div className="px-4 py-4 text-center border-r border-slate-100 dark:border-white/5">
+                      <p className="font-inter text-[17px] font-bold text-slate-800 dark:text-white m-0 tabular-nums">{'\u20B1'}{(profileData.savings?.totalSaved || 0).toLocaleString()}</p>
+                      <p className="font-inter text-[10px] font-semibold text-slate-400 dark:text-slate-500 uppercase tracking-wider m-0 mt-1">{profileData.savings?.goalsCount || 0} Goals</p>
+                    </div>
+                    <div className="px-4 py-4 text-center">
+                      <p className={`font-inter text-[17px] font-bold m-0 tabular-nums ${profileData.risk?.label === 'Critical' ? 'text-rose-600 dark:text-rose-400' : profileData.risk?.label === 'High' ? 'text-orange-600 dark:text-orange-400' : profileData.risk?.label === 'Moderate' ? 'text-amber-600 dark:text-amber-400' : 'text-emerald-600 dark:text-emerald-400'}`}>{profileData.risk?.score ?? '\u2014'}</p>
+                      <p className="font-inter text-[10px] font-semibold text-slate-400 dark:text-slate-500 uppercase tracking-wider m-0 mt-1">{profileData.risk?.label || 'N/A'} Risk</p>
+                    </div>
+                  </div>
+
+                  {/* Activity: Donations + Attendance */}
+                  <div className="grid grid-cols-5 divide-x divide-slate-100 dark:divide-white/5 border-b border-slate-100 dark:border-white/5">
+                    <div className="col-span-3 p-5">
+                      <p className="font-inter text-[11px] uppercase tracking-widest font-bold text-slate-400 dark:text-slate-500 m-0 mb-4">Donations by Category</p>
+                      {profileData.donations?.byCategory?.length > 0 ? (
+                        <div className="flex flex-col gap-3">
+                          {profileData.donations.byCategory.map((cat, i) => (
+                            <div key={i} className="flex items-center gap-3">
+                              <span className="font-inter text-[12px] text-slate-600 dark:text-slate-300 w-[120px] truncate shrink-0">{cat.category}</span>
+                              <div className="flex-1 h-[5px] bg-slate-100 dark:bg-white/5 rounded-full overflow-hidden">
+                                <div className="h-full bg-slate-600 dark:bg-slate-400 rounded-full" style={{ width: `${cat.percentage}%` }}></div>
+                              </div>
+                              <span className="font-inter text-[11px] font-semibold text-slate-500 dark:text-slate-400 tabular-nums w-[55px] text-right shrink-0">{'\u20B1'}{cat.total.toLocaleString()}</span>
+                            </div>
+                          ))}
+                        </div>
+                      ) : (
+                        <p className="font-inter text-[12px] text-slate-300 dark:text-slate-600 m-0 italic">No donation records</p>
+                      )}
+                    </div>
+                    <div className="col-span-2 p-5">
+                      <p className="font-inter text-[11px] uppercase tracking-widest font-bold text-slate-400 dark:text-slate-500 m-0 mb-4">Attendance {'\u00B7'} 6 mo</p>
+                      {profileData.attendance?.monthly?.length > 0 ? (
+                        <div className="flex items-end gap-[6px]" style={{ height: '100px' }}>
+                          {profileData.attendance.monthly.map((m, i) => {
+                            const maxCount = Math.max(...profileData.attendance.monthly.map(x => x.count), 1);
+                            const heightPct = (m.count / maxCount) * 100;
+                            return (
+                              <div key={i} className="flex-1 flex flex-col items-center gap-1.5">
+                                <span className="font-inter text-[10px] font-semibold text-slate-500 dark:text-slate-400 tabular-nums">{m.count || '\u00B7'}</span>
+                                <div className="w-full bg-slate-100 dark:bg-white/5 rounded-sm relative" style={{ height: '60px' }}>
+                                  <div className={`absolute bottom-0 w-full rounded-sm transition-all duration-500 ${m.count === 0 ? 'bg-slate-200 dark:bg-white/5' : 'bg-slate-600 dark:bg-slate-400'}`} style={{ height: m.count === 0 ? '2px' : `${Math.max(heightPct, 10)}%` }}></div>
+                                </div>
+                                <span className="font-inter text-[9px] font-medium text-slate-400 dark:text-slate-500">{m.month}</span>
+                              </div>
+                            );
+                          })}
+                        </div>
+                      ) : (
+                        <p className="font-inter text-[12px] text-slate-300 dark:text-slate-600 m-0 italic">No data</p>
+                      )}
+                    </div>
+                  </div>
+                </>
+              ) : null}
+
+              {/* Footer Info */}
+              <div className="grid grid-cols-3 divide-x divide-slate-100 dark:divide-white/5">
+                <div className="px-5 py-4">
+                  <p className="font-inter text-[10px] uppercase tracking-widest font-bold text-slate-400 dark:text-slate-500 m-0 mb-1.5">Phone</p>
+                  <p className="font-inter text-[13px] font-semibold text-slate-700 dark:text-slate-200 m-0">{viewMember.phone || '\u2014'}</p>
+                </div>
+                <div className="px-5 py-4">
+                  <p className="font-inter text-[10px] uppercase tracking-widest font-bold text-slate-400 dark:text-slate-500 m-0 mb-1.5">Member ID</p>
+                  <p className="font-inter text-[13px] font-mono font-semibold text-slate-700 dark:text-slate-200 m-0">{viewMember.memberId || '\u2014'}</p>
+                </div>
+                <div className="px-5 py-4">
+                  <p className="font-inter text-[10px] uppercase tracking-widest font-bold text-slate-400 dark:text-slate-500 m-0 mb-1.5">RFID</p>
+                  <p className="font-inter text-[13px] font-mono font-semibold text-slate-700 dark:text-slate-200 m-0">{viewMember.rfidCardId || 'Not linked'}</p>
+                </div>
+              </div>
+            </div>
+
           </div>
         </div>
       )}
@@ -1062,7 +1102,7 @@ export default function AdminMembers() {
               ) : (
                 members.map(m => (
                   <tr key={m._id} className="hover:bg-slate-50 dark:hover:bg-white/5 transition-colors border-b border-slate-100 dark:border-white/5">
-                    <td className="px-4 py-3 text-[13px] font-inter font-semibold text-slate-800 dark:text-white truncate">{m.memberId || '—'}</td>
+                    <td className="px-4 py-3 text-[13px] font-inter font-semibold text-slate-800 dark:text-white truncate">{m.memberId || 'Ã¢â‚¬â€'}</td>
                     <td className="px-4 py-3">
                       <div className="flex items-center gap-2.5">
                         <div className="w-8 h-8 rounded-full bg-blue-100 dark:bg-blue-500/20 text-blue-600 dark:text-blue-400 flex items-center justify-center shrink-0 font-bold text-xs">{(m.fullName || m.name || 'M').charAt(0)}</div>

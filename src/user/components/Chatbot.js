@@ -1,10 +1,12 @@
 import React, { useState, useEffect, useRef, memo } from 'react';
 import { useAuth } from '../../context/AuthContext';
-import { Send, X, Sparkles, Bot } from 'lucide-react';
+import { Send, X, Sparkles, Bot, RotateCcw } from 'lucide-react';
 import API from '../../utils/api';
 
 const formatTime = (date) => {
-  return date.toLocaleTimeString('en-US', { hour: 'numeric', minute: '2-digit', hour12: true });
+  if (!date) return '';
+  const d = date instanceof Date ? date : new Date(date);
+  return isNaN(d.getTime()) ? '' : d.toLocaleTimeString('en-US', { hour: 'numeric', minute: '2-digit', hour12: true });
 };
 
 const renderInline = (text, keyPrefix) => {
@@ -87,9 +89,8 @@ const ChatMessage = memo(function ChatMessage({ msg, firstName }) {
       }`}>
         {msg.greeting ? (
           <p className="text-xs">
-            👋 Hi <strong className="font-bold">{firstName}</strong>! I'm <strong className="font-bold">IsangDiwa Chatbot</strong>, your AI-powered assistant.
-            I can help with <strong className="font-bold">donations</strong>, <strong className="font-bold">savings</strong>, <strong className="font-bold">attendance</strong>, and more.
-            {' '}Type anything to get started!
+            🙏 Hello <strong className="font-bold">{firstName}</strong>! I'm <strong className="font-bold">IsangDiwa Chatbot</strong>.
+            I can help answer questions about the <strong className="font-bold">PUAC church</strong>, <strong className="font-bold">donations</strong>, <strong className="font-bold">savings</strong>, and <strong className="font-bold">attendance</strong>. How can I help you?
           </p>
         ) : (
           <div className="text-xs space-y-1">
@@ -153,8 +154,78 @@ const KB_SHARED = [
   },
   {
     patterns: ['what is isangdiwa', 'about isangdiwa', 'isangdiwa', 'ano ang isangdiwa', 'portal'],
-    responses: ["🙏 **IsangDiwa** is the official digital portal of the **Philippine United Apostolic Church**.\n\nAll members can manage donations, savings, attendance, and branches. **Church officers** also get access to loans."],
-    quickReplies: ['Donations', 'Savings', 'Attendance']
+    responses: ["🙏 **IsangDiwa** is the official digital portal of the **Philippine United Apostolic Church (PUAC)**.\n\nMembers can manage donations, savings, attendance, and view branches. Church officers also have loan access."],
+    quickReplies: ['PUAC Beliefs', 'Church History', 'Donations']
+  },
+  {
+    patterns: ['vision', 'mission', 'layunin'],
+    responses: ["🎯 **Vision:** To be a Christ-centered Church that leads people to Jesus, strengthens believers, builds a united community, and prepares souls for His return.\n\n**Mission:** Bringing people to the grace of Jesus, reconciling people to God, led by the Holy Ghost, and preparing believers for Christ's return."],
+    quickReplies: ['PUAC Beliefs', 'Leadership', 'Donations']
+  },
+  {
+    patterns: ['history', 'origin', 'founded', 'kasaysayan', 'kailan'],
+    responses: ["🏛️ PUAC originated from the **Apostolic Church of Queensland (1886)** and was established in the Philippines in **1993** by **Apostle Clifford Flor**. Today, we have **68 branches** and over **3,400 members**!"],
+    quickReplies: ['Vision & Mission', 'Leadership', 'Branches']
+  },
+  {
+    patterns: ['belief', 'doctrine', 'trinity', 'doktrina', 'paniniwala'],
+    responses: ["📖 PUAC is **Trinitarian** (Father, Son, and Holy Spirit), built on the teachings of the apostles (Ephesians 2:19–22). We practice water baptism by sprinkling and celebrate Holy Communion weekly."],
+    quickReplies: ['Baptism', 'Holy Communion', 'History']
+  },
+  {
+    patterns: ['baptism', 'bautismo', 'binyag'],
+    responses: ["💧 **Baptism:** Administered by **sprinkling (wisik)** in the name of the **Father, Son, and Holy Spirit** for any age as an act of faith, repentance, and new life in Christ."],
+    quickReplies: ['Holy Communion', 'PUAC Beliefs', 'Branches']
+  },
+  {
+    patterns: ['communion', 'banal na hapunan', 'lord\'s supper'],
+    responses: ["🍞🍷 **Holy Communion:** Celebrated **weekly** during Sunday worship using host (ostia) and wine. All attending believers are qualified to partake."],
+    quickReplies: ['Baptism', 'Worship Schedule', 'PUAC Beliefs']
+  },
+  {
+    patterns: ['leader', 'apostle', 'bishop', 'namumuno', 'jimmy soriano'],
+    responses: ["👥 **PUAC Leaders:**\n- **Current Apostle in PH:** Apostle Jimmy Soriano\n- **Current National Bishop:** National Bishop Danilo Ravina\n- **Pioneering Apostle (1993):** Apostle Clifford Flor"],
+    quickReplies: ['PUAC Beliefs', 'History', 'Branches']
+  },
+  {
+    patterns: ['transfer', 'lipat'],
+    responses: ["🏛️ **Branch Transfer:** Yes! Members are free to attend or transfer to any PUAC branch anytime as long as you continue serving the Lord faithfully."],
+    quickReplies: ['Branches', 'Attendance']
+  },
+  {
+    patterns: ['dedication', 'alay', 'pag-aalay', 'baby dedication', 'child dedication'],
+    responses: ["👶 **Pag-aalay ng Bata (Child Dedication):**\nPanalangin ng pasasalamat at pagpapasakop ng anak sa Panginoon. Maaaring hilingin sa pastor o church leader na ipanalangin ang bata."],
+    quickReplies: ['Baptism', 'Worship Schedule', 'PUAC Beliefs']
+  },
+  {
+    patterns: ['kasal', 'wedding', 'marriage', 'matrimony'],
+    responses: ["💍 **Kasal (Church Wedding):**\nNagsasagawa ang simbahan ng kasal sa pangunguna ng pastor. Kung hindi miyembro ang mapapangasawa, sumangguni muna sa pastor ukol sa proseso, marriage license, at counseling."],
+    quickReplies: ['PUAC Beliefs', 'Branches', 'Worship Schedule']
+  },
+  {
+    patterns: ['funeral', 'burol', 'libing', 'memorial', 'namatay'],
+    responses: ["🕊️ **Burol at Libing:**\nNangunguna ang pastor o church leader sa panalangin at memorial service upang magbigay ng pakikiramay at ipaalala ang pag-asa sa Diyos."],
+    quickReplies: ['PUAC Beliefs', 'Prayer Request', 'Branches']
+  },
+  {
+    patterns: ['tithe', 'tithes', 'ikapu', 'handog', 'offering'],
+    responses: ["💵 **Ikapu at Handog:**\nAng pagbibigay ay pagkilala na ang lahat ng biyaya ay mula sa Diyos. Ginagawa ito nang **kusang-loob at masayang puso, hindi dahil sa pamimilit** (2 Corinto 9:7)."],
+    quickReplies: ['Donations', 'PUAC Beliefs', 'Savings']
+  },
+  {
+    patterns: ['midweek', 'prayer meeting', 'bible study', 'gitna ng linggo'],
+    responses: ["📖 **Gawain sa Gitna ng Linggo:**\nBukod sa Sunday worship (9:30 AM), may prayer meeting, Bible study, o fellowship depende sa branch. Magtanong sa inyong local pastor para sa schedule."],
+    quickReplies: ['Worship Schedule', 'Branches', 'PUAC Beliefs']
+  },
+  {
+    patterns: ['dress code', 'kasuotan', 'damit', 'suot', 'shorts', 'sleeveless', 'tsinelas'],
+    responses: ["👗 **Kasuotan sa Pagsamba:**\nHinihikayat ang lahat na magsuot ng **maayos, disente, at angkop na kasuotan (modest attire)** bilang paggalang sa Diyos at sa pagsamba."],
+    quickReplies: ['Worship Schedule', 'PUAC Beliefs', 'Branches']
+  },
+  {
+    patterns: ['inactive', 'pagbabalik', 'balik', 'reactivate', 'lumayo'],
+    responses: ["🤝 **Pagbabalik-loob:**\nKung matagal kang hindi nakadalo, bukas ang simbahan na tanggapin ka muli! Maaari kang dumalo at makipag-usap sa pastor o elder para magabayan ka."],
+    quickReplies: ['Worship Schedule', 'Branches', 'PUAC Beliefs']
   },
 ];
 
@@ -201,19 +272,83 @@ const INITIAL_MESSAGE = {
   sender: 'bot',
   text: null,
   greeting: true,
-  quickReplies: ['Donations', 'Savings', 'Attendance', 'Branches'],
+  quickReplies: ['PUAC Beliefs', 'Donations', 'Savings', 'Branches'],
   timestamp: new Date(),
 };
 
 export default function Chatbot({ isOpen, onClose }) {
-  const { profile } = useAuth();
-  const firstName = profile?.fullName?.split(' ')[0] || 'there';
+  const { profile, user } = useAuth();
+  const userEmail = profile?.email || user?.email || (() => {
+    try {
+      const stored = localStorage.getItem('user');
+      return stored ? JSON.parse(stored)?.email : null;
+    } catch {
+      return null;
+    }
+  })();
+  const firstName = profile?.fullName?.split(' ')[0] || user?.fullName?.split(' ')[0] || 'there';
   const token = localStorage.getItem('token');
 
-  const [messages, setMessages] = useState([INITIAL_MESSAGE]);
+  const [messages, setMessages] = useState(() => {
+    if (userEmail) {
+      try {
+        const saved = localStorage.getItem(`isangdiwa_chat_${userEmail}`);
+        if (saved) {
+          const parsed = JSON.parse(saved);
+          if (Array.isArray(parsed) && parsed.length > 0) {
+            return parsed.map(m => ({
+              ...m,
+              timestamp: m.timestamp ? new Date(m.timestamp) : new Date(),
+            }));
+          }
+        }
+      } catch (e) {
+        console.warn('[Chatbot] Failed to read initial chat cache:', e);
+      }
+    }
+    return [INITIAL_MESSAGE];
+  });
   const [input, setInput] = useState('');
   const [isTyping, setIsTyping] = useState(false);
   const [isOfficer, setIsOfficer] = useState(false);
+
+  // Sync from localStorage if user switches accounts
+  useEffect(() => {
+    if (!userEmail) return;
+    try {
+      const saved = localStorage.getItem(`isangdiwa_chat_${userEmail}`);
+      if (saved) {
+        const parsed = JSON.parse(saved);
+        if (Array.isArray(parsed) && parsed.length > 0) {
+          setMessages(parsed.map(m => ({
+            ...m,
+            timestamp: m.timestamp ? new Date(m.timestamp) : new Date(),
+          })));
+          return;
+        }
+      }
+    } catch (e) {
+      console.warn('[Chatbot] Failed to load cached messages:', e);
+    }
+    setMessages([INITIAL_MESSAGE]);
+  }, [userEmail]);
+
+  // Save messages to localStorage whenever they change
+  useEffect(() => {
+    if (!userEmail || messages.length === 0) return;
+    try {
+      localStorage.setItem(`isangdiwa_chat_${userEmail}`, JSON.stringify(messages));
+    } catch (e) {
+      console.warn('[Chatbot] Failed to save chat to localStorage:', e);
+    }
+  }, [messages, userEmail]);
+
+  const handleClearChat = () => {
+    setMessages([INITIAL_MESSAGE]);
+    if (userEmail) {
+      localStorage.removeItem(`isangdiwa_chat_${userEmail}`);
+    }
+  };
   // eslint-disable-next-line no-unused-vars
   const [isAI, setIsAI] = useState(true);
   const [cooldownSeconds, setCooldownSeconds] = useState(0);
@@ -367,13 +502,25 @@ export default function Chatbot({ isOpen, onClose }) {
               </span>
             </div>
           </div>
-          <button 
-            className="w-8 h-8 rounded-full flex items-center justify-center bg-white/10 hover:bg-white/20 transition-all text-white border-none cursor-pointer active:scale-95 relative z-10" 
-            onClick={onClose} 
-            aria-label="Close chat"
-          >
-            <X size={18} />
-          </button>
+          <div className="flex items-center gap-1.5 relative z-10">
+            {messages.length > 1 && (
+              <button 
+                className="w-8 h-8 rounded-full flex items-center justify-center bg-white/10 hover:bg-white/20 transition-all text-white border-none cursor-pointer active:scale-95" 
+                onClick={handleClearChat}
+                title="Restart conversation"
+                aria-label="Restart conversation"
+              >
+                <RotateCcw size={15} />
+              </button>
+            )}
+            <button 
+              className="w-8 h-8 rounded-full flex items-center justify-center bg-white/10 hover:bg-white/20 transition-all text-white border-none cursor-pointer active:scale-95" 
+              onClick={onClose} 
+              aria-label="Close chat"
+            >
+              <X size={18} />
+            </button>
+          </div>
         </div>
 
         {/* Messages */}

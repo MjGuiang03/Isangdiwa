@@ -292,11 +292,23 @@ router.get('/donations/my-donations', authenticateUser, async (req, res) => {
 /* ================== USER - GET ACKNOWLEDGED DONATIONS ================== */
 router.get('/donations/acknowledged', authenticateUser, async (req, res) => {
   try {
+    // 7-day expiration: only show acknowledged donations made within the past 7 days
+    const sevenDaysAgo = new Date(Date.now() - 7 * 24 * 60 * 60 * 1000);
+
     const acknowledgedDonations = await donations
       .aggregate([
-        { $match: { acknowledged: true, status: 'confirmed' } },
+        {
+          $match: {
+            acknowledged: true,
+            status: 'confirmed',
+            $or: [
+              { createdAt: { $gte: sevenDaysAgo } },
+              { createdAt: { $gte: sevenDaysAgo.toISOString() } },
+            ]
+          }
+        },
         { $sort: { createdAt: -1 } },
-        { $limit: 20 },
+        { $limit: 30 },
         {
           $lookup: {
             from: 'users',

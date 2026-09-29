@@ -5,7 +5,7 @@ import jwt from 'jsonwebtoken';
 import dotenv from 'dotenv';
 dotenv.config();
 
-import { users, admins, otps, announcements, savingsTransactions, savingsGoals, loans, loanPayments, attendance, branches, attendanceSessions, donations } from '../config/db.js';
+import { users, admins, otps, announcements, savingsTransactions, savingsGoals, loans, loanPayments, attendance, branches, attendanceSessions, donations, settings } from '../config/db.js';
 import { validate } from '../middleware/validate.js';
 import { loginLimiter } from '../middleware/rateLimiter.js';
 import { authenticateAdmin } from '../middleware/auth.js';
@@ -1959,6 +1959,100 @@ router.get('/loan-users/:email/profile', authenticateAdmin, async (req, res) => 
     });
   } catch (err) {
     console.error('Error in /loan-users/:email/profile:', err);
+    res.status(500).json({ success: false, message: 'Internal server error' });
+  }
+});
+
+/* ================== MEMBER PROFILE DETAILS ================== */
+router.get('/members/:email/profile', authenticateAdmin, async (req, res) => {
+  try {
+    const email = req.params.email;
+
+    const now = new Date();
+    const sixMonthsAgo = new Date(now);
+    sixMonthsAgo.setMonth(sixMonthsAgo.getMonth() - 6);
+
+    const [memberDonations, memberAttendance, memberSavings, riskCache] = await Promise.all([
+      // Donations: total, count, and breakdown by category
+      donations.aggregate([
+        { $match: { email, status: 'confirmed' } },
+        { $group: {
+          _id: '$category',
+          total: { $sum: { $toDouble: '$amount' } },
+          count: { $sum: 1 },
+        }}
+      ]).toArray(),
+
+      // Attendance: all records for this member (last 6 months for trend)
+      attendance.find(
+        { email, $or: [{ date: { $gte: sixMonthsAgo } }, { createdAt: { $gte: sixMonthsAgo } }] },
+        { projection: { date: 1, createdAt: 1, service: 1 } }
+      ).toArray(),
+
+      // Savings: goals summary
+      savingsGoals.find({ email }).project({ goalName: 1, savedAmount: 1, targetAmount: 1, status: 1 }).toArray(),
+
+      // Churn risk cache (to get this member's score)
+      (async () => {
+        const cached = await settings.findOne({ _id: 'churn_risk_cache' });
+        if (cached?.data?.allRisks) {
+          return cached.data.allRisks.find(r => r.email === email) || null;
+        }
+        return null;
+      })(),
+    ]);
+
+    // Also get total attendance count (all time)
+    const totalAttendanceCount = await attendance.countDocuments({ email });
+
+    // Process donations
+    const donationTotal = memberDonations.reduce((sum, d) => sum + d.total, 0);
+    const donationCount = memberDonations.reduce((sum, d) => sum + d.count, 0);
+    const donationsByCategory = memberDonations
+      .map(d => ({
+        category: d._id || 'Uncategorized',
+        total: d.total,
+        count: d.count,
+        percentage: donationTotal > 0 ? Math.round((d.total / donationTotal) * 100) : 0,
+      }))
+      .sort((a, b) => b.total - a.total);
+
+    // Process attendance into monthly trend (last 6 months)
+    const monthlyAttendance = [];
+    for (let i = 5; i >= 0; i--) {
+      const monthDate = new Date(now.getFullYear(), now.getMonth() - i, 1);
+      const monthEnd = new Date(now.getFullYear(), now.getMonth() - i + 1, 0, 23, 59, 59);
+      const monthName = monthDate.toLocaleString('en-US', { month: 'short' });
+      const count = memberAttendance.filter(a => {
+        const d = new Date(a.date || a.createdAt);
+        return d >= monthDate && d <= monthEnd;
+      }).length;
+      monthlyAttendance.push({ month: monthName, count });
+    }
+
+    // Process savings
+    const totalSaved = memberSavings.reduce((sum, g) => sum + (Number(g.savedAmount) || 0), 0);
+
+    res.json({
+      success: true,
+      donations: {
+        total: donationTotal,
+        count: donationCount,
+        byCategory: donationsByCategory,
+      },
+      attendance: {
+        total: totalAttendanceCount,
+        monthly: monthlyAttendance,
+      },
+      savings: {
+        totalSaved,
+        goalsCount: memberSavings.length,
+        goals: memberSavings,
+      },
+      risk: riskCache ? { score: riskCache.riskScore, label: riskCache.riskLabel } : null,
+    });
+  } catch (err) {
+    console.error('Error in /members/:email/profile:', err);
     res.status(500).json({ success: false, message: 'Internal server error' });
   }
 });

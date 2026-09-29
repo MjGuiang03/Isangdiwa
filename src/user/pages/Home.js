@@ -94,7 +94,41 @@ export default function Home() {
   const savingsStats = useMemo(() => savingsData?.success ? (savingsData.stats || { totalSavings: 0, thisMonth: 0 }) : { totalSavings: 0, thisMonth: 0 }, [savingsData]);
   const savingsGoalsList = useMemo(() => savingsGoalsData?.success ? (savingsGoalsData.goals || []).filter(g => g.status !== 'completed') : [], [savingsGoalsData]);
 
-  const acknowledgedDonors = useMemo(() => acknowledgedData?.success ? (acknowledgedData.donors || []) : [], [acknowledgedData]);
+  const acknowledgedDonors = useMemo(() => {
+    if (!acknowledgedData?.success) return [];
+    // 7-day expiration: only show acknowledged donations made within the past 7 days
+    const sevenDaysAgo = Date.now() - 7 * 24 * 60 * 60 * 1000;
+    return (acknowledgedData.donors || []).filter(donor => {
+      if (!donor.createdAt) return true;
+      const dt = new Date(donor.createdAt).getTime();
+      return isNaN(dt) ? true : dt >= sevenDaysAgo;
+    });
+  }, [acknowledgedData]);
+
+  // Generous Givers Carousel & Stagger State
+  const [donorPage, setDonorPage] = useState(0);
+  const [donorHovered, setDonorHovered] = useState(false);
+  const DONORS_PER_PAGE = 3;
+  const totalDonorPages = Math.ceil(acknowledgedDonors.length / DONORS_PER_PAGE);
+
+  useEffect(() => {
+    if (totalDonorPages <= 1 || donorHovered) return;
+    const interval = setInterval(() => {
+      setDonorPage(prev => (prev + 1) % totalDonorPages);
+    }, 5500);
+    return () => clearInterval(interval);
+  }, [totalDonorPages, donorHovered]);
+
+  useEffect(() => {
+    if (donorPage >= totalDonorPages && totalDonorPages > 0) {
+      setDonorPage(0);
+    }
+  }, [donorPage, totalDonorPages]);
+
+  const currentDonors = useMemo(() => {
+    const start = donorPage * DONORS_PER_PAGE;
+    return acknowledgedDonors.slice(start, start + DONORS_PER_PAGE);
+  }, [acknowledgedDonors, donorPage]);
   const { allAnnouncements, upcomingEvents } = useMemo(() => {
     if (!annData?.success) return { allAnnouncements: [], upcomingEvents: [] };
     const list = (annData.announcements || []).map(ann => {
@@ -945,19 +979,29 @@ export default function Home() {
           {/* ── Top row: Generous Givers + Prayer Wall ── */}
           <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
             {/* Generous Givers Card */}
-            <div className="bg-white dark:bg-[#1E2130] border border-slate-200/80 dark:border-white/10 rounded-2xl p-4 shadow-sm flex flex-col">
+            <div 
+              className="bg-white dark:bg-[#1E2130] border border-slate-200/80 dark:border-white/10 rounded-2xl p-4 shadow-sm flex flex-col"
+              onMouseEnter={() => setDonorHovered(true)}
+              onMouseLeave={() => setDonorHovered(false)}
+            >
               <div className="flex items-center justify-between mb-3">
-                <h3 className="text-xs font-bold text-slate-900 dark:text-white uppercase tracking-wider font-inter">Generous Givers</h3>
+                <h3 className="text-xs font-bold text-slate-900 dark:text-white uppercase tracking-wider font-inter m-0">
+                  Generous Givers
+                </h3>
                 {acknowledgedDonors.length > 0 && (
                   <button onClick={() => navigate('/donation')} className="text-[10.5px] font-semibold text-blue-600 dark:text-blue-400 hover:underline border-none bg-transparent cursor-pointer flex items-center gap-0.5">
-                    Give →
+                    Give → 
                   </button>
                 )}
               </div>
               {acknowledgedDonors.length > 0 ? (
-                <div className="space-y-1.5 flex-1">
-                  {acknowledgedDonors.slice(0, 3).map((donor, i) => (
-                    <div key={i} className="flex items-center justify-between py-1.5 px-2.5 rounded-xl bg-blue-50/40 dark:bg-blue-950/20 border border-blue-100/40 dark:border-white/5">
+                <div key={donorPage} className="space-y-1.5 flex-1 min-h-[148px]">
+                  {currentDonors.map((donor, i) => (
+                    <div
+                      key={donor._id || `${donorPage}-${i}`}
+                      className="flex items-center justify-between py-1.5 px-2.5 rounded-xl bg-blue-50/40 dark:bg-blue-950/20 border border-blue-100/40 dark:border-white/5 animate-donor-stagger transition-transform hover:scale-[1.01]"
+                      style={{ animationDelay: `${i * 0.4}s` }}
+                    >
                       <div className="flex items-center gap-2.5 min-w-0">
                         {donor.photoUrl ? (
                           <img
@@ -989,8 +1033,8 @@ export default function Home() {
                   <div className="w-8 h-8 rounded-full bg-blue-100 dark:bg-blue-900/40 text-blue-600 dark:text-blue-400 flex items-center justify-center mb-1.5 group-hover:scale-110 group-hover:bg-blue-600 group-hover:text-white transition-all shadow-xs">
                     <HandHeart size={16} />
                   </div>
-                  <p className="text-xs font-bold text-slate-800 dark:text-slate-200 font-inter m-0">Be the First Generous Giver</p>
-                  <p className="text-[10px] text-slate-500 dark:text-slate-400 font-inter mt-0.5 mb-2 leading-snug">Inspire others by publicly acknowledging your gift</p>
+                  <p className="text-xs font-bold text-slate-800 dark:text-slate-200 font-inter m-0">Be This Week's First Giver</p>
+                  <p className="text-[10px] text-slate-500 dark:text-slate-400 font-inter mt-0.5 mb-2 leading-snug">Inspire others by publicly acknowledging your gift this week</p>
                   <span className="inline-flex items-center gap-1 px-3 py-1 rounded-full bg-blue-600 group-hover:bg-blue-700 text-white text-[10px] font-bold font-inter shadow-xs transition-colors">
                     <span>Make a Donation</span>
                     <ArrowRight size={11} className="group-hover:translate-x-0.5 transition-transform" />
