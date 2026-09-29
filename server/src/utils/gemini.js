@@ -85,36 +85,43 @@ export const callGeminiChat = async (systemPrompt, history, userMessage) => {
  * @returns {Promise<string|null>} Generated text or null on failure
  */
 export const callGeminiVision = async (systemPrompt, textPrompt, base64Image, mimeType = 'image/jpeg') => {
-  try {
-    // Use gemini-2.5-flash-lite for vision checks — lightweight with higher free-tier rate limits
-    const model = genAI.getGenerativeModel({
-      model: 'gemini-2.5-flash-lite',
-      systemInstruction: systemPrompt,
-    });
+  const candidateModels = ['gemini-2.5-flash', 'gemini-2.5-flash-lite'];
+  let lastErrorMsg = '';
 
-    const result = await model.generateContent({
-      contents: [{
-        role: 'user',
-        parts: [
-          { text: textPrompt },
-          { inlineData: { data: base64Image, mimeType } },
-        ],
-      }],
-      generationConfig: {
-        temperature: 0.1,
-        responseMimeType: 'application/json',
-      },
-    });
+  for (const modelName of candidateModels) {
+    try {
+      const model = genAI.getGenerativeModel({
+        model: modelName,
+        systemInstruction: systemPrompt,
+      });
 
-    return result.response.text();
-  } catch (error) {
-    const msg = error.message || '';
-    // Return special marker for rate limiting so caller can back off
-    if (msg.includes('429') || msg.includes('Too Many Requests') || msg.includes('quota')) {
-      console.warn('[Gemini Vision] Rate limited — backing off');
-      return '__RATE_LIMITED__';
+      const result = await model.generateContent({
+        contents: [{
+          role: 'user',
+          parts: [
+            { text: textPrompt },
+            { inlineData: { data: base64Image, mimeType } },
+          ],
+        }],
+        generationConfig: {
+          temperature: 0.1,
+          responseMimeType: 'application/json',
+        },
+      });
+
+      return result.response.text();
+    } catch (error) {
+      lastErrorMsg = error.message || '';
+      console.warn(`[Gemini Vision] Model ${modelName} failed:`, lastErrorMsg.slice(0, 150));
+      // Continue to next candidate model if rate limited or temporarily unavailable
     }
-    console.error('[Gemini Vision Error]:', msg);
-    return null;
   }
+
+  if (lastErrorMsg.includes('429') || lastErrorMsg.includes('Too Many Requests') || lastErrorMsg.includes('quota')) {
+    console.warn('[Gemini Vision] All candidate models rate limited — backing off');
+    return '__RATE_LIMITED__';
+  }
+
+  console.error('[Gemini Vision Error]: All candidate models failed. Last error:', lastErrorMsg);
+  return null;
 };

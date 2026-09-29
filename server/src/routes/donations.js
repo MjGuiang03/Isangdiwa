@@ -12,6 +12,36 @@ let donationStatsCache = { data: null, ts: 0 };
 
 import { generatePaymentLink } from '../utils/paymongo.js';
 
+const INVALID_SENDER_KEYWORDS = [
+  'account', 'easy account', 'savings', 'current', 'checking', 'payroll',
+  'wallet', 'gcash', 'maya', 'paymaya', 'bank', 'pesonet', 'instapay',
+  'debit', 'credit', 'card', 'transfer', 'fund', 'funds', 'balance', 'source',
+  'deposit', 'express', 'online', 'unibank', 'universal', 'bdo', 'bpi',
+  'unionbank', 'metrobank', 'landbank', 'rcbc', 'security bank', 'pnb',
+  'chinabank', 'load', 'cash-in', 'cash in', 'cash out', 'payment', 'receipt',
+  'ref', 'reference', 'transaction', 'customer', 'merchant', 'from', 'to',
+  'puac', 'pacific union', 'faithly', 'church'
+];
+
+function sanitizeSenderName(name) {
+  if (!name || typeof name !== 'string') return null;
+  const trimmed = name.trim();
+  if (trimmed.length < 2 || trimmed.length > 70) return null;
+  // If it has digits, it is NOT a human person's name (e.g. "EASY ACCOUNT 2", "Account 123")
+  if (/\d/.test(trimmed)) return null;
+  // Check against blacklisted keywords (boundary match)
+  const lower = trimmed.toLowerCase();
+  for (const kw of INVALID_SENDER_KEYWORDS) {
+    const regex = new RegExp(`(^|\\b)${kw}(\\b|$)`, 'i');
+    if (regex.test(lower)) return null;
+  }
+  // Must only contain letters, spaces, dots, hyphens, or apostrophes
+  if (!/^[a-zA-ZñÑ\s.,'-]+$/.test(trimmed)) return null;
+  // Must contain at least one letter
+  if (!/[a-zA-ZñÑ]/.test(trimmed)) return null;
+  return trimmed;
+}
+
 /* ================== VALIDATE RECEIPT IMAGE (AI) ================== */
 router.post('/donations/validate-receipt', authenticateUser, async (req, res) => {
   try {
@@ -30,34 +60,53 @@ router.post('/donations/validate-receipt', authenticateUser, async (req, res) =>
     const mimeType = match[1];
     const base64Data = match[2];
 
-    const systemPrompt = `You are a payment receipt validator. Your job is to analyze images and determine if they are legitimate payment receipts or transaction confirmations.
+    const systemPrompt = `You are a financial receipt auditor and data extraction engine for a Philippine church portal.
+Your job is to examine an uploaded image, verify if it is a legitimate payment receipt, and extract all transaction details.
 
-A VALID receipt/proof of payment includes:
-- GCash transaction confirmations or receipts
-- Maya/PayMaya transaction confirmations
-- Bank transfer confirmations (BPI, BDO, PNB, Metrobank, Unionbank, RCBC, etc.)
-- Online banking transaction screenshots showing amount, date, and reference number
-- Official deposit slips
-- Payment gateway confirmations
-- Any screenshot showing a completed financial transaction with transaction details
+VALID RECEIPTS:
+- GCash transaction receipts or confirmations
+- Maya (PayMaya) receipts or confirmations
+- Philippine bank & digital bank transfer screenshots (BDO, BPI, Metrobank, UnionBank, Landbank, Maya Bank, GoTyme, SeaBank, Tonik, CIMB, etc.)
+- Bank deposit slips or ATM transfer slips
+- Online banking payment confirmations showing amount and reference/transaction number
 
-An INVALID image (NOT a receipt) includes:
-- Selfies, portraits, or photos of people
-- Memes, jokes, or social media screenshots
-- Landscape or nature photos
-- Screenshots of non-payment apps (games, social media, messaging)
-- Blank, solid color, or mostly empty images
-- Random documents that are not payment-related
-- Edited or obviously fake receipts with no coherent transaction details
+INVALID IMAGES:
+- Selfies, portraits, memes, animals, landscapes, screenshots of chats without payment proof, blank images, or unrelated documents.
 
-Respond with a JSON object only:
+EXTRACT THE FOLLOWING FIELDS PRECISELY (if not visible or uncertain, set to null):
+- amount: Numeric value only (e.g. 500, 1000.50). Remove commas, currency symbols (₱, PHP).
+- referenceNumber: Clean string of the transaction/reference number (e.g. "902412345678" or "UB12345678"). Remove spaces or hyphens.
+- paymentMethod: Either "E-Wallet" (for GCash, Maya, GrabPay, ShopeePay) or "Bank" (for BDO, BPI, GoTyme, SeaBank, Maya Bank, Tonik, CIMB, etc.) or null.
+- subMethod: Specific provider: "GCash", "Maya", "Maya Bank", "GoTyme Bank", "SeaBank", "Tonik Bank", "CIMB Bank", "UNO Digital Bank", "UnionDigital Bank", "BDO", "BPI", "UnionBank", "Metrobank", "Landbank", "Security Bank", "RCBC", "PNB", "China Bank", "EastWest Bank", "GrabPay", "ShopeePay", "Coins.ph", or exact name shown on receipt.
+- senderName: The actual HUMAN PERSON name of the sender/payer (e.g. "Juan Dela Cruz", "Maria Santos").
+  CRITICAL RULES FOR senderName:
+  * MUST be a real human person's name.
+  * DO NOT extract bank account product types, tiers, or labels such as "EASY ACCOUNT", "EASY ACCOUNT 2", "SAVINGS ACCOUNT", "CURRENT ACCOUNT", "CHECKING", "MY WALLET", "GCASH WALLET", "DEBIT CARD", "PAYROLL", "PESONET", "INSTAPAY", or any name containing numbers or words like "ACCOUNT", "SAVINGS", "WALLET", "CARD".
+  * If the receipt only displays an account type, nickname, or generic label and DOES NOT display the sender's real human name, set senderName to null.
+- senderNumber: Mobile number or bank account number of the sender (digits only). If it is a mobile number, extract the 11 digits (e.g. "09171234567"). If masked (e.g. "••••1234" or "0917***1234"), return null.
+- recipientName: Name of recipient/merchant as shown on receipt (e.g. "PACIFIC UNION ASSOC", "PUAC", "FAITHLY"), or null.
+- date: Date of transaction in YYYY-MM-DD format if readable, or null.
+- time: Time of transaction (e.g. "14:30" or "02:30 PM"), or null.
+
+RESPOND ONLY WITH VALID JSON:
 {
   "isReceipt": true or false,
-  "confidence": 0-100,
-  "reason": "brief explanation in 1 sentence"
+  "confidence": 0 to 100,
+  "reason": "1-sentence description or failure reason",
+  "extracted": {
+    "amount": null,
+    "referenceNumber": null,
+    "paymentMethod": null,
+    "subMethod": null,
+    "senderName": null,
+    "senderNumber": null,
+    "recipientName": null,
+    "date": null,
+    "time": null
+  }
 }`;
 
-    const textPrompt = 'Analyze this image. Is it a legitimate payment receipt, transaction confirmation, or proof of payment? Respond with JSON only.';
+    const textPrompt = 'Analyze this image. Is it a legitimate payment receipt, transaction confirmation, or proof of payment? Extract all fields into JSON.';
 
     const aiResponse = await callGeminiVision(systemPrompt, textPrompt, base64Data, mimeType);
 
@@ -69,6 +118,8 @@ Respond with a JSON object only:
         isReceipt: true,
         confidence: 0,
         reason: 'Validation service is temporarily busy. Image accepted for manual review.',
+        extracted: null,
+        isDuplicate: false,
         fallback: true,
       });
     }
@@ -81,6 +132,8 @@ Respond with a JSON object only:
         isReceipt: true,
         confidence: 0,
         reason: 'Validation service is temporarily unavailable. Image accepted for manual review.',
+        extracted: null,
+        isDuplicate: false,
         fallback: true,
       });
     }
@@ -98,15 +151,79 @@ Respond with a JSON object only:
         isReceipt: true,
         confidence: 0,
         reason: 'Could not verify image. Accepted for manual review.',
+        extracted: null,
+        isDuplicate: false,
         fallback: true,
       });
     }
 
+    const isReceipt = !!result.isReceipt;
+    let extracted = result.extracted || null;
+
+    if (extracted) {
+      if (extracted.senderName) {
+        extracted.senderName = sanitizeSenderName(extracted.senderName);
+      }
+      if (extracted.senderNumber) {
+        const numStr = String(extracted.senderNumber).replace(/\D/g, '');
+        if (numStr.length < 8 || numStr.length > 20) {
+          extracted.senderNumber = null;
+        } else {
+          extracted.senderNumber = numStr;
+        }
+      }
+    }
+
+    // Check for duplicate reference number in MongoDB if extracted
+    let isDuplicate = false;
+    let duplicateInfo = null;
+
+    if (isReceipt && extracted?.referenceNumber) {
+      const cleanRef = String(extracted.referenceNumber).replace(/[\s-]/g, '').trim();
+      if (cleanRef.length >= 6) {
+        try {
+          const { savingsTransactions } = await import('../config/db.js');
+          const [dupDonation, dupSavings] = await Promise.all([
+            donations.findOne({
+              $or: [
+                { referenceNumber: cleanRef },
+                { referenceNumber: extracted.referenceNumber }
+              ],
+              status: { $ne: 'rejected' }
+            }),
+            savingsTransactions.findOne({
+              $or: [
+                { referenceNumber: cleanRef },
+                { referenceNumber: extracted.referenceNumber }
+              ],
+              status: { $ne: 'rejected' }
+            })
+          ]);
+
+          const matchDoc = dupDonation || dupSavings;
+          if (matchDoc) {
+            isDuplicate = true;
+            duplicateInfo = {
+              refNumber: cleanRef,
+              type: dupDonation ? 'Donation' : 'Savings Deposit',
+              date: matchDoc.date || matchDoc.createdAt,
+              amount: matchDoc.amount,
+            };
+          }
+        } catch (dbErr) {
+          console.warn('[Receipt Validation] Duplicate check non-fatal error:', dbErr.message);
+        }
+      }
+    }
+
     return res.json({
       success: true,
-      isReceipt: !!result.isReceipt,
+      isReceipt,
       confidence: result.confidence || 0,
       reason: result.reason || '',
+      extracted,
+      isDuplicate,
+      duplicateInfo,
       fallback: false,
     });
   } catch (err) {
@@ -117,6 +234,8 @@ Respond with a JSON object only:
       isReceipt: true,
       confidence: 0,
       reason: 'Validation service encountered an error. Image accepted for manual review.',
+      extracted: null,
+      isDuplicate: false,
       fallback: true,
     });
   }
@@ -175,6 +294,7 @@ router.post('/donations', authenticateUser, async (req, res) => {
         subMethod: subMethod || '',
         accountName: accountName || '',
         accountNumber: accountNumber || '',
+        referenceNumber: req.body.referenceNumber || '',
         type: isRecurring ? 'Recurring' : 'One-time',
         status: 'pending',
         proofOfPayment, // Store base64 string
@@ -374,9 +494,10 @@ router.get('/admin/donations', authenticateAdmin, async (req, res) => {
 
     if (search) {
       query.$or = [
-        { member:     { $regex: search, $options: 'i' } },
-        { donationId: { $regex: search, $options: 'i' } },
-        { email:      { $regex: search, $options: 'i' } }
+        { member:          { $regex: search, $options: 'i' } },
+        { donationId:      { $regex: search, $options: 'i' } },
+        { email:           { $regex: search, $options: 'i' } },
+        { referenceNumber: { $regex: search, $options: 'i' } }
       ];
     }
 

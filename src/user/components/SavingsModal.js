@@ -1,11 +1,84 @@
 import { useState, useEffect, useMemo } from 'react';
 import useSWR from 'swr';
+import { toast } from 'sonner';
 import { useAuth } from '../../context/AuthContext';
 import API from '../../utils/api';
-import { CheckCircle, X, ArrowDownRight, ArrowUpLeft, Repeat, History, CreditCard, Smartphone, Building2, Info, UploadCloud, FileCheck2, PiggyBank, ZoomIn, Trash2, AlertTriangle, AlertCircle, Loader2, ShieldCheck } from 'lucide-react';
+import { CheckCircle, X, ArrowDownRight, ArrowUpLeft, Repeat, History, CreditCard, Smartphone, Building2, Info, UploadCloud, FileCheck2, PiggyBank, ZoomIn, Trash2, AlertTriangle, AlertCircle, Loader2, ShieldCheck, Sparkles } from 'lucide-react';
 import useSwipeToClose, { DragHandle } from '../hooks/useSwipeToClose';
 
 const fetchPublicSettings = (url) => fetch(url).then(res => res.json()).catch(() => null);
+
+/* ── AI Auto-fill Helpers (shared with Donation) ── */
+const formatPhoneForInput = (raw) => {
+    if (!raw) return '';
+    const digits = String(raw).replace(/\D/g, '');
+    if (digits.startsWith('63') && digits.length === 12) return '0' + digits.slice(2);
+    if (digits.startsWith('09') && digits.length === 11) return digits;
+    if (digits.length === 10 && digits.startsWith('9')) return '0' + digits;
+    return digits.slice(0, 11);
+};
+
+const INVALID_SENDER_KEYWORDS = [
+    'account', 'easy account', 'savings', 'current', 'checking', 'payroll',
+    'wallet', 'gcash', 'maya', 'paymaya', 'bank', 'pesonet', 'instapay',
+    'debit', 'credit', 'card', 'transfer', 'fund', 'funds', 'balance', 'source',
+    'deposit', 'express', 'online', 'unibank', 'universal', 'bdo', 'bpi',
+    'unionbank', 'metrobank', 'landbank', 'rcbc', 'security bank', 'pnb',
+    'chinabank', 'load', 'cash-in', 'cash in', 'cash out', 'payment', 'receipt',
+    'ref', 'reference', 'transaction', 'customer', 'merchant', 'from', 'to',
+    'puac', 'pacific union', 'faithly', 'church'
+];
+
+const isValidPersonName = (name) => {
+    if (!name || typeof name !== 'string') return false;
+    const trimmed = name.trim();
+    if (trimmed.length < 2 || trimmed.length > 70) return false;
+    if (/\d/.test(trimmed)) return false;
+    const lower = trimmed.toLowerCase();
+    for (const kw of INVALID_SENDER_KEYWORDS) {
+        const regex = new RegExp(`(^|\\b)${kw}(\\b|$)`, 'i');
+        if (regex.test(lower)) return false;
+    }
+    if (!/^[a-zA-Z\u00f1\u00d1\s.,'-]+$/.test(trimmed)) return false;
+    if (!/[a-zA-Z\u00f1\u00d1]/.test(trimmed)) return false;
+    return true;
+};
+
+const normalizeSubMethod = (extracted) => {
+    if (!extracted) return '';
+    const clean = String(extracted).trim().toLowerCase();
+    // Digital Banks
+    if (clean.includes('gotyme')) return 'GoTyme Bank';
+    if (clean.includes('seabank')) return 'SeaBank';
+    if (clean.includes('tonik')) return 'Tonik Bank';
+    if (clean.includes('cimb')) return 'CIMB Bank';
+    if (clean.includes('uno') && (clean.includes('digital') || clean.includes('bank'))) return 'UNO Digital Bank';
+    if (clean.includes('uniondigital')) return 'UnionDigital Bank';
+    if (clean === 'maya bank' || clean.includes('maya bank')) return 'Maya Bank';
+    // Traditional Banks
+    if (clean === 'bdo' || clean.includes('bdo') || clean.includes('banco de oro')) return 'BDO';
+    if (clean === 'bpi' || clean.includes('bank of the philippine islands')) return 'BPI';
+    if (clean.includes('metrobank')) return 'Metrobank';
+    if (clean.includes('unionbank') || clean.includes('union bank')) return 'Unionbank';
+    if (clean.includes('landbank') || clean.includes('land bank')) return 'Landbank';
+    if (clean.includes('security bank')) return 'Security Bank';
+    if (clean.includes('rcbc')) return 'RCBC';
+    if (clean.includes('pnb') || clean.includes('philippine national bank')) return 'PNB';
+    if (clean.includes('china bank') || clean.includes('chinabank')) return 'China Bank';
+    if (clean.includes('eastwest') || clean.includes('east west')) return 'EastWest Bank';
+    // E-Wallets
+    if (clean.includes('gcash')) return 'GCash';
+    if (clean === 'maya' || clean.includes('paymaya')) return 'Maya';
+    if (clean.includes('grab')) return 'GrabPay';
+    if (clean.includes('shopee')) return 'ShopeePay';
+    if (clean.includes('coins')) return 'Coins.ph';
+    // Transfer Networks & Cards
+    if (clean.includes('instapay')) return 'Instapay';
+    if (clean.includes('pesonet')) return 'PESONet';
+    if (clean.includes('mastercard') || clean.includes('master card')) return 'Master Card';
+    if (clean.includes('visa')) return 'Visa';
+    return 'Others';
+};
 
 const fmt = (n) =>
     n != null ? `₱${Number(n).toLocaleString('en-PH', { minimumFractionDigits: 2 })}` : '₱0.00';
@@ -40,6 +113,7 @@ function DepositModal({ goals, onClose }) {
     const [note, setNote] = useState('');
     const [paymentMethod, setPaymentMethod] = useState('E-Wallet');
     const [subMethod, setSubMethod] = useState('');
+    const [customSubMethod, setCustomSubMethod] = useState('');
     const [accountName, setAccountName] = useState('');
     const [accountNumber, setAccountNumber] = useState('');
     const [proofFile, setProofFile] = useState(null);
@@ -50,6 +124,7 @@ function DepositModal({ goals, onClose }) {
     const [receiptValidating, setReceiptValidating] = useState(false);
     const [receiptValid, setReceiptValid] = useState(null);
     const [receiptReason, setReceiptReason] = useState('');
+    const [touched, setTouched] = useState({});
 
     useEffect(() => {
         if (!selectedGoal && goals?.length > 0) {
@@ -75,6 +150,7 @@ function DepositModal({ goals, onClose }) {
                 setProofBase64(base64Result);
 
                 // AI Receipt Validation
+                // AI Receipt Validation & Auto-fill
                 setReceiptValidating(true);
                 try {
                     const token = localStorage.getItem('token');
@@ -88,12 +164,78 @@ function DepositModal({ goals, onClose }) {
                     if (data.success && data.isReceipt) {
                         setReceiptValid(true);
                         setReceiptReason(data.fallback ? data.reason : '');
+
+                        // --- AI Auto-fill from extracted data ---
+                        if (data.extracted) {
+                            const missing = [];
+
+                            // Auto-fill Amount
+                            if (data.extracted.amount && Number(data.extracted.amount) > 0) {
+                                setAmount(Number(data.extracted.amount).toLocaleString('en-US'));
+                            } else {
+                                missing.push('Amount');
+                            }
+
+                            // Auto-fill Payment Method & Sub-method
+                            const rawSubMethod = data.extracted?.subMethod ? String(data.extracted.subMethod).trim() : '';
+                            const normalizedSub = normalizeSubMethod(rawSubMethod);
+                            const isEWalletMethod = ['GCash', 'Maya', 'GrabPay', 'ShopeePay', 'Coins.ph'].includes(normalizedSub);
+                            const detectedMethod = data.extracted?.paymentMethod || (isEWalletMethod ? 'E-Wallet' : 'Bank');
+                            setPaymentMethod(detectedMethod);
+
+                            if (rawSubMethod) {
+                                setSubMethod(normalizedSub);
+                            } else {
+                                missing.push('Payment Option');
+                            }
+
+                            // Auto-fill Sender Account Name
+                            const rawSenderName = data.extracted?.senderName ? String(data.extracted.senderName).trim() : '';
+                            if (isValidPersonName(rawSenderName)) {
+                                setAccountName(rawSenderName);
+                            } else {
+                                setAccountName('');
+                                missing.push('Sender Account Name');
+                            }
+
+                            // Auto-fill Sender Account Number
+                            if (data.extracted?.senderNumber) {
+                                const rawNum = String(data.extracted.senderNumber).replace(/\D/g, '');
+                                if (detectedMethod === 'Bank') {
+                                    if (rawNum.length >= 8 && rawNum.length <= 20) {
+                                        setAccountNumber(rawNum.slice(0, 16));
+                                    } else { missing.push('Sender Bank Account Number'); }
+                                } else {
+                                    const cleanPhone = formatPhoneForInput(rawNum);
+                                    if (cleanPhone.startsWith('09') && cleanPhone.length === 11) {
+                                        setAccountNumber(cleanPhone);
+                                    } else { missing.push('Sender Mobile Number'); }
+                                }
+                            } else {
+                                setAccountNumber('');
+                                missing.push(detectedMethod === 'Bank' ? 'Sender Bank Account Number' : 'Sender Mobile Number');
+                            }
+
+                            if (missing.length > 0) {
+                                toast.warning(`Receipt scanned. Please complete: ${missing.join(', ')}`);
+                            } else {
+                                toast.success('Details auto-filled from receipt! You can review or edit below.');
+                            }
+
+                            // Mark all fields as touched so empty fields show red immediately
+                            setTouched({
+                                amount: true,
+                                subMethod: true,
+                                customSubMethod: normalizedSub === 'Others',
+                                accountName: true,
+                                accountNumber: true,
+                                proofOfPayment: false,
+                            });
+                        }
                     } else if (data.success && !data.isReceipt) {
                         setReceiptValid(false);
                         setReceiptReason(data.reason || 'This does not appear to be a valid payment receipt.');
-                        setError('Invalid proof of payment. Please upload a real receipt or transaction screenshot.');
-                        setProofFile(null);
-                        setProofBase64('');
+                        setError(data.reason || 'Invalid proof of payment. Please upload a real receipt or transaction screenshot.');
                     } else {
                         setReceiptValid(true);
                         setReceiptReason('Could not verify. Accepted for manual review.');
@@ -124,17 +266,34 @@ function DepositModal({ goals, onClose }) {
         setAmount(val.toLocaleString('en-US'));
     };
 
+    const isBank = paymentMethod === 'Bank';
+    const cleanAcc = accountNumber.trim();
+    const isAccNumValid = isBank
+        ? (cleanAcc.length >= 10 && cleanAcc.length <= 16)
+        : (cleanAcc.startsWith('09') && cleanAcc.length === 11);
+    const isCustomSubValid = subMethod !== 'Others' || customSubMethod.trim() !== '';
+
     const handleSubmit = async () => {
+        setTouched({
+            amount: true,
+            subMethod: true,
+            customSubMethod: true,
+            accountName: true,
+            accountNumber: true,
+            proofOfPayment: true,
+        });
+
         if (!numAmt || numAmt <= 0) { setError('Please enter a valid deposit amount.'); return; }
         if (!selectedGoal) { setError('Please select a goal.'); return; }
         if (!paymentMethod) { setError('Please select a payment method.'); return; }
         
         if (approvalMethod === 'manual') {
             if (!proofBase64) { setError('Please upload your proof of payment.'); return; }
+            if (receiptValid === false) { setError('Please upload a valid payment receipt.'); return; }
             if (paymentMethod !== 'Cash') {
                 if (!subMethod) { setError(`Please select a ${paymentMethod} option.`); return; }
+                if (subMethod === 'Others' && !customSubMethod.trim()) { setError(`Please specify your ${paymentMethod === 'Bank' ? 'bank / provider' : 'e-wallet'} name.`); return; }
                 if (!accountName.trim()) { setError('Please enter the account name.'); return; }
-                const cleanAcc = accountNumber.trim();
                 if (paymentMethod === 'Bank') {
                     if (cleanAcc.length < 10 || cleanAcc.length > 16) {
                         setError('Bank account number must be between 10 and 16 digits.');
@@ -147,6 +306,8 @@ function DepositModal({ goals, onClose }) {
             }
         }
         
+        const finalSubMethod = subMethod === 'Others' ? (customSubMethod.trim() || 'Others') : subMethod;
+
         setError('');
         setLoading(true);
         try {
@@ -154,13 +315,13 @@ function DepositModal({ goals, onClose }) {
             const res = await fetch(`${API}/api/savings/deposit`, {
                 method: 'POST',
                 headers: { 'Content-Type': 'application/json', Authorization: `Bearer ${token}` },
-                body: JSON.stringify({ goalId: selectedGoal, amount: numAmt, note, paymentMethod, subMethod, accountName, accountNumber, proofOfPayment: proofBase64 }),
+                body: JSON.stringify({ goalId: selectedGoal, amount: numAmt, note, paymentMethod, subMethod: finalSubMethod, accountName, accountNumber, proofOfPayment: proofBase64 }),
             });
             const data = await res.json();
             if (!res.ok || !data.success) throw new Error(data.message || 'Deposit failed.');
             
             if (approvalMethod === 'manual') {
-                alert('Deposit submitted! Your payment is pending manual approval.');
+                toast.success('Deposit submitted! Your payment is pending manual approval.');
                 onClose();
             } else if (data.checkoutUrl) {
                 window.location.href = data.checkoutUrl;
@@ -173,12 +334,6 @@ function DepositModal({ goals, onClose }) {
         }
     };
 
-    const isBank = paymentMethod === 'Bank';
-    const cleanAcc = accountNumber.trim();
-    const isAccNumValid = isBank
-        ? (cleanAcc.length >= 10 && cleanAcc.length <= 16)
-        : (cleanAcc.startsWith('09') && cleanAcc.length === 11);
-
     const isFormComplete = 
         numAmt > 0 &&
         selectedGoal !== '' &&
@@ -189,6 +344,7 @@ function DepositModal({ goals, onClose }) {
             !receiptValidating &&
             (paymentMethod === 'Cash' || (
                 subMethod !== '' &&
+                isCustomSubValid &&
                 accountName.trim() !== '' &&
                 isAccNumValid
             ))
@@ -224,17 +380,152 @@ function DepositModal({ goals, onClose }) {
                         </select>
                     </div>
 
+                    {approvalMethod === 'manual' && (
+                        <div className="svm-field">
+                            <div className="flex items-center justify-between mb-1.5">
+                                <label className="svm-label" style={{ marginBottom: 0 }}>
+                                    Proof of Payment <span className="text-rose-500">*</span>
+                                </label>
+                                <span className="inline-flex items-center gap-1 px-2.5 py-0.5 rounded-full text-[10px] font-bold bg-blue-50 dark:bg-blue-950/60 text-blue-700 dark:text-blue-300 border border-blue-200/80 dark:border-blue-900/50">
+                                    <Sparkles size={11} className="text-blue-600 dark:text-blue-400" />
+                                    AI Auto-Fill
+                                </span>
+                            </div>
+
+                            {proofFile && proofBase64 ? (
+                                <div className={`relative p-3 bg-slate-50 dark:bg-slate-800/80 border rounded-xl flex flex-col gap-2.5 ${
+                                    receiptValid === true
+                                        ? 'border-emerald-400/60 dark:border-emerald-500/40'
+                                        : receiptValid === false
+                                        ? 'border-rose-400 dark:border-rose-500/40 bg-rose-50/20'
+                                        : 'border-slate-200 dark:border-white/10'
+                                }`}>
+                                    <div className="flex items-center justify-between gap-2">
+                                        <div className="flex items-center gap-2 text-xs font-bold text-slate-700 dark:text-slate-200 truncate pr-2">
+                                            <FileCheck2 size={16} className={receiptValid === false ? "text-rose-500 shrink-0" : "text-emerald-500 shrink-0"} />
+                                            <span className="truncate">{proofFile.name}</span>
+                                            {proofFile.size && (
+                                                <span className="text-[10px] font-normal text-slate-400 shrink-0">
+                                                    ({(proofFile.size / 1024 / 1024).toFixed(2)} MB)
+                                                </span>
+                                            )}
+                                        </div>
+                                        <button
+                                            type="button"
+                                            onClick={() => {
+                                                setProofFile(null);
+                                                setProofBase64('');
+                                                setReceiptValid(null);
+                                                setReceiptReason('');
+                                                setError('');
+                                            }}
+                                            className="text-slate-400 hover:text-red-500 p-1 rounded-lg hover:bg-slate-200 dark:hover:bg-white/10 transition-colors cursor-pointer border-none bg-transparent flex items-center justify-center shrink-0"
+                                            title="Remove file"
+                                            disabled={receiptValidating}
+                                        >
+                                            <X size={16} />
+                                        </button>
+                                    </div>
+
+                                    <div 
+                                        className="relative w-full max-h-48 overflow-hidden rounded-lg border border-slate-200/80 dark:border-white/10 bg-slate-100 dark:bg-black/30 flex items-center justify-center p-2 cursor-pointer group transition-all"
+                                        onClick={() => !receiptValidating && setPreviewImage({ src: proofBase64, name: proofFile.name })}
+                                        title={receiptValidating ? 'Scanning receipt...' : 'Click to expand image'}
+                                    >
+                                        <img
+                                            src={proofBase64}
+                                            alt="Proof of Payment Preview"
+                                            className={`max-h-44 max-w-full object-contain rounded-md shadow-xs transition-all duration-200 ${
+                                                receiptValidating ? 'opacity-40 blur-[1px]' : 'group-hover:scale-[1.02]'
+                                            }`}
+                                        />
+                                        {receiptValidating && (
+                                            <div className="absolute inset-0 flex flex-col items-center justify-center gap-2 bg-white/60 dark:bg-slate-900/60 backdrop-blur-[2px] rounded-lg z-10">
+                                                <Loader2 size={28} className="text-blue-600 dark:text-blue-400 animate-spin" />
+                                                <p className="text-xs font-bold text-slate-700 dark:text-slate-200">Scanning receipt...</p>
+                                                <p className="text-[10px] text-slate-500 dark:text-slate-400">Verifying proof of payment</p>
+                                            </div>
+                                        )}
+                                        {!receiptValidating && (
+                                            <div className="absolute inset-0 bg-slate-900/40 opacity-0 group-hover:opacity-100 transition-opacity flex items-center justify-center text-white text-xs font-bold gap-1.5 backdrop-blur-[2px] rounded-lg">
+                                                <ZoomIn size={18} /> Click to enlarge
+                                            </div>
+                                        )}
+                                    </div>
+
+                                    {receiptValid === true && !receiptValidating && (
+                                        <div className="flex items-center gap-1.5 px-2.5 py-1.5 bg-emerald-50 dark:bg-emerald-950/40 border border-emerald-200/60 dark:border-emerald-800/40 rounded-lg">
+                                            <ShieldCheck size={14} className="text-emerald-600 dark:text-emerald-400 shrink-0" />
+                                            <span className="text-[11px] font-bold text-emerald-700 dark:text-emerald-300">Verified Receipt</span>
+                                            {receiptReason && (
+                                                <span className="text-[10px] text-emerald-600/70 dark:text-emerald-400/70 ml-1">— {receiptReason}</span>
+                                            )}
+                                        </div>
+                                    )}
+
+                                    {receiptValid === false && !receiptValidating && (
+                                        <div className="p-3 rounded-xl bg-rose-50 dark:bg-rose-950/50 border border-rose-200 dark:border-rose-800/50 text-rose-600 dark:text-rose-300 text-xs font-semibold flex items-start gap-2 animate-in fade-in duration-200">
+                                            <AlertCircle size={16} className="text-rose-500 shrink-0 mt-0.5" />
+                                            <div>
+                                                <span className="font-bold block text-rose-700 dark:text-rose-300">Invalid Proof of Payment</span>
+                                                <span className="text-[11px] text-rose-600 dark:text-rose-400">
+                                                    {receiptReason || 'This image does not appear to be a valid payment receipt. Please upload a real transaction screenshot.'}
+                                                </span>
+                                            </div>
+                                        </div>
+                                    )}
+                                </div>
+                            ) : (
+                                <div>
+                                    <label className={`flex flex-col items-center justify-center p-4 border-2 border-dashed rounded-xl cursor-pointer transition-all text-center ${
+                                        receiptValid === false || (touched.proofOfPayment && !proofBase64)
+                                            ? 'border-rose-400 bg-rose-50/40 dark:bg-rose-950/20'
+                                            : 'border-slate-300 dark:border-white/10 bg-slate-50 dark:bg-slate-800/40 hover:bg-slate-100 dark:hover:bg-slate-800/70'
+                                    }`}>
+                                        <input type="file" accept="image/*" onChange={handleFileChange} className="hidden" />
+                                        <div className="flex flex-col items-center gap-1">
+                                            <UploadCloud className={receiptValid === false || (touched.proofOfPayment && !proofBase64) ? "text-rose-500" : "text-slate-400 dark:text-slate-300"} size={28} />
+                                            <p className="text-xs font-semibold text-slate-700 dark:text-slate-300">
+                                                <span className="text-blue-600 dark:text-blue-400 hover:underline">Click to upload receipt</span> or drag and drop
+                                            </p>
+                                            <p className="text-[11px] text-slate-400 m-0">PNG, JPG, JPEG up to 5MB (AI auto-fills fields below)</p>
+                                        </div>
+                                    </label>
+
+                                    {receiptValid === false && (
+                                        <div className="p-3 rounded-xl bg-rose-50 dark:bg-rose-950/50 border border-rose-200 dark:border-rose-800/50 text-rose-600 dark:text-rose-300 text-xs font-semibold flex items-start gap-2 mt-2 animate-in fade-in duration-200">
+                                            <AlertCircle size={16} className="text-rose-500 shrink-0 mt-0.5" />
+                                            <div>
+                                                <span className="font-bold block text-rose-700 dark:text-rose-300">Invalid Proof of Payment</span>
+                                                <span className="text-[11px] text-rose-600 dark:text-rose-400">
+                                                    {receiptReason || 'This image does not appear to be a valid payment receipt. Please upload a real transaction screenshot.'}
+                                                </span>
+                                            </div>
+                                        </div>
+                                    )}
+
+                                    {touched.proofOfPayment && !proofBase64 && receiptValid !== false && (
+                                        <div className="text-[11px] font-semibold text-rose-500 mt-1">Please upload your payment receipt screenshot</div>
+                                    )}
+                                </div>
+                            )}
+                        </div>
+                    )}
+
                     <div className="svm-field">
-                        <label className="svm-label">Amount</label>
+                        <label className="svm-label">
+                            Amount <span className="text-rose-500">*</span>
+                        </label>
                         <div className="svm-amount-wrap">
                             <span className="svm-peso">₱</span>
                             <input
                                 className={`svm-input svm-input--amount ${
-                                    amount.trim() !== '' && numAmt <= 0 ? 'border-rose-500' : ''
+                                    (amount.trim() !== '' && numAmt <= 0) || (touched.amount && (!amount.trim() || numAmt <= 0)) ? 'border-rose-500' : ''
                                 }`}
                                 type="text"
                                 placeholder="0.00"
                                 value={amount}
+                                onBlur={() => setTouched(prev => ({ ...prev, amount: true }))}
                                 onChange={e => {
                                     setError('');
                                     let raw = e.target.value.replace(/[^0-9.]/g, '');
@@ -247,7 +538,7 @@ function DepositModal({ goals, onClose }) {
                                 }}
                             />
                         </div>
-                        {amount.trim() !== '' && numAmt <= 0 && (
+                        {((amount.trim() !== '' && numAmt <= 0) || (touched.amount && (!amount.trim() || numAmt <= 0))) && (
                             <div className="text-[11px] font-semibold text-rose-500 mt-1.5 flex items-center gap-1">
                                 <span>Please enter a valid deposit amount</span>
                             </div>
@@ -286,247 +577,210 @@ function DepositModal({ goals, onClose }) {
                                     key={opt.id}
                                     type="button"
                                     className={`svm-payment-btn ${paymentMethod === opt.id ? 'active' : ''}`}
-                                    onClick={() => { setPaymentMethod(opt.id); setSubMethod(''); }}
+                                    onClick={() => { setPaymentMethod(opt.id); setSubMethod(''); setCustomSubMethod(''); }}
                                 >
                                     <div className={`svm-radio ${paymentMethod === opt.id ? 'active' : ''}`} />
                                     {opt.label}
                                 </button>
                             ))}
                         </div>
-                        <div className="svm-info-text" style={{ marginTop: '8px' }}>
-                            {approvalMethod === 'manual' ? (
-                                <div style={{ marginTop: '16px' }}>
-                                    <p style={{ marginBottom: '8px' }}>Please transfer your deposit to our <strong>{paymentMethod}</strong> account and upload the receipt below.</p>
-                                    
-                                    <div style={{ display: 'flex', flexDirection: 'column', gap: '12px' }}>
-                                      <div className="svm-field">
-                                        <label className="svm-label">{paymentMethod} Option</label>
-                                        {paymentMethod === 'E-Wallet' ? (
-                                          <select className="svm-select" value={subMethod} onChange={(e) => { setError(''); setSubMethod(e.target.value); }}>
-                                            <option value="" disabled>Select E-Wallet…</option>
-                                            <option value="GCash">GCash</option>
-                                            <option value="Maya">Maya</option>
-                                          </select>
-                                        ) : (
-                                          <select className="svm-select" value={subMethod} onChange={(e) => { setError(''); setSubMethod(e.target.value); }}>
-                                            <option value="" disabled>Select Bank…</option>
-                                            <optgroup label="Card Payments">
-                                              <option value="Master Card">Master Card</option>
-                                              <option value="Visa">Visa</option>
-                                            </optgroup>
-                                            <optgroup label="Online Bank">
-                                              <option value="BPI">BPI</option>
-                                              <option value="BDO">BDO</option>
-                                              <option value="PNB">PNB</option>
-                                              <option value="Metrobank">Metrobank</option>
-                                              <option value="Unionbank">Unionbank</option>
-                                              <option value="Instapay">Instapay</option>
-                                              <option value="RCBC">RCBC</option>
-                                            </optgroup>
-                                          </select>
-                                        )}
-                                        {subMethod === '' && (accountName.trim() !== '' || accountNumber.trim() !== '') && (
-                                          <div className="text-[11px] font-semibold text-rose-500 mt-1">Please select a {paymentMethod} option</div>
-                                        )}
-                                      </div>
-                                      <div className="svm-field">
-                                        <label className="svm-label">Sender Account Name</label>
-                                        <input 
-                                          type="text" 
-                                          className={`svm-input ${accountName.trim() === '' && (accountNumber.trim() !== '' || subMethod !== '') ? 'border-rose-500' : ''}`} 
-                                          placeholder="e.g. Juan Dela Cruz"
-                                          value={accountName}
-                                          onChange={(e) => { setError(''); setAccountName(e.target.value); }}
-                                        />
-                                        {accountName.trim() === '' && (accountNumber.trim() !== '' || subMethod !== '') && (
-                                          <div className="text-[11px] font-semibold text-rose-500 mt-1">Sender account name is required</div>
-                                        )}
-                                      </div>
-                                      <div className="svm-field">
-                                        <div className="flex items-center justify-between mb-1">
-                                          <label className="svm-label" style={{ marginBottom: 0 }}>
-                                            {paymentMethod === 'Bank' ? 'Sender Bank Account Number' : 'Sender Mobile Number'}
-                                          </label>
-                                          <span className={`text-[11px] font-bold ${
-                                            paymentMethod === 'Bank'
-                                              ? (accountNumber.trim().length >= 10 && accountNumber.trim().length <= 16
-                                                  ? 'text-emerald-600 dark:text-emerald-400'
-                                                  : accountNumber.trim().length > 0
-                                                  ? 'text-rose-500 font-semibold'
-                                                  : 'text-slate-400')
-                                              : (accountNumber.trim().startsWith('09') && accountNumber.trim().length === 11
-                                                  ? 'text-emerald-600 dark:text-emerald-400'
-                                                  : accountNumber.trim().length > 0
-                                                  ? 'text-rose-500 font-semibold'
-                                                  : 'text-slate-400')
-                                          }`}>
-                                            {paymentMethod === 'Bank'
-                                              ? `${accountNumber.trim().length} digits (10-16)`
-                                              : `${accountNumber.trim().length}/11 digits`
-                                            }
-                                          </span>
-                                        </div>
-                                        <input 
-                                          type="text" 
-                                          className={`svm-input ${
-                                            accountNumber.trim().length > 0 && (
-                                              paymentMethod === 'Bank'
-                                                ? (accountNumber.trim().length < 10 || accountNumber.trim().length > 16)
-                                                : (!accountNumber.trim().startsWith('09') || accountNumber.trim().length !== 11)
-                                            )
-                                              ? 'border-rose-500 focus:border-rose-500'
-                                              : (
-                                                  paymentMethod === 'Bank'
-                                                    ? (accountNumber.trim().length >= 10 && accountNumber.trim().length <= 16)
-                                                    : (accountNumber.trim().startsWith('09') && accountNumber.trim().length === 11)
-                                                )
-                                              ? 'border-emerald-500 focus:border-emerald-500'
-                                              : ''
-                                          }`} 
-                                          placeholder={paymentMethod === 'Bank' ? "e.g. 123456789012" : "e.g. 09123456789"}
-                                          maxLength={paymentMethod === 'Bank' ? 16 : 11}
-                                          value={accountNumber}
-                                          onChange={(e) => {
+                    </div>
+
+                    {approvalMethod === 'manual' ? (
+                        <div style={{ display: 'flex', flexDirection: 'column', gap: '12px' }}>
+                            <div className="svm-field">
+                                <label className="svm-label">
+                                    {paymentMethod} Option <span className="text-rose-500">*</span>
+                                </label>
+                                {paymentMethod === 'E-Wallet' ? (
+                                    <select
+                                        className={`svm-select ${touched.subMethod && !subMethod ? 'border-rose-500' : ''}`}
+                                        value={subMethod}
+                                        onBlur={() => setTouched(prev => ({ ...prev, subMethod: true }))}
+                                        onChange={(e) => {
                                             setError('');
-                                            const maxLen = paymentMethod === 'Bank' ? 16 : 11;
-                                            setAccountNumber(e.target.value.replace(/\D/g, '').slice(0, maxLen));
-                                          }}
-                                        />
-                                        {paymentMethod === 'Bank' ? (
-                                          accountNumber.trim().length > 0 && (accountNumber.trim().length < 10 || accountNumber.trim().length > 16) && (
-                                            <div className="text-[11px] font-semibold text-rose-500 mt-1 flex items-center gap-1">
-                                              <span>Bank account number must be 10 to 16 digits</span>
-                                            </div>
-                                          )
-                                        ) : (
-                                          <>
-                                            {accountNumber.trim().length > 0 && !accountNumber.trim().startsWith('09') && (
-                                              <div className="text-[11px] font-semibold text-rose-500 mt-1 flex items-center gap-1">
-                                                <span>Mobile number must start with 09</span>
-                                              </div>
-                                            )}
-                                            {accountNumber.trim().length > 0 && accountNumber.trim().startsWith('09') && accountNumber.trim().length !== 11 && (
-                                              <div className="text-[11px] font-semibold text-rose-500 mt-1 flex items-center gap-1">
-                                                <span>Must be exactly 11 digits (currently {accountNumber.trim().length}/11)</span>
-                                              </div>
-                                            )}
-                                          </>
-                                        )}
-                                      </div>
-                                    </div>
+                                            setSubMethod(e.target.value);
+                                            if (e.target.value !== 'Others') setCustomSubMethod('');
+                                            setTouched(prev => ({ ...prev, subMethod: true, customSubMethod: e.target.value === 'Others' }));
+                                        }}
+                                    >
+                                        <option value="" disabled>Select E-Wallet...</option>
+                                        <option value="GCash">GCash</option>
+                                        <option value="Maya">Maya</option>
+                                        <option value="GrabPay">GrabPay</option>
+                                        <option value="ShopeePay">ShopeePay</option>
+                                        <option value="Coins.ph">Coins.ph</option>
+                                        <option value="Others">Others (Please specify)</option>
+                                    </select>
+                                ) : (
+                                    <select
+                                        className={`svm-select ${touched.subMethod && !subMethod ? 'border-rose-500' : ''}`}
+                                        value={subMethod}
+                                        onBlur={() => setTouched(prev => ({ ...prev, subMethod: true }))}
+                                        onChange={(e) => {
+                                            setError('');
+                                            setSubMethod(e.target.value);
+                                            if (e.target.value !== 'Others') setCustomSubMethod('');
+                                            setTouched(prev => ({ ...prev, subMethod: true, customSubMethod: e.target.value === 'Others' }));
+                                        }}
+                                    >
+                                        <option value="" disabled>Select Bank / Digital Bank...</option>
+                                        <optgroup label="Digital Banks (Philippines)">
+                                            <option value="Maya Bank">Maya Bank</option>
+                                            <option value="GoTyme Bank">GoTyme Bank</option>
+                                            <option value="SeaBank">SeaBank</option>
+                                            <option value="Tonik Bank">Tonik Bank</option>
+                                            <option value="CIMB Bank">CIMB Bank</option>
+                                            <option value="UNO Digital Bank">UNO Digital Bank</option>
+                                            <option value="UnionDigital Bank">UnionDigital Bank</option>
+                                        </optgroup>
+                                        <optgroup label="Traditional Banks">
+                                            <option value="BPI">BPI (Bank of the Philippine Islands)</option>
+                                            <option value="BDO">BDO Unibank</option>
+                                            <option value="Metrobank">Metrobank</option>
+                                            <option value="Unionbank">UnionBank</option>
+                                            <option value="Landbank">Landbank</option>
+                                            <option value="Security Bank">Security Bank</option>
+                                            <option value="RCBC">RCBC</option>
+                                            <option value="PNB">PNB (Philippine National Bank)</option>
+                                            <option value="China Bank">China Bank</option>
+                                            <option value="EastWest Bank">EastWest Bank</option>
+                                        </optgroup>
+                                        <optgroup label="Transfer Networks & Cards">
+                                            <option value="Instapay">InstaPay</option>
+                                            <option value="PESONet">PESONet</option>
+                                            <option value="Master Card">Master Card</option>
+                                            <option value="Visa">Visa</option>
+                                        </optgroup>
+                                        <optgroup label="Other Banks">
+                                            <option value="Others">Others (Please specify)</option>
+                                        </optgroup>
+                                    </select>
+                                )}
+                                {touched.subMethod && !subMethod && (
+                                    <div className="text-[11px] font-semibold text-rose-500 mt-1">Please select a {paymentMethod} option</div>
+                                )}
+                            </div>
 
-                                    {proofFile && proofBase64 ? (
-                                      <div className={`mt-4 relative p-3 bg-slate-50 dark:bg-slate-800/80 border rounded-xl flex flex-col gap-2.5 ${
-                                        receiptValid === true ? 'border-emerald-400/60 dark:border-emerald-500/40' : 'border-slate-200 dark:border-white/10'
-                                      }`}>
-                                        <div className="flex items-center justify-between gap-2">
-                                          <div className="flex items-center gap-2 text-xs font-bold text-slate-700 dark:text-slate-200 truncate pr-2">
-                                            <FileCheck2 size={16} className="text-emerald-500 shrink-0" />
-                                            <span className="truncate">{proofFile.name}</span>
-                                            {proofFile.size && (
-                                              <span className="text-[10px] font-normal text-slate-400 shrink-0">
-                                                ({(proofFile.size / 1024 / 1024).toFixed(2)} MB)
-                                              </span>
-                                            )}
-                                          </div>
-                                          <button
-                                            type="button"
-                                            onClick={() => {
-                                              setProofFile(null);
-                                              setProofBase64('');
-                                              setReceiptValid(null);
-                                              setReceiptReason('');
-                                              setError('');
-                                            }}
-                                            className="text-slate-400 hover:text-red-500 p-1 rounded-lg hover:bg-slate-200 dark:hover:bg-white/10 transition-colors cursor-pointer border-none bg-transparent flex items-center justify-center shrink-0"
-                                            title="Remove file"
-                                            disabled={receiptValidating}
-                                          >
-                                            <X size={16} />
-                                          </button>
-                                        </div>
-
-                                        <div 
-                                          className="relative w-full max-h-48 overflow-hidden rounded-lg border border-slate-200/80 dark:border-white/10 bg-slate-100 dark:bg-black/30 flex items-center justify-center p-2 cursor-pointer group transition-all"
-                                          onClick={() => !receiptValidating && setPreviewImage({ src: proofBase64, name: proofFile.name })}
-                                          title={receiptValidating ? 'Scanning receipt...' : 'Click to expand image'}
-                                        >
-                                          <img
-                                            src={proofBase64}
-                                            alt="Proof of Payment Preview"
-                                            className={`max-h-44 max-w-full object-contain rounded-md shadow-xs transition-all duration-200 ${
-                                              receiptValidating ? 'opacity-40 blur-[1px]' : 'group-hover:scale-[1.02]'
-                                            }`}
-                                          />
-                                          {receiptValidating && (
-                                            <div className="absolute inset-0 flex flex-col items-center justify-center gap-2 bg-white/60 dark:bg-slate-900/60 backdrop-blur-[2px] rounded-lg z-10">
-                                              <Loader2 size={28} className="text-blue-600 dark:text-blue-400 animate-spin" />
-                                              <p className="text-xs font-bold text-slate-700 dark:text-slate-200">Scanning receipt...</p>
-                                              <p className="text-[10px] text-slate-500 dark:text-slate-400">Verifying proof of payment</p>
-                                            </div>
-                                          )}
-                                          {!receiptValidating && (
-                                            <div className="absolute inset-0 bg-slate-900/40 opacity-0 group-hover:opacity-100 transition-opacity flex items-center justify-center text-white text-xs font-bold gap-1.5 backdrop-blur-[2px] rounded-lg">
-                                              <ZoomIn size={18} /> Click to enlarge
-                                            </div>
-                                          )}
-                                        </div>
-
-                                        {receiptValid === true && !receiptValidating && (
-                                          <div className="flex items-center gap-1.5 px-2.5 py-1.5 bg-emerald-50 dark:bg-emerald-950/40 border border-emerald-200/60 dark:border-emerald-800/40 rounded-lg">
-                                            <ShieldCheck size={14} className="text-emerald-600 dark:text-emerald-400 shrink-0" />
-                                            <span className="text-[11px] font-bold text-emerald-700 dark:text-emerald-300">Verified Receipt</span>
-                                            {receiptReason && (
-                                              <span className="text-[10px] text-emerald-600/70 dark:text-emerald-400/70 ml-1">— {receiptReason}</span>
-                                            )}
-                                          </div>
-                                        )}
-                                      </div>
-                                    ) : (
-                                      <div className="svm-field mt-3">
-                                        <div className="flex items-center justify-between mb-1">
-                                          <label className="svm-label" style={{ marginBottom: 0 }}>Proof of Payment</label>
-                                          <span className={`text-[11px] font-bold ${proofBase64 ? 'text-emerald-600 dark:text-emerald-400' : 'text-rose-500'}`}>
-                                            {proofBase64 ? 'Uploaded' : '* Required'}
-                                          </span>
-                                        </div>
-                                        <label className={`flex flex-col items-center justify-center p-4 border-2 border-dashed rounded-xl cursor-pointer transition-all text-center ${
-                                          receiptValid === false
-                                            ? 'border-rose-400 bg-rose-50/40 dark:bg-rose-950/20'
-                                            : 'border-slate-300 dark:border-white/10 bg-slate-50 dark:bg-slate-800/40 hover:bg-slate-100 dark:hover:bg-slate-800/70'
-                                        }`}>
-                                          <input type="file" accept="image/*" onChange={handleFileChange} className="hidden" />
-                                          <div className="flex flex-col items-center gap-1">
-                                            <UploadCloud className={receiptValid === false ? "text-rose-500" : "text-slate-400 dark:text-slate-300"} size={28} />
-                                            <p className="text-xs font-semibold text-slate-700 dark:text-slate-300"><span className="text-blue-600 dark:text-blue-400 hover:underline">Click to upload</span> or drag and drop</p>
-                                            <p className="text-[11px] text-slate-400 m-0">PNG, JPG, JPEG up to 5MB</p>
-                                          </div>
-                                        </label>
-
-                                        {/* AI Rejection Error Message */}
-                                        {receiptValid === false && (
-                                          <div className="p-3 rounded-xl bg-rose-50 dark:bg-rose-950/50 border border-rose-200 dark:border-rose-800/50 text-rose-600 dark:text-rose-300 text-xs font-semibold flex items-start gap-2 mt-2 animate-in fade-in duration-200">
-                                            <AlertCircle size={16} className="text-rose-500 shrink-0 mt-0.5" />
-                                            <div>
-                                              <span className="font-bold block text-rose-700 dark:text-rose-300">Invalid Proof of Payment</span>
-                                              <span className="text-[11px] text-rose-600 dark:text-rose-400">
-                                                {receiptReason || 'This image does not appear to be a valid payment receipt. Please upload a real transaction screenshot.'}
-                                              </span>
-                                            </div>
-                                          </div>
-                                        )}
-
-                                        {!proofBase64 && receiptValid !== false && (accountName.trim() !== '' || accountNumber.trim() !== '') && (
-                                          <div className="text-[11px] font-semibold text-rose-500 mt-1">Please upload your payment receipt screenshot</div>
-                                        )}
-                                      </div>
+                            {/* Manual input when "Others" is selected */}
+                            {subMethod === 'Others' && (
+                                <div className="svm-field">
+                                    <label className="svm-label">
+                                        Specify {paymentMethod === 'Bank' ? 'Bank / Provider' : 'E-Wallet'} Name <span className="text-rose-500">*</span>
+                                    </label>
+                                    <input 
+                                        type="text" 
+                                        className={`svm-input ${touched.customSubMethod && !customSubMethod.trim() ? 'border-rose-500' : ''}`} 
+                                        placeholder={paymentMethod === 'Bank' ? 'Type your bank name (e.g. Komo, DiskarTech, OwnBank)' : 'Type your e-wallet name (e.g. PalawanPay, Bayad)'}
+                                        value={customSubMethod}
+                                        onBlur={() => setTouched(prev => ({ ...prev, customSubMethod: true }))}
+                                        onChange={(e) => { setError(''); setCustomSubMethod(e.target.value); }}
+                                    />
+                                    {touched.customSubMethod && !customSubMethod.trim() && (
+                                        <div className="text-[11px] font-semibold text-rose-500 mt-1">Please specify your {paymentMethod === 'Bank' ? 'bank / provider' : 'e-wallet'} name</div>
                                     )}
                                 </div>
-                            ) : (
-                                "You will be redirected to PayMongo to securely complete your payment. No manual proof upload is required!"
                             )}
+
+                            <div className="svm-field">
+                                <label className="svm-label">
+                                    Sender Account Name <span className="text-rose-500">*</span>
+                                </label>
+                                <input 
+                                    type="text" 
+                                    className={`svm-input ${touched.accountName && !accountName.trim() ? 'border-rose-500' : ''}`} 
+                                    placeholder="e.g. Juan Dela Cruz"
+                                    value={accountName}
+                                    onBlur={() => setTouched(prev => ({ ...prev, accountName: true }))}
+                                    onChange={(e) => { setError(''); setAccountName(e.target.value); }}
+                                />
+                                {touched.accountName && !accountName.trim() && (
+                                    <div className="text-[11px] font-semibold text-rose-500 mt-1">Sender account name is required</div>
+                                )}
+                            </div>
+
+                            <div className="svm-field">
+                                <div className="flex items-center justify-between mb-1">
+                                    <label className="svm-label" style={{ marginBottom: 0 }}>
+                                        {paymentMethod === 'Bank' ? 'Sender Bank Account Number' : 'Sender Mobile Number'} <span className="text-rose-500">*</span>
+                                    </label>
+                                    <span className={`text-[11px] font-bold ${
+                                        paymentMethod === 'Bank'
+                                            ? (cleanAcc.length >= 10 && cleanAcc.length <= 16
+                                                ? 'text-emerald-600 dark:text-emerald-400'
+                                                : cleanAcc.length > 0 || (touched.accountNumber && cleanAcc.length === 0)
+                                                ? 'text-rose-500 font-semibold'
+                                                : 'text-slate-400')
+                                            : (cleanAcc.startsWith('09') && cleanAcc.length === 11
+                                                ? 'text-emerald-600 dark:text-emerald-400'
+                                                : cleanAcc.length > 0 || (touched.accountNumber && cleanAcc.length === 0)
+                                                ? 'text-rose-500 font-semibold'
+                                                : 'text-slate-400')
+                                    }`}>
+                                        {paymentMethod === 'Bank'
+                                            ? `${cleanAcc.length} digits (10-16)`
+                                            : `${cleanAcc.length}/11 digits`
+                                        }
+                                    </span>
+                                </div>
+                                <input 
+                                    type="text" 
+                                    className={`svm-input ${
+                                        (cleanAcc.length > 0 && !isAccNumValid) || (touched.accountNumber && !isAccNumValid)
+                                            ? 'border-rose-500 focus:border-rose-500'
+                                            : isAccNumValid
+                                            ? 'border-emerald-500 focus:border-emerald-500'
+                                            : ''
+                                    }`} 
+                                    placeholder={paymentMethod === 'Bank' ? "e.g. 123456789012" : "e.g. 09123456789"}
+                                    maxLength={paymentMethod === 'Bank' ? 16 : 11}
+                                    value={accountNumber}
+                                    onBlur={() => setTouched(prev => ({ ...prev, accountNumber: true }))}
+                                    onChange={(e) => {
+                                        setError('');
+                                        const maxLen = paymentMethod === 'Bank' ? 16 : 11;
+                                        setAccountNumber(e.target.value.replace(/\D/g, '').slice(0, maxLen));
+                                    }}
+                                />
+                                {paymentMethod === 'Bank' ? (
+                                    <>
+                                        {touched.accountNumber && cleanAcc.length === 0 && (
+                                            <div className="text-[11px] font-semibold text-rose-500 mt-1 flex items-center gap-1">
+                                                <span>Bank account number is required</span>
+                                            </div>
+                                        )}
+                                        {cleanAcc.length > 0 && (cleanAcc.length < 10 || cleanAcc.length > 16) && (
+                                            <div className="text-[11px] font-semibold text-rose-500 mt-1 flex items-center gap-1">
+                                                <span>Bank account number must be 10 to 16 digits</span>
+                                            </div>
+                                        )}
+                                    </>
+                                ) : (
+                                    <>
+                                        {touched.accountNumber && cleanAcc.length === 0 && (
+                                            <div className="text-[11px] font-semibold text-rose-500 mt-1 flex items-center gap-1">
+                                                <span>Mobile number is required</span>
+                                            </div>
+                                        )}
+                                        {cleanAcc.length > 0 && !cleanAcc.startsWith('09') && (
+                                            <div className="text-[11px] font-semibold text-rose-500 mt-1 flex items-center gap-1">
+                                                <span>Mobile number must start with 09</span>
+                                            </div>
+                                        )}
+                                        {cleanAcc.length > 0 && cleanAcc.startsWith('09') && cleanAcc.length !== 11 && (
+                                            <div className="text-[11px] font-semibold text-rose-500 mt-1 flex items-center gap-1">
+                                                <span>Must be exactly 11 digits (currently {cleanAcc.length}/11)</span>
+                                            </div>
+                                        )}
+                                    </>
+                                )}
+                            </div>
                         </div>
-                    </div>
+                    ) : (
+                        <div className="svm-info-text" style={{ marginTop: '8px' }}>
+                            You will be redirected to PayMongo to securely complete your payment. No manual proof upload is required!
+                        </div>
+                    )}
 
                     <div className="svm-field">
                         <label className="svm-label">
@@ -754,6 +1008,7 @@ function QuickDepositModal({ goal, goals, onClose }) {
     const [note, setNote] = useState('');
     const [paymentMethod, setPaymentMethod] = useState('E-Wallet');
     const [subMethod, setSubMethod] = useState('');
+    const [customSubMethod, setCustomSubMethod] = useState('');
     const [accountName, setAccountName] = useState('');
     const [accountNumber, setAccountNumber] = useState('');
     const [proofFile, setProofFile] = useState(null);
@@ -765,6 +1020,7 @@ function QuickDepositModal({ goal, goals, onClose }) {
     const [receiptValidating, setReceiptValidating] = useState(false);
     const [receiptValid, setReceiptValid] = useState(null);
     const [receiptReason, setReceiptReason] = useState('');
+    const [touched, setTouched] = useState({});
 
     const { data: settingsData } = useSWR(`${API}/api/settings/public`, fetchPublicSettings, {
         revalidateOnFocus: false, dedupingInterval: 300000
@@ -783,7 +1039,7 @@ function QuickDepositModal({ goal, goals, onClose }) {
                 const base64Result = reader.result;
                 setProofBase64(base64Result);
 
-                // AI Receipt Validation
+                // AI Receipt Validation & Auto-fill
                 setReceiptValidating(true);
                 try {
                     const token = localStorage.getItem('token');
@@ -797,12 +1053,78 @@ function QuickDepositModal({ goal, goals, onClose }) {
                     if (data.success && data.isReceipt) {
                         setReceiptValid(true);
                         setReceiptReason(data.fallback ? data.reason : '');
+
+                        // --- AI Auto-fill from extracted data ---
+                        if (data.extracted) {
+                            const missing = [];
+
+                            // Auto-fill Amount
+                            if (data.extracted.amount && Number(data.extracted.amount) > 0) {
+                                setAmount(Number(data.extracted.amount).toLocaleString('en-US'));
+                            } else {
+                                missing.push('Amount');
+                            }
+
+                            // Auto-fill Payment Method & Sub-method
+                            const rawSubMethod = data.extracted?.subMethod ? String(data.extracted.subMethod).trim() : '';
+                            const normalizedSub = normalizeSubMethod(rawSubMethod);
+                            const isEWalletMethod = ['GCash', 'Maya', 'GrabPay', 'ShopeePay', 'Coins.ph'].includes(normalizedSub);
+                            const detectedMethod = data.extracted?.paymentMethod || (isEWalletMethod ? 'E-Wallet' : 'Bank');
+                            setPaymentMethod(detectedMethod);
+
+                            if (rawSubMethod) {
+                                setSubMethod(normalizedSub);
+                            } else {
+                                missing.push('Payment Option');
+                            }
+
+                            // Auto-fill Sender Account Name
+                            const rawSenderName = data.extracted?.senderName ? String(data.extracted.senderName).trim() : '';
+                            if (isValidPersonName(rawSenderName)) {
+                                setAccountName(rawSenderName);
+                            } else {
+                                setAccountName('');
+                                missing.push('Sender Account Name');
+                            }
+
+                            // Auto-fill Sender Account Number
+                            if (data.extracted?.senderNumber) {
+                                const rawNum = String(data.extracted.senderNumber).replace(/\D/g, '');
+                                if (detectedMethod === 'Bank') {
+                                    if (rawNum.length >= 8 && rawNum.length <= 20) {
+                                        setAccountNumber(rawNum.slice(0, 16));
+                                    } else { missing.push('Sender Bank Account Number'); }
+                                } else {
+                                    const cleanPhone = formatPhoneForInput(rawNum);
+                                    if (cleanPhone.startsWith('09') && cleanPhone.length === 11) {
+                                        setAccountNumber(cleanPhone);
+                                    } else { missing.push('Sender Mobile Number'); }
+                                }
+                            } else {
+                                setAccountNumber('');
+                                missing.push(detectedMethod === 'Bank' ? 'Sender Bank Account Number' : 'Sender Mobile Number');
+                            }
+
+                            if (missing.length > 0) {
+                                toast.warning(`Receipt scanned. Please complete: ${missing.join(', ')}`);
+                            } else {
+                                toast.success('Details auto-filled from receipt! You can review or edit below.');
+                            }
+
+                            // Mark all fields as touched so empty fields show red immediately
+                            setTouched({
+                                amount: true,
+                                subMethod: true,
+                                customSubMethod: normalizedSub === 'Others',
+                                accountName: true,
+                                accountNumber: true,
+                                proofOfPayment: false,
+                            });
+                        }
                     } else if (data.success && !data.isReceipt) {
                         setReceiptValid(false);
                         setReceiptReason(data.reason || 'This does not appear to be a valid payment receipt.');
-                        setError('Invalid proof of payment. Please upload a real receipt or transaction screenshot.');
-                        setProofFile(null);
-                        setProofBase64('');
+                        setError(data.reason || 'Invalid proof of payment. Please upload a real receipt or transaction screenshot.');
                     } else {
                         setReceiptValid(true);
                         setReceiptReason('Could not verify. Accepted for manual review.');
@@ -826,24 +1148,44 @@ function QuickDepositModal({ goal, goals, onClose }) {
         : 0;
     const remainingTarget = goal?.targetAmount > 0 ? Math.max(0, goal.targetAmount - (goal.savedAmount || 0)) : 0;
 
+    const isQuickBank = paymentMethod === 'Bank';
+    const cleanQuickAcc = accountNumber.trim();
+    const isQuickAccValid = isQuickBank
+        ? (cleanQuickAcc.length >= 10 && cleanQuickAcc.length <= 16)
+        : (cleanQuickAcc.startsWith('09') && cleanQuickAcc.length === 11);
+    const isCustomSubValid = subMethod !== 'Others' || customSubMethod.trim() !== '';
+
     const handleSubmit = async () => {
+        setTouched({
+            amount: true,
+            subMethod: true,
+            customSubMethod: true,
+            accountName: true,
+            accountNumber: true,
+            proofOfPayment: true,
+        });
+
         if (!numAmt || numAmt <= 0) { setError('Please enter a valid deposit amount.'); return; }
         if (!paymentMethod) { setError('Please select a payment method.'); return; }
         if (approvalMethod === 'manual') {
             if (!proofBase64) { setError('Please upload your proof of payment.'); return; }
+            if (receiptValid === false) { setError('Please upload a valid payment receipt.'); return; }
             if (!subMethod) { setError(`Please select a ${paymentMethod} option.`); return; }
+            if (subMethod === 'Others' && !customSubMethod.trim()) { setError(`Please specify your ${paymentMethod === 'Bank' ? 'bank / provider' : 'e-wallet'} name.`); return; }
             if (!accountName.trim()) { setError('Please enter the account name.'); return; }
-            const cleanAcc = accountNumber.trim();
             if (paymentMethod === 'Bank') {
-                if (cleanAcc.length < 10 || cleanAcc.length > 16) {
+                if (cleanQuickAcc.length < 10 || cleanQuickAcc.length > 16) {
                     setError('Bank account number must be between 10 and 16 digits.');
                     return;
                 }
             } else {
-                if (!cleanAcc.startsWith('09')) { setError('Mobile number must start with 09.'); return; }
-                if (cleanAcc.length !== 11) { setError('Mobile number must be exactly 11 digits.'); return; }
+                if (!cleanQuickAcc.startsWith('09')) { setError('Mobile number must start with 09.'); return; }
+                if (cleanQuickAcc.length !== 11) { setError('Mobile number must be exactly 11 digits.'); return; }
             }
         }
+
+        const finalSubMethod = subMethod === 'Others' ? (customSubMethod.trim() || 'Others') : subMethod;
+
         setError('');
         setLoading(true);
         try {
@@ -851,7 +1193,7 @@ function QuickDepositModal({ goal, goals, onClose }) {
             const res = await fetch(`${API}/api/savings/deposit`, {
                 method: 'POST',
                 headers: { 'Content-Type': 'application/json', Authorization: `Bearer ${token}` },
-                body: JSON.stringify({ goalId: goal._id, amount: numAmt, note, paymentMethod, subMethod, accountName, accountNumber, proofOfPayment: proofBase64 }),
+                body: JSON.stringify({ goalId: goal._id, amount: numAmt, note, paymentMethod, subMethod: finalSubMethod, accountName, accountNumber, proofOfPayment: proofBase64 }),
             });
             const data = await res.json();
             if (!res.ok || !data.success) throw new Error(data.message || 'Deposit failed.');
@@ -871,12 +1213,6 @@ function QuickDepositModal({ goal, goals, onClose }) {
         }
     };
 
-    const isQuickBank = paymentMethod === 'Bank';
-    const cleanQuickAcc = accountNumber.trim();
-    const isQuickAccValid = isQuickBank
-        ? (cleanQuickAcc.length >= 10 && cleanQuickAcc.length <= 16)
-        : (cleanQuickAcc.startsWith('09') && cleanQuickAcc.length === 11);
-
     const isFormComplete = 
         numAmt > 0 &&
         paymentMethod !== '' && paymentMethod !== 'cash' &&
@@ -885,6 +1221,7 @@ function QuickDepositModal({ goal, goals, onClose }) {
             receiptValid === true &&
             !receiptValidating &&
             subMethod !== '' &&
+            isCustomSubValid &&
             accountName.trim() !== '' &&
             isQuickAccValid
         ));
@@ -912,17 +1249,152 @@ function QuickDepositModal({ goal, goals, onClose }) {
                         </div>
                     ) : (
                         <>
+                            {approvalMethod === 'manual' && (
+                                <div className="svm-field">
+                                    <div className="flex items-center justify-between mb-1.5">
+                                        <label className="svm-label" style={{ marginBottom: 0 }}>
+                                            Proof of Payment <span className="text-rose-500">*</span>
+                                        </label>
+                                        <span className="inline-flex items-center gap-1 px-2.5 py-0.5 rounded-full text-[10px] font-bold bg-blue-50 dark:bg-blue-950/60 text-blue-700 dark:text-blue-300 border border-blue-200/80 dark:border-blue-900/50">
+                                            <Sparkles size={11} className="text-blue-600 dark:text-blue-400" />
+                                            AI Auto-Fill
+                                        </span>
+                                    </div>
+
+                                    {proofFile && proofBase64 ? (
+                                        <div className={`relative p-3 bg-slate-50 dark:bg-slate-800/80 border rounded-xl flex flex-col gap-2.5 ${
+                                            receiptValid === true
+                                                ? 'border-emerald-400/60 dark:border-emerald-500/40'
+                                                : receiptValid === false
+                                                ? 'border-rose-400 dark:border-rose-500/40 bg-rose-50/20'
+                                                : 'border-slate-200 dark:border-white/10'
+                                        }`}>
+                                            <div className="flex items-center justify-between gap-2">
+                                                <div className="flex items-center gap-2 text-xs font-bold text-slate-700 dark:text-slate-200 truncate pr-2">
+                                                    <FileCheck2 size={15} className={receiptValid === false ? "text-rose-500 shrink-0" : "text-emerald-500 shrink-0"} />
+                                                    <span className="truncate">{proofFile.name}</span>
+                                                    {proofFile.size && (
+                                                        <span className="text-[10px] font-normal text-slate-400 shrink-0">
+                                                            ({(proofFile.size / 1024 / 1024).toFixed(2)} MB)
+                                                        </span>
+                                                    )}
+                                                </div>
+                                                <button
+                                                    type="button"
+                                                    onClick={() => {
+                                                        setProofFile(null);
+                                                        setProofBase64('');
+                                                        setReceiptValid(null);
+                                                        setReceiptReason('');
+                                                        setError('');
+                                                    }}
+                                                    className="text-slate-400 hover:text-red-500 p-1 rounded-lg hover:bg-slate-200 dark:hover:bg-white/10 transition-colors cursor-pointer border-none bg-transparent flex items-center justify-center shrink-0"
+                                                    title="Remove file"
+                                                    disabled={receiptValidating}
+                                                >
+                                                    <X size={15} />
+                                                </button>
+                                            </div>
+
+                                            <div 
+                                                className="relative w-full max-h-40 overflow-hidden rounded-lg border border-slate-200/80 dark:border-white/10 bg-slate-100 dark:bg-black/30 flex items-center justify-center p-2 cursor-pointer group transition-all"
+                                                onClick={() => !receiptValidating && setPreviewImage({ src: proofBase64, name: proofFile.name })}
+                                                title={receiptValidating ? 'Scanning receipt...' : 'Click to expand image'}
+                                            >
+                                                <img
+                                                    src={proofBase64}
+                                                    alt="Proof of Payment Preview"
+                                                    className={`max-h-36 max-w-full object-contain rounded-md shadow-xs transition-all duration-200 ${
+                                                        receiptValidating ? 'opacity-40 blur-[1px]' : 'group-hover:scale-[1.02]'
+                                                    }`}
+                                                />
+                                                {receiptValidating && (
+                                                    <div className="absolute inset-0 flex flex-col items-center justify-center gap-2 bg-white/60 dark:bg-slate-900/60 backdrop-blur-[2px] rounded-lg z-10">
+                                                        <Loader2 size={24} className="text-blue-600 dark:text-blue-400 animate-spin" />
+                                                        <p className="text-xs font-bold text-slate-700 dark:text-slate-200">Scanning receipt...</p>
+                                                        <p className="text-[10px] text-slate-500 dark:text-slate-400">Verifying proof of payment</p>
+                                                    </div>
+                                                )}
+                                                {!receiptValidating && (
+                                                    <div className="absolute inset-0 bg-slate-900/40 opacity-0 group-hover:opacity-100 transition-opacity flex items-center justify-center text-white text-xs font-bold gap-1.5 backdrop-blur-[2px] rounded-lg">
+                                                        <ZoomIn size={16} /> Click to enlarge
+                                                    </div>
+                                                )}
+                                            </div>
+
+                                            {receiptValid === true && !receiptValidating && (
+                                                <div className="flex items-center gap-1.5 px-2 py-1.5 bg-emerald-50 dark:bg-emerald-950/40 border border-emerald-200/60 dark:border-emerald-800/40 rounded-lg">
+                                                    <ShieldCheck size={13} className="text-emerald-600 dark:text-emerald-400 shrink-0" />
+                                                    <span className="text-[11px] font-bold text-emerald-700 dark:text-emerald-300">Verified Receipt</span>
+                                                    {receiptReason && (
+                                                        <span className="text-[10px] text-emerald-600/70 dark:text-emerald-400/70 ml-1">— {receiptReason}</span>
+                                                    )}
+                                                </div>
+                                            )}
+
+                                            {receiptValid === false && !receiptValidating && (
+                                                <div className="p-3 rounded-xl bg-rose-50 dark:bg-rose-950/50 border border-rose-200 dark:border-rose-800/50 text-rose-600 dark:text-rose-300 text-xs font-semibold flex items-start gap-2 animate-in fade-in duration-200">
+                                                    <AlertCircle size={15} className="text-rose-500 shrink-0 mt-0.5" />
+                                                    <div>
+                                                        <span className="font-bold block text-rose-700 dark:text-rose-300">Invalid Proof of Payment</span>
+                                                        <span className="text-[11px] text-rose-600 dark:text-rose-400">
+                                                            {receiptReason || 'This image does not appear to be a valid payment receipt. Please upload a real transaction screenshot.'}
+                                                        </span>
+                                                    </div>
+                                                </div>
+                                            )}
+                                        </div>
+                                    ) : (
+                                        <div>
+                                            <label className={`p-3.5 flex flex-col items-center justify-center border-2 border-dashed rounded-xl cursor-pointer transition-all text-center ${
+                                                receiptValid === false || (touched.proofOfPayment && !proofBase64)
+                                                    ? 'border-rose-400 bg-rose-50/40 dark:bg-rose-950/20'
+                                                    : 'border-slate-300 dark:border-white/10 bg-slate-50 dark:bg-slate-800/40 hover:bg-slate-100 dark:hover:bg-slate-800/70'
+                                            }`}>
+                                                <input type="file" accept="image/*" onChange={handleFileChange} className="hidden" />
+                                                <div className="flex flex-col items-center gap-1">
+                                                    <UploadCloud className={receiptValid === false || (touched.proofOfPayment && !proofBase64) ? "text-rose-500" : "text-slate-400 dark:text-slate-300"} size={26} />
+                                                    <p className="text-xs font-semibold text-slate-700 dark:text-slate-300">
+                                                        <span className="text-blue-600 dark:text-blue-400 hover:underline">Click to upload receipt</span> or drag and drop
+                                                    </p>
+                                                    <p className="text-[11px] text-slate-400 m-0">PNG, JPG, JPEG up to 5MB (AI auto-fills fields below)</p>
+                                                </div>
+                                            </label>
+
+                                            {receiptValid === false && (
+                                                <div className="p-3 rounded-xl bg-rose-50 dark:bg-rose-950/50 border border-rose-200 dark:border-rose-800/50 text-rose-600 dark:text-rose-300 text-xs font-semibold flex items-start gap-2 mt-2 animate-in fade-in duration-200">
+                                                    <AlertCircle size={15} className="text-rose-500 shrink-0 mt-0.5" />
+                                                    <div>
+                                                        <span className="font-bold block text-rose-700 dark:text-rose-300">Invalid Proof of Payment</span>
+                                                        <span className="text-[11px] text-rose-600 dark:text-rose-400">
+                                                            {receiptReason || 'This image does not appear to be a valid payment receipt. Please upload a real transaction screenshot.'}
+                                                        </span>
+                                                    </div>
+                                                </div>
+                                            )}
+
+                                            {touched.proofOfPayment && !proofBase64 && receiptValid !== false && (
+                                                <div className="text-[11px] font-semibold text-rose-500 mt-1">Please upload your payment receipt screenshot</div>
+                                            )}
+                                        </div>
+                                    )}
+                                </div>
+                            )}
+
                             <div className="svm-field">
-                                <label className="svm-label">Amount</label>
+                                <label className="svm-label">
+                                    Amount <span className="text-rose-500">*</span>
+                                </label>
                                 <div className="svm-amount-wrap">
                                     <span className="svm-peso">₱</span>
                                     <input
                                         className={`svm-input svm-input--amount ${
-                                            amount.trim() !== '' && numAmt <= 0 ? 'border-rose-500' : ''
+                                            (amount.trim() !== '' && numAmt <= 0) || (touched.amount && (!amount.trim() || numAmt <= 0)) ? 'border-rose-500' : ''
                                         }`}
                                         type="text"
                                         placeholder="0.00"
                                         value={amount}
+                                        onBlur={() => setTouched(prev => ({ ...prev, amount: true }))}
                                         onChange={e => {
                                             setError('');
                                             let raw = e.target.value.replace(/[^0-9.]/g, '');
@@ -936,7 +1408,7 @@ function QuickDepositModal({ goal, goals, onClose }) {
                                         autoFocus
                                     />
                                 </div>
-                                {amount.trim() !== '' && numAmt <= 0 && (
+                                {((amount.trim() !== '' && numAmt <= 0) || (touched.amount && (!amount.trim() || numAmt <= 0))) && (
                                     <div className="text-[11px] font-semibold text-rose-500 mt-1.5 flex items-center gap-1">
                                         <span>Please enter a valid deposit amount</span>
                                     </div>
@@ -987,13 +1459,13 @@ function QuickDepositModal({ goal, goals, onClose }) {
                                 <div className="svm-payment-options">
                                     {[
                                         { id: 'E-Wallet', label: 'E-Wallet' },
-                                        { id: 'Bank', label: 'Bank' },
+                                        { id: 'Bank', label: 'Bank Transfer' },
                                     ].map(opt => (
                                         <button
                                             key={opt.id}
                                             type="button"
                                             className={`svm-payment-btn ${paymentMethod === opt.id ? 'active' : ''}`}
-                                            onClick={() => { setPaymentMethod(opt.id); setSubMethod(''); }}
+                                            onClick={() => { setPaymentMethod(opt.id); setSubMethod(''); setCustomSubMethod(''); }}
                                             style={{ padding: '8px', fontSize: '11px' }}
                                         >
                                             <div className={`svm-radio ${paymentMethod === opt.id ? 'active' : ''}`} style={{ width: '12px', height: '12px' }} />
@@ -1001,228 +1473,203 @@ function QuickDepositModal({ goal, goals, onClose }) {
                                         </button>
                                     ))}
                                 </div>
-                                <div className="svm-info-text" style={{ marginTop: '8px', fontSize: '11px', color: '#6B7280' }}>
-                                    {approvalMethod === 'manual' ? (
-                                        <div style={{ marginTop: '12px' }}>
-                                            <p style={{ marginBottom: '8px' }}>Please transfer to our <strong>{paymentMethod}</strong> account and upload receipt.</p>
-                                            
-                                            <div style={{ display: 'flex', flexDirection: 'column', gap: '12px' }}>
-                                              <div className="svm-field">
-                                                <label className="svm-label">{paymentMethod} Option</label>
-                                                {paymentMethod === 'E-Wallet' ? (
-                                                  <select className="svm-select" value={subMethod} onChange={(e) => setSubMethod(e.target.value)}>
-                                                    <option value="" disabled>Select E-Wallet…</option>
-                                                    <option value="GCash">GCash</option>
-                                                    <option value="Maya">Maya</option>
-                                                  </select>
-                                                ) : (
-                                                  <select className="svm-select" value={subMethod} onChange={(e) => setSubMethod(e.target.value)}>
-                                                    <option value="" disabled>Select Bank…</option>
-                                                    <optgroup label="Card Payments">
-                                                      <option value="Master Card">Master Card</option>
-                                                      <option value="Visa">Visa</option>
-                                                    </optgroup>
-                                                    <optgroup label="Online Bank">
-                                                      <option value="BPI">BPI</option>
-                                                      <option value="BDO">BDO</option>
-                                                      <option value="PNB">PNB</option>
-                                                      <option value="Metrobank">Metrobank</option>
-                                                      <option value="Unionbank">Unionbank</option>
-                                                      <option value="Instapay">Instapay</option>
-                                                      <option value="RCBC">RCBC</option>
-                                                    </optgroup>
-                                                  </select>
-                                                )}
-                                              </div>
-                                              <div className="svm-field">
-                                                <label className="svm-label">Sender Account Name</label>
-                                                <input 
-                                                  type="text" 
-                                                  className="svm-input" 
-                                                  placeholder="e.g. Juan Dela Cruz"
-                                                  value={accountName}
-                                                  onChange={(e) => setAccountName(e.target.value)}
-                                                />
-                                              </div>
-                                              <div className="svm-field">
-                                                <div className="flex items-center justify-between mb-1">
-                                                  <label className="svm-label" style={{ marginBottom: 0 }}>
-                                                    {paymentMethod === 'Bank' ? 'Sender Bank Account Number' : 'Sender Mobile Number'}
-                                                  </label>
-                                                  <span className={`text-[11px] font-bold ${
-                                                    paymentMethod === 'Bank'
-                                                      ? (accountNumber.trim().length >= 10 && accountNumber.trim().length <= 16
-                                                          ? 'text-emerald-600 dark:text-emerald-400'
-                                                          : accountNumber.trim().length > 0
-                                                          ? 'text-rose-500 font-semibold'
-                                                          : 'text-slate-400')
-                                                      : (accountNumber.trim().startsWith('09') && accountNumber.trim().length === 11
-                                                          ? 'text-emerald-600 dark:text-emerald-400'
-                                                          : accountNumber.trim().length > 0
-                                                          ? 'text-rose-500 font-semibold'
-                                                          : 'text-slate-400')
-                                                  }`}>
-                                                    {paymentMethod === 'Bank'
-                                                      ? `${accountNumber.trim().length} digits (10-16)`
-                                                      : `${accountNumber.trim().length}/11 digits`
-                                                    }
-                                                  </span>
-                                                </div>
-                                                <input 
-                                                  type="text" 
-                                                  className={`svm-input ${
-                                                    accountNumber.trim().length > 0 && (
-                                                      paymentMethod === 'Bank'
-                                                        ? (accountNumber.trim().length < 10 || accountNumber.trim().length > 16)
-                                                        : (!accountNumber.trim().startsWith('09') || accountNumber.trim().length !== 11)
-                                                    )
-                                                      ? 'border-rose-500 focus:border-rose-500'
-                                                      : (
-                                                          paymentMethod === 'Bank'
-                                                            ? (accountNumber.trim().length >= 10 && accountNumber.trim().length <= 16)
-                                                            : (accountNumber.trim().startsWith('09') && accountNumber.trim().length === 11)
-                                                        )
-                                                      ? 'border-emerald-500 focus:border-emerald-500'
-                                                      : ''
-                                                  }`} 
-                                                  placeholder={paymentMethod === 'Bank' ? "e.g. 123456789012" : "e.g. 09123456789"}
-                                                  maxLength={paymentMethod === 'Bank' ? 16 : 11}
-                                                  value={accountNumber}
-                                                  onChange={(e) => {
+                            </div>
+
+                            {approvalMethod === 'manual' ? (
+                                <div style={{ display: 'flex', flexDirection: 'column', gap: '12px' }}>
+                                    <div className="svm-field">
+                                        <label className="svm-label">
+                                            {paymentMethod} Option <span className="text-rose-500">*</span>
+                                        </label>
+                                        {paymentMethod === 'E-Wallet' ? (
+                                            <select
+                                                className={`svm-select ${touched.subMethod && !subMethod ? 'border-rose-500' : ''}`}
+                                                value={subMethod}
+                                                onBlur={() => setTouched(prev => ({ ...prev, subMethod: true }))}
+                                                onChange={(e) => {
                                                     setError('');
-                                                    const maxLen = paymentMethod === 'Bank' ? 16 : 11;
-                                                    setAccountNumber(e.target.value.replace(/\D/g, '').slice(0, maxLen));
-                                                  }}
-                                                />
-                                                {paymentMethod === 'Bank' ? (
-                                                  accountNumber.trim().length > 0 && (accountNumber.trim().length < 10 || accountNumber.trim().length > 16) && (
-                                                    <div className="text-[11px] font-semibold text-rose-500 mt-1 flex items-center gap-1">
-                                                      <span>Bank account number must be 10 to 16 digits</span>
-                                                    </div>
-                                                  )
-                                                ) : (
-                                                  <>
-                                                    {accountNumber.trim().length > 0 && !accountNumber.trim().startsWith('09') && (
-                                                      <div className="text-[11px] font-semibold text-rose-500 mt-1 flex items-center gap-1">
-                                                        <span>Mobile number must start with 09</span>
-                                                      </div>
-                                                    )}
-                                                    {accountNumber.trim().length > 0 && accountNumber.trim().startsWith('09') && accountNumber.trim().length !== 11 && (
-                                                      <div className="text-[11px] font-semibold text-rose-500 mt-1 flex items-center gap-1">
-                                                        <span>Must be exactly 11 digits (currently {accountNumber.trim().length}/11)</span>
-                                                      </div>
-                                                    )}
-                                                  </>
-                                                )}
-                                              </div>
-                                            </div>
+                                                    setSubMethod(e.target.value);
+                                                    if (e.target.value !== 'Others') setCustomSubMethod('');
+                                                    setTouched(prev => ({ ...prev, subMethod: true, customSubMethod: e.target.value === 'Others' }));
+                                                }}
+                                            >
+                                                <option value="" disabled>Select E-Wallet...</option>
+                                                <option value="GCash">GCash</option>
+                                                <option value="Maya">Maya</option>
+                                                <option value="GrabPay">GrabPay</option>
+                                                <option value="ShopeePay">ShopeePay</option>
+                                                <option value="Coins.ph">Coins.ph</option>
+                                                <option value="Others">Others (Please specify)</option>
+                                            </select>
+                                        ) : (
+                                            <select
+                                                className={`svm-select ${touched.subMethod && !subMethod ? 'border-rose-500' : ''}`}
+                                                value={subMethod}
+                                                onBlur={() => setTouched(prev => ({ ...prev, subMethod: true }))}
+                                                onChange={(e) => {
+                                                    setError('');
+                                                    setSubMethod(e.target.value);
+                                                    if (e.target.value !== 'Others') setCustomSubMethod('');
+                                                    setTouched(prev => ({ ...prev, subMethod: true, customSubMethod: e.target.value === 'Others' }));
+                                                }}
+                                            >
+                                                <option value="" disabled>Select Bank / Digital Bank...</option>
+                                                <optgroup label="Digital Banks (Philippines)">
+                                                    <option value="Maya Bank">Maya Bank</option>
+                                                    <option value="GoTyme Bank">GoTyme Bank</option>
+                                                    <option value="SeaBank">SeaBank</option>
+                                                    <option value="Tonik Bank">Tonik Bank</option>
+                                                    <option value="CIMB Bank">CIMB Bank</option>
+                                                    <option value="UNO Digital Bank">UNO Digital Bank</option>
+                                                    <option value="UnionDigital Bank">UnionDigital Bank</option>
+                                                </optgroup>
+                                                <optgroup label="Traditional Banks">
+                                                    <option value="BPI">BPI (Bank of the Philippine Islands)</option>
+                                                    <option value="BDO">BDO Unibank</option>
+                                                    <option value="Metrobank">Metrobank</option>
+                                                    <option value="Unionbank">UnionBank</option>
+                                                    <option value="Landbank">Landbank</option>
+                                                    <option value="Security Bank">Security Bank</option>
+                                                    <option value="RCBC">RCBC</option>
+                                                    <option value="PNB">PNB (Philippine National Bank)</option>
+                                                    <option value="China Bank">China Bank</option>
+                                                    <option value="EastWest Bank">EastWest Bank</option>
+                                                </optgroup>
+                                                <optgroup label="Transfer Networks & Cards">
+                                                    <option value="Instapay">InstaPay</option>
+                                                    <option value="PESONet">PESONet</option>
+                                                    <option value="Master Card">Master Card</option>
+                                                    <option value="Visa">Visa</option>
+                                                </optgroup>
+                                                <optgroup label="Other Banks">
+                                                    <option value="Others">Others (Please specify)</option>
+                                                </optgroup>
+                                            </select>
+                                        )}
+                                        {touched.subMethod && !subMethod && (
+                                            <div className="text-[11px] font-semibold text-rose-500 mt-1">Please select a {paymentMethod} option</div>
+                                        )}
+                                    </div>
 
-                                            {proofFile && proofBase64 ? (
-                                              <div className={`mt-4 relative p-3 bg-slate-50 dark:bg-slate-800/80 border rounded-xl flex flex-col gap-2 ${
-                                                receiptValid === true ? 'border-emerald-400/60 dark:border-emerald-500/40' : 'border-slate-200 dark:border-white/10'
-                                              }`}>
-                                                <div className="flex items-center justify-between gap-2">
-                                                  <div className="flex items-center gap-2 text-xs font-bold text-slate-700 dark:text-slate-200 truncate pr-2">
-                                                    <FileCheck2 size={14} className="text-emerald-500 shrink-0" />
-                                                    <span className="truncate">{proofFile.name}</span>
-                                                  </div>
-                                                  <button
-                                                    type="button"
-                                                    onClick={() => {
-                                                      setProofFile(null);
-                                                      setProofBase64('');
-                                                      setReceiptValid(null);
-                                                      setReceiptReason('');
-                                                      setError('');
-                                                    }}
-                                                    className="text-slate-400 hover:text-red-500 p-1 rounded-lg hover:bg-slate-200 dark:hover:bg-white/10 transition-colors cursor-pointer border-none bg-transparent flex items-center justify-center shrink-0"
-                                                    title="Remove file"
-                                                    disabled={receiptValidating}
-                                                  >
-                                                    <X size={14} />
-                                                  </button>
-                                                </div>
-
-                                                <div 
-                                                  className="relative w-full max-h-40 overflow-hidden rounded-lg border border-slate-200/80 dark:border-white/10 bg-slate-100 dark:bg-black/30 flex items-center justify-center p-2 cursor-pointer group transition-all"
-                                                  onClick={() => !receiptValidating && setPreviewImage({ src: proofBase64, name: proofFile.name })}
-                                                  title={receiptValidating ? 'Scanning receipt...' : 'Click to expand image'}
-                                                >
-                                                  <img
-                                                    src={proofBase64}
-                                                    alt="Proof of Payment Preview"
-                                                    className={`max-h-36 max-w-full object-contain rounded-md shadow-xs transition-all duration-200 ${
-                                                      receiptValidating ? 'opacity-40 blur-[1px]' : 'group-hover:scale-[1.02]'
-                                                    }`}
-                                                  />
-                                                  {receiptValidating && (
-                                                    <div className="absolute inset-0 flex flex-col items-center justify-center gap-2 bg-white/60 dark:bg-slate-900/60 backdrop-blur-[2px] rounded-lg z-10">
-                                                      <Loader2 size={24} className="text-blue-600 dark:text-blue-400 animate-spin" />
-                                                      <p className="text-xs font-bold text-slate-700 dark:text-slate-200">Scanning receipt...</p>
-                                                      <p className="text-[10px] text-slate-500 dark:text-slate-400">Verifying proof of payment</p>
-                                                    </div>
-                                                  )}
-                                                  {!receiptValidating && (
-                                                    <div className="absolute inset-0 bg-slate-900/40 opacity-0 group-hover:opacity-100 transition-opacity flex items-center justify-center text-white text-xs font-bold gap-1.5 backdrop-blur-[2px] rounded-lg">
-                                                      <ZoomIn size={16} /> Click to enlarge
-                                                    </div>
-                                                  )}
-                                                </div>
-
-                                                {receiptValid === true && !receiptValidating && (
-                                                  <div className="flex items-center gap-1.5 px-2 py-1.5 bg-emerald-50 dark:bg-emerald-950/40 border border-emerald-200/60 dark:border-emerald-800/40 rounded-lg">
-                                                    <ShieldCheck size={13} className="text-emerald-600 dark:text-emerald-400 shrink-0" />
-                                                    <span className="text-[11px] font-bold text-emerald-700 dark:text-emerald-300">Verified Receipt</span>
-                                                    {receiptReason && (
-                                                      <span className="text-[10px] text-emerald-600/70 dark:text-emerald-400/70 ml-1">— {receiptReason}</span>
-                                                    )}
-                                                  </div>
-                                                )}
-                                              </div>
-                                            ) : (
-                                              <div className="svm-field mt-3">
-                                                <div className="flex items-center justify-between mb-1">
-                                                  <label className="svm-label" style={{ marginBottom: 0 }}>Proof of Payment</label>
-                                                  <span className={`text-[11px] font-bold ${proofBase64 ? 'text-emerald-600 dark:text-emerald-400' : 'text-rose-500'}`}>
-                                                    {proofBase64 ? 'Uploaded' : '* Required'}
-                                                  </span>
-                                                </div>
-                                                <label className={`p-3 flex flex-col items-center justify-center border-2 border-dashed rounded-xl cursor-pointer transition-all text-center ${
-                                                  receiptValid === false
-                                                    ? 'border-rose-400 bg-rose-50/40 dark:bg-rose-950/20'
-                                                    : 'border-slate-300 dark:border-white/10 bg-slate-50 dark:bg-slate-800/40 hover:bg-slate-100 dark:hover:bg-slate-800/70'
-                                                }`}>
-                                                  <input type="file" accept="image/*" onChange={handleFileChange} className="hidden" />
-                                                  <div className="flex flex-col items-center gap-1">
-                                                    <UploadCloud className={receiptValid === false ? "text-rose-500" : "text-slate-400 dark:text-slate-300"} size={24} />
-                                                    <p className="text-xs font-semibold text-slate-700 dark:text-slate-300"><span className="text-blue-600 dark:text-blue-400 hover:underline">Upload Receipt</span></p>
-                                                  </div>
-                                                </label>
-
-                                                {/* AI Rejection Error Message */}
-                                                {receiptValid === false && (
-                                                  <div className="p-3 rounded-xl bg-rose-50 dark:bg-rose-950/50 border border-rose-200 dark:border-rose-800/50 text-rose-600 dark:text-rose-300 text-xs font-semibold flex items-start gap-2 mt-2 animate-in fade-in duration-200">
-                                                    <AlertCircle size={15} className="text-rose-500 shrink-0 mt-0.5" />
-                                                    <div>
-                                                      <span className="font-bold block text-rose-700 dark:text-rose-300">Invalid Proof of Payment</span>
-                                                      <span className="text-[11px] text-rose-600 dark:text-rose-400">
-                                                        {receiptReason || 'This image does not appear to be a valid payment receipt. Please upload a real transaction screenshot.'}
-                                                      </span>
-                                                    </div>
-                                                  </div>
-                                                )}
-
-                                                {!proofBase64 && receiptValid !== false && (accountName.trim() !== '' || accountNumber.trim() !== '') && (
-                                                  <div className="text-[11px] font-semibold text-rose-500 mt-1">Please upload your payment receipt screenshot</div>
-                                                )}
-                                              </div>
+                                    {/* Manual input when "Others" is selected */}
+                                    {subMethod === 'Others' && (
+                                        <div className="svm-field">
+                                            <label className="svm-label">
+                                                Specify {paymentMethod === 'Bank' ? 'Bank / Provider' : 'E-Wallet'} Name <span className="text-rose-500">*</span>
+                                            </label>
+                                            <input 
+                                                type="text" 
+                                                className={`svm-input ${touched.customSubMethod && !customSubMethod.trim() ? 'border-rose-500' : ''}`} 
+                                                placeholder={paymentMethod === 'Bank' ? 'Type your bank name (e.g. Komo, DiskarTech, OwnBank)' : 'Type your e-wallet name (e.g. PalawanPay, Bayad)'}
+                                                value={customSubMethod}
+                                                onBlur={() => setTouched(prev => ({ ...prev, customSubMethod: true }))}
+                                                onChange={(e) => { setError(''); setCustomSubMethod(e.target.value); }}
+                                            />
+                                            {touched.customSubMethod && !customSubMethod.trim() && (
+                                                <div className="text-[11px] font-semibold text-rose-500 mt-1">Please specify your {paymentMethod === 'Bank' ? 'bank / provider' : 'e-wallet'} name</div>
                                             )}
                                         </div>
-                                    ) : (
-                                        "You will be securely redirected to PayMongo."
                                     )}
+
+                                    <div className="svm-field">
+                                        <label className="svm-label">
+                                            Sender Account Name <span className="text-rose-500">*</span>
+                                        </label>
+                                        <input 
+                                            type="text" 
+                                            className={`svm-input ${touched.accountName && !accountName.trim() ? 'border-rose-500' : ''}`} 
+                                            placeholder="e.g. Juan Dela Cruz"
+                                            value={accountName}
+                                            onBlur={() => setTouched(prev => ({ ...prev, accountName: true }))}
+                                            onChange={(e) => { setError(''); setAccountName(e.target.value); }}
+                                        />
+                                        {touched.accountName && !accountName.trim() && (
+                                            <div className="text-[11px] font-semibold text-rose-500 mt-1">Sender account name is required</div>
+                                        )}
+                                    </div>
+
+                                    <div className="svm-field">
+                                        <div className="flex items-center justify-between mb-1">
+                                            <label className="svm-label" style={{ marginBottom: 0 }}>
+                                                {paymentMethod === 'Bank' ? 'Sender Bank Account Number' : 'Sender Mobile Number'} <span className="text-rose-500">*</span>
+                                            </label>
+                                            <span className={`text-[11px] font-bold ${
+                                                paymentMethod === 'Bank'
+                                                    ? (cleanQuickAcc.length >= 10 && cleanQuickAcc.length <= 16
+                                                        ? 'text-emerald-600 dark:text-emerald-400'
+                                                        : cleanQuickAcc.length > 0 || (touched.accountNumber && cleanQuickAcc.length === 0)
+                                                        ? 'text-rose-500 font-semibold'
+                                                        : 'text-slate-400')
+                                                    : (cleanQuickAcc.startsWith('09') && cleanQuickAcc.length === 11
+                                                        ? 'text-emerald-600 dark:text-emerald-400'
+                                                        : cleanQuickAcc.length > 0 || (touched.accountNumber && cleanQuickAcc.length === 0)
+                                                        ? 'text-rose-500 font-semibold'
+                                                        : 'text-slate-400')
+                                            }`}>
+                                                {paymentMethod === 'Bank'
+                                                    ? `${cleanQuickAcc.length} digits (10-16)`
+                                                    : `${cleanQuickAcc.length}/11 digits`
+                                                }
+                                            </span>
+                                        </div>
+                                        <input 
+                                            type="text" 
+                                            className={`svm-input ${
+                                                (cleanQuickAcc.length > 0 && !isQuickAccValid) || (touched.accountNumber && !isQuickAccValid)
+                                                    ? 'border-rose-500 focus:border-rose-500'
+                                                    : isQuickAccValid
+                                                    ? 'border-emerald-500 focus:border-emerald-500'
+                                                    : ''
+                                            }`} 
+                                            placeholder={paymentMethod === 'Bank' ? "e.g. 123456789012" : "e.g. 09123456789"}
+                                            maxLength={paymentMethod === 'Bank' ? 16 : 11}
+                                            value={accountNumber}
+                                            onBlur={() => setTouched(prev => ({ ...prev, accountNumber: true }))}
+                                            onChange={(e) => {
+                                                setError('');
+                                                const maxLen = paymentMethod === 'Bank' ? 16 : 11;
+                                                setAccountNumber(e.target.value.replace(/\D/g, '').slice(0, maxLen));
+                                            }}
+                                        />
+                                        {paymentMethod === 'Bank' ? (
+                                            <>
+                                                {touched.accountNumber && cleanQuickAcc.length === 0 && (
+                                                    <div className="text-[11px] font-semibold text-rose-500 mt-1 flex items-center gap-1">
+                                                        <span>Bank account number is required</span>
+                                                    </div>
+                                                )}
+                                                {cleanQuickAcc.length > 0 && (cleanQuickAcc.length < 10 || cleanQuickAcc.length > 16) && (
+                                                    <div className="text-[11px] font-semibold text-rose-500 mt-1 flex items-center gap-1">
+                                                        <span>Bank account number must be 10 to 16 digits</span>
+                                                    </div>
+                                                )}
+                                            </>
+                                        ) : (
+                                            <>
+                                                {touched.accountNumber && cleanQuickAcc.length === 0 && (
+                                                    <div className="text-[11px] font-semibold text-rose-500 mt-1 flex items-center gap-1">
+                                                        <span>Mobile number is required</span>
+                                                    </div>
+                                                )}
+                                                {cleanQuickAcc.length > 0 && !cleanQuickAcc.startsWith('09') && (
+                                                    <div className="text-[11px] font-semibold text-rose-500 mt-1 flex items-center gap-1">
+                                                        <span>Mobile number must start with 09</span>
+                                                    </div>
+                                                )}
+                                                {cleanQuickAcc.length > 0 && cleanQuickAcc.startsWith('09') && cleanQuickAcc.length !== 11 && (
+                                                    <div className="text-[11px] font-semibold text-rose-500 mt-1 flex items-center gap-1">
+                                                        <span>Must be exactly 11 digits (currently {cleanQuickAcc.length}/11)</span>
+                                                    </div>
+                                                )}
+                                            </>
+                                        )}
+                                    </div>
                                 </div>
-                            </div>
+                            ) : (
+                                <div className="svm-info-text" style={{ marginTop: '8px', fontSize: '11px', color: '#6B7280' }}>
+                                    You will be securely redirected to PayMongo.
+                                </div>
+                            )}
 
                             <div className="svm-field">
                                 <label className="svm-label">Note <span className="svm-label-opt">(optional)</span></label>
@@ -2172,8 +2619,9 @@ function WithdrawModal({ goals, onClose, onOpenDeposit }) {
                             )}
 
                             {numAmt > balance && (
-                                <div className="svm-withdraw-warning">
-                                    ⚠️ Amount exceeds available balance of {fmt(balance)}
+                                <div className="svm-withdraw-warning flex items-center gap-1.5">
+                                    <AlertTriangle size={14} className="shrink-0 text-amber-500" />
+                                    <span>Amount exceeds available balance of {fmt(balance)}</span>
                                 </div>
                             )}
 

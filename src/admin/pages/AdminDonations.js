@@ -430,7 +430,12 @@ export default function AdminDonationsNew() {
                 donations.map((donation, index) => (
                   <tr key={donation._id || index} className="hover:bg-slate-50 dark:hover:bg-white/5 transition-colors border-b border-slate-100 dark:border-white/5">
                     <td className="px-4 py-3 text-[13px] font-inter font-semibold text-slate-800 dark:text-white truncate">
-                      {donation.donationId || `D-${String(index + 1).padStart(3, '0')}`}
+                      <div>{donation.donationId || `D-${String(index + 1).padStart(3, '0')}`}</div>
+                      {donation.referenceNumber && (
+                        <div className="font-mono text-[11px] font-normal text-slate-400 dark:text-slate-500 truncate" title={`Ref: ${donation.referenceNumber}`}>
+                          Ref: {donation.referenceNumber}
+                        </div>
+                      )}
                     </td>
                     <td className="px-4 py-3 text-[13px] font-inter text-slate-700 dark:text-slate-300 truncate">
                       {donation.member || '—'}
