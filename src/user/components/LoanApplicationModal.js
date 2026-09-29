@@ -2,7 +2,6 @@ import { useState, useMemo, useEffect, useRef, useCallback } from 'react';
 import { toast } from 'sonner';
 
 import API from '../../utils/api';
-import { Banknote, CheckCircle, CheckCircle2, X, Pencil, Camera, RotateCcw, AlertTriangle, Upload, Trash2, ChevronDown, Check, ShieldCheck, Send, Wallet, Clock, Sparkles, FileText } from 'lucide-react';
 import { Banknote, CheckCircle, X, Pencil, Camera, RotateCcw, AlertTriangle, Upload, Trash2, ChevronDown, Check, ShieldCheck, Send, Wallet, Clock, Sparkles, FileText } from 'lucide-react';
 
 /* ── Loan-type config ── */
@@ -729,7 +728,6 @@ export default function LoanApplicationModal({
         payslipFileName,
         hasActiveLoan,
         activeLoanScreenshotData: hasActiveLoan ? activeLoanScreenshotData : null,
-        activeLoanScreenshotFileName: hasActiveLoan ? activeLoanScreenshotFileName : null
         activeLoanScreenshotFileName: hasActiveLoan ? activeLoanScreenshotFileName : null,
         aiVerification: {
           selfie: selfieAiStatus,
