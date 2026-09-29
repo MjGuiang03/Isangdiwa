@@ -539,7 +539,6 @@ router.post('/loans/apply', authenticateUser, async (req, res) => {
       coeData, coeFileName,
       itrData, itrFileName,
       payslipData, payslipFileName,
-      hasActiveLoan, activeLoanScreenshotData, activeLoanScreenshotFileName
       hasActiveLoan, activeLoanScreenshotData, activeLoanScreenshotFileName,
       aiVerification
     } = req.body;
