@@ -4,9 +4,11 @@ import bcrypt from 'bcryptjs';
 import dotenv from 'dotenv';
 dotenv.config();
 
-// Force Google DNS to resolve MongoDB SRV records (fixes Render ETIMEOUT issues)
-if (process.env.RENDER) {
-  dns.setServers(['8.8.8.8', '8.8.4.4']);
+// Force reliable DNS (Google + Cloudflare) to resolve MongoDB SRV records (fixes local ISP querySrv EREFUSED and Render ETIMEOUT)
+try {
+  dns.setServers(['8.8.8.8', '1.1.1.1', '8.8.4.4']);
+} catch (dnsErr) {
+  console.warn('[DNS Warning] Could not set custom DNS servers:', dnsErr.message);
 }
 dns.setDefaultResultOrder('ipv4first'); // Fixes Node 18+ IPv6 timeout issues
 

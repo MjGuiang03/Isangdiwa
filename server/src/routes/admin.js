@@ -1927,14 +1927,17 @@ router.get('/loan-users/:email/profile', authenticateAdmin, async (req, res) => 
       loans.find({ email }).project({
         loanId: 1, loanType: 1, amount: 1, status: 1, remainingBalance: 1,
         monthlyPayment: 1, nextPaymentDate: 1, nextDueDate: 1, appliedDate: 1,
-        approvedDate: 1, disbursementDate: 1, interestRate: 1, term: 1
+        approvedDate: 1, disbursementDate: 1, interestRate: 1, term: 1,
+        termMonths: 1, paidMonths: 1, totalInterest: 1, totalRepayment: 1,
+        isLate: 1, interestMultiplier: 1, purpose: 1
       }).sort({ appliedDate: -1 }).limit(20).toArray(),
       savingsTransactions.find({ email }).project({
         type: 1, amount: 1, date: 1, status: 1, goalName: 1, description: 1
       }).sort({ date: -1 }).limit(10).toArray(),
       loanPayments.find({ email }).project({
-        loanId: 1, amount: 1, paymentDate: 1, status: 1, paymentType: 1, paymentMethod: 1
-      }).sort({ paymentDate: -1 }).limit(10).toArray()
+        loanId: 1, loanObjectId: 1, amount: 1, paymentDate: 1, submittedAt: 1, status: 1,
+        paymentType: 1, paymentMethod: 1, subMethod: 1, monthNumber: 1, referenceNumber: 1, createdAt: 1
+      }).sort({ submittedAt: -1, paymentDate: -1, createdAt: -1 }).limit(10).toArray()
     ]);
     
     if (!user) {
@@ -1942,6 +1945,58 @@ router.get('/loan-users/:email/profile', authenticateAdmin, async (req, res) => 
     }
     
     const totalBalance = userSavings.reduce((sum, goal) => sum + (Number(goal.savedAmount) || 0), 0);
+
+    const generateLoanSchedule = (loan) => {
+      const schedule = [];
+      const term = Number(loan.termMonths || loan.term) || 12;
+      const startDate = loan.disbursementDate ? new Date(loan.disbursementDate) : (loan.approvedDate ? new Date(loan.approvedDate) : (loan.appliedDate ? new Date(loan.appliedDate) : new Date()));
+      
+      const principalPerMonth = (Number(loan.amount) || 0) / term;
+      let interestPerMonth;
+      if (loan.totalInterest != null && loan.totalInterest > 0) {
+        interestPerMonth = Number(loan.totalInterest) / term;
+      } else {
+        let rate = Number(loan.interestRate) || 0.02;
+        if (rate > 1) rate = rate / 100;
+        interestPerMonth = (Number(loan.amount) || 0) * rate;
+      }
+      const paymentPerMonth = Number(loan.monthlyPayment) || (principalPerMonth + interestPerMonth);
+      const paidMonthsCount = Number(loan.paidMonths) || 0;
+
+      for (let i = 1; i <= term; i++) {
+        const dueDate = new Date(startDate);
+        dueDate.setMonth(startDate.getMonth() + i);
+
+        const isPaid = i <= paidMonthsCount;
+        const isNext = i === paidMonthsCount + 1;
+        let isLate = false;
+        let currentInterest = interestPerMonth;
+        let currentPayment = paymentPerMonth;
+
+        if (isNext && dueDate) {
+          const cutoffDate = new Date(dueDate);
+          cutoffDate.setDate(dueDate.getDate() + 3);
+          cutoffDate.setHours(23, 59, 59, 999);
+          if (Date.now() > cutoffDate.getTime()) {
+            isLate = true;
+            currentInterest = (Number(loan.amount) || 0) * 0.03;
+            currentPayment = principalPerMonth + currentInterest;
+          }
+        }
+
+        schedule.push({
+          monthNumber: i,
+          dueDate,
+          principal: principalPerMonth,
+          interest: currentInterest,
+          payment: currentPayment,
+          status: isPaid ? 'paid' : (isLate ? 'overdue' : (isNext ? 'next' : 'upcoming')),
+          isNext,
+          isLate
+        });
+      }
+      return schedule;
+    };
     
     res.json({
       success: true,
@@ -1951,7 +2006,10 @@ router.get('/loan-users/:email/profile', authenticateAdmin, async (req, res) => 
         goals: userSavings
       },
       loans: {
-        active: userLoans.filter(l => l.status === 'active'),
+        active: userLoans.filter(l => l.status === 'active').map(l => ({
+          ...l,
+          schedule: generateLoanSchedule(l)
+        })),
         history: userLoans.filter(l => l.status !== 'active')
       },
       recentSavingsTransactions,

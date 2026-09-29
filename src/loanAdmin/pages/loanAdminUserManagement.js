@@ -6,16 +6,110 @@ import PageHeader from '../components/PageHeader';
 import useDebounce from '../../hooks/useDebounce';
 import API from '../../utils/api';
 import Pagination from '../../components/Pagination';
-import { Search, X, Users, PiggyBank, Banknote, AlertTriangle, ChevronRight, ChevronDown, ChevronUp, ArrowLeft, Loader2, History } from 'lucide-react';
+import { Search, X, Users, PiggyBank, Banknote, AlertTriangle, ChevronRight, ChevronDown, ChevronUp, ArrowLeft, Loader2, History, Calendar, CheckCircle2, Clock } from 'lucide-react';
 
 const fmt = (n) =>
     n != null ? `₱${Number(n).toLocaleString('en-PH', { minimumFractionDigits: 2, maximumFractionDigits: 2 })}` : '₱0.00';
 
 const fmtDate = (d) => {
-    if (!d) return 'N/A';
-    return new Date(d).toLocaleDateString('en-US', {
+    if (!d) return '—';
+    const date = new Date(d);
+    if (isNaN(date.getTime())) return '—';
+    return date.toLocaleDateString('en-US', {
         month: 'short', day: 'numeric', year: 'numeric',
     });
+};
+
+const formatPaymentMethod = (method, sub) => {
+    if (!method) return 'Cash';
+    const m = String(method).toLowerCase();
+    if (m === 'gcash') return 'GCash';
+    if (m === 'paymaya' || m === 'maya') return 'Maya';
+    if (m === 'card') return 'Card';
+    if (m === 'bank_transfer' || m === 'bank') return sub ? `Bank (${sub})` : 'Bank Transfer';
+    if (m === 'cash') return 'Cash';
+    return sub ? `${method} (${sub})` : (method.charAt(0).toUpperCase() + method.slice(1));
+};
+
+const getPaymentBadge = (status) => {
+    const s = String(status || '').toLowerCase();
+    if (s === 'confirmed' || s === 'approved' || s === 'paid') {
+        return (
+            <span className="px-2 py-0.5 rounded-full text-[10px] font-semibold font-inter bg-emerald-100 text-emerald-700 dark:bg-emerald-500/20 dark:text-emerald-400">
+                Confirmed
+            </span>
+        );
+    }
+    if (s === 'pending') {
+        return (
+            <span className="px-2 py-0.5 rounded-full text-[10px] font-semibold font-inter bg-amber-100 text-amber-700 dark:bg-amber-500/20 dark:text-amber-400">
+                Pending Review
+            </span>
+        );
+    }
+    if (s === 'rejected') {
+        return (
+            <span className="px-2 py-0.5 rounded-full text-[10px] font-semibold font-inter bg-rose-100 text-rose-700 dark:bg-rose-500/20 dark:text-rose-400">
+                Rejected
+            </span>
+        );
+    }
+    return (
+        <span className="px-2 py-0.5 rounded-full text-[10px] font-semibold font-inter bg-slate-100 text-slate-600 dark:bg-white/10 dark:text-slate-400">
+            {status ? status.charAt(0).toUpperCase() + status.slice(1) : 'Unknown'}
+        </span>
+    );
+};
+
+const getLoanSchedule = (loan) => {
+    if (!loan) return [];
+    if (Array.isArray(loan.schedule) && loan.schedule.length > 0) {
+        return loan.schedule;
+    }
+    const term = Number(loan.termMonths || loan.term) || 12;
+    const startDate = loan.disbursementDate ? new Date(loan.disbursementDate) : (loan.approvedDate ? new Date(loan.approvedDate) : (loan.appliedDate ? new Date(loan.appliedDate) : new Date()));
+    const principalPerMonth = (Number(loan.amount) || 0) / term;
+    let interestPerMonth;
+    if (loan.totalInterest != null && loan.totalInterest > 0) {
+        interestPerMonth = Number(loan.totalInterest) / term;
+    } else {
+        let rate = Number(loan.interestRate) || 0.02;
+        if (rate > 1) rate = rate / 100;
+        interestPerMonth = (Number(loan.amount) || 0) * rate;
+    }
+    const paymentPerMonth = Number(loan.monthlyPayment) || (principalPerMonth + interestPerMonth);
+    const paidCount = Number(loan.paidMonths) || 0;
+
+    const list = [];
+    for (let i = 1; i <= term; i++) {
+        const dueDate = new Date(startDate);
+        dueDate.setMonth(startDate.getMonth() + i);
+
+        const isPaid = i <= paidCount;
+        const isNext = i === paidCount + 1;
+        let isLate = false;
+        let currentPayment = paymentPerMonth;
+
+        if (isNext && dueDate) {
+            const cutoffDate = new Date(dueDate);
+            cutoffDate.setDate(dueDate.getDate() + 3);
+            cutoffDate.setHours(23, 59, 59, 999);
+            if (Date.now() > cutoffDate.getTime()) {
+                isLate = true;
+                currentPayment = principalPerMonth + ((Number(loan.amount) || 0) * 0.03);
+            }
+        }
+
+        list.push({
+            monthNumber: i,
+            dueDate,
+            payment: currentPayment,
+            status: isPaid ? 'paid' : (isLate ? 'overdue' : (isNext ? 'next' : 'upcoming')),
+            isNext,
+            isLate
+        });
+    }
+    return list;
 };
 
 const fetcherSingle = (url) => {
@@ -82,6 +176,12 @@ export default function LoanAdminUserManagement() {
 
     useEffect(() => { setPage(1); }, [debouncedSearch]);
 
+    useEffect(() => {
+        setExpandedLoanId(null);
+        setExpandedPayments([]);
+        setPaymentPage(1);
+    }, [selectedUser]);
+
     const toggleLoanDetail = async (loanId) => {
         if (expandedLoanId === loanId) {
             setExpandedLoanId(null);
@@ -101,7 +201,9 @@ export default function LoanAdminUserManagement() {
         setExpandedLoading(true);
         setExpandedPayments([]);
         try {
-            const res = await fetch(`${API}/api/admin/loan-payments?loanId=${loanId}&limit=100`, {
+            const userEmail = profileData?.user?.email || selectedUser;
+            const emailParam = userEmail ? `&email=${encodeURIComponent(userEmail)}` : '';
+            const res = await fetch(`${API}/api/admin/loan-payments?loanId=${encodeURIComponent(loanId)}${emailParam}&limit=100`, {
                 headers: { Authorization: `Bearer ${token}` }
             });
             const data = await res.json();
@@ -314,13 +416,11 @@ export default function LoanAdminUserManagement() {
                         {loadingProfile && !profileData ? (
                             <div className="animate-pulse flex flex-col gap-6">
                                 <div className="h-24 bg-white dark:bg-[#1E2130] rounded-2xl border border-slate-200 dark:border-white/10"></div>
-                                <div className="grid grid-cols-1 lg:grid-cols-12 gap-6 items-start">
-                                    <div className="lg:col-span-5 flex flex-col gap-6">
-                                        <div className="h-28 bg-white dark:bg-[#1E2130] rounded-2xl border border-slate-200 dark:border-white/10"></div>
-                                        <div className="h-64 bg-white dark:bg-[#1E2130] rounded-2xl border border-slate-200 dark:border-white/10"></div>
-                                    </div>
-                                    <div className="lg:col-span-7 h-96 bg-white dark:bg-[#1E2130] rounded-2xl border border-slate-200 dark:border-white/10"></div>
+                                <div className="grid grid-cols-1 lg:grid-cols-2 gap-6 items-start">
+                                    <div className="h-80 bg-white dark:bg-[#1E2130] rounded-2xl border border-slate-200 dark:border-white/10"></div>
+                                    <div className="h-80 bg-white dark:bg-[#1E2130] rounded-2xl border border-slate-200 dark:border-white/10"></div>
                                 </div>
+                                <div className="h-96 bg-white dark:bg-[#1E2130] rounded-2xl border border-slate-200 dark:border-white/10"></div>
                             </div>
                         ) : (
                             <>
@@ -340,189 +440,213 @@ export default function LoanAdminUserManagement() {
                                     </div>
                                 </div>
 
-                                <div className="grid grid-cols-1 lg:grid-cols-12 gap-6 items-start">
-                                    {/* Left Column: Active Loan (since at most 1 loan can be active) + Savings Overview */}
-                                    <div className="lg:col-span-5 flex flex-col gap-6">
-                                        {/* Active Loan Card */}
-                                        {(() => {
-                                            const activeLoan = profileData?.loans?.active?.[0];
-                                            return (
-                                                <div className={`bg-white dark:bg-[#1E2130] border ${activeLoan ? 'border-emerald-500/30' : 'border-slate-200/80 dark:border-white/10'} rounded-2xl p-5 shadow-sm transition-all`}>
-                                                    <div className="flex items-center justify-between">
-                                                        <div className="flex items-center gap-2.5">
-                                                            <div className={`w-8 h-8 rounded-lg ${activeLoan ? 'bg-emerald-50 dark:bg-emerald-500/10 text-emerald-600 dark:text-emerald-400' : 'bg-slate-100 dark:bg-white/5 text-slate-400'} flex items-center justify-center`}>
-                                                                <Banknote size={17} />
-                                                            </div>
-                                                            <div>
-                                                                <h3 className="font-inter text-sm font-bold text-slate-900 dark:text-white m-0">Active Loan</h3>
-                                                                <p className="text-[11px] text-slate-400 dark:text-slate-500 font-inter m-0 mt-0.5">
-                                                                    {activeLoan ? `${activeLoan.loanType || 'Personal'} Loan` : 'No ongoing loan obligations'}
-                                                                </p>
-                                                            </div>
+                                {/* Top Row: Active Loan & Savings Overview side by side */}
+                                <div className="grid grid-cols-1 lg:grid-cols-2 gap-6 mb-6 items-start">
+                                    {/* Active Loan Card */}
+                                    {(() => {
+                                        const activeLoan = profileData?.loans?.active?.[0];
+                                        const schedule = activeLoan ? getLoanSchedule(activeLoan) : [];
+                                        const totalPayable = activeLoan ? (Number(activeLoan.totalRepayment) || (Number(activeLoan.amount || 0) + Number(activeLoan.totalInterest || 0)) || (Number(activeLoan.monthlyPayment || 0) * Number(activeLoan.termMonths || activeLoan.term || schedule.length || 1))) : 0;
+                                        const totalPaid = activeLoan ? (Number(activeLoan.paidMonths || 0) * Number(activeLoan.monthlyPayment || 0)) : 0;
+                                        return (
+                                            <div className={`bg-white dark:bg-[#1E2130] border ${activeLoan ? 'border-emerald-500/30' : 'border-slate-200/80 dark:border-white/10'} rounded-2xl p-5 shadow-sm transition-all`}>
+                                                <div className="flex items-center justify-between">
+                                                    <div className="flex items-center gap-2.5">
+                                                        <div className={`w-8 h-8 rounded-lg ${activeLoan ? 'bg-emerald-50 dark:bg-emerald-500/10 text-emerald-600 dark:text-emerald-400' : 'bg-slate-100 dark:bg-white/5 text-slate-400'} flex items-center justify-center`}>
+                                                            <Banknote size={17} />
                                                         </div>
-                                                        {activeLoan ? (
-                                                            <span className="px-2.5 py-0.5 rounded-full text-[10px] font-bold font-inter bg-emerald-100 text-emerald-700 dark:bg-emerald-500/20 dark:text-emerald-400">
-                                                                Active
-                                                            </span>
-                                                        ) : (
-                                                            <span className="px-2.5 py-0.5 rounded-full text-[10px] font-medium font-inter bg-slate-100 text-slate-500 dark:bg-white/5 dark:text-slate-400">
-                                                                None
-                                                            </span>
-                                                        )}
+                                                        <div>
+                                                            <h3 className="font-inter text-sm font-bold text-slate-900 dark:text-white m-0">Active Loan</h3>
+                                                            <p className="text-[11px] text-slate-400 dark:text-slate-500 font-inter m-0 mt-0.5">
+                                                                {activeLoan ? `${activeLoan.loanType || 'Personal'} Loan` : 'No ongoing loan obligations'}
+                                                            </p>
+                                                        </div>
                                                     </div>
-
-                                                    {activeLoan && (
-                                                        <div className="mt-4">
-                                                            <div className="grid grid-cols-2 gap-2.5 bg-slate-50 dark:bg-white/5 p-3 rounded-xl border border-slate-200/50 dark:border-white/5 mb-3">
-                                                                <div>
-                                                                    <p className="text-[10px] text-slate-500 dark:text-slate-400 font-inter m-0 uppercase tracking-wider mb-0.5">Loan ID</p>
-                                                                    <p className="text-xs font-bold text-slate-800 dark:text-white font-inter m-0">{activeLoan.loanId || '—'}</p>
-                                                                </div>
-                                                                <div>
-                                                                    <p className="text-[10px] text-slate-500 dark:text-slate-400 font-inter m-0 uppercase tracking-wider mb-0.5">Loan Amount</p>
-                                                                    <p className="text-xs font-bold text-slate-900 dark:text-white font-inter m-0">{fmt(activeLoan.amount)}</p>
-                                                                </div>
-                                                                <div>
-                                                                    <p className="text-[10px] text-slate-500 dark:text-slate-400 font-inter m-0 uppercase tracking-wider mb-0.5">Remaining Balance</p>
-                                                                    <p className="text-xs font-bold text-emerald-600 dark:text-emerald-400 font-inter m-0">{fmt(activeLoan.remainingBalance)}</p>
-                                                                </div>
-                                                                <div>
-                                                                    <p className="text-[10px] text-slate-500 dark:text-slate-400 font-inter m-0 uppercase tracking-wider mb-0.5">Monthly Due</p>
-                                                                    <p className="text-xs font-bold text-slate-800 dark:text-white font-inter m-0">{fmt(activeLoan.monthlyPayment)}</p>
-                                                                </div>
-                                                                <div className="col-span-2 pt-2 border-t border-slate-200/40 dark:border-white/5 flex items-center justify-between">
-                                                                    <span className="text-[10px] text-slate-500 dark:text-slate-400 font-inter uppercase tracking-wider">Next Due Date</span>
-                                                                    <span className="text-xs font-semibold text-slate-700 dark:text-slate-300 font-inter">{fmtDate(activeLoan.nextPaymentDate || activeLoan.nextDueDate)}</span>
-                                                                </div>
-                                                            </div>
-
-                                                            <button
-                                                                type="button"
-                                                                onClick={() => toggleLoanDetail(activeLoan.loanId || activeLoan._id)}
-                                                                className="w-full py-1.5 px-3 rounded-lg text-xs font-semibold font-inter border border-slate-200 dark:border-white/10 bg-slate-50 hover:bg-slate-100 dark:bg-white/5 dark:hover:bg-white/10 text-slate-700 dark:text-slate-300 transition-colors flex items-center justify-center gap-1.5 cursor-pointer"
-                                                            >
-                                                                {expandedLoanId === (activeLoan.loanId || activeLoan._id) ? (
-                                                                    <>
-                                                                        <ChevronUp size={14} /> Hide Payments
-                                                                    </>
-                                                                ) : (
-                                                                    <>
-                                                                        <ChevronDown size={14} /> View Payments
-                                                                    </>
-                                                                )}
-                                                            </button>
-
-                                                            {expandedLoanId === (activeLoan.loanId || activeLoan._id) && (
-                                                                <div className="mt-3 pt-3 border-t border-slate-200/60 dark:border-white/10">
-                                                                    {expandedLoading ? (
-                                                                        <div className="flex items-center gap-2 py-3 justify-center">
-                                                                            <Loader2 size={14} className="animate-spin text-slate-400" />
-                                                                            <span className="text-xs text-slate-400 font-inter">Loading payments...</span>
-                                                                        </div>
-                                                                    ) : expandedPayments.length === 0 ? (
-                                                                        <p className="text-xs text-slate-400 font-inter text-center py-3 m-0">No payments recorded</p>
-                                                                    ) : (
-                                                                        <div className="flex flex-col gap-1.5">
-                                                                            <div className="flex items-center justify-between mb-1">
-                                                                                <span className="text-[10px] font-bold text-slate-500 dark:text-slate-400 font-inter uppercase tracking-wider">Payment History ({expandedPayments.length})</span>
-                                                                            </div>
-                                                                            {expandedPayments.slice((paymentPage - 1) * PAYMENTS_PER_PAGE, paymentPage * PAYMENTS_PER_PAGE).map((p, j) => (
-                                                                                <div key={j} className="flex items-center justify-between py-1.5 px-2.5 bg-slate-50 dark:bg-white/5 rounded-lg border border-slate-100 dark:border-white/5">
-                                                                                    <div className="flex flex-col">
-                                                                                        <span className="text-xs font-semibold text-slate-700 dark:text-slate-300 font-inter">{fmt(p.amount)}</span>
-                                                                                        <span className="text-[10px] text-slate-400 font-inter">{fmtDate(p.paymentDate || p.date || p.createdAt)} • {p.paymentMethod || 'cash'}</span>
-                                                                                    </div>
-                                                                                    <span className={`px-1.5 py-0.5 rounded text-[9px] font-bold font-inter ${
-                                                                                        p.status === 'confirmed' ? 'bg-emerald-100 text-emerald-700 dark:bg-emerald-500/20 dark:text-emerald-400' :
-                                                                                        p.status === 'pending' ? 'bg-amber-100 text-amber-700 dark:bg-amber-500/20 dark:text-amber-400' :
-                                                                                        'bg-slate-100 text-slate-600 dark:bg-white/10 dark:text-slate-400'
-                                                                                    }`}>{p.status || 'unknown'}</span>
-                                                                                </div>
-                                                                            ))}
-                                                                            {expandedPayments.length > PAYMENTS_PER_PAGE && (
-                                                                                <div className="flex items-center justify-between pt-2 px-1 border-t border-slate-200/60 dark:border-white/10 mt-1 text-[11px] font-inter text-slate-500 dark:text-slate-400">
-                                                                                    <span className="text-[10px]">
-                                                                                        {(paymentPage - 1) * PAYMENTS_PER_PAGE + 1}–{Math.min(paymentPage * PAYMENTS_PER_PAGE, expandedPayments.length)} of {expandedPayments.length}
-                                                                                    </span>
-                                                                                    <div className="flex items-center gap-1">
-                                                                                        <button
-                                                                                            type="button"
-                                                                                            disabled={paymentPage <= 1}
-                                                                                            onClick={(e) => { e.stopPropagation(); setPaymentPage(p => p - 1); }}
-                                                                                            className="px-2 py-0.5 rounded text-[10px] font-semibold border border-slate-200 dark:border-white/10 bg-white dark:bg-white/5 text-slate-600 dark:text-slate-300 disabled:opacity-30 cursor-pointer disabled:cursor-not-allowed hover:bg-slate-50 dark:hover:bg-white/10 transition-colors"
-                                                                                        >
-                                                                                            Prev
-                                                                                        </button>
-                                                                                        <span className="px-1 text-[10px] font-medium">{paymentPage}/{Math.ceil(expandedPayments.length / PAYMENTS_PER_PAGE)}</span>
-                                                                                        <button
-                                                                                            type="button"
-                                                                                            disabled={paymentPage >= Math.ceil(expandedPayments.length / PAYMENTS_PER_PAGE)}
-                                                                                            onClick={(e) => { e.stopPropagation(); setPaymentPage(p => p + 1); }}
-                                                                                            className="px-2 py-0.5 rounded text-[10px] font-semibold border border-slate-200 dark:border-white/10 bg-white dark:bg-white/5 text-slate-600 dark:text-slate-300 disabled:opacity-30 cursor-pointer disabled:cursor-not-allowed hover:bg-slate-50 dark:hover:bg-white/10 transition-colors"
-                                                                                        >
-                                                                                            Next
-                                                                                        </button>
-                                                                                    </div>
-                                                                                </div>
-                                                                            )}
-                                                                        </div>
-                                                                    )}
-                                                                </div>
-                                                            )}
-                                                        </div>
+                                                    {activeLoan ? (
+                                                        <span className="px-2.5 py-0.5 rounded-full text-[10px] font-bold font-inter bg-emerald-100 text-emerald-700 dark:bg-emerald-500/20 dark:text-emerald-400">
+                                                            Active
+                                                        </span>
+                                                    ) : (
+                                                        <span className="px-2.5 py-0.5 rounded-full text-[10px] font-medium font-inter bg-slate-100 text-slate-500 dark:bg-white/5 dark:text-slate-400">
+                                                            None
+                                                        </span>
                                                     )}
                                                 </div>
-                                            );
-                                        })()}
 
-                                        {/* Savings Overview Card */}
-                                        <div className="bg-white dark:bg-[#1E2130] border border-slate-200/80 dark:border-white/10 rounded-2xl p-6 shadow-sm">
-                                            <div className="flex items-center justify-between mb-3">
-                                                <div className="flex items-center gap-2">
-                                                    <div className="w-8 h-8 rounded-lg bg-violet-50 dark:bg-violet-500/10 flex items-center justify-center text-violet-600 dark:text-violet-400">
-                                                        <PiggyBank size={17} />
-                                                    </div>
-                                                    <h3 className="font-inter text-sm font-bold text-slate-900 dark:text-white m-0">Savings Overview</h3>
-                                                </div>
-                                                <span className="text-xs font-semibold text-violet-600 dark:text-violet-400 font-inter">
-                                                    {profileData?.savings?.goals?.length || 0} {profileData?.savings?.goals?.length === 1 ? 'Goal' : 'Goals'}
-                                                </span>
-                                            </div>
-                                            <div className="mb-4">
-                                                <p className="text-[10.5px] font-semibold text-slate-400 dark:text-slate-500 uppercase tracking-wider font-inter m-0 mb-0.5">Total Savings Balance</p>
-                                                <p className="text-2xl font-bold text-slate-900 dark:text-white font-inter m-0">{fmt(profileData?.savings?.totalBalance)}</p>
-                                            </div>
-                                            <div className="flex flex-col gap-3">
-                                                {profileData?.savings?.goals?.length > 0 ? profileData.savings.goals.map((goal, i) => (
-                                                    <div key={i} className="p-3 bg-slate-50 dark:bg-white/5 rounded-xl border border-slate-100 dark:border-white/5">
-                                                        <div className="flex justify-between items-center mb-1.5">
-                                                            <span className="text-xs font-semibold text-slate-700 dark:text-slate-300 font-inter">{goal.goalName || 'Savings Goal'}</span>
-                                                            <span className="text-xs font-medium text-slate-500 dark:text-slate-400 font-inter">{fmt(goal.savedAmount)} / {fmt(goal.targetAmount)}</span>
+                                                {activeLoan ? (
+                                                    <div className="mt-4">
+                                                        <div className="grid grid-cols-2 sm:grid-cols-3 gap-2.5 bg-slate-50 dark:bg-white/5 p-3 rounded-xl border border-slate-200/50 dark:border-white/5 mb-3">
+                                                            <div>
+                                                                <p className="text-[10px] text-slate-500 dark:text-slate-400 font-inter m-0 uppercase tracking-wider mb-0.5">Loan ID</p>
+                                                                <p className="text-xs font-bold text-slate-800 dark:text-white font-inter m-0">{activeLoan.loanId || '—'}</p>
+                                                            </div>
+                                                            <div>
+                                                                <p className="text-[10px] text-slate-500 dark:text-slate-400 font-inter m-0 uppercase tracking-wider mb-0.5">Principal Amount</p>
+                                                                <p className="text-xs font-bold text-slate-900 dark:text-white font-inter m-0">{fmt(activeLoan.amount)}</p>
+                                                            </div>
+                                                            <div>
+                                                                <p className="text-[10px] text-slate-500 dark:text-slate-400 font-inter m-0 uppercase tracking-wider mb-0.5">Total Payable</p>
+                                                                <p className="text-xs font-bold text-slate-800 dark:text-white font-inter m-0">{fmt(totalPayable)}</p>
+                                                            </div>
+                                                            <div>
+                                                                <p className="text-[10px] text-slate-500 dark:text-slate-400 font-inter m-0 uppercase tracking-wider mb-0.5">Remaining Balance</p>
+                                                                <p className="text-xs font-bold text-emerald-600 dark:text-emerald-400 font-inter m-0">{fmt(activeLoan.remainingBalance)}</p>
+                                                            </div>
+                                                            <div>
+                                                                <p className="text-[10px] text-slate-500 dark:text-slate-400 font-inter m-0 uppercase tracking-wider mb-0.5">Monthly Due</p>
+                                                                <p className="text-xs font-bold text-slate-800 dark:text-white font-inter m-0">{fmt(activeLoan.monthlyPayment)}</p>
+                                                            </div>
+                                                            <div>
+                                                                <p className="text-[10px] text-slate-500 dark:text-slate-400 font-inter m-0 uppercase tracking-wider mb-0.5">Term</p>
+                                                                <p className="text-xs font-bold text-slate-800 dark:text-white font-inter m-0">{activeLoan.term || activeLoan.termMonths || schedule.length} months</p>
+                                                            </div>
+                                                            <div className="col-span-2 sm:col-span-3 pt-2 border-t border-slate-200/40 dark:border-white/5 flex items-center justify-between">
+                                                                <span className="text-[10px] text-slate-500 dark:text-slate-400 font-inter uppercase tracking-wider">Next Due Date</span>
+                                                                <span className="text-xs font-semibold text-slate-700 dark:text-slate-300 font-inter">{fmtDate(activeLoan.nextPaymentDate || activeLoan.nextDueDate)}</span>
+                                                            </div>
                                                         </div>
-                                                        <div className="w-full h-2 bg-slate-200 dark:bg-white/10 rounded-full overflow-hidden">
-                                                            <div className="h-full bg-violet-500 rounded-full transition-all" style={{ width: `${Math.min(100, ((goal.savedAmount || 0) / (goal.targetAmount || 1)) * 100)}%` }} />
+
+                                                        {/* Payment Schedule Section */}
+                                                        <div className="pt-3 border-t border-slate-200/60 dark:border-white/10">
+                                                            <div className="flex items-center justify-between mb-2.5">
+                                                                <div className="flex items-center gap-1.5">
+                                                                    <Calendar size={14} className="text-slate-500 dark:text-slate-400" />
+                                                                    <h4 className="text-xs font-bold text-slate-800 dark:text-white font-inter m-0 uppercase tracking-wider">
+                                                                        Payment Schedule
+                                                                    </h4>
+                                                                </div>
+                                                                <span className="text-[11px] font-semibold text-emerald-600 dark:text-emerald-400 font-inter">
+                                                                    {activeLoan.paidMonths || 0} of {activeLoan.termMonths || activeLoan.term || schedule.length} Paid ({fmt(totalPaid)} paid)
+                                                                </span>
+                                                            </div>
+
+                                                            {schedule.length > 0 ? (
+                                                                <div className="max-h-72 overflow-y-auto space-y-2 pr-1">
+                                                                    {schedule.map((item, idx) => (
+                                                                        <div
+                                                                            key={idx}
+                                                                            className={`flex items-center justify-between p-2.5 rounded-xl border text-xs font-inter transition-all ${
+                                                                                item.status === 'paid'
+                                                                                    ? 'bg-emerald-50/50 dark:bg-emerald-500/5 border-emerald-200/60 dark:border-emerald-500/10'
+                                                                                    : item.status === 'overdue'
+                                                                                    ? 'bg-rose-50/50 dark:bg-rose-500/5 border-rose-200/60 dark:border-rose-500/10'
+                                                                                    : item.status === 'next'
+                                                                                    ? 'bg-blue-50/50 dark:bg-blue-500/5 border-blue-200/60 dark:border-blue-500/15'
+                                                                                    : 'bg-slate-50/50 dark:bg-white/5 border-slate-100 dark:border-white/5'
+                                                                            }`}
+                                                                        >
+                                                                            <div className="flex items-center gap-2.5">
+                                                                                <span className={`w-6 h-6 rounded-lg text-[10px] font-bold flex items-center justify-center shrink-0 ${
+                                                                                    item.status === 'paid'
+                                                                                        ? 'bg-emerald-100 text-emerald-700 dark:bg-emerald-500/20 dark:text-emerald-400'
+                                                                                        : item.status === 'overdue'
+                                                                                        ? 'bg-rose-100 text-rose-700 dark:bg-rose-500/20 dark:text-rose-400'
+                                                                                        : item.status === 'next'
+                                                                                        ? 'bg-blue-100 text-blue-700 dark:bg-blue-500/20 dark:text-blue-400'
+                                                                                        : 'bg-slate-200/70 text-slate-600 dark:bg-white/10 dark:text-slate-400'
+                                                                                }`}>
+                                                                                    {item.monthNumber}
+                                                                                </span>
+                                                                                <div>
+                                                                                    <p className="font-semibold text-slate-800 dark:text-slate-200 m-0 text-xs">
+                                                                                        {fmtDate(item.dueDate)}
+                                                                                    </p>
+                                                                                    <p className="text-[10px] text-slate-400 m-0">
+                                                                                        Installment {item.monthNumber}
+                                                                                    </p>
+                                                                                </div>
+                                                                            </div>
+
+                                                                            <div className="flex items-center gap-2.5">
+                                                                                <span className="font-bold text-slate-800 dark:text-white text-xs">
+                                                                                    {fmt(item.payment)}
+                                                                                </span>
+                                                                                {item.status === 'paid' && (
+                                                                                    <span className="px-2 py-0.5 rounded-full text-[10px] font-bold font-inter bg-emerald-100 text-emerald-700 dark:bg-emerald-500/20 dark:text-emerald-400 flex items-center gap-1">
+                                                                                        <CheckCircle2 size={11} /> Paid
+                                                                                    </span>
+                                                                                )}
+                                                                                {item.status === 'overdue' && (
+                                                                                    <span className="px-2 py-0.5 rounded-full text-[10px] font-bold font-inter bg-rose-100 text-rose-700 dark:bg-rose-500/20 dark:text-rose-400 flex items-center gap-1">
+                                                                                        <AlertTriangle size={11} /> Overdue
+                                                                                    </span>
+                                                                                )}
+                                                                                {item.status === 'next' && (
+                                                                                    <span className="px-2 py-0.5 rounded-full text-[10px] font-bold font-inter bg-blue-100 text-blue-700 dark:bg-blue-500/20 dark:text-blue-400 flex items-center gap-1">
+                                                                                        <Clock size={11} /> Next Due
+                                                                                    </span>
+                                                                                )}
+                                                                                {item.status === 'upcoming' && (
+                                                                                    <span className="px-2 py-0.5 rounded-full text-[10px] font-medium font-inter bg-slate-100 text-slate-500 dark:bg-white/5 dark:text-slate-400">
+                                                                                        Upcoming
+                                                                                    </span>
+                                                                                )}
+                                                                            </div>
+                                                                        </div>
+                                                                    ))}
+                                                                </div>
+                                                            ) : (
+                                                                <p className="text-xs text-slate-400 font-inter text-center py-3 m-0">No schedule available</p>
+                                                            )}
                                                         </div>
                                                     </div>
-                                                )) : (
-                                                    <p className="text-sm text-slate-400 dark:text-slate-500 font-inter text-center py-4 m-0">No savings goals</p>
+                                                ) : (
+                                                    <div className="py-8 text-center">
+                                                        <p className="text-xs text-slate-400 dark:text-slate-500 font-inter m-0">No active loans for this member</p>
+                                                    </div>
                                                 )}
                                             </div>
-                                        </div>
-                                    </div>
+                                        );
+                                    })()}
 
-                                    {/* Right Column: Loan History */}
-                                    <div className="lg:col-span-7 bg-white dark:bg-[#1E2130] border border-slate-200/80 dark:border-white/10 rounded-2xl p-6 shadow-sm">
-                                        <div className="flex items-center justify-between mb-4">
+                                    {/* Savings Overview Card */}
+                                    <div className="bg-white dark:bg-[#1E2130] border border-slate-200/80 dark:border-white/10 rounded-2xl p-5 shadow-sm">
+                                        <div className="flex items-center justify-between mb-3">
                                             <div className="flex items-center gap-2">
-                                                <div className="w-8 h-8 rounded-lg bg-blue-50 dark:bg-blue-500/10 flex items-center justify-center text-blue-600 dark:text-blue-400">
-                                                    <History size={17} />
+                                                <div className="w-8 h-8 rounded-lg bg-violet-50 dark:bg-violet-500/10 flex items-center justify-center text-violet-600 dark:text-violet-400">
+                                                    <PiggyBank size={17} />
                                                 </div>
-                                                <h3 className="font-inter text-sm font-bold text-slate-900 dark:text-white m-0">Loan History</h3>
+                                                <h3 className="font-inter text-sm font-bold text-slate-900 dark:text-white m-0">Savings Overview</h3>
                                             </div>
-                                            <span className="text-xs font-semibold text-slate-500 dark:text-slate-400 font-inter">
-                                                {profileData?.loans?.history?.length || 0} {profileData?.loans?.history?.length === 1 ? 'Record' : 'Records'}
+                                            <span className="text-xs font-semibold text-violet-600 dark:text-violet-400 font-inter">
+                                                {profileData?.savings?.goals?.length || 0} {profileData?.savings?.goals?.length === 1 ? 'Goal' : 'Goals'}
                                             </span>
                                         </div>
+                                        <div className="mb-4">
+                                            <p className="text-[10.5px] font-semibold text-slate-400 dark:text-slate-500 uppercase tracking-wider font-inter m-0 mb-0.5">Total Savings Balance</p>
+                                            <p className="text-2xl font-bold text-slate-900 dark:text-white font-inter m-0">{fmt(profileData?.savings?.totalBalance)}</p>
+                                        </div>
+                                        <div className="flex flex-col gap-3">
+                                            {profileData?.savings?.goals?.length > 0 ? profileData.savings.goals.map((goal, i) => (
+                                                <div key={i} className="p-3 bg-slate-50 dark:bg-white/5 rounded-xl border border-slate-100 dark:border-white/5">
+                                                    <div className="flex justify-between items-center mb-1.5">
+                                                        <span className="text-xs font-semibold text-slate-700 dark:text-slate-300 font-inter">{goal.goalName || 'Savings Goal'}</span>
+                                                        <span className="text-xs font-medium text-slate-500 dark:text-slate-400 font-inter">{fmt(goal.savedAmount)} / {fmt(goal.targetAmount)}</span>
+                                                    </div>
+                                                    <div className="w-full h-2 bg-slate-200 dark:bg-white/10 rounded-full overflow-hidden">
+                                                        <div className="h-full bg-violet-500 rounded-full transition-all" style={{ width: `${Math.min(100, ((goal.savedAmount || 0) / (goal.targetAmount || 1)) * 100)}%` }} />
+                                                    </div>
+                                                </div>
+                                            )) : (
+                                                <p className="text-sm text-slate-400 dark:text-slate-500 font-inter text-center py-4 m-0">No savings goals</p>
+                                            )}
+                                        </div>
+                                    </div>
+                                </div>
+
+                                {/* Bottom Row: Loan History */}
+                                <div className="bg-white dark:bg-[#1E2130] border border-slate-200/80 dark:border-white/10 rounded-2xl p-6 shadow-sm">
+                                    <div className="flex items-center justify-between mb-4">
+                                        <div className="flex items-center gap-2">
+                                            <div className="w-8 h-8 rounded-lg bg-blue-50 dark:bg-blue-500/10 flex items-center justify-center text-blue-600 dark:text-blue-400">
+                                                <History size={17} />
+                                            </div>
+                                            <h3 className="font-inter text-sm font-bold text-slate-900 dark:text-white m-0">Loan History</h3>
+                                        </div>
+                                        <span className="text-xs font-semibold text-slate-500 dark:text-slate-400 font-inter">
+                                            {profileData?.loans?.history?.length || 0} {profileData?.loans?.history?.length === 1 ? 'Record' : 'Records'}
+                                        </span>
+                                    </div>
 
                                         {profileData?.loans?.history?.length > 0 ? (
                                             <div className="flex flex-col gap-2.5">
@@ -589,26 +713,28 @@ export default function LoanAdminUserManagement() {
 
                                                                 {/* Payments List */}
                                                                 {expandedLoading ? (
-                                                                    <div className="flex items-center gap-2 py-3 justify-center">
-                                                                        <Loader2 size={14} className="animate-spin text-slate-400" />
-                                                                        <span className="text-xs text-slate-400 font-inter">Loading payments...</span>
+                                                                    <div className="flex items-center gap-2 py-4 justify-center">
+                                                                        <Loader2 size={16} className="animate-spin text-blue-500" />
+                                                                        <span className="text-xs text-slate-500 dark:text-slate-400 font-inter">Loading loan payments...</span>
                                                                     </div>
                                                                 ) : expandedPayments.length === 0 ? (
-                                                                    <p className="text-xs text-slate-400 font-inter text-center py-3 m-0">No payments recorded</p>
+                                                                    <p className="text-xs text-slate-400 font-inter text-center py-4 m-0">No payments recorded for this loan</p>
                                                                 ) : (
-                                                                    <div className="flex flex-col gap-1.5">
-                                                                        <span className="text-[10px] font-bold text-slate-500 dark:text-slate-400 font-inter uppercase tracking-wider mb-0.5">Payments ({expandedPayments.length})</span>
+                                                                    <div className="flex flex-col gap-2">
+                                                                        <div className="flex items-center justify-between mb-1">
+                                                                            <span className="text-[10px] font-bold text-slate-500 dark:text-slate-400 font-inter uppercase tracking-wider">
+                                                                                Payments for {loan.loanId || 'Loan'} ({expandedPayments.length})
+                                                                            </span>
+                                                                        </div>
                                                                         {expandedPayments.slice((paymentPage - 1) * PAYMENTS_PER_PAGE, paymentPage * PAYMENTS_PER_PAGE).map((p, j) => (
-                                                                            <div key={j} className="flex items-center justify-between py-1.5 px-2.5 bg-slate-50 dark:bg-white/5 rounded-lg border border-slate-100 dark:border-white/5">
+                                                                            <div key={j} className="flex items-center justify-between py-2 px-3 bg-slate-50 dark:bg-white/5 rounded-xl border border-slate-100 dark:border-white/5">
                                                                                 <div className="flex flex-col">
-                                                                                    <span className="text-xs font-semibold text-slate-700 dark:text-slate-300 font-inter">{fmt(p.amount)}</span>
-                                                                                    <span className="text-[10px] text-slate-400 font-inter">{fmtDate(p.paymentDate || p.date || p.createdAt)} • {p.paymentMethod || 'cash'}</span>
+                                                                                    <span className="text-xs font-bold text-slate-800 dark:text-slate-200 font-inter">{fmt(p.amount)}</span>
+                                                                                    <span className="text-[11px] text-slate-500 dark:text-slate-400 font-inter mt-0.5">
+                                                                                        {fmtDate(p.submittedAt || p.confirmedAt || p.paidAt || p.paymentDate || p.createdAt || p.date)} • {formatPaymentMethod(p.paymentMethod, p.subMethod)}{p.monthNumber ? ` (Month ${p.monthNumber})` : ''}
+                                                                                    </span>
                                                                                 </div>
-                                                                                <span className={`px-1.5 py-0.5 rounded text-[9px] font-bold font-inter ${
-                                                                                    p.status === 'confirmed' ? 'bg-emerald-100 text-emerald-700 dark:bg-emerald-500/20 dark:text-emerald-400' :
-                                                                                    p.status === 'pending' ? 'bg-amber-100 text-amber-700 dark:bg-amber-500/20 dark:text-amber-400' :
-                                                                                    'bg-slate-100 text-slate-600 dark:bg-white/10 dark:text-slate-400'
-                                                                                }`}>{p.status || 'unknown'}</span>
+                                                                                {getPaymentBadge(p.status)}
                                                                             </div>
                                                                         ))}
                                                                         {expandedPayments.length > PAYMENTS_PER_PAGE && (
@@ -648,7 +774,6 @@ export default function LoanAdminUserManagement() {
                                             <p className="text-sm text-slate-400 dark:text-slate-500 font-inter text-center py-8 m-0">No loan history</p>
                                         )}
                                     </div>
-                                </div>
                             </>
                         )}
                     </>

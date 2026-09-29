@@ -1380,7 +1380,7 @@ router.post('/loans/:id/pay', authenticateUser, async (req, res) => {
 /* ================== ADMIN - GET LOAN PAYMENTS ================== */
 router.get('/admin/loan-payments', authenticateAdmin, async (req, res) => {
     try {
-        const { status: qStatus, page: qPage, limit: qLimit, search } = req.query;
+        const { status: qStatus, page: qPage, limit: qLimit, search, loanId, email } = req.query;
         const page = parseInt(qPage) || 1;
         const limit = parseInt(qLimit) || 100;
         const skip = (page - 1) * limit;
@@ -1394,16 +1394,70 @@ router.get('/admin/loan-payments', authenticateAdmin, async (req, res) => {
             }
         }
 
+        if (email) {
+            filter.email = email;
+        }
+
+        if (loanId) {
+            const isObjectId = ObjectId.isValid(loanId) && String(new ObjectId(loanId)) === String(loanId);
+            let matchingLoan = null;
+            try {
+                matchingLoan = await loans.findOne(
+                    isObjectId 
+                        ? { $or: [{ _id: new ObjectId(loanId) }, { loanId: loanId }] }
+                        : { loanId: loanId },
+                    { projection: { _id: 1, loanId: 1 } }
+                );
+            } catch (e) {
+                // ignore
+            }
+
+            const loanConditions = [
+                { loanId: loanId },
+                ...(isObjectId ? [{ loanObjectId: new ObjectId(loanId) }] : [])
+            ];
+
+            if (matchingLoan) {
+                if (matchingLoan.loanId && matchingLoan.loanId !== loanId) {
+                    loanConditions.push({ loanId: matchingLoan.loanId });
+                }
+                if (matchingLoan._id && (!isObjectId || String(matchingLoan._id) !== String(loanId))) {
+                    loanConditions.push({ loanObjectId: matchingLoan._id });
+                }
+            }
+
+            if (filter.$or) {
+                filter.$and = [
+                    { $or: filter.$or },
+                    { $or: loanConditions }
+                ];
+                delete filter.$or;
+            } else {
+                filter.$or = loanConditions;
+            }
+        }
+
         if (search) {
-            filter.$or = [
+            const searchClause = [
                 { memberName: { $regex: search, $options: 'i' } },
                 { email: { $regex: search, $options: 'i' } },
                 { loanId: { $regex: search, $options: 'i' } }
             ];
+            if (filter.$or) {
+                filter.$and = [
+                    { $or: filter.$or },
+                    { $or: searchClause }
+                ];
+                delete filter.$or;
+            } else if (filter.$and) {
+                filter.$and.push({ $or: searchClause });
+            } else {
+                filter.$or = searchClause;
+            }
         }
 
         const totalCount = await loanPayments.countDocuments(filter);
-        const payments = await loanPayments.find(filter).sort({ submittedAt: -1 }).skip(skip).limit(limit).toArray();
+        const payments = await loanPayments.find(filter).sort({ submittedAt: -1, createdAt: -1 }).skip(skip).limit(limit).toArray();
         
         res.json({ 
             success: true, 
