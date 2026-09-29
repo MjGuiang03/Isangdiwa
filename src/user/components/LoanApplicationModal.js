@@ -145,6 +145,15 @@ export default function LoanApplicationModal({
   const handleFileUpload = (e, setFileData, setFileName) => {
     const file = e.target.files[0];
     if (!file) return;
+    if (file.size > 10 * 1024 * 1024) {
+      toast.error('File size exceeds 10MB limit. Please upload a smaller file.');
+      return;
+    }
+    const validTypes = ['image/jpeg', 'image/png', 'image/webp', 'image/jpg', 'application/pdf'];
+    if (!validTypes.includes(file.type) && !file.name.match(/\.(jpg|jpeg|png|webp|pdf)$/i)) {
+      toast.error('Invalid file format. Please upload a JPG, PNG, WEBP, or PDF file.');
+      return;
+    }
     setFileName(file.name);
     const reader = new FileReader();
     reader.onload = (ev) => setFileData(ev.target.result);
@@ -157,6 +166,11 @@ export default function LoanApplicationModal({
 
     if (file.size > 10 * 1024 * 1024) {
       toast.error('File size exceeds 10MB limit. Please upload a smaller file.');
+      return;
+    }
+    const validTypes = ['image/jpeg', 'image/png', 'image/webp', 'image/jpg', 'application/pdf'];
+    if (!validTypes.includes(file.type) && !file.name.match(/\.(jpg|jpeg|png|webp|pdf)$/i)) {
+      toast.error('Invalid file format. Please upload a JPG, PNG, WEBP, or PDF file.');
       return;
     }
 
@@ -1572,20 +1586,47 @@ export default function LoanApplicationModal({
               {hasActiveLoan && (
                 <div className="mt-3 p-3 rounded-xl bg-amber-50/60 dark:bg-amber-950/20 border border-amber-200 dark:border-amber-900/40 space-y-2">
                   <span className="text-xs font-bold text-amber-900 dark:text-amber-300">Upload Screenshot of Active Loan <span className="text-rose-500">*</span></span>
-                  <label className="block cursor-pointer">
-                    <input type="file" accept="image/*,application/pdf" onChange={(e) => handleFileUpload(e, setActiveLoanScreenshotData, setActiveLoanScreenshotFileName)} className="hidden" />
-                    <div className="py-2.5 px-3 rounded-lg border border-amber-300 dark:border-amber-800 bg-white dark:bg-slate-900 text-center transition-colors">
-                      {activeLoanScreenshotFileName ? (
-                        <div className="flex items-center justify-center gap-1.5 text-xs font-bold text-emerald-600 dark:text-emerald-400">
-                          <CheckCircle size={14} /> {activeLoanScreenshotFileName}
-                        </div>
-                      ) : (
-                        <div className="flex items-center justify-center gap-1.5 text-xs text-amber-800 dark:text-amber-300 font-semibold">
-                          <Upload size={14} /> Select Screenshot (Image/PDF)
-                        </div>
-                      )}
+                  {activeLoanScreenshotFileName ? (
+                    <div className="space-y-1.5">
+                      <div className="p-2 rounded-lg border border-amber-300 dark:border-amber-800 bg-white dark:bg-slate-900 flex items-center justify-between gap-2 text-xs">
+                        <span className="flex items-center gap-1.5 truncate font-medium text-emerald-600 dark:text-emerald-400">
+                          <CheckCircle size={14} className="shrink-0" />
+                          <span className="truncate">{activeLoanScreenshotFileName}</span>
+                        </span>
+                        <button
+                          type="button"
+                          onClick={() => {
+                            setActiveLoanScreenshotData(null);
+                            setActiveLoanScreenshotFileName('');
+                          }}
+                          className="text-slate-400 hover:text-rose-500 p-1 transition-colors cursor-pointer shrink-0 border-none bg-transparent"
+                          title="Remove screenshot"
+                        >
+                          <Trash2 size={14} />
+                        </button>
+                      </div>
+                      <label className="cursor-pointer block text-center pt-0.5">
+                        <input
+                          type="file"
+                          accept="image/*,application/pdf"
+                          onChange={(e) => handleFileUpload(e, setActiveLoanScreenshotData, setActiveLoanScreenshotFileName)}
+                          className="hidden"
+                        />
+                        <span className="text-[10.5px] font-bold text-blue-600 dark:text-blue-400 hover:underline">
+                          Replace screenshot
+                        </span>
+                      </label>
                     </div>
-                  </label>
+                  ) : (
+                    <label className="block cursor-pointer">
+                      <input type="file" accept="image/*,application/pdf" onChange={(e) => handleFileUpload(e, setActiveLoanScreenshotData, setActiveLoanScreenshotFileName)} className="hidden" />
+                      <div className="py-2.5 px-3 rounded-lg border border-amber-300 dark:border-amber-800 bg-white dark:bg-slate-900 text-center hover:bg-amber-50/40 dark:hover:bg-slate-800/80 transition-colors">
+                        <div className="flex items-center justify-center gap-1.5 text-xs text-amber-800 dark:text-amber-300 font-semibold">
+                          <Upload size={14} /> Select Screenshot (Image/PDF max 10MB)
+                        </div>
+                      </div>
+                    </label>
+                  )}
                 </div>
               )}
             </div>

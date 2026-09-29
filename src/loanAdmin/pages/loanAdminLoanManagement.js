@@ -871,16 +871,61 @@ export default function LoanAdminLoanManagement() {
                         </div>
                         <div className="flex flex-col gap-2 mb-6 w-full">
                             <label className="font-inter text-[12px] font-semibold text-slate-700 dark:text-slate-300">
-                                Rejection Reason <span className="required">*</span>
+                                Predefined Reason
+                            </label>
+                            <select
+                                className="w-full h-10 px-3 bg-white dark:bg-[#1E2130] border border-slate-200 dark:border-white/10 rounded-lg text-xs font-inter text-slate-800 dark:text-white outline-none focus:border-rose-500 cursor-pointer"
+                                value={[
+                                    'Incomplete required documentary requirements (COE, ITR, or Payslip missing/invalid)',
+                                    'Insufficient monthly disposable income to meet repayment requirements',
+                                    'Unverifiable employer or source of income details provided',
+                                    'Active outstanding loan with delinquent or unpaid balance',
+                                    'Document authenticity verification failed during initial assessment',
+                                    'Requested loan amount exceeds allowable limit for current standing',
+                                    'Other (Enter custom reason below)'
+                                ].includes(rejectReason) ? rejectReason : (rejectReason ? 'Other (Enter custom reason below)' : '')}
+                                onChange={(e) => {
+                                    const val = e.target.value;
+                                    if (val === 'Other (Enter custom reason below)') {
+                                        setRejectReason('');
+                                    } else {
+                                        setRejectReason(val);
+                                    }
+                                }}
+                            >
+                                <option value="">Select a reason or choose custom below...</option>
+                                <option value="Incomplete required documentary requirements (COE, ITR, or Payslip missing/invalid)">Incomplete required documentary requirements</option>
+                                <option value="Insufficient monthly disposable income to meet repayment requirements">Insufficient monthly disposable income</option>
+                                <option value="Unverifiable employer or source of income details provided">Unverifiable employer or source of income</option>
+                                <option value="Active outstanding loan with delinquent or unpaid balance">Active outstanding loan with delinquent balance</option>
+                                <option value="Document authenticity verification failed during initial assessment">Document authenticity verification failed</option>
+                                <option value="Requested loan amount exceeds allowable limit for current standing">Requested loan amount exceeds allowable limit</option>
+                                <option value="Other (Enter custom reason below)">Other (Specify custom reason below)</option>
+                            </select>
+
+                            <label className="font-inter text-[12px] font-semibold text-slate-700 dark:text-slate-300 mt-2">
+                                Rejection Reason Details <span className="text-rose-500">*</span>
                             </label>
                             <textarea
-                                className="w-full p-3 bg-white dark:bg-[#1E2130] border border-slate-200 dark:border-white/10 rounded-lg text-sm font-inter text-slate-800 dark:text-white outline-none focus:border-rose-500 dark:focus:border-rose-400 resize-none"
-                                placeholder="e.g., Incomplete requirements, Insufficient documents..."
+                                className={`w-full p-3 bg-white dark:bg-[#1E2130] border rounded-lg text-sm font-inter text-slate-800 dark:text-white outline-none resize-none transition-colors ${
+                                    rejectReason.trim().length > 0 && rejectReason.trim().length < 10
+                                        ? 'border-rose-500 focus:border-rose-500'
+                                        : 'border-slate-200 dark:border-white/10 focus:border-rose-500'
+                                }`}
+                                placeholder="Select a predefined reason above or enter custom reason (min 10 characters)..."
                                 value={rejectReason}
                                 onChange={(e) => setRejectReason(e.target.value)}
-                                rows={4}
+                                rows={3}
                             />
-                            <p className="font-inter text-[11px] text-slate-500 dark:text-slate-400">This reason will be visible to the member and other admins.</p>
+                            {rejectReason.trim().length > 0 && rejectReason.trim().length < 10 ? (
+                                <p className="font-inter text-[11px] text-rose-500 font-medium m-0">
+                                    Rejection reason must be at least 10 characters ({rejectReason.trim().length}/10).
+                                </p>
+                            ) : (
+                                <p className="font-inter text-[11px] text-slate-500 dark:text-slate-400 m-0">
+                                    This reason will be visible to the member and other admins (minimum 10 characters).
+                                </p>
+                            )}
                         </div>
                         <div className="flex items-center gap-3 w-full">
                             <button
@@ -892,7 +937,7 @@ export default function LoanAdminLoanManagement() {
                             <button
                                 className="flex-1 px-4 py-2.5 bg-rose-500 text-white font-inter text-[13px] font-semibold rounded-lg hover:bg-rose-600 transition-colors border-none cursor-pointer flex items-center justify-center gap-1.5 disabled:opacity-50 disabled:cursor-not-allowed"
                                 onClick={confirmReject}
-                                disabled={!rejectReason.trim() || !!actionLoading}
+                                disabled={!rejectReason.trim() || rejectReason.trim().length < 10 || !!actionLoading}
                             >
                                 {actionLoading ? <Loader2 className="animate-spin" size={16} /> : 'Reject Loan'}
                             </button>

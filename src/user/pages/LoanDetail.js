@@ -1234,7 +1234,7 @@ export default function LoanDetail() {
             <div className="flex items-center justify-between pb-3 border-b border-slate-100 dark:border-white/5">
               <h3 className="text-sm font-bold text-slate-900 dark:text-white uppercase tracking-wider">Loan Specifications</h3>
               <button 
-                className="inline-flex items-center gap-1.5 text-xs font-bold text-blue-600 dark:text-blue-400 hover:text-blue-700 cursor-pointer"
+                className="print:hidden inline-flex items-center gap-1.5 text-xs font-bold text-blue-600 dark:text-blue-400 hover:text-blue-700 cursor-pointer"
                 onClick={() => window.print()}
               >
                 <Printer size={14} /> Export to PDF

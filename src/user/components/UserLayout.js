@@ -47,11 +47,13 @@ export default function UserLayout() {
 
   return (
     <div className="flex min-h-screen bg-background text-foreground transition-colors duration-300">
-      <Sidebar 
-        collapsed={sidebarCollapsed} 
-        setCollapsed={setSidebarCollapsed}
-        toggleCollapsed={toggleSidebar}
-      />
+      <div className="print:hidden shrink-0">
+        <Sidebar 
+          collapsed={sidebarCollapsed} 
+          setCollapsed={setSidebarCollapsed}
+          toggleCollapsed={toggleSidebar}
+        />
+      </div>
       
       <div 
         className={`flex-1 min-w-0 transition-[margin] duration-300 ease-in-out bg-background min-h-screen ${
@@ -59,7 +61,7 @@ export default function UserLayout() {
         }`}
       >
         {/* Mobile top header bar with fixed sticky hamburger toggle */}
-        <div className="md:hidden fixed top-0 left-0 right-0 z-[1000] flex items-center justify-between h-12 px-3.5 bg-white/90 dark:bg-[#1E2130]/95 backdrop-blur-md border-b border-slate-200/60 dark:border-white/10 shadow-xs">
+        <div className="md:hidden print:hidden fixed top-0 left-0 right-0 z-[1000] flex items-center justify-between h-12 px-3.5 bg-white/90 dark:bg-[#1E2130]/95 backdrop-blur-md border-b border-slate-200/60 dark:border-white/10 shadow-xs">
           <button 
             className="w-9 h-9 rounded-xl bg-slate-100/90 dark:bg-white/10 border border-slate-200/80 dark:border-white/15 text-slate-700 dark:text-white flex items-center justify-center hover:bg-slate-200 dark:hover:bg-white/20 cursor-pointer active:scale-95 transition-all p-0 shadow-xs" 
             onClick={toggleSidebar}
@@ -78,11 +80,13 @@ export default function UserLayout() {
         </div>
       </div>
 
-      <NotificationPrompt />
+      <div className="print:hidden">
+        <NotificationPrompt />
+      </div>
 
       {/* Floating Chat Button */}
       <button
-        className={`fixed bottom-6 right-6 z-[990] w-14 h-14 rounded-2xl bg-gradient-to-tr from-[#0D1F45] via-[#162B5B] to-[#1E3A8A] hover:from-[#142E54] hover:to-[#25469C] text-white flex items-center justify-center shadow-lg shadow-[#0D1F45]/40 hover:shadow-blue-900/50 hover:scale-105 active:scale-95 transition-all duration-300 cursor-pointer border border-white/20 group ${
+        className={`print:hidden fixed bottom-6 right-6 z-[990] w-14 h-14 rounded-2xl bg-gradient-to-tr from-[#0D1F45] via-[#162B5B] to-[#1E3A8A] hover:from-[#142E54] hover:to-[#25469C] text-white flex items-center justify-center shadow-lg shadow-[#0D1F45]/40 hover:shadow-blue-900/50 hover:scale-105 active:scale-95 transition-all duration-300 cursor-pointer border border-white/20 group ${
           chatOpen ? 'rotate-90 !from-slate-800 !to-slate-900 shadow-slate-900/20' : ''
         }`}
         onClick={() => setChatOpen(prev => !prev)}
@@ -113,7 +117,9 @@ export default function UserLayout() {
       </button>
 
       {/* Chatbot */}
-      <Chatbot isOpen={chatOpen} onClose={() => setChatOpen(false)} />
+      <div className="print:hidden">
+        <Chatbot isOpen={chatOpen} onClose={() => setChatOpen(false)} />
+      </div>
     </div>
   );
 }

@@ -155,3 +155,49 @@ code {
 .animate-donor-stagger {
   animation: donorItemIn 0.45s cubic-bezier(0.16, 1, 0.3, 1) both;
 }
+
+/* ── Global Print Styles (Hides sidebars, floating widgets, and navigation) ── */
+@media print {
+  /* Hide sidebars, navigation bars, mobile top bars, floating chatbots, and action buttons */
+  aside,
+  nav,
+  .print-hidden,
+  .print\:hidden,
+  [data-print-hide],
+  button:not(.print-include),
+  .btn-print-hide,
+  .chat-widget,
+  [class*="Chatbot"],
+  #chatbot-container,
+  .fixed.top-0.left-0.right-0 {
+    display: none !important;
+  }
+
+  /* Reset layout constraints so printed documents expand naturally */
+  body, html, #root {
+    overflow: visible !important;
+    height: auto !important;
+    background: #ffffff !important;
+    color: #000000 !important;
+  }
+
+  .h-screen, .min-h-screen {
+    height: auto !important;
+    min-height: 0 !important;
+    overflow: visible !important;
+  }
+
+  main, .flex-1 {
+    overflow: visible !important;
+    height: auto !important;
+    margin: 0 !important;
+    padding: 0 !important;
+    width: 100% !important;
+  }
+
+  /* Remove left margin offsets on desktop layouts */
+  .md\:ml-\[72px\],
+  .md\:ml-\[256px\] {
+    margin-left: 0 !important;
+  }
+}

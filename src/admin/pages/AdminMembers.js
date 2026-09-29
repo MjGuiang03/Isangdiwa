@@ -44,8 +44,22 @@ function EditModal({ member, onClose, onSave }) {
   const [passwordError, setPasswordError] = useState('');
   const [saving,        setSaving]        = useState(false);
 
-  const validateField = (name, value, position) => {
+  const validateField = (name, value) => {
     let error = '';
+    if (name === 'fullName') {
+      if (!value.trim()) error = 'Full name is required';
+      else if (value.trim().length < 2) error = 'Full name must be at least 2 characters';
+    }
+    if (name === 'email') {
+      if (!value.trim()) error = 'Email address is required';
+      else if (!/^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(value.trim())) error = 'Enter a valid email address';
+    }
+    if (name === 'phone' && value.trim()) {
+      const clean = value.replace(/[\s-]/g, '');
+      if (!/^(09|\+639)\d{9}$/.test(clean) && !/^\d{10,11}$/.test(clean)) {
+        error = 'Enter a valid mobile number (e.g. 09123456789)';
+      }
+    }
     if (name === 'newPassword' && value) {
       if (value.length < 8) error = 'At least 8 characters';
       else if (!/[A-Z]/.test(value)) error = 'At least one uppercase letter';
@@ -61,15 +75,15 @@ function EditModal({ member, onClose, onSave }) {
     let sanitized = value;
     setForm(f => ({ ...f, [name]: sanitized }));
 
-    const error = validateField(name, sanitized, name === 'position' ? sanitized : form.position);
+    const error = validateField(name, sanitized);
     setErrors(prev => ({ ...prev, [name]: error }));
   };
 
   const handleSubmit = async () => {
-    if (!form.fullName.trim()) { toast.error('Full name is required'); return; }
-    if (!adminPassword.trim()) { setPasswordError('Admin password is required'); return; }
-
     const newErrors = {};
+    newErrors.fullName = validateField('fullName', form.fullName);
+    newErrors.email = validateField('email', form.email);
+    if (form.phone) newErrors.phone = validateField('phone', form.phone);
     if (form.newPassword) newErrors.newPassword = validateField('newPassword', form.newPassword);
 
     setErrors(newErrors);
@@ -77,6 +91,7 @@ function EditModal({ member, onClose, onSave }) {
     if (Object.values(newErrors).some(err => err)) {
       return toast.error('Please fix the errors in the form');
     }
+    if (!adminPassword.trim()) { setPasswordError('Admin password is required'); return; }
 
     setPasswordError('');
     setSaving(true);
@@ -118,18 +133,54 @@ function EditModal({ member, onClose, onSave }) {
         <div className="p-5 overflow-y-auto custom-scrollbar flex-1 flex flex-col gap-4">
           <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
             <div className="flex flex-col gap-1.5">
-              <label className="font-inter text-[13px] font-semibold text-slate-700 dark:text-slate-300">Full Name</label>
-              <input className="h-10 px-3 bg-white dark:bg-[#1E2130] border border-slate-300 dark:border-white/10 rounded-lg text-sm font-inter text-slate-800 dark:text-white outline-none focus:border-blue-500 focus:ring-1 focus:ring-blue-500 transition-all w-full" name="fullName" value={form.fullName} onChange={handleChange} />
+              <label className="font-inter text-[13px] font-semibold text-slate-700 dark:text-slate-300">
+                Full Name <span className="text-rose-500">*</span>
+              </label>
+              <input
+                className={`h-10 px-3 bg-white dark:bg-[#1E2130] border rounded-lg text-sm font-inter text-slate-800 dark:text-white outline-none transition-all w-full ${
+                  errors.fullName
+                    ? 'border-rose-500 focus:border-rose-500 focus:ring-1 focus:ring-rose-500'
+                    : 'border-slate-300 dark:border-white/10 focus:border-blue-500 focus:ring-1 focus:ring-blue-500'
+                }`}
+                name="fullName"
+                value={form.fullName}
+                onChange={handleChange}
+              />
+              {errors.fullName && <p className="m-0 font-inter text-xs text-rose-500 font-medium">{errors.fullName}</p>}
             </div>
             <div className="flex flex-col gap-1.5">
-              <label className="font-inter text-[13px] font-semibold text-slate-700 dark:text-slate-300">Email Address</label>
-              <input className="h-10 px-3 bg-white dark:bg-[#1E2130] border border-slate-300 dark:border-white/10 rounded-lg text-sm font-inter text-slate-800 dark:text-white outline-none focus:border-blue-500 focus:ring-1 focus:ring-blue-500 transition-all w-full" type="email" name="email" value={form.email} onChange={handleChange} />
+              <label className="font-inter text-[13px] font-semibold text-slate-700 dark:text-slate-300">
+                Email Address <span className="text-rose-500">*</span>
+              </label>
+              <input
+                className={`h-10 px-3 bg-white dark:bg-[#1E2130] border rounded-lg text-sm font-inter text-slate-800 dark:text-white outline-none transition-all w-full ${
+                  errors.email
+                    ? 'border-rose-500 focus:border-rose-500 focus:ring-1 focus:ring-rose-500'
+                    : 'border-slate-300 dark:border-white/10 focus:border-blue-500 focus:ring-1 focus:ring-blue-500'
+                }`}
+                type="email"
+                name="email"
+                value={form.email}
+                onChange={handleChange}
+              />
+              {errors.email && <p className="m-0 font-inter text-xs text-rose-500 font-medium">{errors.email}</p>}
             </div>
           </div>
           <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
             <div className="flex flex-col gap-1.5">
               <label className="font-inter text-[13px] font-semibold text-slate-700 dark:text-slate-300">Phone Number</label>
-              <input className="h-10 px-3 bg-white dark:bg-[#1E2130] border border-slate-300 dark:border-white/10 rounded-lg text-sm font-inter text-slate-800 dark:text-white outline-none focus:border-blue-500 focus:ring-1 focus:ring-blue-500 transition-all w-full" name="phone" value={form.phone} onChange={handleChange} />
+              <input
+                className={`h-10 px-3 bg-white dark:bg-[#1E2130] border rounded-lg text-sm font-inter text-slate-800 dark:text-white outline-none transition-all w-full ${
+                  errors.phone
+                    ? 'border-rose-500 focus:border-rose-500 focus:ring-1 focus:ring-rose-500'
+                    : 'border-slate-300 dark:border-white/10 focus:border-blue-500 focus:ring-1 focus:ring-blue-500'
+                }`}
+                name="phone"
+                value={form.phone}
+                onChange={handleChange}
+                placeholder="09123456789"
+              />
+              {errors.phone && <p className="m-0 font-inter text-xs text-rose-500 font-medium">{errors.phone}</p>}
             </div>
             <div className="flex flex-col gap-1.5">
               <label className="font-inter text-[13px] font-semibold text-slate-700 dark:text-slate-300">Community</label>

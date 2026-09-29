@@ -18,6 +18,12 @@ export function useSwipeToClose(onClose) {
         touchStartX.current = touch.clientX;
 
         const target = e.target;
+        // Don't drag if touch target is an interactive or text-selection element
+        if (target.closest('input, textarea, select, button, [contenteditable="true"], .selectable-text')) {
+            activeDrag.current = false;
+            return;
+        }
+
         // Check if touch target is within a scrolled content area
         const scrollable = target.closest('.svm-modal-body, .dim-body, .user-loan-application-form, .overflow-y-auto');
 

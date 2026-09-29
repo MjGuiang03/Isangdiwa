@@ -606,9 +606,10 @@ export default function Notifications() {
     const renderCTA = (n) => {
       let text = '';
       let link = '';
+      let isReceipt = false;
       if (n.type === 'payment_pending') {
         text = 'View Receipt →';
-        link = '/loans';
+        isReceipt = true;
       } else if (n.type === 'loan' && (n.title.includes('Approved') || n.title.includes('Disbursed'))) {
         text = 'View Loan →';
         link = '/loans';
@@ -627,7 +628,15 @@ export default function Notifications() {
 
       return (
         <span
-          onClick={(e) => { e.stopPropagation(); window.location.href = link; }}
+          onClick={(e) => {
+            e.stopPropagation();
+            if (isReceipt) {
+              if (!n.isRead) markAsRead(n.id);
+              setDetailModal(n);
+            } else {
+              window.location.href = link;
+            }
+          }}
           className="text-xs font-bold text-blue-600 dark:text-blue-400 hover:underline cursor-pointer inline-block"
         >
           {text}

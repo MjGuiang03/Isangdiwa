@@ -1,4 +1,4 @@
-import { useState, useEffect, useCallback, useMemo } from 'react';
+import { useState, useEffect, useCallback, useMemo, useRef } from 'react';
 import useSWR from 'swr';
 import { useLocation } from 'react-router-dom';
 import { toast } from 'sonner';
@@ -92,6 +92,7 @@ export default function LoanAdminPaymentStatus() {
 
   // Walk-in Feature State
   const [showWalkinModal, setShowWalkinModal] = useState(false);
+  const walkinOverlayDownRef = useRef(false);
   const [walkinType, setWalkinType] = useState('loan'); // 'loan' or 'savings'
   const [walkinSearch, setWalkinSearch] = useState('');
   const [walkinUsers, setWalkinUsers] = useState([]);
@@ -1498,7 +1499,14 @@ export default function LoanAdminPaymentStatus() {
 
       {/* ── Walk-in Transaction Modal ── */}
       {showWalkinModal && (
-        <div className="fixed inset-0 bg-black/50 backdrop-blur-sm flex items-center justify-center z-[2000] p-4" onClick={() => setShowWalkinModal(false)}>
+        <div
+          className="fixed inset-0 bg-black/50 backdrop-blur-sm flex items-center justify-center z-[2000] p-4"
+          onMouseDown={(e) => { walkinOverlayDownRef.current = (e.target === e.currentTarget); }}
+          onClick={(e) => {
+            if (e.target === e.currentTarget && walkinOverlayDownRef.current) setShowWalkinModal(false);
+            walkinOverlayDownRef.current = false;
+          }}
+        >
           <div className="bg-white dark:bg-[#1E2130] rounded-2xl w-full max-w-[480px] flex flex-col border border-slate-200 dark:border-white/10 shadow-2xl overflow-hidden" onClick={(e) => e.stopPropagation()}>
             <div className="flex items-center justify-between p-5 border-b border-slate-200 dark:border-white/10 shrink-0">
               <div>

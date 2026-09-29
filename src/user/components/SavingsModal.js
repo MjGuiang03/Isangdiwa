@@ -1,4 +1,4 @@
-import { useState, useEffect, useMemo } from 'react';
+import { useState, useEffect, useMemo, useRef } from 'react';
 import useSWR from 'swr';
 import { toast } from 'sonner';
 import { useAuth } from '../../context/AuthContext';
@@ -2405,6 +2405,7 @@ function TransactionInfoModal({ transaction, onClose }) {
 function WithdrawModal({ goals, onClose, onOpenDeposit }) {
     const { modalStyle, touchHandlers } = useSwipeToClose(onClose);
     const { profile } = useAuth();
+    const overlayMouseDownRef = useRef(false);
     const activeGoals = goals.filter(g => (g.savedAmount || 0) > 0);
     const [selectedGoal, setSelectedGoal] = useState(activeGoals[0]?._id || '');
     const [amount, setAmount] = useState('');
@@ -2463,7 +2464,14 @@ function WithdrawModal({ goals, onClose, onOpenDeposit }) {
 
     if (activeGoals.length === 0) {
         return (
-            <div className="svm-overlay" onClick={onClose}>
+            <div
+                className="svm-overlay"
+                onMouseDown={(e) => { overlayMouseDownRef.current = (e.target === e.currentTarget); }}
+                onClick={(e) => {
+                    if (e.target === e.currentTarget && overlayMouseDownRef.current) onClose();
+                    overlayMouseDownRef.current = false;
+                }}
+            >
                 <div className="svm-modal svm-modal--sm" style={modalStyle} {...touchHandlers} onClick={e => e.stopPropagation()}>
                     <DragHandle />
                     <div className="svm-modal-head">
@@ -2502,7 +2510,14 @@ function WithdrawModal({ goals, onClose, onOpenDeposit }) {
     }
 
     return (
-        <div className="svm-overlay" onClick={onClose}>
+        <div
+            className="svm-overlay"
+            onMouseDown={(e) => { overlayMouseDownRef.current = (e.target === e.currentTarget); }}
+            onClick={(e) => {
+                if (e.target === e.currentTarget && overlayMouseDownRef.current) onClose();
+                overlayMouseDownRef.current = false;
+            }}
+        >
             <div className="svm-modal" style={modalStyle} {...touchHandlers} onClick={e => e.stopPropagation()}>
                 <DragHandle />
                 <div className="svm-modal-head">

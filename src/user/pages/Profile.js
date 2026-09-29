@@ -7,8 +7,10 @@ import API from '../../utils/api';
 import {
   Heart, CalendarDays, PiggyBank, FileText, Award,
   MapPin, Mail, Phone, Clock, Shield,
-  Star, Flame, Target, Edit2, XCircle, Camera, CheckCircle2, AlertCircle
+  Star, Flame, Target, Edit2, XCircle, Camera, CheckCircle2, AlertCircle,
+  Trash2, Loader2
 } from 'lucide-react';
+import { toast } from 'sonner';
 import VerifyEmailModal from '../components/VerifyEmail';
 import { BarChart, Bar, XAxis, YAxis, CartesianGrid, Tooltip, ResponsiveContainer } from 'recharts';
 import { isOfficerPosition } from '../../utils/officerPositions';
@@ -48,6 +50,8 @@ export default function Profile() {
   const [photoToUpload, setPhotoToUpload] = useState(null);
   const [showPhotoModal, setShowPhotoModal] = useState(false);
   const [isUploadingPhoto, setIsUploadingPhoto] = useState(false);
+  const [showRemovePhotoConfirm, setShowRemovePhotoConfirm] = useState(false);
+  const [isRemovingPhoto, setIsRemovingPhoto] = useState(false);
   
 
 
@@ -117,6 +121,30 @@ export default function Profile() {
       console.error('Failed to upload photo:', err);
     } finally {
       setIsUploadingPhoto(false);
+    }
+  };
+
+  const handleRemovePhoto = async () => {
+    setIsRemovingPhoto(true);
+    try {
+      const token = localStorage.getItem('token');
+      const res = await fetch(`${API}/api/remove-photo`, {
+        method: 'PUT',
+        headers: { 'Content-Type': 'application/json', Authorization: `Bearer ${token}` }
+      });
+      const data = await res.json();
+      if (res.ok && data.success) {
+        await updateProfile({ photoUrl: '' });
+        setShowRemovePhotoConfirm(false);
+        toast.success('Profile photo removed successfully');
+      } else {
+        toast.error(data.message || 'Failed to remove photo');
+      }
+    } catch (err) {
+      console.error('Failed to remove photo:', err);
+      toast.error('Network error. Please try again.');
+    } finally {
+      setIsRemovingPhoto(false);
     }
   };
 
@@ -482,6 +510,41 @@ export default function Profile() {
         </div>
       )}
 
+      {/* ── Remove Photo Confirmation Modal ── */}
+      {showRemovePhotoConfirm && (
+        <div className="fixed inset-0 z-[9999] flex items-center justify-center p-4 bg-slate-900/60 backdrop-blur-sm animate-fadeIn" onClick={() => setShowRemovePhotoConfirm(false)}>
+          <div className="bg-white dark:bg-[#1E2130] rounded-2xl max-w-sm w-full p-6 border border-slate-200 dark:border-white/10 shadow-2xl space-y-4 text-center" onClick={e => e.stopPropagation()}>
+            <div className="w-12 h-12 rounded-full bg-rose-100 dark:bg-rose-500/20 text-rose-600 dark:text-rose-400 flex items-center justify-center mx-auto">
+              <Trash2 size={24} />
+            </div>
+            <div>
+              <h3 className="text-base font-bold text-slate-900 dark:text-white font-inter">Remove Profile Photo?</h3>
+              <p className="text-xs text-slate-500 dark:text-slate-400 font-inter mt-1.5 leading-relaxed">
+                Your profile photo will be permanently removed and your avatar will revert to your name initials.
+              </p>
+            </div>
+            <div className="flex justify-end gap-2 pt-2 border-t border-slate-100 dark:border-white/10">
+              <button
+                type="button"
+                onClick={() => setShowRemovePhotoConfirm(false)}
+                disabled={isRemovingPhoto}
+                className="flex-1 px-4 py-2 rounded-xl text-xs font-bold bg-slate-100 dark:bg-slate-800 text-slate-700 dark:text-slate-300 hover:bg-slate-200 dark:hover:bg-slate-700 transition-colors cursor-pointer border-none"
+              >
+                Cancel
+              </button>
+              <button
+                type="button"
+                onClick={handleRemovePhoto}
+                disabled={isRemovingPhoto}
+                className="flex-1 px-4 py-2 rounded-xl text-xs font-bold bg-rose-600 text-white hover:bg-rose-700 transition-colors cursor-pointer border-none shadow-sm flex items-center justify-center gap-1.5"
+              >
+                {isRemovingPhoto ? <Loader2 size={14} className="animate-spin" /> : 'Remove Photo'}
+              </button>
+            </div>
+          </div>
+        </div>
+      )}
+
       {/* ── Page Header (Matching Portal Standards) ── */}
       <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-3 pb-2.5 border-b border-slate-200/80 dark:border-white/10 font-inter">
         <div>
@@ -498,22 +561,37 @@ export default function Profile() {
         <div className="relative z-10 flex flex-col sm:flex-row items-center justify-between gap-6 text-center sm:text-left">
           <div className="flex flex-col sm:flex-row items-center gap-5">
             {/* Avatar - Clickable for Photo Upload */}
-            <div 
-              className="relative w-20 h-20 sm:w-22 sm:h-22 rounded-full overflow-hidden bg-white/10 border-4 border-white/20 shadow-xl flex items-center justify-center shrink-0 text-white font-bold font-dm text-2xl group cursor-pointer" 
-              onClick={() => document.getElementById('up-hero-photo-input').click()} 
-              title="Click to upload profile photo"
-            >
-              {avatarSrc ? (
-                <img src={avatarSrc} alt="Profile" className="w-full h-full object-cover" />
-              ) : (
-                <span className="tracking-wider">
-                  {displayName.split(' ').map(n => n[0]).join('').slice(0, 2).toUpperCase()}
-                </span>
-              )}
-              <div className="absolute bottom-0 inset-x-0 bg-black/60 group-hover:bg-black/80 py-1 flex items-center justify-center text-white transition-colors cursor-pointer border-none" title="Upload profile photo">
-                <Camera size={14} />
+            <div className="relative">
+              <div 
+                className="relative w-20 h-20 sm:w-22 sm:h-22 rounded-full overflow-hidden bg-white/10 border-4 border-white/20 shadow-xl flex items-center justify-center shrink-0 text-white font-bold font-dm text-2xl group cursor-pointer" 
+                onClick={() => document.getElementById('up-hero-photo-input').click()} 
+                title="Click to change profile photo"
+              >
+                {avatarSrc ? (
+                  <img src={avatarSrc} alt="Profile" className="w-full h-full object-cover" />
+                ) : (
+                  <span className="tracking-wider">
+                    {displayName.split(' ').map(n => n[0]).join('').slice(0, 2).toUpperCase()}
+                  </span>
+                )}
+                <div className="absolute bottom-0 inset-x-0 bg-black/60 group-hover:bg-black/80 py-1 flex items-center justify-center text-white transition-colors cursor-pointer border-none" title="Upload profile photo">
+                  <Camera size={14} />
+                </div>
+                <input id="up-hero-photo-input" type="file" accept="image/*" className="hidden" onChange={handlePhotoSelect} />
               </div>
-              <input id="up-hero-photo-input" type="file" accept="image/*" className="hidden" onChange={handlePhotoSelect} />
+              {avatarSrc && (
+                <button
+                  type="button"
+                  onClick={(e) => {
+                    e.stopPropagation();
+                    setShowRemovePhotoConfirm(true);
+                  }}
+                  className="absolute -top-1 -right-1 w-6 h-6 rounded-full bg-rose-600 hover:bg-rose-700 text-white flex items-center justify-center shadow-lg border-2 border-white dark:border-[#1E2130] transition-all cursor-pointer z-20 active:scale-95"
+                  title="Remove profile photo"
+                >
+                  <Trash2 size={12} />
+                </button>
+              )}
             </div>
 
             {/* Name & Quick Metadata */}

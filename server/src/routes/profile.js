@@ -248,6 +248,25 @@ router.put('/upload-photo', authenticateUser, async (req, res) => {
   }
 });
 
+/* ================== REMOVE PROFILE PHOTO ================== */
+router.put('/remove-photo', authenticateUser, async (req, res) => {
+  try {
+    const email = req.user.email;
+    await users.updateOne(
+      { email },
+      { $unset: { photoUrl: "" } }
+    );
+    res.status(200).json({
+      success: true,
+      message: 'Profile photo removed successfully',
+      photoUrl: null
+    });
+  } catch (err) {
+    console.error('Error removing photo:', err);
+    res.status(500).json({ success: false, message: 'Failed to remove photo' });
+  }
+});
+
 /* ================== UPLOAD PROFILE PHOTO (Multipart - Mobile) ================== */
 import multer from 'multer';
 const upload = multer({ 

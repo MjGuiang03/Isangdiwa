@@ -16,13 +16,17 @@ export default function AdminLayout() {
 
   return (
     <div className="flex h-screen overflow-hidden bg-slate-100 dark:bg-[#161922]">
-      {renderSidebar()}
+      <div className="print:hidden shrink-0">
+        {renderSidebar()}
+      </div>
       <main className="flex-1 overflow-hidden relative flex flex-col">
         <div className="flex-1 overflow-y-auto w-full h-full">
           <Outlet />
         </div>
       </main>
-      <NotificationPrompt />
+      <div className="print:hidden">
+        <NotificationPrompt />
+      </div>
     </div>
   );
 }

@@ -358,8 +358,8 @@ export const AuthProvider = ({ children }) => {
         branch:   data.user.branch   || formData.branch,
         position: data.user.position || formData.position,
       };
-      if (formData.photoUrl) {
-        updatedProfile.photoUrl = formData.photoUrl;
+      if (formData.photoUrl !== undefined) {
+        updatedProfile.photoUrl = formData.photoUrl || null;
       }
 
       setProfile(updatedProfile);

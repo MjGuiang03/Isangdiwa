@@ -910,6 +910,9 @@ router.put('/admin/loans/:id/reject', authenticateAdmin, async (req, res) => {
     if (loan.status !== 'pending') {
       return res.status(400).json({ success: false, message: 'Only pending loans can be rejected' });
     }
+    if (!rejectionReason || rejectionReason.trim().length < 5) {
+      return res.status(400).json({ success: false, message: 'Rejection reason must be at least 5 characters' });
+    }
 
     await loans.updateOne(
       { _id: new ObjectId(id) },

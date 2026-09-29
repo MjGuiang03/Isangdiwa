@@ -226,10 +226,23 @@ function EditCommunityModal({ branch, onClose, onSave }) {
   const [address, setAddress] = useState(branch.address || '');
   const [pastor, setPastor] = useState(branch.pastor || '');
   const [saving, setSaving] = useState(false);
+  const [touched, setTouched] = useState({});
+
+  const errors = {
+    name: !name.trim() ? 'Community name is required' : (name.trim().length < 2 ? 'Community name must be at least 2 characters' : ''),
+    address: !address.trim() ? 'Address is required' : '',
+    pastor: !pastor.trim() ? 'Lead Pastor is required' : '',
+  };
+
+  const hasErrors = Boolean(errors.name || errors.address || errors.pastor);
 
   const handleSubmit = async (e) => {
     e.preventDefault();
+    setTouched({ name: true, address: true, pastor: true });
     if (!name.trim()) return toast.error('Community name is required');
+    if (!address.trim()) return toast.error('Address is required');
+    if (!pastor.trim()) return toast.error('Lead Pastor is required');
+    if (hasErrors) return toast.error('Please complete all required fields');
 
     setSaving(true);
     try {
@@ -263,23 +276,77 @@ function EditCommunityModal({ branch, onClose, onSave }) {
           </div>
           <button className="absolute top-5 right-5 w-8 h-8 flex items-center justify-center rounded-lg bg-slate-100 dark:bg-white/5 text-slate-500 hover:bg-slate-200 dark:hover:bg-white/10 transition-colors cursor-pointer border-none" onClick={onClose}><XCircle size={20} color="#6B7280" /></button>
         </div>
-        <form onSubmit={handleSubmit} className="p-6 overflow-y-auto custom-scrollbar flex flex-col gap-5">
+        <form onSubmit={handleSubmit} className="p-6 overflow-y-auto custom-scrollbar flex flex-col gap-4">
           <div className="flex flex-col gap-1.5">
-             <label className="font-inter text-[13px] font-semibold text-slate-700 dark:text-slate-300">Community Name</label>
-             <input type="text" className="h-10 px-3 bg-white dark:bg-[#1E2130] border border-slate-300 dark:border-white/10 rounded-lg text-sm font-inter text-slate-800 dark:text-white outline-none focus:border-blue-500 focus:ring-1 focus:ring-blue-500 transition-all w-full" autoFocus placeholder="e.g. San Pedro" value={name} onChange={e => setName(e.target.value)} />
+             <label className="font-inter text-[13px] font-semibold text-slate-700 dark:text-slate-300">
+               Community Name <span className="text-rose-500">*</span>
+             </label>
+             <input
+               type="text"
+               className={`h-10 px-3 bg-white dark:bg-[#1E2130] border rounded-lg text-sm font-inter text-slate-800 dark:text-white outline-none transition-all w-full ${
+                 touched.name && errors.name
+                   ? 'border-rose-500 focus:border-rose-500 focus:ring-1 focus:ring-rose-500'
+                   : 'border-slate-300 dark:border-white/10 focus:border-blue-500 focus:ring-1 focus:ring-blue-500'
+               }`}
+               autoFocus
+               placeholder="e.g. San Pedro"
+               value={name}
+               onChange={e => { setName(e.target.value); setTouched(t => ({ ...t, name: true })); }}
+               onBlur={() => setTouched(t => ({ ...t, name: true }))}
+             />
+             {touched.name && errors.name && (
+               <p className="m-0 font-inter text-xs text-rose-500 font-medium">{errors.name}</p>
+             )}
           </div>
           <div className="flex flex-col gap-1.5">
-             <label className="font-inter text-[13px] font-semibold text-slate-700 dark:text-slate-300">Address</label>
-             <input type="text" className="h-10 px-3 bg-white dark:bg-[#1E2130] border border-slate-300 dark:border-white/10 rounded-lg text-sm font-inter text-slate-800 dark:text-white outline-none focus:border-blue-500 focus:ring-1 focus:ring-blue-500 transition-all w-full" placeholder="Branch Address" value={address} onChange={e => setAddress(e.target.value)} />
+             <label className="font-inter text-[13px] font-semibold text-slate-700 dark:text-slate-300">
+               Address <span className="text-rose-500">*</span>
+             </label>
+             <input
+               type="text"
+               className={`h-10 px-3 bg-white dark:bg-[#1E2130] border rounded-lg text-sm font-inter text-slate-800 dark:text-white outline-none transition-all w-full ${
+                 touched.address && errors.address
+                   ? 'border-rose-500 focus:border-rose-500 focus:ring-1 focus:ring-rose-500'
+                   : 'border-slate-300 dark:border-white/10 focus:border-blue-500 focus:ring-1 focus:ring-blue-500'
+               }`}
+               placeholder="Branch Address"
+               value={address}
+               onChange={e => { setAddress(e.target.value); setTouched(t => ({ ...t, address: true })); }}
+               onBlur={() => setTouched(t => ({ ...t, address: true }))}
+             />
+             {touched.address && errors.address && (
+               <p className="m-0 font-inter text-xs text-rose-500 font-medium">{errors.address}</p>
+             )}
           </div>
           <div className="flex flex-col gap-1.5">
-             <label className="font-inter text-[13px] font-semibold text-slate-700 dark:text-slate-300">Pastor</label>
-             <input type="text" className="h-10 px-3 bg-white dark:bg-[#1E2130] border border-slate-300 dark:border-white/10 rounded-lg text-sm font-inter text-slate-800 dark:text-white outline-none focus:border-blue-500 focus:ring-1 focus:ring-blue-500 transition-all w-full" placeholder="Lead Pastor" value={pastor} onChange={e => setPastor(e.target.value)} />
+             <label className="font-inter text-[13px] font-semibold text-slate-700 dark:text-slate-300">
+               Pastor <span className="text-rose-500">*</span>
+             </label>
+             <input
+               type="text"
+               className={`h-10 px-3 bg-white dark:bg-[#1E2130] border rounded-lg text-sm font-inter text-slate-800 dark:text-white outline-none transition-all w-full ${
+                 touched.pastor && errors.pastor
+                   ? 'border-rose-500 focus:border-rose-500 focus:ring-1 focus:ring-rose-500'
+                   : 'border-slate-300 dark:border-white/10 focus:border-blue-500 focus:ring-1 focus:ring-blue-500'
+               }`}
+               placeholder="Lead Pastor"
+               value={pastor}
+               onChange={e => { setPastor(e.target.value); setTouched(t => ({ ...t, pastor: true })); }}
+               onBlur={() => setTouched(t => ({ ...t, pastor: true }))}
+             />
+             {touched.pastor && errors.pastor && (
+               <p className="m-0 font-inter text-xs text-rose-500 font-medium">{errors.pastor}</p>
+             )}
           </div>
         </form>
         <div className="p-5 border-t border-slate-200 dark:border-white/10 bg-slate-50 dark:bg-black/20 flex items-center justify-end gap-3 shrink-0">
           <button type="button" className="h-10 px-4 rounded-lg font-inter text-sm font-semibold transition-all border border-slate-300 dark:border-white/10 bg-white dark:bg-[#1E2130] text-slate-700 dark:text-slate-300 hover:bg-slate-50 dark:hover:bg-white/5 cursor-pointer flex-1 sm:flex-none" onClick={onClose} disabled={saving}>Cancel</button>
-          <button type="button" className="h-10 px-6 rounded-lg font-inter text-sm font-semibold transition-all border-none bg-blue-600 text-white hover:bg-blue-700 cursor-pointer flex items-center justify-center min-w-[100px] flex-1 sm:flex-none" onClick={handleSubmit} disabled={saving}>
+          <button
+            type="button"
+            className="h-10 px-6 rounded-lg font-inter text-sm font-semibold transition-all border-none bg-blue-600 text-white hover:bg-blue-700 cursor-pointer flex items-center justify-center min-w-[100px] flex-1 sm:flex-none disabled:opacity-50 disabled:cursor-not-allowed"
+            onClick={handleSubmit}
+            disabled={hasErrors || saving}
+          >
             {saving ? <Loader2 className="animate-spin" size={16} /> : 'Save Changes'}
           </button>
         </div>
@@ -382,20 +449,34 @@ function AddCommunityModal({ onClose, onSave }) {
   const [address, setAddress] = useState('');
   const [pastor, setPastor] = useState('');
   const [saving, setSaving] = useState(false);
+  const [touched, setTouched] = useState({});
+
+  const errors = {
+    name: !name.trim() ? 'Community name is required' : (name.trim().length < 2 ? 'Community name must be at least 2 characters' : ''),
+    region: !region ? 'Region is required' : '',
+    cityOrProvince: !cityOrProvince ? 'City / Province is required' : '',
+    address: !address.trim() ? 'Complete address is required' : '',
+    pastor: !pastor.trim() ? 'Lead Pastor is required' : '',
+  };
+
+  const hasErrors = Boolean(errors.name || errors.region || errors.cityOrProvince || errors.address || errors.pastor);
 
   const handleRegionChange = (e) => {
     const selectedRegion = e.target.value;
     setRegion(selectedRegion);
     setCityOrProvince('');
+    setTouched(t => ({ ...t, region: true }));
   };
 
   const handleSubmit = async (e) => {
     e.preventDefault();
+    setTouched({ name: true, region: true, cityOrProvince: true, address: true, pastor: true });
     if (!name.trim()) return toast.error('Community Name is required');
     if (!region) return toast.error('Region is required');
     if (!cityOrProvince) return toast.error('City / Province is required');
     if (!address.trim()) return toast.error('Complete Address is required');
     if (!pastor.trim()) return toast.error('Lead Pastor is required');
+    if (hasErrors) return toast.error('Please complete all required fields');
 
     setSaving(true);
     try {
@@ -439,16 +520,41 @@ function AddCommunityModal({ onClose, onSave }) {
         </div>
         <form onSubmit={handleSubmit} className="p-6 overflow-y-auto custom-scrollbar flex flex-col gap-4">
           <div className="flex flex-col gap-1.5">
-             <label className="font-inter text-[13px] font-semibold text-slate-700 dark:text-slate-300">Community Name</label>
-             <input type="text" className="h-10 px-3 bg-white dark:bg-[#1E2130] border border-slate-300 dark:border-white/10 rounded-lg text-sm font-inter text-slate-800 dark:text-white outline-none focus:border-blue-500 focus:ring-1 focus:ring-blue-500 transition-all w-full" autoFocus placeholder="e.g. San Pedro" value={name} onChange={e => setName(e.target.value)} required />
+             <label className="font-inter text-[13px] font-semibold text-slate-700 dark:text-slate-300">
+               Community Name <span className="text-rose-500">*</span>
+             </label>
+             <input
+               type="text"
+               className={`h-10 px-3 bg-white dark:bg-[#1E2130] border rounded-lg text-sm font-inter text-slate-800 dark:text-white outline-none transition-all w-full ${
+                 touched.name && errors.name
+                   ? 'border-rose-500 focus:border-rose-500 focus:ring-1 focus:ring-rose-500'
+                   : 'border-slate-300 dark:border-white/10 focus:border-blue-500 focus:ring-1 focus:ring-blue-500'
+               }`}
+               autoFocus
+               placeholder="e.g. San Pedro"
+               value={name}
+               onChange={e => { setName(e.target.value); setTouched(t => ({ ...t, name: true })); }}
+               onBlur={() => setTouched(t => ({ ...t, name: true }))}
+               required
+             />
+             {touched.name && errors.name && (
+               <p className="m-0 font-inter text-xs text-rose-500 font-medium">{errors.name}</p>
+             )}
           </div>
           
           <div className="flex flex-col gap-1.5">
-             <label className="font-inter text-[13px] font-semibold text-slate-700 dark:text-slate-300">Region</label>
+             <label className="font-inter text-[13px] font-semibold text-slate-700 dark:text-slate-300">
+               Region <span className="text-rose-500">*</span>
+             </label>
              <select
-               className="h-10 px-3 bg-white dark:bg-[#1E2130] border border-slate-300 dark:border-white/10 rounded-lg text-sm font-inter text-slate-800 dark:text-white outline-none focus:border-blue-500 focus:ring-1 focus:ring-blue-500 transition-all w-full cursor-pointer"
+               className={`h-10 px-3 bg-white dark:bg-[#1E2130] border rounded-lg text-sm font-inter text-slate-800 dark:text-white outline-none transition-all w-full cursor-pointer ${
+                 touched.region && errors.region
+                   ? 'border-rose-500 focus:border-rose-500 focus:ring-1 focus:ring-rose-500'
+                   : 'border-slate-300 dark:border-white/10 focus:border-blue-500 focus:ring-1 focus:ring-blue-500'
+               }`}
                value={region}
                onChange={handleRegionChange}
+               onBlur={() => setTouched(t => ({ ...t, region: true }))}
                required
              >
                <option value="">Select Region</option>
@@ -458,14 +564,24 @@ function AddCommunityModal({ onClose, onSave }) {
                  </option>
                ))}
              </select>
+             {touched.region && errors.region && (
+               <p className="m-0 font-inter text-xs text-rose-500 font-medium">{errors.region}</p>
+             )}
           </div>
 
           <div className="flex flex-col gap-1.5">
-             <label className="font-inter text-[13px] font-semibold text-slate-700 dark:text-slate-300">City / Province</label>
+             <label className="font-inter text-[13px] font-semibold text-slate-700 dark:text-slate-300">
+               City / Province <span className="text-rose-500">*</span>
+             </label>
              <select
-               className="h-10 px-3 bg-white dark:bg-[#1E2130] border border-slate-300 dark:border-white/10 rounded-lg text-sm font-inter text-slate-800 dark:text-white outline-none focus:border-blue-500 focus:ring-1 focus:ring-blue-500 transition-all w-full cursor-pointer disabled:opacity-50 disabled:cursor-not-allowed"
+               className={`h-10 px-3 bg-white dark:bg-[#1E2130] border rounded-lg text-sm font-inter text-slate-800 dark:text-white outline-none transition-all w-full cursor-pointer disabled:opacity-50 disabled:cursor-not-allowed ${
+                 touched.cityOrProvince && errors.cityOrProvince
+                   ? 'border-rose-500 focus:border-rose-500 focus:ring-1 focus:ring-rose-500'
+                   : 'border-slate-300 dark:border-white/10 focus:border-blue-500 focus:ring-1 focus:ring-blue-500'
+               }`}
                value={cityOrProvince}
-               onChange={e => setCityOrProvince(e.target.value)}
+               onChange={e => { setCityOrProvince(e.target.value); setTouched(t => ({ ...t, cityOrProvince: true })); }}
+               onBlur={() => setTouched(t => ({ ...t, cityOrProvince: true }))}
                disabled={!region}
                required
              >
@@ -476,21 +592,63 @@ function AddCommunityModal({ onClose, onSave }) {
                  </option>
                ))}
              </select>
+             {touched.cityOrProvince && errors.cityOrProvince && (
+               <p className="m-0 font-inter text-xs text-rose-500 font-medium">{errors.cityOrProvince}</p>
+             )}
           </div>
 
           <div className="flex flex-col gap-1.5">
-             <label className="font-inter text-[13px] font-semibold text-slate-700 dark:text-slate-300">Complete Address</label>
-             <input type="text" className="h-10 px-3 bg-white dark:bg-[#1E2130] border border-slate-300 dark:border-white/10 rounded-lg text-sm font-inter text-slate-800 dark:text-white outline-none focus:border-blue-500 focus:ring-1 focus:ring-blue-500 transition-all w-full" placeholder="e.g. 123 Street Name, Barangay" value={address} onChange={e => setAddress(e.target.value)} required />
+             <label className="font-inter text-[13px] font-semibold text-slate-700 dark:text-slate-300">
+               Complete Address <span className="text-rose-500">*</span>
+             </label>
+             <input
+               type="text"
+               className={`h-10 px-3 bg-white dark:bg-[#1E2130] border rounded-lg text-sm font-inter text-slate-800 dark:text-white outline-none transition-all w-full ${
+                 touched.address && errors.address
+                   ? 'border-rose-500 focus:border-rose-500 focus:ring-1 focus:ring-rose-500'
+                   : 'border-slate-300 dark:border-white/10 focus:border-blue-500 focus:ring-1 focus:ring-blue-500'
+               }`}
+               placeholder="e.g. 123 Street Name, Barangay"
+               value={address}
+               onChange={e => { setAddress(e.target.value); setTouched(t => ({ ...t, address: true })); }}
+               onBlur={() => setTouched(t => ({ ...t, address: true }))}
+               required
+             />
+             {touched.address && errors.address && (
+               <p className="m-0 font-inter text-xs text-rose-500 font-medium">{errors.address}</p>
+             )}
           </div>
 
           <div className="flex flex-col gap-1.5">
-             <label className="font-inter text-[13px] font-semibold text-slate-700 dark:text-slate-300">Pastor</label>
-             <input type="text" className="h-10 px-3 bg-white dark:bg-[#1E2130] border border-slate-300 dark:border-white/10 rounded-lg text-sm font-inter text-slate-800 dark:text-white outline-none focus:border-blue-500 focus:ring-1 focus:ring-blue-500 transition-all w-full" placeholder="Lead Pastor" value={pastor} onChange={e => setPastor(e.target.value)} required />
+             <label className="font-inter text-[13px] font-semibold text-slate-700 dark:text-slate-300">
+               Pastor <span className="text-rose-500">*</span>
+             </label>
+             <input
+               type="text"
+               className={`h-10 px-3 bg-white dark:bg-[#1E2130] border rounded-lg text-sm font-inter text-slate-800 dark:text-white outline-none transition-all w-full ${
+                 touched.pastor && errors.pastor
+                   ? 'border-rose-500 focus:border-rose-500 focus:ring-1 focus:ring-rose-500'
+                   : 'border-slate-300 dark:border-white/10 focus:border-blue-500 focus:ring-1 focus:ring-blue-500'
+               }`}
+               placeholder="Lead Pastor"
+               value={pastor}
+               onChange={e => { setPastor(e.target.value); setTouched(t => ({ ...t, pastor: true })); }}
+               onBlur={() => setTouched(t => ({ ...t, pastor: true }))}
+               required
+             />
+             {touched.pastor && errors.pastor && (
+               <p className="m-0 font-inter text-xs text-rose-500 font-medium">{errors.pastor}</p>
+             )}
           </div>
         </form>
         <div className="p-5 border-t border-slate-200 dark:border-white/10 bg-slate-50 dark:bg-black/20 flex items-center justify-end gap-3 shrink-0">
           <button type="button" className="h-10 px-4 rounded-lg font-inter text-sm font-semibold transition-all border border-slate-300 dark:border-white/10 bg-white dark:bg-[#1E2130] text-slate-700 dark:text-slate-300 hover:bg-slate-50 dark:hover:bg-white/5 cursor-pointer flex-1 sm:flex-none" onClick={onClose} disabled={saving}>Cancel</button>
-          <button type="button" className="h-10 px-6 rounded-lg font-inter text-sm font-semibold transition-all border-none bg-blue-600 text-white hover:bg-blue-700 cursor-pointer flex items-center justify-center min-w-[100px] flex-1 sm:flex-none" onClick={handleSubmit} disabled={saving}>
+          <button
+            type="button"
+            className="h-10 px-6 rounded-lg font-inter text-sm font-semibold transition-all border-none bg-blue-600 text-white hover:bg-blue-700 cursor-pointer flex items-center justify-center min-w-[100px] flex-1 sm:flex-none disabled:opacity-50 disabled:cursor-not-allowed"
+            onClick={handleSubmit}
+            disabled={hasErrors || saving}
+          >
             {saving ? <Loader2 className="animate-spin" size={16} /> : 'Add Community'}
           </button>
         </div>

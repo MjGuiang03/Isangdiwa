@@ -631,7 +631,7 @@ export default function AdminDashboard() {
               {[2024, 2025, 2026, 2027].map(y => <option key={y} value={y}>{y}</option>)}
             </select>
           </div>
-          <button className="flex items-center gap-2 h-10 px-4 bg-slate-800 dark:bg-white text-white dark:text-slate-900 text-sm font-semibold font-inter rounded-xl hover:bg-slate-700 dark:hover:bg-slate-200 transition-colors border-none cursor-pointer" onClick={() => window.print()}>
+          <button className="print:hidden flex items-center gap-2 h-10 px-4 bg-slate-800 dark:bg-white text-white dark:text-slate-900 text-sm font-semibold font-inter rounded-xl hover:bg-slate-700 dark:hover:bg-slate-200 transition-colors border-none cursor-pointer" onClick={() => window.print()}>
             <Printer size={15} />
             Export
           </button>
