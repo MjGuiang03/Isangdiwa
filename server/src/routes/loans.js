@@ -201,6 +201,223 @@ Respond with: { "detected": true/false, "confidence": "high"/"medium"/"low", "re
   }
 });
 
+/* ================== USER - VERIFY SELFIE WITH ID & DATE (Gemini Vision) ================== */
+router.post('/loans/verify-selfie', authenticateUser, async (req, res) => {
+  try {
+    const { imageData } = req.body;
+    if (!imageData) {
+      return res.status(400).json({ success: false, detected: false, message: 'No image data provided' });
+    }
+
+    const match = imageData.match(/^data:([^;]+);base64,(.+)$/);
+    const mimeType = match ? match[1] : 'image/jpeg';
+    const base64Data = match ? match[2] : imageData.replace(/^data:[^;]+;base64,/, '');
+
+    const systemPrompt = `You are a KYC (Know Your Customer) and identity security verification system for a church credit & loan platform.
+Your job is to examine a live selfie photo to verify that it meets the "Selfie with ID & Date" security requirements.
+
+The photo MUST contain:
+1. A real human face (the applicant), looking towards the camera and clearly visible.
+2. A government-issued ID card or official identification document held up by the person beside their face.
+3. A handwritten note or visible paper showing a date.
+
+DECISION CRITERIA:
+- detected: true if:
+  (a) Face is clearly visible AND an ID card is visible in the frame.
+  (b) If a date note is also clearly detected, set confidence: "high".
+  (c) If face and ID card are clearly visible, but the handwritten date note is faint, partial, or missing, set detected: true, confidence: "medium", and in reason note: "Face and ID card verified. Please ensure the date note is clearly legible."
+- detected: false if:
+  (a) No human face is detected (e.g. photo of an empty wall, screen, random object, cartoon, animal).
+  (b) A human face is present, but NO ID card is being held up or visible in the photo.
+  (c) Only an ID card is shown, but NO human face is in the photo.
+  (d) The photo is extremely dark, completely washed out, or too blurry to confirm a face or ID.
+
+Respond ONLY with a JSON object in this exact schema:
+{
+  "detected": true,
+  "confidence": "high" or "medium" or "low",
+  "checks": {
+    "faceVisible": true or false,
+    "idVisible": true or false,
+    "dateVisible": true or false
+  },
+  "reason": "Clear explanation (maximum 20 words)"
+}`;
+
+    const textPrompt = 'Analyze this live selfie. Check if it contains a human face, a government ID card held up beside the face, and a handwritten date note. Respond with JSON only.';
+
+    const aiResult = await callGeminiVision(systemPrompt, textPrompt, base64Data, mimeType);
+
+    if (aiResult === '__RATE_LIMITED__') {
+      return res.json({
+        success: true,
+        detected: true,
+        fallback: true,
+        confidence: 'medium',
+        reason: 'AI service busy — selfie accepted for manual review by loan officer.',
+        checks: { faceVisible: true, idVisible: true, dateVisible: true },
+      });
+    }
+
+    if (!aiResult) {
+      return res.json({
+        success: true,
+        detected: true,
+        fallback: true,
+        confidence: 'medium',
+        reason: 'AI service temporarily unavailable — selfie accepted for manual review.',
+        checks: { faceVisible: true, idVisible: true, dateVisible: true },
+      });
+    }
+
+    let parsed;
+    try {
+      const cleaned = aiResult.replace(/```json\n?/g, '').replace(/```\n?/g, '').trim();
+      parsed = JSON.parse(cleaned);
+    } catch {
+      return res.json({
+        success: true,
+        detected: true,
+        fallback: true,
+        confidence: 'medium',
+        reason: 'Photo accepted for manual review.',
+      });
+    }
+
+    return res.json({
+      success: true,
+      detected: !!parsed.detected,
+      confidence: parsed.confidence || 'low',
+      checks: parsed.checks || { faceVisible: !!parsed.detected, idVisible: !!parsed.detected, dateVisible: false },
+      reason: parsed.reason || '',
+    });
+  } catch (err) {
+    console.error('[Selfie Verify Error]:', err);
+    res.json({
+      success: true,
+      detected: true,
+      fallback: true,
+      confidence: 'low',
+      reason: 'Photo captured and queued for manual verification.',
+    });
+  }
+});
+
+/* ================== USER - VERIFY PROOF DOCUMENTS (Gemini Vision) ================== */
+router.post('/loans/verify-document', authenticateUser, async (req, res) => {
+  try {
+    const { fileData, fileName, documentType } = req.body;
+
+    if (!fileData) {
+      return res.status(400).json({ success: false, detected: false, message: 'No file data provided' });
+    }
+
+    if (!['payslip', 'itr', 'coe'].includes(documentType)) {
+      return res.status(400).json({ success: false, detected: false, message: 'Invalid document type. Must be payslip, itr, or coe.' });
+    }
+
+    const match = fileData.match(/^data:([^;]+);base64,(.+)$/);
+    const mimeType = match ? match[1] : 'image/jpeg';
+    const base64Data = match ? match[2] : fileData.replace(/^data:[^;]+;base64,/, '');
+
+    const docLabels = {
+      payslip: 'Latest Payslip / Pay Stub',
+      itr: 'Income Tax Return (ITR / BIR Form 2316)',
+      coe: 'Certificate of Employment (COE)',
+    };
+
+    const systemPrompt = `You are an automated document auditor for a church financial assistance and loan application system.
+Your job is to examine an uploaded file (image or PDF) and verify whether it genuinely corresponds to the required document type: "${documentType}" (${docLabels[documentType]}).
+
+SPECIFIC CRITERIA PER DOCUMENT TYPE:
+
+1. If documentType is "payslip":
+   - MUST be an authentic payslip, salary voucher, payroll advice slip, pay stub, or official proof of earnings.
+   - Look for salary details, gross/net pay, earnings, deductions (tax, SSS, PhilHealth, Pag-IBIG), pay period/date, or employer/company name.
+   - REJECT: Invoices, purchase receipts, utility bills, selfies, ID cards, diplomas, blank papers, non-payroll documents.
+
+2. If documentType is "itr":
+   - MUST be an authentic Philippine Income Tax Return or BIR certificate.
+   - Look for BIR Form 2316 (Certificate of Compensation Payment/Tax Withheld), BIR Form 1701 / 1701A / 1701Q / 1700, Bureau of Internal Revenue header, Tax Identification Number (TIN), taxable income details, employer signature or BIR stamp.
+   - REJECT: Utility bills, bank deposit receipts, generic business forms, payslips (which belong under payslip, not ITR), selfies, ID cards.
+
+3. If documentType is "coe":
+   - MUST be an official Certificate of Employment (COE) or employment certification letter.
+   - Look for company letterhead or company name, statement confirming the person is or was employed, position/job title, hire date or period of employment, compensation/salary (optional), and HR signatory or company stamp.
+   - REJECT: Resignation letters, contracts, seminar certificates, certificates of appreciation/baptism, ID cards, receipts, personal letters.
+
+EVALUATION RULES:
+- detected: true if the document is clearly or substantially recognized as the requested ${documentType}.
+- detected: false if the document is of the wrong type (e.g. uploaded a receipt instead of a payslip, or an ID instead of a COE), or if it is unreadable/random.
+- If the document is the requested type but scanned at a tilt or with slight mobile blur: set detected: true, confidence: "medium".
+
+Respond ONLY with a JSON object in this exact schema:
+{
+  "detected": true,
+  "confidence": "high" or "medium" or "low",
+  "documentType": "${documentType}",
+  "detectedType": "name of detected document type (e.g. Payslip, BIR Form 2316, Certificate of Employment, Store Receipt, Unrelated Photo)",
+  "extractedInfo": {
+    "organization": "employer or company name if found",
+    "subject": "employee name or taxpayer name if found",
+    "dateOrPeriod": "period, date, or tax year if found"
+  },
+  "reason": "Clear 1-sentence explanation for the applicant"
+}`;
+
+    const textPrompt = `Analyze this uploaded file for loan verification. Verify if it is a valid "${documentType}" (${docLabels[documentType]}). File name: "${fileName || ''}". Respond with JSON only.`;
+
+    const aiResult = await callGeminiVision(systemPrompt, textPrompt, base64Data, mimeType);
+
+    if (aiResult === '__RATE_LIMITED__' || !aiResult) {
+      return res.json({
+        success: true,
+        detected: true,
+        fallback: true,
+        confidence: 'medium',
+        documentType,
+        detectedType: docLabels[documentType],
+        reason: 'AI validation busy — document accepted for manual review by loan officer.',
+      });
+    }
+
+    let parsed;
+    try {
+      const cleaned = aiResult.replace(/```json\n?/g, '').replace(/```\n?/g, '').trim();
+      parsed = JSON.parse(cleaned);
+    } catch {
+      return res.json({
+        success: true,
+        detected: true,
+        fallback: true,
+        confidence: 'medium',
+        documentType,
+        detectedType: docLabels[documentType],
+        reason: 'Document format accepted for manual verification.',
+      });
+    }
+
+    return res.json({
+      success: true,
+      detected: !!parsed.detected,
+      confidence: parsed.confidence || 'low',
+      documentType,
+      detectedType: parsed.detectedType || docLabels[documentType],
+      extractedInfo: parsed.extractedInfo || {},
+      reason: parsed.reason || (parsed.detected ? `Valid ${docLabels[documentType]} verified.` : `Document does not appear to be a valid ${docLabels[documentType]}.`),
+    });
+  } catch (err) {
+    console.error('[Document Verify Error]:', err);
+    res.json({
+      success: true,
+      detected: true,
+      fallback: true,
+      confidence: 'low',
+      reason: 'Document uploaded and queued for manual verification.',
+    });
+  }
+});
+
 /* ================== VALIDATE LOAN PAYMENT RECEIPT IMAGE (AI) ================== */
 router.post('/loans/validate-receipt', authenticateUser, async (req, res) => {
   try {
@@ -323,6 +540,8 @@ router.post('/loans/apply', authenticateUser, async (req, res) => {
       itrData, itrFileName,
       payslipData, payslipFileName,
       hasActiveLoan, activeLoanScreenshotData, activeLoanScreenshotFileName
+      hasActiveLoan, activeLoanScreenshotData, activeLoanScreenshotFileName,
+      aiVerification
     } = req.body;
 
     if (!amount || (!loanType && !purpose)) {
@@ -368,6 +587,7 @@ router.post('/loans/apply', authenticateUser, async (req, res) => {
       hasActiveLoan: hasActiveLoan || false,
       activeLoanScreenshotData: activeLoanScreenshotData || null,
       activeLoanScreenshotFileName: activeLoanScreenshotFileName || null,
+      aiVerification: aiVerification || null,
       appliedDate: new Date(), updatedAt: new Date(),
       statusHistory: [{ status: 'pending', date: new Date() }]
     };

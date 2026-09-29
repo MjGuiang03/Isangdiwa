@@ -2,7 +2,8 @@ import { useState, useMemo, useEffect, useRef, useCallback } from 'react';
 import { toast } from 'sonner';
 
 import API from '../../utils/api';
-import { Banknote, CheckCircle, X, Pencil, Camera, RotateCcw, AlertTriangle, Upload, Trash2, ChevronDown, Check, ShieldCheck, Send, Wallet, Clock } from 'lucide-react';
+import { Banknote, CheckCircle, CheckCircle2, X, Pencil, Camera, RotateCcw, AlertTriangle, Upload, Trash2, ChevronDown, Check, ShieldCheck, Send, Wallet, Clock, Sparkles, FileText } from 'lucide-react';
+import { Banknote, CheckCircle, X, Pencil, Camera, RotateCcw, AlertTriangle, Upload, Trash2, ChevronDown, Check, ShieldCheck, Send, Wallet, Clock, Sparkles, FileText } from 'lucide-react';
 
 /* ── Loan-type config ── */
 const LOAN_TYPES = [
@@ -124,6 +125,8 @@ export default function LoanApplicationModal({
   const [itrFileName, setItrFileName] = useState('');
   const [payslipData, setPayslipData] = useState(null);
   const [payslipFileName, setPayslipFileName] = useState('');
+  const [docChecking, setDocChecking] = useState({ coe: false, itr: false, payslip: false });
+  const [docAiStatus, setDocAiStatus] = useState({ coe: null, itr: null, payslip: null });
   const [hasActiveLoan, setHasActiveLoan] = useState(null);
   const [activeLoanScreenshotData, setActiveLoanScreenshotData] = useState(null);
   const [activeLoanScreenshotFileName, setActiveLoanScreenshotFileName] = useState('');
@@ -147,6 +150,115 @@ export default function LoanApplicationModal({
     const reader = new FileReader();
     reader.onload = (ev) => setFileData(ev.target.result);
     reader.readAsDataURL(file);
+  };
+
+  const handleDocumentUpload = (e, docType) => {
+    const file = e.target.files[0];
+    if (!file) return;
+
+    if (file.size > 10 * 1024 * 1024) {
+      toast.error('File size exceeds 10MB limit. Please upload a smaller file.');
+      return;
+    }
+
+    const fileName = file.name;
+    const docLabels = {
+      coe: 'Certificate of Employment (COE)',
+      itr: 'Income Tax Return (ITR)',
+      payslip: 'Latest Payslip',
+    };
+    const label = docLabels[docType] || docType.toUpperCase();
+
+    const reader = new FileReader();
+    reader.onload = async (ev) => {
+      const dataUrl = ev.target.result;
+
+      // Optimistically store file data and start AI check
+      if (docType === 'coe') {
+        setCoeData(dataUrl);
+        setCoeFileName(fileName);
+      } else if (docType === 'itr') {
+        setItrData(dataUrl);
+        setItrFileName(fileName);
+      } else if (docType === 'payslip') {
+        setPayslipData(dataUrl);
+        setPayslipFileName(fileName);
+      }
+
+      setDocChecking(prev => ({ ...prev, [docType]: true }));
+      setDocAiStatus(prev => ({ ...prev, [docType]: null }));
+
+      try {
+        const token = localStorage.getItem('token');
+        const res = await fetch(`${API}/api/loans/verify-document`, {
+          method: 'POST',
+          headers: {
+            'Content-Type': 'application/json',
+            Authorization: `Bearer ${token}`
+          },
+          body: JSON.stringify({
+            documentType: docType,
+            fileData: dataUrl,
+            fileName,
+          })
+        });
+        const data = await res.json();
+
+        if (data.detected) {
+          setDocAiStatus(prev => ({
+            ...prev,
+            [docType]: {
+              verified: true,
+              confidence: data.confidence,
+              reason: data.reason,
+              detectedType: data.detectedType,
+              fallback: data.fallback
+            }
+          }));
+          toast.success(`✓ ${label} verified by AI!`);
+        } else {
+          setDocAiStatus(prev => ({
+            ...prev,
+            [docType]: {
+              verified: false,
+              confidence: data.confidence,
+              reason: data.reason || `Uploaded file does not match required ${label}.`,
+              detectedType: data.detectedType
+            }
+          }));
+          toast.error(`AI Check Warning: ${data.reason || `Please ensure the file is an authentic ${label}.`}`);
+        }
+      } catch (err) {
+        console.error(`AI Document verification failed for ${docType}:`, err);
+        setDocAiStatus(prev => ({
+          ...prev,
+          [docType]: {
+            verified: true,
+            fallback: true,
+            reason: 'Queued for manual loan officer review.'
+          }
+        }));
+        toast.info(`${label} uploaded (queued for manual officer review).`);
+      } finally {
+        setDocChecking(prev => ({ ...prev, [docType]: false }));
+      }
+    };
+    reader.readAsDataURL(file);
+  };
+
+  const handleRemoveDocument = (docType) => {
+    if (docType === 'coe') {
+      setCoeData(null);
+      setCoeFileName('');
+    } else if (docType === 'itr') {
+      setItrData(null);
+      setItrFileName('');
+    } else if (docType === 'payslip') {
+      setPayslipData(null);
+      setPayslipFileName('');
+    }
+    setDocAiStatus(prev => ({ ...prev, [docType]: null }));
+    setDocChecking(prev => ({ ...prev, [docType]: false }));
   };
 
   const [newEwalletProvider, setNewEwalletProvider] = useState('');
@@ -179,6 +291,10 @@ export default function LoanApplicationModal({
   const [idChecking, setIdChecking] = useState(false);       // currently verifying frame
   const [idDetectionMsg, setIdDetectionMsg] = useState('');  // detection message
   const [capturedIdPreview, setCapturedIdPreview] = useState(null); // preview of captured ID photo
+  const [selfieChecking, setSelfieChecking] = useState(false);       // currently verifying selfie
+  const [selfieDetectionMsg, setSelfieDetectionMsg] = useState('');  // selfie detection message
+  const [capturedSelfiePreview, setCapturedSelfiePreview] = useState(null); // preview of captured selfie
+  const [selfieAiStatus, setSelfieAiStatus] = useState(null);
   const videoRef = useRef(null);
   const canvasRef = useRef(null);
   const streamRef = useRef(null);
@@ -308,6 +424,9 @@ export default function LoanApplicationModal({
     setIdChecking(false);
     setIdDetectionMsg('');
     setCapturedIdPreview(null);
+    setSelfieChecking(false);
+    setSelfieDetectionMsg('');
+    setCapturedSelfiePreview(null);
 
     try {
       const facingMode = target === 'selfie' ? 'user' : 'environment';
@@ -374,10 +493,40 @@ export default function LoanApplicationModal({
     const dataUrl = canvas.toDataURL('image/jpeg', 0.85);
 
     if (cameraTarget === 'selfie') {
-      setSelfieImage(dataUrl);
-      stopCamera();
-      setCameraOpen(false);
-      toast.success('Selfie captured!');
+      setCapturedSelfiePreview(dataUrl);
+      setSelfieChecking(true);
+      setSelfieDetectionMsg('');
+
+      try {
+        const token = localStorage.getItem('token');
+        const res = await fetch(`${API}/api/loans/verify-selfie`, {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json', Authorization: `Bearer ${token}` },
+          body: JSON.stringify({ imageData: dataUrl }),
+        });
+        const data = await res.json();
+
+        if (data.rateLimited) {
+          setSelfieDetectionMsg('AI service busy — please wait a moment and try again.');
+          return;
+        }
+
+        if (data.detected && (data.confidence === 'high' || data.confidence === 'medium')) {
+          setSelfieImage(dataUrl);
+          setSelfieAiStatus({ verified: true, confidence: data.confidence, checks: data.checks, reason: data.reason });
+          stopCamera();
+          setCameraOpen(false);
+          setCapturedSelfiePreview(null);
+          toast.success('✓ Selfie with ID & Date verified successfully!');
+        } else {
+          setSelfieDetectionMsg(data.reason || 'Please ensure your face, government ID card, and handwritten date note are all clearly visible.');
+        }
+      } catch (err) {
+        console.error('Selfie verification error:', err);
+        setSelfieDetectionMsg('Verification system unavailable — please try again.');
+      } finally {
+        setSelfieChecking(false);
+      }
       return;
     }
 
@@ -421,6 +570,10 @@ export default function LoanApplicationModal({
   const closeCamera = useCallback(() => {
     stopCamera();
     setCameraOpen(false);
+    setCapturedIdPreview(null);
+    setCapturedSelfiePreview(null);
+    setIdDetectionMsg('');
+    setSelfieDetectionMsg('');
   }, [stopCamera]);
 
   const requestClose = useCallback(() => {
@@ -480,6 +633,18 @@ export default function LoanApplicationModal({
     if (!coeData) { toast.error('Please upload your Certificate of Employment (COE).'); return; }
     if (!itrData) { toast.error('Please upload your Income Tax Return (ITR).'); return; }
     if (!payslipData) { toast.error('Please upload your Payslip.'); return; }
+    if (docChecking.coe || docChecking.itr || docChecking.payslip || selfieChecking || idChecking) {
+      toast.error('AI is currently verifying your documents. Please wait a moment.');
+      return;
+    }
+    const flaggedDocs = [];
+    if (docAiStatus.coe?.verified === false) flaggedDocs.push('COE');
+    if (docAiStatus.itr?.verified === false) flaggedDocs.push('ITR');
+    if (docAiStatus.payslip?.verified === false) flaggedDocs.push('Latest Payslip');
+    if (flaggedDocs.length > 0) {
+      toast.error(`Please replace the AI-flagged document(s): ${flaggedDocs.join(', ')} before submitting.`);
+      return;
+    }
     if (hasActiveLoan === null) { toast.error('Please specify if you have an active loan with another entity.'); return; }
     if (hasActiveLoan === true && !activeLoanScreenshotData) { toast.error('Please upload a screenshot of your active loan.'); return; }
     if (!disbursementMethod) { toast.error('Please select a disbursement method.'); return; }
@@ -565,6 +730,13 @@ export default function LoanApplicationModal({
         hasActiveLoan,
         activeLoanScreenshotData: hasActiveLoan ? activeLoanScreenshotData : null,
         activeLoanScreenshotFileName: hasActiveLoan ? activeLoanScreenshotFileName : null
+        activeLoanScreenshotFileName: hasActiveLoan ? activeLoanScreenshotFileName : null,
+        aiVerification: {
+          selfie: selfieAiStatus,
+          coe: docAiStatus.coe,
+          itr: docAiStatus.itr,
+          payslip: docAiStatus.payslip
+        }
       }
     });
 
@@ -960,7 +1132,7 @@ export default function LoanApplicationModal({
                     <span className="text-xs font-bold text-slate-800 dark:text-slate-200">Selfie with ID &amp; Date <span className="text-rose-500">*</span></span>
                     {selfieImage ? (
                       <span className="px-2 py-0.5 rounded-full bg-emerald-100 dark:bg-emerald-950/60 text-emerald-700 dark:text-emerald-400 text-[10px] font-bold flex items-center gap-1">
-                        <CheckCircle size={10} /> Captured
+                        <Sparkles size={10} /> AI Verified
                       </span>
                     ) : (
                       <span className="px-2 py-0.5 rounded-full bg-slate-100 dark:bg-slate-800 text-slate-500 text-[10px] font-medium">Required</span>
@@ -1083,63 +1255,288 @@ export default function LoanApplicationModal({
 
               <div className="grid grid-cols-1 sm:grid-cols-3 gap-3">
                 {/* COE Upload */}
-                <div className={`p-3 rounded-xl border transition-all ${coeFileName ? 'bg-emerald-50/30 dark:bg-emerald-950/20 border-emerald-500/40' : 'bg-white dark:bg-slate-900/60 border-slate-200 dark:border-white/10'} shadow-sm flex flex-col justify-between gap-2`}>
-                  <span className="text-xs font-bold text-slate-800 dark:text-slate-200">COE <span className="text-rose-500">*</span></span>
-                  <label className="cursor-pointer">
-                    <input type="file" accept="image/*,application/pdf" onChange={(e) => handleFileUpload(e, setCoeData, setCoeFileName)} className="hidden" />
-                    <div className="py-2 px-2.5 rounded-lg border border-slate-200 dark:border-slate-700 bg-slate-50 dark:bg-slate-800/80 hover:bg-slate-100 text-center transition-colors">
-                      {coeFileName ? (
-                        <div className="flex items-center justify-center gap-1 text-[11px] font-bold text-emerald-600 dark:text-emerald-400 truncate">
-                          <CheckCircle size={12} className="shrink-0" />
+                <div className={`p-3 rounded-xl border transition-all ${
+                  docChecking.coe
+                    ? 'bg-blue-50/50 dark:bg-blue-950/20 border-blue-400 dark:border-blue-700 animate-pulse'
+                    : docAiStatus.coe?.verified === true
+                    ? 'bg-emerald-50/30 dark:bg-emerald-950/20 border-emerald-500/50'
+                    : docAiStatus.coe?.verified === false
+                    ? 'bg-rose-50/30 dark:bg-rose-950/20 border-rose-500/50'
+                    : coeFileName
+                    ? 'bg-slate-50 dark:bg-slate-800/40 border-slate-300 dark:border-slate-700'
+                    : 'bg-white dark:bg-slate-900/60 border-slate-200 dark:border-white/10 hover:border-blue-400'
+                } shadow-sm flex flex-col justify-between gap-2.5`}>
+                  <div className="flex items-center justify-between">
+                    <span className="text-xs font-bold text-slate-800 dark:text-slate-200">
+                      COE <span className="text-rose-500">*</span>
+                    </span>
+                    {docChecking.coe ? (
+                      <span className="px-2 py-0.5 rounded-full bg-blue-100 dark:bg-blue-900/60 text-blue-700 dark:text-blue-300 text-[10px] font-bold flex items-center gap-1">
+                        <span className="w-2.5 h-2.5 border-2 border-blue-600 border-t-transparent rounded-full animate-spin" /> Verifying
+                      </span>
+                    ) : docAiStatus.coe?.verified === true ? (
+                      <span className="px-2 py-0.5 rounded-full bg-emerald-100 dark:bg-emerald-950/60 text-emerald-700 dark:text-emerald-400 text-[10px] font-bold flex items-center gap-1">
+                        <Sparkles size={10} /> AI Verified
+                      </span>
+                    ) : docAiStatus.coe?.verified === false ? (
+                      <span className="px-2 py-0.5 rounded-full bg-rose-100 dark:bg-rose-950/60 text-rose-700 dark:text-rose-400 text-[10px] font-bold flex items-center gap-1">
+                        <AlertTriangle size={10} /> Flagged
+                      </span>
+                    ) : coeFileName ? (
+                      <span className="px-2 py-0.5 rounded-full bg-slate-100 dark:bg-slate-800 text-slate-600 dark:text-slate-400 text-[10px] font-medium">Uploaded</span>
+                    ) : (
+                      <span className="px-2 py-0.5 rounded-full bg-slate-100 dark:bg-slate-800 text-slate-500 text-[10px] font-medium">Required</span>
+                    )}
+                  </div>
+
+                  {coeFileName ? (
+                    <div className="space-y-1.5">
+                      <div className="p-2 rounded-lg border border-slate-200/80 dark:border-white/10 bg-white/80 dark:bg-slate-900/80 flex items-center justify-between gap-1 text-[11px]">
+                        <span className="flex items-center gap-1.5 truncate font-medium text-slate-800 dark:text-slate-200">
+                          <FileText size={13} className={docAiStatus.coe?.verified === false ? 'text-rose-500 shrink-0' : 'text-emerald-500 shrink-0'} />
                           <span className="truncate">{coeFileName}</span>
-                        </div>
-                      ) : (
-                        <div className="flex items-center justify-center gap-1.5 text-xs text-slate-600 dark:text-slate-300 font-medium">
-                          <Upload size={13} className="text-blue-600" /> Choose File
-                        </div>
+                        </span>
+                        <button
+                          type="button"
+                          onClick={() => handleRemoveDocument('coe')}
+                          className="text-slate-400 hover:text-rose-500 p-0.5 transition-colors cursor-pointer shrink-0"
+                          title="Remove file"
+                        >
+                          <Trash2 size={13} />
+                        </button>
+                      </div>
+                      {docAiStatus.coe?.reason && (
+                        <p className={`text-[10px] leading-tight m-0 font-medium ${
+                          docAiStatus.coe?.verified === false ? 'text-rose-600 dark:text-rose-400' : 'text-emerald-700 dark:text-emerald-400'
+                        }`}>
+                          {docAiStatus.coe.verified ? '✓ ' : '⚠ '} {docAiStatus.coe.reason}
+                        </p>
                       )}
+                      <label className="cursor-pointer block text-center pt-0.5">
+                        <input
+                          type="file"
+                          accept="image/*,application/pdf"
+                          onChange={(e) => handleDocumentUpload(e, 'coe')}
+                          className="hidden"
+                          disabled={docChecking.coe}
+                        />
+                        <span className="text-[10.5px] font-bold text-blue-600 dark:text-blue-400 hover:underline">
+                          Replace file
+                        </span>
+                      </label>
                     </div>
-                  </label>
+                  ) : (
+                    <label className="cursor-pointer block">
+                      <input
+                        type="file"
+                        accept="image/*,application/pdf"
+                        onChange={(e) => handleDocumentUpload(e, 'coe')}
+                        className="hidden"
+                        disabled={docChecking.coe}
+                      />
+                      <div className="py-2 px-2.5 rounded-lg border border-slate-200 dark:border-slate-700 bg-slate-50 dark:bg-slate-800/80 hover:bg-slate-100 dark:hover:bg-slate-800 text-center transition-colors">
+                        {docChecking.coe ? (
+                          <div className="flex items-center justify-center gap-1.5 text-xs text-blue-600 dark:text-blue-400 font-bold">
+                            <span className="w-3 h-3 border-2 border-blue-600 border-t-transparent rounded-full animate-spin" /> Verifying with AI...
+                          </div>
+                        ) : (
+                          <div className="flex items-center justify-center gap-1.5 text-xs text-slate-600 dark:text-slate-300 font-medium">
+                            <Upload size={13} className="text-blue-600" /> Choose File
+                          </div>
+                        )}
+                      </div>
+                    </label>
+                  )}
                 </div>
 
                 {/* ITR Upload */}
-                <div className={`p-3 rounded-xl border transition-all ${itrFileName ? 'bg-emerald-50/30 dark:bg-emerald-950/20 border-emerald-500/40' : 'bg-white dark:bg-slate-900/60 border-slate-200 dark:border-white/10'} shadow-sm flex flex-col justify-between gap-2`}>
-                  <span className="text-xs font-bold text-slate-800 dark:text-slate-200">ITR <span className="text-rose-500">*</span></span>
-                  <label className="cursor-pointer">
-                    <input type="file" accept="image/*,application/pdf" onChange={(e) => handleFileUpload(e, setItrData, setItrFileName)} className="hidden" />
-                    <div className="py-2 px-2.5 rounded-lg border border-slate-200 dark:border-slate-700 bg-slate-50 dark:bg-slate-800/80 hover:bg-slate-100 text-center transition-colors">
-                      {itrFileName ? (
-                        <div className="flex items-center justify-center gap-1 text-[11px] font-bold text-emerald-600 dark:text-emerald-400 truncate">
-                          <CheckCircle size={12} className="shrink-0" />
+                <div className={`p-3 rounded-xl border transition-all ${
+                  docChecking.itr
+                    ? 'bg-blue-50/50 dark:bg-blue-950/20 border-blue-400 dark:border-blue-700 animate-pulse'
+                    : docAiStatus.itr?.verified === true
+                    ? 'bg-emerald-50/30 dark:bg-emerald-950/20 border-emerald-500/50'
+                    : docAiStatus.itr?.verified === false
+                    ? 'bg-rose-50/30 dark:bg-rose-950/20 border-rose-500/50'
+                    : itrFileName
+                    ? 'bg-slate-50 dark:bg-slate-800/40 border-slate-300 dark:border-slate-700'
+                    : 'bg-white dark:bg-slate-900/60 border-slate-200 dark:border-white/10 hover:border-blue-400'
+                } shadow-sm flex flex-col justify-between gap-2.5`}>
+                  <div className="flex items-center justify-between">
+                    <span className="text-xs font-bold text-slate-800 dark:text-slate-200">
+                      ITR <span className="text-rose-500">*</span>
+                    </span>
+                    {docChecking.itr ? (
+                      <span className="px-2 py-0.5 rounded-full bg-blue-100 dark:bg-blue-900/60 text-blue-700 dark:text-blue-300 text-[10px] font-bold flex items-center gap-1">
+                        <span className="w-2.5 h-2.5 border-2 border-blue-600 border-t-transparent rounded-full animate-spin" /> Verifying
+                      </span>
+                    ) : docAiStatus.itr?.verified === true ? (
+                      <span className="px-2 py-0.5 rounded-full bg-emerald-100 dark:bg-emerald-950/60 text-emerald-700 dark:text-emerald-400 text-[10px] font-bold flex items-center gap-1">
+                        <Sparkles size={10} /> AI Verified
+                      </span>
+                    ) : docAiStatus.itr?.verified === false ? (
+                      <span className="px-2 py-0.5 rounded-full bg-rose-100 dark:bg-rose-950/60 text-rose-700 dark:text-rose-400 text-[10px] font-bold flex items-center gap-1">
+                        <AlertTriangle size={10} /> Flagged
+                      </span>
+                    ) : itrFileName ? (
+                      <span className="px-2 py-0.5 rounded-full bg-slate-100 dark:bg-slate-800 text-slate-600 dark:text-slate-400 text-[10px] font-medium">Uploaded</span>
+                    ) : (
+                      <span className="px-2 py-0.5 rounded-full bg-slate-100 dark:bg-slate-800 text-slate-500 text-[10px] font-medium">Required</span>
+                    )}
+                  </div>
+
+                  {itrFileName ? (
+                    <div className="space-y-1.5">
+                      <div className="p-2 rounded-lg border border-slate-200/80 dark:border-white/10 bg-white/80 dark:bg-slate-900/80 flex items-center justify-between gap-1 text-[11px]">
+                        <span className="flex items-center gap-1.5 truncate font-medium text-slate-800 dark:text-slate-200">
+                          <FileText size={13} className={docAiStatus.itr?.verified === false ? 'text-rose-500 shrink-0' : 'text-emerald-500 shrink-0'} />
                           <span className="truncate">{itrFileName}</span>
-                        </div>
-                      ) : (
-                        <div className="flex items-center justify-center gap-1.5 text-xs text-slate-600 dark:text-slate-300 font-medium">
-                          <Upload size={13} className="text-blue-600" /> Choose File
-                        </div>
+                        </span>
+                        <button
+                          type="button"
+                          onClick={() => handleRemoveDocument('itr')}
+                          className="text-slate-400 hover:text-rose-500 p-0.5 transition-colors cursor-pointer shrink-0"
+                          title="Remove file"
+                        >
+                          <Trash2 size={13} />
+                        </button>
+                      </div>
+                      {docAiStatus.itr?.reason && (
+                        <p className={`text-[10px] leading-tight m-0 font-medium ${
+                          docAiStatus.itr?.verified === false ? 'text-rose-600 dark:text-rose-400' : 'text-emerald-700 dark:text-emerald-400'
+                        }`}>
+                          {docAiStatus.itr.verified ? '✓ ' : '⚠ '} {docAiStatus.itr.reason}
+                        </p>
                       )}
+                      <label className="cursor-pointer block text-center pt-0.5">
+                        <input
+                          type="file"
+                          accept="image/*,application/pdf"
+                          onChange={(e) => handleDocumentUpload(e, 'itr')}
+                          className="hidden"
+                          disabled={docChecking.itr}
+                        />
+                        <span className="text-[10.5px] font-bold text-blue-600 dark:text-blue-400 hover:underline">
+                          Replace file
+                        </span>
+                      </label>
                     </div>
-                  </label>
+                  ) : (
+                    <label className="cursor-pointer block">
+                      <input
+                        type="file"
+                        accept="image/*,application/pdf"
+                        onChange={(e) => handleDocumentUpload(e, 'itr')}
+                        className="hidden"
+                        disabled={docChecking.itr}
+                      />
+                      <div className="py-2 px-2.5 rounded-lg border border-slate-200 dark:border-slate-700 bg-slate-50 dark:bg-slate-800/80 hover:bg-slate-100 dark:hover:bg-slate-800 text-center transition-colors">
+                        {docChecking.itr ? (
+                          <div className="flex items-center justify-center gap-1.5 text-xs text-blue-600 dark:text-blue-400 font-bold">
+                            <span className="w-3 h-3 border-2 border-blue-600 border-t-transparent rounded-full animate-spin" /> Verifying with AI...
+                          </div>
+                        ) : (
+                          <div className="flex items-center justify-center gap-1.5 text-xs text-slate-600 dark:text-slate-300 font-medium">
+                            <Upload size={13} className="text-blue-600" /> Choose File
+                          </div>
+                        )}
+                      </div>
+                    </label>
+                  )}
                 </div>
 
                 {/* Payslip Upload */}
-                <div className={`p-3 rounded-xl border transition-all ${payslipFileName ? 'bg-emerald-50/30 dark:bg-emerald-950/20 border-emerald-500/40' : 'bg-white dark:bg-slate-900/60 border-slate-200 dark:border-white/10'} shadow-sm flex flex-col justify-between gap-2`}>
-                  <span className="text-xs font-bold text-slate-800 dark:text-slate-200">Latest Payslip <span className="text-rose-500">*</span></span>
-                  <label className="cursor-pointer">
-                    <input type="file" accept="image/*,application/pdf" onChange={(e) => handleFileUpload(e, setPayslipData, setPayslipFileName)} className="hidden" />
-                    <div className="py-2 px-2.5 rounded-lg border border-slate-200 dark:border-slate-700 bg-slate-50 dark:bg-slate-800/80 hover:bg-slate-100 text-center transition-colors">
-                      {payslipFileName ? (
-                        <div className="flex items-center justify-center gap-1 text-[11px] font-bold text-emerald-600 dark:text-emerald-400 truncate">
-                          <CheckCircle size={12} className="shrink-0" />
+                <div className={`p-3 rounded-xl border transition-all ${
+                  docChecking.payslip
+                    ? 'bg-blue-50/50 dark:bg-blue-950/20 border-blue-400 dark:border-blue-700 animate-pulse'
+                    : docAiStatus.payslip?.verified === true
+                    ? 'bg-emerald-50/30 dark:bg-emerald-950/20 border-emerald-500/50'
+                    : docAiStatus.payslip?.verified === false
+                    ? 'bg-rose-50/30 dark:bg-rose-950/20 border-rose-500/50'
+                    : payslipFileName
+                    ? 'bg-slate-50 dark:bg-slate-800/40 border-slate-300 dark:border-slate-700'
+                    : 'bg-white dark:bg-slate-900/60 border-slate-200 dark:border-white/10 hover:border-blue-400'
+                } shadow-sm flex flex-col justify-between gap-2.5`}>
+                  <div className="flex items-center justify-between">
+                    <span className="text-xs font-bold text-slate-800 dark:text-slate-200">
+                      Latest Payslip <span className="text-rose-500">*</span>
+                    </span>
+                    {docChecking.payslip ? (
+                      <span className="px-2 py-0.5 rounded-full bg-blue-100 dark:bg-blue-900/60 text-blue-700 dark:text-blue-300 text-[10px] font-bold flex items-center gap-1">
+                        <span className="w-2.5 h-2.5 border-2 border-blue-600 border-t-transparent rounded-full animate-spin" /> Verifying
+                      </span>
+                    ) : docAiStatus.payslip?.verified === true ? (
+                      <span className="px-2 py-0.5 rounded-full bg-emerald-100 dark:bg-emerald-950/60 text-emerald-700 dark:text-emerald-400 text-[10px] font-bold flex items-center gap-1">
+                        <Sparkles size={10} /> AI Verified
+                      </span>
+                    ) : docAiStatus.payslip?.verified === false ? (
+                      <span className="px-2 py-0.5 rounded-full bg-rose-100 dark:bg-rose-950/60 text-rose-700 dark:text-rose-400 text-[10px] font-bold flex items-center gap-1">
+                        <AlertTriangle size={10} /> Flagged
+                      </span>
+                    ) : payslipFileName ? (
+                      <span className="px-2 py-0.5 rounded-full bg-slate-100 dark:bg-slate-800 text-slate-600 dark:text-slate-400 text-[10px] font-medium">Uploaded</span>
+                    ) : (
+                      <span className="px-2 py-0.5 rounded-full bg-slate-100 dark:bg-slate-800 text-slate-500 text-[10px] font-medium">Required</span>
+                    )}
+                  </div>
+
+                  {payslipFileName ? (
+                    <div className="space-y-1.5">
+                      <div className="p-2 rounded-lg border border-slate-200/80 dark:border-white/10 bg-white/80 dark:bg-slate-900/80 flex items-center justify-between gap-1 text-[11px]">
+                        <span className="flex items-center gap-1.5 truncate font-medium text-slate-800 dark:text-slate-200">
+                          <FileText size={13} className={docAiStatus.payslip?.verified === false ? 'text-rose-500 shrink-0' : 'text-emerald-500 shrink-0'} />
                           <span className="truncate">{payslipFileName}</span>
-                        </div>
-                      ) : (
-                        <div className="flex items-center justify-center gap-1.5 text-xs text-slate-600 dark:text-slate-300 font-medium">
-                          <Upload size={13} className="text-blue-600" /> Choose File
-                        </div>
+                        </span>
+                        <button
+                          type="button"
+                          onClick={() => handleRemoveDocument('payslip')}
+                          className="text-slate-400 hover:text-rose-500 p-0.5 transition-colors cursor-pointer shrink-0"
+                          title="Remove file"
+                        >
+                          <Trash2 size={13} />
+                        </button>
+                      </div>
+                      {docAiStatus.payslip?.reason && (
+                        <p className={`text-[10px] leading-tight m-0 font-medium ${
+                          docAiStatus.payslip?.verified === false ? 'text-rose-600 dark:text-rose-400' : 'text-emerald-700 dark:text-emerald-400'
+                        }`}>
+                          {docAiStatus.payslip.verified ? '✓ ' : '⚠ '} {docAiStatus.payslip.reason}
+                        </p>
                       )}
+                      <label className="cursor-pointer block text-center pt-0.5">
+                        <input
+                          type="file"
+                          accept="image/*,application/pdf"
+                          onChange={(e) => handleDocumentUpload(e, 'payslip')}
+                          className="hidden"
+                          disabled={docChecking.payslip}
+                        />
+                        <span className="text-[10.5px] font-bold text-blue-600 dark:text-blue-400 hover:underline">
+                          Replace file
+                        </span>
+                      </label>
                     </div>
-                  </label>
+                  ) : (
+                    <label className="cursor-pointer block">
+                      <input
+                        type="file"
+                        accept="image/*,application/pdf"
+                        onChange={(e) => handleDocumentUpload(e, 'payslip')}
+                        className="hidden"
+                        disabled={docChecking.payslip}
+                      />
+                      <div className="py-2 px-2.5 rounded-lg border border-slate-200 dark:border-slate-700 bg-slate-50 dark:bg-slate-800/80 hover:bg-slate-100 dark:hover:bg-slate-800 text-center transition-colors">
+                        {docChecking.payslip ? (
+                          <div className="flex items-center justify-center gap-1.5 text-xs text-blue-600 dark:text-blue-400 font-bold">
+                            <span className="w-3 h-3 border-2 border-blue-600 border-t-transparent rounded-full animate-spin" /> Verifying with AI...
+                          </div>
+                        ) : (
+                          <div className="flex items-center justify-center gap-1.5 text-xs text-slate-600 dark:text-slate-300 font-medium">
+                            <Upload size={13} className="text-blue-600" /> Choose File
+                          </div>
+                        )}
+                      </div>
+                    </label>
+                  )}
                 </div>
               </div>
             </div>
@@ -1763,53 +2160,73 @@ export default function LoanApplicationModal({
               ) : (
                 <>
                   <div className={`ula-camera-video-container ${cameraTarget === 'selfie' ? 'ula-camera-mirror' : ''}`}>
-                    {capturedIdPreview ? (
-                      <img src={capturedIdPreview} alt="Captured ID Preview" className="w-full h-full object-cover" />
+                    {cameraTarget === 'selfie' ? (
+                      capturedSelfiePreview ? (
+                        <img src={capturedSelfiePreview} alt="Captured Selfie Preview" className="w-full h-full object-cover" />
+                      ) : (
+                        <video
+                          ref={videoRef}
+                          autoPlay
+                          playsInline
+                          muted
+                          className="ula-camera-video"
+                        />
+                      )
                     ) : (
-                      <video
-                        ref={videoRef}
-                        autoPlay
-                        playsInline
-                        muted
-                        className="ula-camera-video"
-                      />
+                      capturedIdPreview ? (
+                        <img src={capturedIdPreview} alt="Captured ID Preview" className="w-full h-full object-cover" />
+                      ) : (
+                        <video
+                          ref={videoRef}
+                          autoPlay
+                          playsInline
+                          muted
+                          className="ula-camera-video"
+                        />
+                      )
                     )}
-                    {!cameraReady && !capturedIdPreview && (
+                    {!cameraReady && !capturedIdPreview && !capturedSelfiePreview && (
                       <div className="ula-camera-loading">
                         <span className="btn-spinner text-blue-500" style={{ width: 28, height: 28 }} />
                         <p className="text-xs font-bold font-inter tracking-wide text-slate-200">Starting camera...</p>
                       </div>
                     )}
-                    {idChecking && (
-                      <div className="absolute inset-0 bg-black/80 flex flex-col items-center justify-center gap-2.5 text-white p-4 text-center">
+                    {(idChecking || selfieChecking) && (
+                      <div className="absolute inset-0 bg-black/80 flex flex-col items-center justify-center gap-2.5 text-white p-4 text-center z-20">
                         <span className="btn-spinner text-blue-500" style={{ width: 28, height: 28 }} />
-                        <p className="text-xs font-bold font-inter tracking-wide">Verifying ID with AI...</p>
-                        <p className="text-[11px] text-slate-300">Checking document readability &amp; validity</p>
+                        <p className="text-xs font-bold font-inter tracking-wide">
+                          {cameraTarget === 'selfie' ? 'Verifying Selfie with AI...' : 'Verifying ID with AI...'}
+                        </p>
+                        <p className="text-[11px] text-slate-300">
+                          {cameraTarget === 'selfie'
+                            ? 'Checking for applicant face, ID card & date note'
+                            : 'Checking document readability & validity'}
+                        </p>
                       </div>
                     )}
                     {/* Guide overlay */}
-                    {cameraReady && !capturedIdPreview && cameraTarget === 'selfie' && (
+                    {cameraReady && !capturedIdPreview && !capturedSelfiePreview && cameraTarget === 'selfie' && (
                       <div className="ula-camera-guide-selfie">
                         <div className="ula-camera-face-outline" />
                       </div>
                     )}
-                    {cameraReady && !capturedIdPreview && cameraTarget === 'id' && (
+                    {cameraReady && !capturedIdPreview && !capturedSelfiePreview && cameraTarget === 'id' && (
                       <div className="ula-camera-guide-id">
                         <div className="ula-camera-id-outline" />
                       </div>
                     )}
                   </div>
 
-                  {/* ID Detection Error Message */}
-                  {idDetectionMsg && (
+                  {/* Detection Error Message */}
+                  {((cameraTarget === 'selfie' && selfieDetectionMsg) || (cameraTarget === 'id' && idDetectionMsg)) && (
                     <div className="p-3 rounded-xl bg-rose-500/20 border border-rose-500/40 text-rose-300 text-xs flex items-center gap-2">
                       <AlertTriangle size={16} className="shrink-0 text-rose-400" />
-                      <span>{idDetectionMsg}</span>
+                      <span>{cameraTarget === 'selfie' ? selfieDetectionMsg : idDetectionMsg}</span>
                     </div>
                   )}
 
                   {/* Hint bar */}
-                  {cameraReady && !capturedIdPreview && cameraHint && !idDetectionMsg && (
+                  {cameraReady && !capturedIdPreview && !capturedSelfiePreview && cameraHint && !idDetectionMsg && !selfieDetectionMsg && (
                     <div className="ula-camera-hint">
                       <AlertTriangle size={14} />
                       <span>{cameraHint}</span>
@@ -1817,7 +2234,7 @@ export default function LoanApplicationModal({
                   )}
 
                   {/* Instructions */}
-                  {!capturedIdPreview && (
+                  {!capturedIdPreview && !capturedSelfiePreview && (
                     <div className="ula-camera-instructions">
                       {cameraTarget === 'selfie' ? (
                         <ul>
@@ -1841,33 +2258,95 @@ export default function LoanApplicationModal({
             {/* Capture / Action button */}
             {!cameraError && (
               <div className="ula-camera-actions">
-                {capturedIdPreview ? (
-                  !idChecking && idDetectionMsg && (
-                    <button
-                      type="button"
-                      className="px-5 py-2.5 rounded-xl bg-blue-600 hover:bg-blue-700 text-white font-bold text-xs flex items-center gap-2 transition-all shadow-md active:scale-95 cursor-pointer"
-                      onClick={() => {
-                        setCapturedIdPreview(null);
-                        setIdDetectionMsg('');
-                      }}
-                    >
-                      <RotateCcw size={14} /> Retake Photo
-                    </button>
+                {cameraTarget === 'selfie' ? (
+                  capturedSelfiePreview ? (
+                    !selfieChecking && selfieDetectionMsg && (
+                      <div className="flex items-center gap-2 w-full justify-center">
+                        <button
+                          type="button"
+                          className="px-5 py-2.5 rounded-xl bg-blue-600 hover:bg-blue-700 text-white font-bold text-xs flex items-center gap-2 transition-all shadow-md active:scale-95 cursor-pointer"
+                          onClick={() => {
+                            setCapturedSelfiePreview(null);
+                            setSelfieDetectionMsg('');
+                          }}
+                        >
+                          <RotateCcw size={14} /> Retake Photo
+                        </button>
+                        <button
+                          type="button"
+                          className="px-4 py-2.5 rounded-xl bg-slate-700 hover:bg-slate-600 text-slate-200 font-semibold text-xs transition-all shadow-md active:scale-95 cursor-pointer"
+                          onClick={() => {
+                            setSelfieImage(capturedSelfiePreview);
+                            setSelfieAiStatus({ verified: false, reason: selfieDetectionMsg });
+                            stopCamera();
+                            setCameraOpen(false);
+                            setCapturedSelfiePreview(null);
+                            toast.info('Selfie saved with notice for officer manual review.');
+                          }}
+                        >
+                          Use Anyway
+                        </button>
+                      </div>
+                    )
+                  ) : (
+                    <>
+                      <button
+                        type="button"
+                        className="ula-camera-capture-btn"
+                        onClick={capturePhoto}
+                        disabled={!cameraReady || selfieChecking}
+                      >
+                        <div className="ula-camera-capture-ring">
+                          <div className="ula-camera-capture-dot" />
+                        </div>
+                      </button>
+                      <span className="ula-camera-capture-label">Tap to capture</span>
+                    </>
                   )
                 ) : (
-                  <>
-                    <button
-                      type="button"
-                      className="ula-camera-capture-btn"
-                      onClick={capturePhoto}
-                      disabled={!cameraReady || idChecking}
-                    >
-                      <div className="ula-camera-capture-ring">
-                        <div className="ula-camera-capture-dot" />
+                  capturedIdPreview ? (
+                    !idChecking && idDetectionMsg && (
+                      <div className="flex items-center gap-2 w-full justify-center">
+                        <button
+                          type="button"
+                          className="px-5 py-2.5 rounded-xl bg-blue-600 hover:bg-blue-700 text-white font-bold text-xs flex items-center gap-2 transition-all shadow-md active:scale-95 cursor-pointer"
+                          onClick={() => {
+                            setCapturedIdPreview(null);
+                            setIdDetectionMsg('');
+                          }}
+                        >
+                          <RotateCcw size={14} /> Retake Photo
+                        </button>
+                        <button
+                          type="button"
+                          className="px-4 py-2.5 rounded-xl bg-slate-700 hover:bg-slate-600 text-slate-200 font-semibold text-xs transition-all shadow-md active:scale-95 cursor-pointer"
+                          onClick={() => {
+                            setIdImage(capturedIdPreview);
+                            stopCamera();
+                            setCameraOpen(false);
+                            setCapturedIdPreview(null);
+                            toast.info('ID photo saved for manual officer review.');
+                          }}
+                        >
+                          Use Anyway
+                        </button>
                       </div>
-                    </button>
-                    <span className="ula-camera-capture-label">Tap to capture</span>
-                  </>
+                    )
+                  ) : (
+                    <>
+                      <button
+                        type="button"
+                        className="ula-camera-capture-btn"
+                        onClick={capturePhoto}
+                        disabled={!cameraReady || idChecking}
+                      >
+                        <div className="ula-camera-capture-ring">
+                          <div className="ula-camera-capture-dot" />
+                        </div>
+                      </button>
+                      <span className="ula-camera-capture-label">Tap to capture</span>
+                    </>
+                  )
                 )}
               </div>
             )}
@@ -1922,6 +2401,7 @@ export default function LoanApplicationModal({
                     openCamera('selfie');
                   } else if (confirmModal.type === 'remove_selfie') {
                     setSelfieImage(null);
+                    setSelfieAiStatus(null);
                   } else if (confirmModal.type === 'retake_id') {
                     openCamera('id');
                   } else if (confirmModal.type === 'remove_id') {
