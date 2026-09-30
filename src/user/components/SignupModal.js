@@ -524,7 +524,7 @@ export default function SignupModal({ isOpen, onClose, onSwitchToLogin }) {
               )}
               {!errors.email && emailTaken && (
                 <span className="text-[11px] text-red-500 font-medium block">
-                  This email is not available.{' '}
+                  This email is already in use.{' '}
                   {onSwitchToLogin && (
                     <button type="button" onClick={onSwitchToLogin} className="text-blue-600 dark:text-blue-400 font-semibold hover:underline">
                       Log in instead
