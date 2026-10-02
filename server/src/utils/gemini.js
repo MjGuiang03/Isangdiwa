@@ -2,78 +2,102 @@ import { GoogleGenerativeAI } from '@google/generative-ai';
 import dotenv from 'dotenv';
 dotenv.config({ override: true });
 
-const apiKey = process.env.GEMINI_API_KEY;
-console.log('Using Gemini API Key ending in:', apiKey ? apiKey.slice(-6) : 'undefined');
-const genAI = new GoogleGenerativeAI(apiKey);
+const getGenAI = () => {
+  const apiKey = process.env.GEMINI_API_KEY;
+  return new GoogleGenerativeAI(apiKey);
+};
+
+// Candidate models in order of priority (with fallback support for 503 spikes or deprecated versions)
+const CANDIDATE_MODELS = [
+  'gemini-flash-latest',
+  'gemini-3.8-flash',
+  'gemini-3.5-flash',
+  'gemini-flash-lite-latest',
+];
 
 /**
- * Call Gemini 2.0 Flash with a system prompt and user prompt.
- * Returns the generated text, or null if the call fails.
+ * Call Gemini with a system prompt and user prompt.
+ * Automatically fails over across candidate models if one experiences high demand or is unavailable.
  * @param {string} systemPrompt - System instructions for the model
  * @param {string} userPrompt - The user's message or data payload
  * @param {object} [options] - Optional settings
- * @param {number} [options.maxTokens=1024] - Max output tokens
  * @param {number} [options.temperature=0.7] - Temperature (0-2)
  * @returns {Promise<string|null>} Generated text or null on failure
  */
 export const callGemini = async (systemPrompt, userPrompt, options = {}) => {
-  try {
-    const model = genAI.getGenerativeModel({
-      model: 'gemini-2.5-flash',
-      systemInstruction: systemPrompt,
-    });
+  const genAI = getGenAI();
+  let lastErrorMsg = '';
 
-    const generationConfig = {
-      temperature: options.temperature ?? 0.7,
-    };
-    
-    if (options.responseMimeType) {
-      generationConfig.responseMimeType = options.responseMimeType;
+  for (const modelName of CANDIDATE_MODELS) {
+    try {
+      const model = genAI.getGenerativeModel({
+        model: modelName,
+        systemInstruction: systemPrompt,
+      });
+
+      const generationConfig = {
+        temperature: options.temperature ?? 0.7,
+      };
+
+      if (options.responseMimeType) {
+        generationConfig.responseMimeType = options.responseMimeType;
+      }
+
+      const result = await model.generateContent({
+        contents: [{ role: 'user', parts: [{ text: userPrompt }] }],
+        generationConfig,
+      });
+
+      return result.response.text();
+    } catch (error) {
+      lastErrorMsg = error.message || '';
+      console.warn(`[Gemini API] Model ${modelName} failed:`, lastErrorMsg.slice(0, 150));
     }
-
-    const result = await model.generateContent({
-      contents: [{ role: 'user', parts: [{ text: userPrompt }] }],
-      generationConfig,
-    });
-
-    const response = result.response;
-    return response.text();
-  } catch (error) {
-    console.error('[Gemini API Error]:', error.message || error);
-    return null;
   }
+
+  console.error('[Gemini API Error]: All candidate models failed. Last error:', lastErrorMsg);
+  return null;
 };
 
 /**
  * Call Gemini with multi-turn conversation history.
+ * Automatically fails over across candidate models.
  * @param {string} systemPrompt - System instructions
  * @param {Array<{role: string, text: string}>} history - Conversation history
  * @param {string} userMessage - Current user message
  * @returns {Promise<string|null>} Generated text or null on failure
  */
 export const callGeminiChat = async (systemPrompt, history, userMessage) => {
-  try {
-    const model = genAI.getGenerativeModel({
-      model: 'gemini-2.5-flash',
-      systemInstruction: systemPrompt,
-    });
+  const genAI = getGenAI();
+  let lastErrorMsg = '';
 
-    const chat = model.startChat({
-      history: history.map(msg => ({
-        role: msg.role === 'bot' ? 'model' : 'user',
-        parts: [{ text: msg.text }],
-      })),
-      generationConfig: {
-        temperature: 0.75,
-      },
-    });
+  for (const modelName of CANDIDATE_MODELS) {
+    try {
+      const model = genAI.getGenerativeModel({
+        model: modelName,
+        systemInstruction: systemPrompt,
+      });
 
-    const result = await chat.sendMessage(userMessage);
-    return result.response.text();
-  } catch (error) {
-    console.error('[Gemini Chat Error]:', error.message || error);
-    return null;
+      const chat = model.startChat({
+        history: history.map(msg => ({
+          role: msg.role === 'bot' ? 'model' : 'user',
+          parts: [{ text: msg.text }],
+        })),
+        generationConfig: {
+          temperature: 0.75,
+        },
+      });
+
+      const result = await chat.sendMessage(userMessage);
+      return result.response.text();
+    } catch (error) {
+      lastErrorMsg = error.message || '';
+      console.warn(`[Gemini Chat] Model ${modelName} failed:`, lastErrorMsg.slice(0, 150));
+    }
   }
+
+  console.error('[Gemini Chat Error]: All candidate models failed. Last error:', lastErrorMsg);
+  return null;
 };
 
 /**
@@ -85,10 +109,10 @@ export const callGeminiChat = async (systemPrompt, history, userMessage) => {
  * @returns {Promise<string|null>} Generated text or null on failure
  */
 export const callGeminiVision = async (systemPrompt, textPrompt, base64Image, mimeType = 'image/jpeg') => {
-  const candidateModels = ['gemini-2.5-flash', 'gemini-2.5-flash-lite'];
+  const genAI = getGenAI();
   let lastErrorMsg = '';
 
-  for (const modelName of candidateModels) {
+  for (const modelName of CANDIDATE_MODELS) {
     try {
       const model = genAI.getGenerativeModel({
         model: modelName,
@@ -113,7 +137,6 @@ export const callGeminiVision = async (systemPrompt, textPrompt, base64Image, mi
     } catch (error) {
       lastErrorMsg = error.message || '';
       console.warn(`[Gemini Vision] Model ${modelName} failed:`, lastErrorMsg.slice(0, 150));
-      // Continue to next candidate model if rate limited or temporarily unavailable
     }
   }
 
