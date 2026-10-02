@@ -7,13 +7,18 @@ const getGenAI = () => {
   return new GoogleGenerativeAI(apiKey);
 };
 
-// Candidate models in order of priority (with fallback support for 503 spikes or deprecated versions)
+// Candidate models in order of stability and availability
+// Lite models have dedicated clusters and are free from the heavy 503 traffic spikes of main flash endpoints
 const CANDIDATE_MODELS = [
-  'gemini-flash-latest',
-  'gemini-3.8-flash',
-  'gemini-3.5-flash',
+  'gemini-3.5-flash-lite',
   'gemini-flash-lite-latest',
+  'gemini-3.1-flash-lite',
+  'gemini-3.5-flash',
+  'gemini-3.8-flash',
+  'gemini-flash-latest',
 ];
+
+const sleep = (ms) => new Promise((resolve) => setTimeout(resolve, ms));
 
 /**
  * Call Gemini with a system prompt and user prompt.
@@ -52,6 +57,10 @@ export const callGemini = async (systemPrompt, userPrompt, options = {}) => {
     } catch (error) {
       lastErrorMsg = error.message || '';
       console.warn(`[Gemini API] Model ${modelName} failed:`, lastErrorMsg.slice(0, 150));
+      // If 503, brief pause before trying next candidate
+      if (lastErrorMsg.includes('503')) {
+        await sleep(300);
+      }
     }
   }
 
@@ -93,6 +102,9 @@ export const callGeminiChat = async (systemPrompt, history, userMessage) => {
     } catch (error) {
       lastErrorMsg = error.message || '';
       console.warn(`[Gemini Chat] Model ${modelName} failed:`, lastErrorMsg.slice(0, 150));
+      if (lastErrorMsg.includes('503')) {
+        await sleep(300);
+      }
     }
   }
 
@@ -137,6 +149,9 @@ export const callGeminiVision = async (systemPrompt, textPrompt, base64Image, mi
     } catch (error) {
       lastErrorMsg = error.message || '';
       console.warn(`[Gemini Vision] Model ${modelName} failed:`, lastErrorMsg.slice(0, 150));
+      if (lastErrorMsg.includes('503')) {
+        await sleep(300);
+      }
     }
   }
 
