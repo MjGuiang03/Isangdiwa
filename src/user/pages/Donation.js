@@ -368,39 +368,51 @@ export default function Donation() {
             const rawSenderName = data.extracted?.senderName ? String(data.extracted.senderName).trim() : '';
             const isSenderNameValid = isValidPersonName(rawSenderName);
 
-            if (isSenderNameValid) {
-              // Valid human person name extracted — choose Another Account and pre-fill so user can review or modify
-              setIsAnotherAccount(true);
-              setCustomAccountName(rawSenderName);
-              newAutoFilled.push('accountName');
-            } else {
-              // AI could not analyze sender name accurately (e.g. bank product type, masked, or null)
-              // Automatically choose Another Account so user can manually type their info!
-              setIsAnotherAccount(true);
+            // Compare receipt sender phone number with logged in user's phone number
+            const rawUserPhone = (currentUser?.phone || currentUser?.phoneNumber || currentUser?.contact || defaultPhone || '').replace(/\D/g, '');
+            const rawReceiptNum = data.extracted?.senderNumber ? String(data.extracted.senderNumber).replace(/\D/g, '') : '';
+
+            const normUserPhone = rawUserPhone.length >= 10 ? rawUserPhone.slice(-10) : rawUserPhone;
+            const normReceiptPhone = rawReceiptNum.length >= 10 ? rawReceiptNum.slice(-10) : rawReceiptNum;
+
+            const isPhoneMatch = !!(normUserPhone && normReceiptPhone && normUserPhone === normReceiptPhone);
+
+            if (isPhoneMatch) {
+              // Receipt matches user's own phone number -> Select user's profile account!
+              setIsAnotherAccount(false);
               setCustomAccountName('');
-            }
-
-            // Auto-fill Sender Account Number if detected
-            if (data.extracted?.senderNumber) {
-              const rawNum = String(data.extracted.senderNumber).replace(/\D/g, '');
-
-              if (detectedMethod === 'Bank') {
-                if (rawNum.length >= 8 && rawNum.length <= 20) {
-                  setBankAccountNumber(rawNum);
-                  setCustomAccountNumber(rawNum);
-                  newAutoFilled.push('accountNumber');
-                }
-              } else {
-                // E-Wallet
-                const cleanPhone = formatPhoneForInput(rawNum);
-                if (cleanPhone.startsWith('09') && cleanPhone.length === 11) {
-                  setCustomAccountNumber(cleanPhone);
-                  newAutoFilled.push('accountNumber');
-                }
-              }
-            } else {
               setCustomAccountNumber('');
               setBankAccountNumber('');
+              newAutoFilled.push('accountName', 'accountNumber');
+            } else {
+              // Does NOT match user's phone number -> Select Another account!
+              setIsAnotherAccount(true);
+
+              if (isSenderNameValid) {
+                setCustomAccountName(rawSenderName);
+                newAutoFilled.push('accountName');
+              } else {
+                setCustomAccountName('');
+              }
+
+              if (rawReceiptNum) {
+                if (detectedMethod === 'Bank') {
+                  if (rawReceiptNum.length >= 8 && rawReceiptNum.length <= 20) {
+                    setBankAccountNumber(rawReceiptNum);
+                    setCustomAccountNumber(rawReceiptNum);
+                    newAutoFilled.push('accountNumber');
+                  }
+                } else {
+                  const cleanPhone = formatPhoneForInput(rawReceiptNum);
+                  if (cleanPhone.startsWith('09') && cleanPhone.length === 11) {
+                    setCustomAccountNumber(cleanPhone);
+                    newAutoFilled.push('accountNumber');
+                  }
+                }
+              } else {
+                setCustomAccountNumber('');
+                setBankAccountNumber('');
+              }
             }
 
             setAutoFilledFields(newAutoFilled);
@@ -413,9 +425,9 @@ export default function Donation() {
               paymentMethod: true,
               subMethod: true,
               referenceNumber: true,
-              customAccountName: true,
-              customAccountNumber: true,
-              bankAccountNumber: true,
+              customAccountName: !isPhoneMatch,
+              customAccountNumber: !isPhoneMatch,
+              bankAccountNumber: !isPhoneMatch,
             });
 
             const missing = [];
@@ -427,11 +439,13 @@ export default function Donation() {
             if (!newAutoFilled.includes('paymentMethod') && !paymentMethod) missing.push('Payment Method');
             if (!newAutoFilled.includes('subMethod') && !subMethod) missing.push('Payment Option');
             if (!newAutoFilled.includes('referenceNumber') && !referenceNumber) missing.push('Reference Number');
-            if (!newAutoFilled.includes('accountName')) {
-              missing.push('Sender Account Name');
-            }
-            if (!newAutoFilled.includes('accountNumber')) {
-              missing.push(detectedMethod === 'Bank' ? 'Sender Bank Account Number' : 'Sender Mobile Number');
+            if (!isPhoneMatch) {
+              if (!newAutoFilled.includes('accountName')) {
+                missing.push('Sender Account Name');
+              }
+              if (!newAutoFilled.includes('accountNumber')) {
+                missing.push(detectedMethod === 'Bank' ? 'Sender Bank Account Number' : 'Sender Mobile Number');
+              }
             }
 
             if (missing.length > 0) {

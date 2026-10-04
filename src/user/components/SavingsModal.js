@@ -108,6 +108,19 @@ const CloseIcon = () => (
 ───────────────────────────────────────────────────────────── */
 function DepositModal({ goals, onClose }) {
     const { modalStyle, touchHandlers } = useSwipeToClose(onClose);
+    const { user, profile } = useAuth();
+    const currentUser = profile || user;
+
+    const defaultName = useMemo(() => {
+        return currentUser?.fullName || currentUser?.full_name || currentUser?.name || '';
+    }, [currentUser]);
+
+    const defaultPhone = useMemo(() => {
+        const raw = currentUser?.phone || currentUser?.phoneNumber || currentUser?.contact || '';
+        return formatPhoneForInput(raw);
+    }, [currentUser]);
+
+    const [isAnotherAccount, setIsAnotherAccount] = useState(false);
     const [selectedGoal, setSelectedGoal] = useState(goals[0]?._id || '');
     const [amount, setAmount] = useState('');
     const [note, setNote] = useState('');
@@ -189,37 +202,58 @@ function DepositModal({ goals, onClose }) {
                                 missing.push('Payment Option');
                             }
 
-                            // Auto-fill Sender Account Name
+                            // Auto-fill Sender Account Name & Account Option
                             const rawSenderName = data.extracted?.senderName ? String(data.extracted.senderName).trim() : '';
-                            if (isValidPersonName(rawSenderName)) {
-                                setAccountName(rawSenderName);
-                            } else {
-                                setAccountName('');
-                                missing.push('Sender Account Name');
-                            }
+                            const isSenderNameValid = isValidPersonName(rawSenderName);
 
-                            // Auto-fill Sender Account Number
-                            if (data.extracted?.senderNumber) {
-                                const rawNum = String(data.extracted.senderNumber).replace(/\D/g, '');
-                                if (detectedMethod === 'Bank') {
-                                    if (rawNum.length >= 8 && rawNum.length <= 20) {
-                                        setAccountNumber(rawNum.slice(0, 16));
-                                    } else { missing.push('Sender Bank Account Number'); }
-                                } else {
-                                    const cleanPhone = formatPhoneForInput(rawNum);
-                                    if (cleanPhone.startsWith('09') && cleanPhone.length === 11) {
-                                        setAccountNumber(cleanPhone);
-                                    } else { missing.push('Sender Mobile Number'); }
-                                }
-                            } else {
+                            // Compare receipt sender phone number with logged in user's phone number
+                            const rawUserPhone = (currentUser?.phone || currentUser?.phoneNumber || currentUser?.contact || defaultPhone || '').replace(/\D/g, '');
+                            const rawReceiptNum = data.extracted?.senderNumber ? String(data.extracted.senderNumber).replace(/\D/g, '') : '';
+
+                            const normUserPhone = rawUserPhone.length >= 10 ? rawUserPhone.slice(-10) : rawUserPhone;
+                            const normReceiptPhone = rawReceiptNum.length >= 10 ? rawReceiptNum.slice(-10) : rawReceiptNum;
+
+                            const isPhoneMatch = !!(normUserPhone && normReceiptPhone && normUserPhone === normReceiptPhone);
+
+                            if (isPhoneMatch) {
+                                // Receipt matches user's own phone number -> Select user's profile account!
+                                setIsAnotherAccount(false);
+                                setAccountName('');
                                 setAccountNumber('');
-                                missing.push(detectedMethod === 'Bank' ? 'Sender Bank Account Number' : 'Sender Mobile Number');
+                            } else {
+                                // Does NOT match user's phone number -> Select Another account!
+                                setIsAnotherAccount(true);
+
+                                if (isSenderNameValid) {
+                                    setAccountName(rawSenderName);
+                                } else {
+                                    setAccountName('');
+                                    missing.push('Sender Account Name');
+                                }
+
+                                if (rawReceiptNum) {
+                                    if (detectedMethod === 'Bank') {
+                                        if (rawReceiptNum.length >= 8 && rawReceiptNum.length <= 20) {
+                                            setAccountNumber(rawReceiptNum.slice(0, 16));
+                                        } else { missing.push('Sender Bank Account Number'); }
+                                    } else {
+                                        const cleanPhone = formatPhoneForInput(rawReceiptNum);
+                                        if (cleanPhone.startsWith('09') && cleanPhone.length === 11) {
+                                            setAccountNumber(cleanPhone);
+                                        } else { missing.push('Sender Mobile Number'); }
+                                    }
+                                } else {
+                                    setAccountNumber('');
+                                    missing.push(detectedMethod === 'Bank' ? 'Sender Bank Account Number' : 'Sender Mobile Number');
+                                }
                             }
 
                             if (missing.length > 0) {
                                 toast.warning(`Receipt scanned. Please complete: ${missing.join(', ')}`);
                             } else {
-                                toast.success('Details auto-filled from receipt! You can review or edit below.');
+                                toast.success(isPhoneMatch 
+                                    ? 'Receipt matches your phone number! Auto-filled with your profile.' 
+                                    : 'Details auto-filled from receipt! You can review or edit below.');
                             }
 
                             // Mark all fields as touched so empty fields show red immediately
@@ -227,8 +261,8 @@ function DepositModal({ goals, onClose }) {
                                 amount: true,
                                 subMethod: true,
                                 customSubMethod: normalizedSub === 'Others',
-                                accountName: true,
-                                accountNumber: true,
+                                accountName: !isPhoneMatch,
+                                accountNumber: !isPhoneMatch,
                                 proofOfPayment: false,
                             });
                         }
@@ -278,8 +312,8 @@ function DepositModal({ goals, onClose }) {
             amount: true,
             subMethod: true,
             customSubMethod: true,
-            accountName: true,
-            accountNumber: true,
+            accountName: isAnotherAccount,
+            accountNumber: isAnotherAccount || isBank,
             proofOfPayment: true,
         });
 
@@ -293,20 +327,34 @@ function DepositModal({ goals, onClose }) {
             if (paymentMethod !== 'Cash') {
                 if (!subMethod) { setError(`Please select a ${paymentMethod} option.`); return; }
                 if (subMethod === 'Others' && !customSubMethod.trim()) { setError(`Please specify your ${paymentMethod === 'Bank' ? 'bank / provider' : 'e-wallet'} name.`); return; }
-                if (!accountName.trim()) { setError('Please enter the account name.'); return; }
-                if (paymentMethod === 'Bank') {
-                    if (cleanAcc.length < 10 || cleanAcc.length > 16) {
-                        setError('Bank account number must be between 10 and 16 digits.');
-                        return;
+                
+                if (isAnotherAccount) {
+                    if (!accountName.trim()) { setError('Please enter the account name.'); return; }
+                    if (paymentMethod === 'Bank') {
+                        if (cleanAcc.length < 10 || cleanAcc.length > 16) {
+                            setError('Bank account number must be between 10 and 16 digits.');
+                            return;
+                        }
+                    } else {
+                        if (!cleanAcc.startsWith('09')) { setError('Mobile number must start with 09.'); return; }
+                        if (cleanAcc.length !== 11) { setError('Mobile number must be exactly 11 digits.'); return; }
                     }
                 } else {
-                    if (!cleanAcc.startsWith('09')) { setError('Mobile number must start with 09.'); return; }
-                    if (cleanAcc.length !== 11) { setError('Mobile number must be exactly 11 digits.'); return; }
+                    if (paymentMethod === 'Bank') {
+                        if (cleanAcc.length < 10 || cleanAcc.length > 16) {
+                            setError('Bank account number must be between 10 and 16 digits.');
+                            return;
+                        }
+                    }
                 }
             }
         }
         
         const finalSubMethod = subMethod === 'Others' ? (customSubMethod.trim() || 'Others') : subMethod;
+        const finalAccountName = isAnotherAccount ? accountName.trim() : (defaultName || 'Faithly Member');
+        const finalAccountNumber = isAnotherAccount 
+            ? cleanAcc 
+            : (paymentMethod === 'Bank' ? cleanAcc : (defaultPhone || ''));
 
         setError('');
         setLoading(true);
@@ -315,7 +363,16 @@ function DepositModal({ goals, onClose }) {
             const res = await fetch(`${API}/api/savings/deposit`, {
                 method: 'POST',
                 headers: { 'Content-Type': 'application/json', Authorization: `Bearer ${token}` },
-                body: JSON.stringify({ goalId: selectedGoal, amount: numAmt, note, paymentMethod, subMethod: finalSubMethod, accountName, accountNumber, proofOfPayment: proofBase64 }),
+                body: JSON.stringify({ 
+                    goalId: selectedGoal, 
+                    amount: numAmt, 
+                    note, 
+                    paymentMethod, 
+                    subMethod: finalSubMethod, 
+                    accountName: finalAccountName, 
+                    accountNumber: finalAccountNumber, 
+                    proofOfPayment: proofBase64 
+                }),
             });
             const data = await res.json();
             if (!res.ok || !data.success) throw new Error(data.message || 'Deposit failed.');
@@ -334,6 +391,11 @@ function DepositModal({ goals, onClose }) {
         }
     };
 
+    const isAccNameValid = isAnotherAccount ? accountName.trim() !== '' : (defaultName.trim() !== '');
+    const isAccNumberValid = isAnotherAccount 
+        ? isAccNumValid 
+        : (paymentMethod === 'Bank' ? isAccNumValid : !!defaultPhone);
+
     const isFormComplete = 
         numAmt > 0 &&
         selectedGoal !== '' &&
@@ -345,8 +407,8 @@ function DepositModal({ goals, onClose }) {
             (paymentMethod === 'Cash' || (
                 subMethod !== '' &&
                 isCustomSubValid &&
-                accountName.trim() !== '' &&
-                isAccNumValid
+                isAccNameValid &&
+                isAccNumberValid
             ))
         ));
 
@@ -682,97 +744,264 @@ function DepositModal({ goals, onClose }) {
                                 </div>
                             )}
 
+                            {/* Sender Information Section */}
                             <div className="svm-field">
-                                <label className="svm-label">
-                                    Sender Account Name <span className="text-rose-500">*</span>
+                                <label className="svm-label" style={{ marginBottom: 6 }}>
+                                    Sender Information <span className="text-rose-500">*</span>
                                 </label>
-                                <input 
-                                    type="text" 
-                                    className={`svm-input ${touched.accountName && !accountName.trim() ? 'border-rose-500' : ''}`} 
-                                    placeholder="e.g. Juan Dela Cruz"
-                                    value={accountName}
-                                    onBlur={() => setTouched(prev => ({ ...prev, accountName: true }))}
-                                    onChange={(e) => { setError(''); setAccountName(e.target.value); }}
-                                />
-                                {touched.accountName && !accountName.trim() && (
-                                    <div className="text-[11px] font-semibold text-rose-500 mt-1">Sender account name is required</div>
-                                )}
-                            </div>
 
-                            <div className="svm-field">
-                                <div className="flex items-center justify-between mb-1">
-                                    <label className="svm-label" style={{ marginBottom: 0 }}>
-                                        {paymentMethod === 'Bank' ? 'Sender Bank Account Number' : 'Sender Mobile Number'} <span className="text-rose-500">*</span>
-                                    </label>
-                                    <span className={`text-[11px] font-bold ${
-                                        paymentMethod === 'Bank'
-                                            ? (cleanAcc.length >= 10 && cleanAcc.length <= 16
-                                                ? 'text-emerald-600 dark:text-emerald-400'
-                                                : cleanAcc.length > 0 || (touched.accountNumber && cleanAcc.length === 0)
-                                                ? 'text-rose-500 font-semibold'
-                                                : 'text-slate-400')
-                                            : (cleanAcc.startsWith('09') && cleanAcc.length === 11
-                                                ? 'text-emerald-600 dark:text-emerald-400'
-                                                : cleanAcc.length > 0 || (touched.accountNumber && cleanAcc.length === 0)
-                                                ? 'text-rose-500 font-semibold'
-                                                : 'text-slate-400')
-                                    }`}>
-                                        {paymentMethod === 'Bank'
-                                            ? `${cleanAcc.length} digits (10-16)`
-                                            : `${cleanAcc.length}/11 digits`
-                                        }
-                                    </span>
+                                <div className="grid grid-cols-1 sm:grid-cols-2 gap-2.5 mb-3">
+                                    {/* Option 1: Profile Account (You) */}
+                                    <button
+                                        type="button"
+                                        onClick={() => {
+                                            setIsAnotherAccount(false);
+                                            setTouched(prev => ({ ...prev, accountName: false, accountNumber: false }));
+                                        }}
+                                        className={`p-3 rounded-xl border text-left transition-all cursor-pointer flex items-center gap-2.5 ${
+                                            !isAnotherAccount
+                                                ? 'bg-blue-50/80 dark:bg-blue-950/40 border-blue-600 dark:border-blue-500 ring-2 ring-blue-600/20 shadow-xs'
+                                                : 'bg-white dark:bg-slate-800/60 border-slate-200/80 dark:border-white/10 hover:bg-slate-50 dark:hover:bg-slate-800 text-slate-600 dark:text-slate-300'
+                                        }`}
+                                    >
+                                        <div className={`w-4 h-4 rounded-full border flex items-center justify-center shrink-0 ${
+                                            !isAnotherAccount ? 'border-blue-600 bg-blue-600' : 'border-slate-300 dark:border-slate-600'
+                                        }`}>
+                                            {!isAnotherAccount && <div className="w-1.5 h-1.5 rounded-full bg-white" />}
+                                        </div>
+                                        <div className="min-w-0 flex-1">
+                                            <div className="flex items-center gap-1.5">
+                                                <span className="text-xs font-bold text-slate-900 dark:text-white truncate">
+                                                    {defaultName || 'My Profile Account'}
+                                                </span>
+                                                <span className="text-[9px] font-bold px-1.5 py-0.2 rounded bg-blue-100 dark:bg-blue-900/60 text-blue-700 dark:text-blue-300 shrink-0">
+                                                    You
+                                                </span>
+                                            </div>
+                                            <p className="text-[11px] text-slate-500 dark:text-slate-400 font-mono truncate mt-0.5">
+                                                {paymentMethod === 'E-Wallet'
+                                                    ? (defaultPhone || 'Registered Mobile')
+                                                    : 'Account Holder'}
+                                            </p>
+                                        </div>
+                                    </button>
+
+                                    {/* Option 2: Another Account */}
+                                    <button
+                                        type="button"
+                                        onClick={() => {
+                                            setIsAnotherAccount(true);
+                                            setTouched(prev => ({ ...prev, accountName: true, accountNumber: true }));
+                                        }}
+                                        className={`p-3 rounded-xl border text-left transition-all cursor-pointer flex items-center gap-2.5 ${
+                                            isAnotherAccount
+                                                ? 'bg-blue-50/80 dark:bg-blue-950/40 border-blue-600 dark:border-blue-500 ring-2 ring-blue-600/20 shadow-xs'
+                                                : 'bg-white dark:bg-slate-800/60 border-slate-200/80 dark:border-white/10 hover:bg-slate-50 dark:hover:bg-slate-800 text-slate-600 dark:text-slate-300'
+                                        }`}
+                                    >
+                                        <div className={`w-4 h-4 rounded-full border flex items-center justify-center shrink-0 ${
+                                            isAnotherAccount ? 'border-blue-600 bg-blue-600' : 'border-slate-300 dark:border-slate-600'
+                                        }`}>
+                                            {isAnotherAccount && <div className="w-1.5 h-1.5 rounded-full bg-white" />}
+                                        </div>
+                                        <div className="min-w-0 flex-1">
+                                            <span className="text-xs font-bold text-slate-900 dark:text-white">
+                                                Another account?
+                                            </span>
+                                            <p className="text-[11px] text-slate-500 dark:text-slate-400 truncate mt-0.5">
+                                                Deposit using someone else's account
+                                            </p>
+                                        </div>
+                                    </button>
                                 </div>
-                                <input 
-                                    type="text" 
-                                    className={`svm-input ${
-                                        (cleanAcc.length > 0 && !isAccNumValid) || (touched.accountNumber && !isAccNumValid)
-                                            ? 'border-rose-500 focus:border-rose-500'
-                                            : isAccNumValid
-                                            ? 'border-emerald-500 focus:border-emerald-500'
-                                            : ''
-                                    }`} 
-                                    placeholder={paymentMethod === 'Bank' ? "e.g. 123456789012" : "e.g. 09123456789"}
-                                    maxLength={paymentMethod === 'Bank' ? 16 : 11}
-                                    value={accountNumber}
-                                    onBlur={() => setTouched(prev => ({ ...prev, accountNumber: true }))}
-                                    onChange={(e) => {
-                                        setError('');
-                                        const maxLen = paymentMethod === 'Bank' ? 16 : 11;
-                                        setAccountNumber(e.target.value.replace(/\D/g, '').slice(0, maxLen));
-                                    }}
-                                />
-                                {paymentMethod === 'Bank' ? (
-                                    <>
-                                        {touched.accountNumber && cleanAcc.length === 0 && (
-                                            <div className="text-[11px] font-semibold text-rose-500 mt-1 flex items-center gap-1">
-                                                <span>Bank account number is required</span>
+
+                                {/* Details depending on whether My Profile or Another Account is selected */}
+                                {!isAnotherAccount ? (
+                                    paymentMethod === 'E-Wallet' ? (
+                                        <div className="p-3.5 bg-slate-50/90 dark:bg-slate-800/50 border border-slate-200/80 dark:border-white/10 rounded-xl space-y-2 text-xs">
+                                            <div className="flex items-center justify-between py-1 border-b border-slate-200/60 dark:border-white/5">
+                                                <span className="text-slate-500 dark:text-slate-400 font-medium">Sender Name:</span>
+                                                <span className="font-bold text-slate-900 dark:text-white">{defaultName || 'Faithly Member'}</span>
                                             </div>
-                                        )}
-                                        {cleanAcc.length > 0 && (cleanAcc.length < 10 || cleanAcc.length > 16) && (
-                                            <div className="text-[11px] font-semibold text-rose-500 mt-1 flex items-center gap-1">
-                                                <span>Bank account number must be 10 to 16 digits</span>
+                                            <div className="flex items-center justify-between py-1 border-b border-slate-200/60 dark:border-white/5">
+                                                <span className="text-slate-500 dark:text-slate-400 font-medium">Sender Mobile:</span>
+                                                <span className="font-bold font-mono text-slate-900 dark:text-white">{defaultPhone || '09XXXXXXXXX'}</span>
                                             </div>
-                                        )}
-                                    </>
+                                            <div className="pt-1 flex items-center justify-between text-[11px]">
+                                                <span className="text-emerald-600 dark:text-emerald-400 font-medium flex items-center gap-1">
+                                                    <CheckCircle size={13} /> Auto-filled from your profile
+                                                </span>
+                                                <button
+                                                    type="button"
+                                                    onClick={() => setIsAnotherAccount(true)}
+                                                    className="text-blue-600 dark:text-blue-400 font-semibold hover:underline cursor-pointer bg-transparent border-none"
+                                                >
+                                                    Use another account?
+                                                </button>
+                                            </div>
+                                        </div>
+                                    ) : (
+                                        <div className="space-y-3">
+                                            <div className="p-3 bg-slate-50/90 dark:bg-slate-800/50 border border-slate-200/80 dark:border-white/10 rounded-xl flex items-center justify-between text-xs">
+                                                <span className="text-slate-500 dark:text-slate-400 font-medium">Account Holder:</span>
+                                                <span className="font-bold text-slate-900 dark:text-white">{defaultName || 'Faithly Member'} (You)</span>
+                                            </div>
+                                            <div className="svm-field">
+                                                <div className="flex items-center justify-between mb-1">
+                                                    <label className="svm-label" style={{ marginBottom: 0 }}>
+                                                        Your Bank Account Number <span className="text-rose-500">*</span>
+                                                    </label>
+                                                    <span className={`text-[11px] font-bold ${
+                                                        cleanAcc.length >= 10 && cleanAcc.length <= 16
+                                                            ? 'text-emerald-600 dark:text-emerald-400'
+                                                            : cleanAcc.length > 0 || (touched.accountNumber && cleanAcc.length === 0)
+                                                            ? 'text-rose-500 font-semibold'
+                                                            : 'text-slate-400'
+                                                    }`}>
+                                                        {cleanAcc.length >= 10 && cleanAcc.length <= 16 ? `${cleanAcc.length} digits` : `${cleanAcc.length} digits (10-16)`}
+                                                    </span>
+                                                </div>
+                                                <input 
+                                                    type="text" 
+                                                    className={`svm-input ${
+                                                        (cleanAcc.length > 0 && !isAccNumValid) || (touched.accountNumber && !isAccNumValid)
+                                                            ? 'border-rose-500 focus:border-rose-500'
+                                                            : isAccNumValid
+                                                            ? 'border-emerald-500 focus:border-emerald-500'
+                                                            : ''
+                                                    }`} 
+                                                    placeholder="e.g. 123456789012"
+                                                    maxLength={16}
+                                                    value={accountNumber}
+                                                    onBlur={() => setTouched(prev => ({ ...prev, accountNumber: true }))}
+                                                    onChange={(e) => {
+                                                        setError('');
+                                                        setAccountNumber(e.target.value.replace(/\D/g, '').slice(0, 16));
+                                                    }}
+                                                />
+                                                {touched.accountNumber && cleanAcc.length === 0 && (
+                                                    <div className="text-[11px] font-semibold text-rose-500 mt-1 flex items-center gap-1">
+                                                        <span>Bank account number is required</span>
+                                                    </div>
+                                                )}
+                                                {cleanAcc.length > 0 && (cleanAcc.length < 10 || cleanAcc.length > 16) && (
+                                                    <div className="text-[11px] font-semibold text-rose-500 mt-1 flex items-center gap-1">
+                                                        <span>Bank account number must be 10 to 16 digits</span>
+                                                    </div>
+                                                )}
+                                            </div>
+                                        </div>
+                                    )
                                 ) : (
-                                    <>
-                                        {touched.accountNumber && cleanAcc.length === 0 && (
-                                            <div className="text-[11px] font-semibold text-rose-500 mt-1 flex items-center gap-1">
-                                                <span>Mobile number is required</span>
+                                    /* Case 2: Another Account */
+                                    <div className="space-y-3 p-3.5 bg-blue-50/30 dark:bg-blue-950/20 border border-blue-200/70 dark:border-blue-900/40 rounded-xl">
+                                        <div className="flex items-center justify-between pb-1.5 border-b border-blue-100 dark:border-blue-900/40">
+                                            <span className="text-xs font-bold text-blue-950 dark:text-blue-300">
+                                                Enter Details of Another Account
+                                            </span>
+                                            <button
+                                                type="button"
+                                                onClick={() => setIsAnotherAccount(false)}
+                                                className="text-[11px] text-blue-600 dark:text-blue-400 font-semibold hover:underline cursor-pointer bg-transparent border-none"
+                                            >
+                                                Back to my account
+                                            </button>
+                                        </div>
+
+                                        <div className="svm-field">
+                                            <label className="svm-label">
+                                                Sender Account Name <span className="text-rose-500">*</span>
+                                            </label>
+                                            <input 
+                                                type="text" 
+                                                className={`svm-input ${touched.accountName && !accountName.trim() ? 'border-rose-500' : ''}`} 
+                                                placeholder="e.g. Juan Dela Cruz"
+                                                value={accountName}
+                                                onBlur={() => setTouched(prev => ({ ...prev, accountName: true }))}
+                                                onChange={(e) => { setError(''); setAccountName(e.target.value); }}
+                                            />
+                                            {touched.accountName && !accountName.trim() && (
+                                                <div className="text-[11px] font-semibold text-rose-500 mt-1">Sender account name is required</div>
+                                            )}
+                                        </div>
+
+                                        <div className="svm-field">
+                                            <div className="flex items-center justify-between mb-1">
+                                                <label className="svm-label" style={{ marginBottom: 0 }}>
+                                                    {paymentMethod === 'Bank' ? 'Sender Bank Account Number' : 'Sender Mobile Number'} <span className="text-rose-500">*</span>
+                                                </label>
+                                                <span className={`text-[11px] font-bold ${
+                                                    paymentMethod === 'Bank'
+                                                        ? (cleanAcc.length >= 10 && cleanAcc.length <= 16
+                                                            ? 'text-emerald-600 dark:text-emerald-400'
+                                                            : cleanAcc.length > 0 || (touched.accountNumber && cleanAcc.length === 0)
+                                                            ? 'text-rose-500 font-semibold'
+                                                            : 'text-slate-400')
+                                                        : (cleanAcc.startsWith('09') && cleanAcc.length === 11
+                                                            ? 'text-emerald-600 dark:text-emerald-400'
+                                                            : cleanAcc.length > 0 || (touched.accountNumber && cleanAcc.length === 0)
+                                                            ? 'text-rose-500 font-semibold'
+                                                            : 'text-slate-400')
+                                                }`}>
+                                                    {paymentMethod === 'Bank'
+                                                        ? `${cleanAcc.length} digits (10-16)`
+                                                        : `${cleanAcc.length}/11 digits`
+                                                    }
+                                                </span>
                                             </div>
-                                        )}
-                                        {cleanAcc.length > 0 && !cleanAcc.startsWith('09') && (
-                                            <div className="text-[11px] font-semibold text-rose-500 mt-1 flex items-center gap-1">
-                                                <span>Mobile number must start with 09</span>
-                                            </div>
-                                        )}
-                                        {cleanAcc.length > 0 && cleanAcc.startsWith('09') && cleanAcc.length !== 11 && (
-                                            <div className="text-[11px] font-semibold text-rose-500 mt-1 flex items-center gap-1">
-                                                <span>Must be exactly 11 digits (currently {cleanAcc.length}/11)</span>
-                                            </div>
-                                        )}
-                                    </>
+                                            <input 
+                                                type="text" 
+                                                className={`svm-input ${
+                                                    (cleanAcc.length > 0 && !isAccNumValid) || (touched.accountNumber && !isAccNumValid)
+                                                        ? 'border-rose-500 focus:border-rose-500'
+                                                        : isAccNumValid
+                                                        ? 'border-emerald-500 focus:border-emerald-500'
+                                                        : ''
+                                                }`} 
+                                                placeholder={paymentMethod === 'Bank' ? "e.g. 123456789012" : "e.g. 09123456789"}
+                                                maxLength={paymentMethod === 'Bank' ? 16 : 11}
+                                                value={accountNumber}
+                                                onBlur={() => setTouched(prev => ({ ...prev, accountNumber: true }))}
+                                                onChange={(e) => {
+                                                    setError('');
+                                                    const maxLen = paymentMethod === 'Bank' ? 16 : 11;
+                                                    setAccountNumber(e.target.value.replace(/\D/g, '').slice(0, maxLen));
+                                                }}
+                                            />
+                                            {paymentMethod === 'Bank' ? (
+                                                <>
+                                                    {touched.accountNumber && cleanAcc.length === 0 && (
+                                                        <div className="text-[11px] font-semibold text-rose-500 mt-1 flex items-center gap-1">
+                                                            <span>Bank account number is required</span>
+                                                        </div>
+                                                    )}
+                                                    {cleanAcc.length > 0 && (cleanAcc.length < 10 || cleanAcc.length > 16) && (
+                                                        <div className="text-[11px] font-semibold text-rose-500 mt-1 flex items-center gap-1">
+                                                            <span>Bank account number must be 10 to 16 digits</span>
+                                                        </div>
+                                                    )}
+                                                </>
+                                            ) : (
+                                                <>
+                                                    {touched.accountNumber && cleanAcc.length === 0 && (
+                                                        <div className="text-[11px] font-semibold text-rose-500 mt-1 flex items-center gap-1">
+                                                            <span>Mobile number is required</span>
+                                                        </div>
+                                                    )}
+                                                    {cleanAcc.length > 0 && !cleanAcc.startsWith('09') && (
+                                                        <div className="text-[11px] font-semibold text-rose-500 mt-1 flex items-center gap-1">
+                                                            <span>Mobile number must start with 09</span>
+                                                        </div>
+                                                    )}
+                                                    {cleanAcc.length > 0 && cleanAcc.startsWith('09') && cleanAcc.length !== 11 && (
+                                                        <div className="text-[11px] font-semibold text-rose-500 mt-1 flex items-center gap-1">
+                                                            <span>Must be exactly 11 digits (currently {cleanAcc.length}/11)</span>
+                                                        </div>
+                                                    )}
+                                                </>
+                                            )}
+                                        </div>
+                                    </div>
                                 )}
                             </div>
                         </div>
@@ -1004,6 +1233,19 @@ function NewGoalModal({ onClose }) {
 ───────────────────────────────────────────────────────────── */
 function QuickDepositModal({ goal, goals, onClose }) {
     const { modalStyle, touchHandlers } = useSwipeToClose(onClose);
+    const { user, profile } = useAuth();
+    const currentUser = profile || user;
+
+    const defaultName = useMemo(() => {
+        return currentUser?.fullName || currentUser?.full_name || currentUser?.name || '';
+    }, [currentUser]);
+
+    const defaultPhone = useMemo(() => {
+        const raw = currentUser?.phone || currentUser?.phoneNumber || currentUser?.contact || '';
+        return formatPhoneForInput(raw);
+    }, [currentUser]);
+
+    const [isAnotherAccount, setIsAnotherAccount] = useState(false);
     const [amount, setAmount] = useState('');
     const [note, setNote] = useState('');
     const [paymentMethod, setPaymentMethod] = useState('E-Wallet');
@@ -1078,37 +1320,58 @@ function QuickDepositModal({ goal, goals, onClose }) {
                                 missing.push('Payment Option');
                             }
 
-                            // Auto-fill Sender Account Name
+                            // Auto-fill Sender Account Name & Account Option
                             const rawSenderName = data.extracted?.senderName ? String(data.extracted.senderName).trim() : '';
-                            if (isValidPersonName(rawSenderName)) {
-                                setAccountName(rawSenderName);
-                            } else {
-                                setAccountName('');
-                                missing.push('Sender Account Name');
-                            }
+                            const isSenderNameValid = isValidPersonName(rawSenderName);
 
-                            // Auto-fill Sender Account Number
-                            if (data.extracted?.senderNumber) {
-                                const rawNum = String(data.extracted.senderNumber).replace(/\D/g, '');
-                                if (detectedMethod === 'Bank') {
-                                    if (rawNum.length >= 8 && rawNum.length <= 20) {
-                                        setAccountNumber(rawNum.slice(0, 16));
-                                    } else { missing.push('Sender Bank Account Number'); }
-                                } else {
-                                    const cleanPhone = formatPhoneForInput(rawNum);
-                                    if (cleanPhone.startsWith('09') && cleanPhone.length === 11) {
-                                        setAccountNumber(cleanPhone);
-                                    } else { missing.push('Sender Mobile Number'); }
-                                }
-                            } else {
+                            // Compare receipt sender phone number with logged in user's phone number
+                            const rawUserPhone = (currentUser?.phone || currentUser?.phoneNumber || currentUser?.contact || defaultPhone || '').replace(/\D/g, '');
+                            const rawReceiptNum = data.extracted?.senderNumber ? String(data.extracted.senderNumber).replace(/\D/g, '') : '';
+
+                            const normUserPhone = rawUserPhone.length >= 10 ? rawUserPhone.slice(-10) : rawUserPhone;
+                            const normReceiptPhone = rawReceiptNum.length >= 10 ? rawReceiptNum.slice(-10) : rawReceiptNum;
+
+                            const isPhoneMatch = !!(normUserPhone && normReceiptPhone && normUserPhone === normReceiptPhone);
+
+                            if (isPhoneMatch) {
+                                // Receipt matches user's own phone number -> Select user's profile account!
+                                setIsAnotherAccount(false);
+                                setAccountName('');
                                 setAccountNumber('');
-                                missing.push(detectedMethod === 'Bank' ? 'Sender Bank Account Number' : 'Sender Mobile Number');
+                            } else {
+                                // Does NOT match user's phone number -> Select Another account!
+                                setIsAnotherAccount(true);
+
+                                if (isSenderNameValid) {
+                                    setAccountName(rawSenderName);
+                                } else {
+                                    setAccountName('');
+                                    missing.push('Sender Account Name');
+                                }
+
+                                if (rawReceiptNum) {
+                                    if (detectedMethod === 'Bank') {
+                                        if (rawReceiptNum.length >= 8 && rawReceiptNum.length <= 20) {
+                                            setAccountNumber(rawReceiptNum.slice(0, 16));
+                                        } else { missing.push('Sender Bank Account Number'); }
+                                    } else {
+                                        const cleanPhone = formatPhoneForInput(rawReceiptNum);
+                                        if (cleanPhone.startsWith('09') && cleanPhone.length === 11) {
+                                            setAccountNumber(cleanPhone);
+                                        } else { missing.push('Sender Mobile Number'); }
+                                    }
+                                } else {
+                                    setAccountNumber('');
+                                    missing.push(detectedMethod === 'Bank' ? 'Sender Bank Account Number' : 'Sender Mobile Number');
+                                }
                             }
 
                             if (missing.length > 0) {
                                 toast.warning(`Receipt scanned. Please complete: ${missing.join(', ')}`);
                             } else {
-                                toast.success('Details auto-filled from receipt! You can review or edit below.');
+                                toast.success(isPhoneMatch 
+                                    ? 'Receipt matches your phone number! Auto-filled with your profile.' 
+                                    : 'Details auto-filled from receipt! You can review or edit below.');
                             }
 
                             // Mark all fields as touched so empty fields show red immediately
@@ -1116,8 +1379,8 @@ function QuickDepositModal({ goal, goals, onClose }) {
                                 amount: true,
                                 subMethod: true,
                                 customSubMethod: normalizedSub === 'Others',
-                                accountName: true,
-                                accountNumber: true,
+                                accountName: !isPhoneMatch,
+                                accountNumber: !isPhoneMatch,
                                 proofOfPayment: false,
                             });
                         }
@@ -1160,8 +1423,8 @@ function QuickDepositModal({ goal, goals, onClose }) {
             amount: true,
             subMethod: true,
             customSubMethod: true,
-            accountName: true,
-            accountNumber: true,
+            accountName: isAnotherAccount,
+            accountNumber: isAnotherAccount || isQuickBank,
             proofOfPayment: true,
         });
 
@@ -1172,19 +1435,33 @@ function QuickDepositModal({ goal, goals, onClose }) {
             if (receiptValid === false) { setError('Please upload a valid payment receipt.'); return; }
             if (!subMethod) { setError(`Please select a ${paymentMethod} option.`); return; }
             if (subMethod === 'Others' && !customSubMethod.trim()) { setError(`Please specify your ${paymentMethod === 'Bank' ? 'bank / provider' : 'e-wallet'} name.`); return; }
-            if (!accountName.trim()) { setError('Please enter the account name.'); return; }
-            if (paymentMethod === 'Bank') {
-                if (cleanQuickAcc.length < 10 || cleanQuickAcc.length > 16) {
-                    setError('Bank account number must be between 10 and 16 digits.');
-                    return;
+            
+            if (isAnotherAccount) {
+                if (!accountName.trim()) { setError('Please enter the account name.'); return; }
+                if (paymentMethod === 'Bank') {
+                    if (cleanQuickAcc.length < 10 || cleanQuickAcc.length > 16) {
+                        setError('Bank account number must be between 10 and 16 digits.');
+                        return;
+                    }
+                } else {
+                    if (!cleanQuickAcc.startsWith('09')) { setError('Mobile number must start with 09.'); return; }
+                    if (cleanQuickAcc.length !== 11) { setError('Mobile number must be exactly 11 digits.'); return; }
                 }
             } else {
-                if (!cleanQuickAcc.startsWith('09')) { setError('Mobile number must start with 09.'); return; }
-                if (cleanQuickAcc.length !== 11) { setError('Mobile number must be exactly 11 digits.'); return; }
+                if (paymentMethod === 'Bank') {
+                    if (cleanQuickAcc.length < 10 || cleanQuickAcc.length > 16) {
+                        setError('Bank account number must be between 10 and 16 digits.');
+                        return;
+                    }
+                }
             }
         }
 
         const finalSubMethod = subMethod === 'Others' ? (customSubMethod.trim() || 'Others') : subMethod;
+        const finalAccountName = isAnotherAccount ? accountName.trim() : (defaultName || 'Faithly Member');
+        const finalAccountNumber = isAnotherAccount 
+            ? cleanQuickAcc 
+            : (paymentMethod === 'Bank' ? cleanQuickAcc : (defaultPhone || ''));
 
         setError('');
         setLoading(true);
@@ -1193,7 +1470,16 @@ function QuickDepositModal({ goal, goals, onClose }) {
             const res = await fetch(`${API}/api/savings/deposit`, {
                 method: 'POST',
                 headers: { 'Content-Type': 'application/json', Authorization: `Bearer ${token}` },
-                body: JSON.stringify({ goalId: goal._id, amount: numAmt, note, paymentMethod, subMethod: finalSubMethod, accountName, accountNumber, proofOfPayment: proofBase64 }),
+                body: JSON.stringify({ 
+                    goalId: goal._id, 
+                    amount: numAmt, 
+                    note, 
+                    paymentMethod, 
+                    subMethod: finalSubMethod, 
+                    accountName: finalAccountName, 
+                    accountNumber: finalAccountNumber, 
+                    proofOfPayment: proofBase64 
+                }),
             });
             const data = await res.json();
             if (!res.ok || !data.success) throw new Error(data.message || 'Deposit failed.');
@@ -1213,6 +1499,11 @@ function QuickDepositModal({ goal, goals, onClose }) {
         }
     };
 
+    const isQuickAccNameValid = isAnotherAccount ? accountName.trim() !== '' : (defaultName.trim() !== '');
+    const isQuickAccNumberValid = isAnotherAccount 
+        ? isQuickAccValid 
+        : (paymentMethod === 'Bank' ? isQuickAccValid : !!defaultPhone);
+
     const isFormComplete = 
         numAmt > 0 &&
         paymentMethod !== '' && paymentMethod !== 'cash' &&
@@ -1222,8 +1513,8 @@ function QuickDepositModal({ goal, goals, onClose }) {
             !receiptValidating &&
             subMethod !== '' &&
             isCustomSubValid &&
-            accountName.trim() !== '' &&
-            isQuickAccValid
+            isQuickAccNameValid &&
+            isQuickAccNumberValid
         ));
 
     return (
@@ -1571,97 +1862,264 @@ function QuickDepositModal({ goal, goals, onClose }) {
                                         </div>
                                     )}
 
+                                    {/* Sender Information Section */}
                                     <div className="svm-field">
-                                        <label className="svm-label">
-                                            Sender Account Name <span className="text-rose-500">*</span>
+                                        <label className="svm-label" style={{ marginBottom: 6 }}>
+                                            Sender Information <span className="text-rose-500">*</span>
                                         </label>
-                                        <input 
-                                            type="text" 
-                                            className={`svm-input ${touched.accountName && !accountName.trim() ? 'border-rose-500' : ''}`} 
-                                            placeholder="e.g. Juan Dela Cruz"
-                                            value={accountName}
-                                            onBlur={() => setTouched(prev => ({ ...prev, accountName: true }))}
-                                            onChange={(e) => { setError(''); setAccountName(e.target.value); }}
-                                        />
-                                        {touched.accountName && !accountName.trim() && (
-                                            <div className="text-[11px] font-semibold text-rose-500 mt-1">Sender account name is required</div>
-                                        )}
-                                    </div>
 
-                                    <div className="svm-field">
-                                        <div className="flex items-center justify-between mb-1">
-                                            <label className="svm-label" style={{ marginBottom: 0 }}>
-                                                {paymentMethod === 'Bank' ? 'Sender Bank Account Number' : 'Sender Mobile Number'} <span className="text-rose-500">*</span>
-                                            </label>
-                                            <span className={`text-[11px] font-bold ${
-                                                paymentMethod === 'Bank'
-                                                    ? (cleanQuickAcc.length >= 10 && cleanQuickAcc.length <= 16
-                                                        ? 'text-emerald-600 dark:text-emerald-400'
-                                                        : cleanQuickAcc.length > 0 || (touched.accountNumber && cleanQuickAcc.length === 0)
-                                                        ? 'text-rose-500 font-semibold'
-                                                        : 'text-slate-400')
-                                                    : (cleanQuickAcc.startsWith('09') && cleanQuickAcc.length === 11
-                                                        ? 'text-emerald-600 dark:text-emerald-400'
-                                                        : cleanQuickAcc.length > 0 || (touched.accountNumber && cleanQuickAcc.length === 0)
-                                                        ? 'text-rose-500 font-semibold'
-                                                        : 'text-slate-400')
-                                            }`}>
-                                                {paymentMethod === 'Bank'
-                                                    ? `${cleanQuickAcc.length} digits (10-16)`
-                                                    : `${cleanQuickAcc.length}/11 digits`
-                                                }
-                                            </span>
+                                        <div className="grid grid-cols-1 sm:grid-cols-2 gap-2.5 mb-3">
+                                            {/* Option 1: Profile Account (You) */}
+                                            <button
+                                                type="button"
+                                                onClick={() => {
+                                                    setIsAnotherAccount(false);
+                                                    setTouched(prev => ({ ...prev, accountName: false, accountNumber: false }));
+                                                }}
+                                                className={`p-3 rounded-xl border text-left transition-all cursor-pointer flex items-center gap-2.5 ${
+                                                    !isAnotherAccount
+                                                        ? 'bg-blue-50/80 dark:bg-blue-950/40 border-blue-600 dark:border-blue-500 ring-2 ring-blue-600/20 shadow-xs'
+                                                        : 'bg-white dark:bg-slate-800/60 border-slate-200/80 dark:border-white/10 hover:bg-slate-50 dark:hover:bg-slate-800 text-slate-600 dark:text-slate-300'
+                                                }`}
+                                            >
+                                                <div className={`w-4 h-4 rounded-full border flex items-center justify-center shrink-0 ${
+                                                    !isAnotherAccount ? 'border-blue-600 bg-blue-600' : 'border-slate-300 dark:border-slate-600'
+                                                }`}>
+                                                    {!isAnotherAccount && <div className="w-1.5 h-1.5 rounded-full bg-white" />}
+                                                </div>
+                                                <div className="min-w-0 flex-1">
+                                                    <div className="flex items-center gap-1.5">
+                                                        <span className="text-xs font-bold text-slate-900 dark:text-white truncate">
+                                                            {defaultName || 'My Profile Account'}
+                                                        </span>
+                                                        <span className="text-[9px] font-bold px-1.5 py-0.2 rounded bg-blue-100 dark:bg-blue-900/60 text-blue-700 dark:text-blue-300 shrink-0">
+                                                            You
+                                                        </span>
+                                                    </div>
+                                                    <p className="text-[11px] text-slate-500 dark:text-slate-400 font-mono truncate mt-0.5">
+                                                        {paymentMethod === 'E-Wallet'
+                                                            ? (defaultPhone || 'Registered Mobile')
+                                                            : 'Account Holder'}
+                                                    </p>
+                                                </div>
+                                            </button>
+
+                                            {/* Option 2: Another Account */}
+                                            <button
+                                                type="button"
+                                                onClick={() => {
+                                                    setIsAnotherAccount(true);
+                                                    setTouched(prev => ({ ...prev, accountName: true, accountNumber: true }));
+                                                }}
+                                                className={`p-3 rounded-xl border text-left transition-all cursor-pointer flex items-center gap-2.5 ${
+                                                    isAnotherAccount
+                                                        ? 'bg-blue-50/80 dark:bg-blue-950/40 border-blue-600 dark:border-blue-500 ring-2 ring-blue-600/20 shadow-xs'
+                                                        : 'bg-white dark:bg-slate-800/60 border-slate-200/80 dark:border-white/10 hover:bg-slate-50 dark:hover:bg-slate-800 text-slate-600 dark:text-slate-300'
+                                                }`}
+                                            >
+                                                <div className={`w-4 h-4 rounded-full border flex items-center justify-center shrink-0 ${
+                                                    isAnotherAccount ? 'border-blue-600 bg-blue-600' : 'border-slate-300 dark:border-slate-600'
+                                                }`}>
+                                                    {isAnotherAccount && <div className="w-1.5 h-1.5 rounded-full bg-white" />}
+                                                </div>
+                                                <div className="min-w-0 flex-1">
+                                                    <span className="text-xs font-bold text-slate-900 dark:text-white">
+                                                        Another account?
+                                                    </span>
+                                                    <p className="text-[11px] text-slate-500 dark:text-slate-400 truncate mt-0.5">
+                                                        Deposit using someone else's account
+                                                    </p>
+                                                </div>
+                                            </button>
                                         </div>
-                                        <input 
-                                            type="text" 
-                                            className={`svm-input ${
-                                                (cleanQuickAcc.length > 0 && !isQuickAccValid) || (touched.accountNumber && !isQuickAccValid)
-                                                    ? 'border-rose-500 focus:border-rose-500'
-                                                    : isQuickAccValid
-                                                    ? 'border-emerald-500 focus:border-emerald-500'
-                                                    : ''
-                                            }`} 
-                                            placeholder={paymentMethod === 'Bank' ? "e.g. 123456789012" : "e.g. 09123456789"}
-                                            maxLength={paymentMethod === 'Bank' ? 16 : 11}
-                                            value={accountNumber}
-                                            onBlur={() => setTouched(prev => ({ ...prev, accountNumber: true }))}
-                                            onChange={(e) => {
-                                                setError('');
-                                                const maxLen = paymentMethod === 'Bank' ? 16 : 11;
-                                                setAccountNumber(e.target.value.replace(/\D/g, '').slice(0, maxLen));
-                                            }}
-                                        />
-                                        {paymentMethod === 'Bank' ? (
-                                            <>
-                                                {touched.accountNumber && cleanQuickAcc.length === 0 && (
-                                                    <div className="text-[11px] font-semibold text-rose-500 mt-1 flex items-center gap-1">
-                                                        <span>Bank account number is required</span>
+
+                                        {/* Details depending on whether My Profile or Another Account is selected */}
+                                        {!isAnotherAccount ? (
+                                            paymentMethod === 'E-Wallet' ? (
+                                                <div className="p-3.5 bg-slate-50/90 dark:bg-slate-800/50 border border-slate-200/80 dark:border-white/10 rounded-xl space-y-2 text-xs">
+                                                    <div className="flex items-center justify-between py-1 border-b border-slate-200/60 dark:border-white/5">
+                                                        <span className="text-slate-500 dark:text-slate-400 font-medium">Sender Name:</span>
+                                                        <span className="font-bold text-slate-900 dark:text-white">{defaultName || 'Faithly Member'}</span>
                                                     </div>
-                                                )}
-                                                {cleanQuickAcc.length > 0 && (cleanQuickAcc.length < 10 || cleanQuickAcc.length > 16) && (
-                                                    <div className="text-[11px] font-semibold text-rose-500 mt-1 flex items-center gap-1">
-                                                        <span>Bank account number must be 10 to 16 digits</span>
+                                                    <div className="flex items-center justify-between py-1 border-b border-slate-200/60 dark:border-white/5">
+                                                        <span className="text-slate-500 dark:text-slate-400 font-medium">Sender Mobile:</span>
+                                                        <span className="font-bold font-mono text-slate-900 dark:text-white">{defaultPhone || '09XXXXXXXXX'}</span>
                                                     </div>
-                                                )}
-                                            </>
+                                                    <div className="pt-1 flex items-center justify-between text-[11px]">
+                                                        <span className="text-emerald-600 dark:text-emerald-400 font-medium flex items-center gap-1">
+                                                            <CheckCircle size={13} /> Auto-filled from your profile
+                                                        </span>
+                                                        <button
+                                                            type="button"
+                                                            onClick={() => setIsAnotherAccount(true)}
+                                                            className="text-blue-600 dark:text-blue-400 font-semibold hover:underline cursor-pointer bg-transparent border-none"
+                                                        >
+                                                            Use another account?
+                                                        </button>
+                                                    </div>
+                                                </div>
+                                            ) : (
+                                                <div className="space-y-3">
+                                                    <div className="p-3 bg-slate-50/90 dark:bg-slate-800/50 border border-slate-200/80 dark:border-white/10 rounded-xl flex items-center justify-between text-xs">
+                                                        <span className="text-slate-500 dark:text-slate-400 font-medium">Account Holder:</span>
+                                                        <span className="font-bold text-slate-900 dark:text-white">{defaultName || 'Faithly Member'} (You)</span>
+                                                    </div>
+                                                    <div className="svm-field">
+                                                        <div className="flex items-center justify-between mb-1">
+                                                            <label className="svm-label" style={{ marginBottom: 0 }}>
+                                                                Your Bank Account Number <span className="text-rose-500">*</span>
+                                                            </label>
+                                                            <span className={`text-[11px] font-bold ${
+                                                                cleanQuickAcc.length >= 10 && cleanQuickAcc.length <= 16
+                                                                    ? 'text-emerald-600 dark:text-emerald-400'
+                                                                    : cleanQuickAcc.length > 0 || (touched.accountNumber && cleanQuickAcc.length === 0)
+                                                                    ? 'text-rose-500 font-semibold'
+                                                                    : 'text-slate-400'
+                                                            }`}>
+                                                                {cleanQuickAcc.length >= 10 && cleanQuickAcc.length <= 16 ? `${cleanQuickAcc.length} digits` : `${cleanQuickAcc.length} digits (10-16)`}
+                                                            </span>
+                                                        </div>
+                                                        <input 
+                                                            type="text" 
+                                                            className={`svm-input ${
+                                                                (cleanQuickAcc.length > 0 && !isQuickAccValid) || (touched.accountNumber && !isQuickAccValid)
+                                                                    ? 'border-rose-500 focus:border-rose-500'
+                                                                    : isQuickAccValid
+                                                                    ? 'border-emerald-500 focus:border-emerald-500'
+                                                                    : ''
+                                                            }`} 
+                                                            placeholder="e.g. 123456789012"
+                                                            maxLength={16}
+                                                            value={accountNumber}
+                                                            onBlur={() => setTouched(prev => ({ ...prev, accountNumber: true }))}
+                                                            onChange={(e) => {
+                                                                setError('');
+                                                                setAccountNumber(e.target.value.replace(/\D/g, '').slice(0, 16));
+                                                            }}
+                                                        />
+                                                        {touched.accountNumber && cleanQuickAcc.length === 0 && (
+                                                            <div className="text-[11px] font-semibold text-rose-500 mt-1 flex items-center gap-1">
+                                                                <span>Bank account number is required</span>
+                                                            </div>
+                                                        )}
+                                                        {cleanQuickAcc.length > 0 && (cleanQuickAcc.length < 10 || cleanQuickAcc.length > 16) && (
+                                                            <div className="text-[11px] font-semibold text-rose-500 mt-1 flex items-center gap-1">
+                                                                <span>Bank account number must be 10 to 16 digits</span>
+                                                            </div>
+                                                        )}
+                                                    </div>
+                                                </div>
+                                            )
                                         ) : (
-                                            <>
-                                                {touched.accountNumber && cleanQuickAcc.length === 0 && (
-                                                    <div className="text-[11px] font-semibold text-rose-500 mt-1 flex items-center gap-1">
-                                                        <span>Mobile number is required</span>
+                                            /* Case 2: Another Account */
+                                            <div className="space-y-3 p-3.5 bg-blue-50/30 dark:bg-blue-950/20 border border-blue-200/70 dark:border-blue-900/40 rounded-xl">
+                                                <div className="flex items-center justify-between pb-1.5 border-b border-blue-100 dark:border-blue-900/40">
+                                                    <span className="text-xs font-bold text-blue-950 dark:text-blue-300">
+                                                        Enter Details of Another Account
+                                                    </span>
+                                                    <button
+                                                        type="button"
+                                                        onClick={() => setIsAnotherAccount(false)}
+                                                        className="text-[11px] text-blue-600 dark:text-blue-400 font-semibold hover:underline cursor-pointer bg-transparent border-none"
+                                                    >
+                                                        Back to my account
+                                                    </button>
+                                                </div>
+
+                                                <div className="svm-field">
+                                                    <label className="svm-label">
+                                                        Sender Account Name <span className="text-rose-500">*</span>
+                                                    </label>
+                                                    <input 
+                                                        type="text" 
+                                                        className={`svm-input ${touched.accountName && !accountName.trim() ? 'border-rose-500' : ''}`} 
+                                                        placeholder="e.g. Juan Dela Cruz"
+                                                        value={accountName}
+                                                        onBlur={() => setTouched(prev => ({ ...prev, accountName: true }))}
+                                                        onChange={(e) => { setError(''); setAccountName(e.target.value); }}
+                                                    />
+                                                    {touched.accountName && !accountName.trim() && (
+                                                        <div className="text-[11px] font-semibold text-rose-500 mt-1">Sender account name is required</div>
+                                                    )}
+                                                </div>
+
+                                                <div className="svm-field">
+                                                    <div className="flex items-center justify-between mb-1">
+                                                        <label className="svm-label" style={{ marginBottom: 0 }}>
+                                                            {paymentMethod === 'Bank' ? 'Sender Bank Account Number' : 'Sender Mobile Number'} <span className="text-rose-500">*</span>
+                                                        </label>
+                                                        <span className={`text-[11px] font-bold ${
+                                                            paymentMethod === 'Bank'
+                                                                ? (cleanQuickAcc.length >= 10 && cleanQuickAcc.length <= 16
+                                                                    ? 'text-emerald-600 dark:text-emerald-400'
+                                                                    : cleanQuickAcc.length > 0 || (touched.accountNumber && cleanQuickAcc.length === 0)
+                                                                    ? 'text-rose-500 font-semibold'
+                                                                    : 'text-slate-400')
+                                                                : (cleanQuickAcc.startsWith('09') && cleanQuickAcc.length === 11
+                                                                    ? 'text-emerald-600 dark:text-emerald-400'
+                                                                    : cleanQuickAcc.length > 0 || (touched.accountNumber && cleanQuickAcc.length === 0)
+                                                                    ? 'text-rose-500 font-semibold'
+                                                                    : 'text-slate-400')
+                                                        }`}>
+                                                            {paymentMethod === 'Bank'
+                                                                ? `${cleanQuickAcc.length} digits (10-16)`
+                                                                : `${cleanQuickAcc.length}/11 digits`
+                                                            }
+                                                        </span>
                                                     </div>
-                                                )}
-                                                {cleanQuickAcc.length > 0 && !cleanQuickAcc.startsWith('09') && (
-                                                    <div className="text-[11px] font-semibold text-rose-500 mt-1 flex items-center gap-1">
-                                                        <span>Mobile number must start with 09</span>
-                                                    </div>
-                                                )}
-                                                {cleanQuickAcc.length > 0 && cleanQuickAcc.startsWith('09') && cleanQuickAcc.length !== 11 && (
-                                                    <div className="text-[11px] font-semibold text-rose-500 mt-1 flex items-center gap-1">
-                                                        <span>Must be exactly 11 digits (currently {cleanQuickAcc.length}/11)</span>
-                                                    </div>
-                                                )}
-                                            </>
+                                                    <input 
+                                                        type="text" 
+                                                        className={`svm-input ${
+                                                            (cleanQuickAcc.length > 0 && !isQuickAccValid) || (touched.accountNumber && !isQuickAccValid)
+                                                                ? 'border-rose-500 focus:border-rose-500'
+                                                                : isQuickAccValid
+                                                                ? 'border-emerald-500 focus:border-emerald-500'
+                                                                : ''
+                                                        }`} 
+                                                        placeholder={paymentMethod === 'Bank' ? "e.g. 123456789012" : "e.g. 09123456789"}
+                                                        maxLength={paymentMethod === 'Bank' ? 16 : 11}
+                                                        value={accountNumber}
+                                                        onBlur={() => setTouched(prev => ({ ...prev, accountNumber: true }))}
+                                                        onChange={(e) => {
+                                                            setError('');
+                                                            const maxLen = paymentMethod === 'Bank' ? 16 : 11;
+                                                            setAccountNumber(e.target.value.replace(/\D/g, '').slice(0, maxLen));
+                                                        }}
+                                                    />
+                                                    {paymentMethod === 'Bank' ? (
+                                                        <>
+                                                            {touched.accountNumber && cleanQuickAcc.length === 0 && (
+                                                                <div className="text-[11px] font-semibold text-rose-500 mt-1 flex items-center gap-1">
+                                                                    <span>Bank account number is required</span>
+                                                                </div>
+                                                            )}
+                                                            {cleanQuickAcc.length > 0 && (cleanQuickAcc.length < 10 || cleanQuickAcc.length > 16) && (
+                                                                <div className="text-[11px] font-semibold text-rose-500 mt-1 flex items-center gap-1">
+                                                                    <span>Bank account number must be 10 to 16 digits</span>
+                                                                </div>
+                                                            )}
+                                                        </>
+                                                    ) : (
+                                                        <>
+                                                            {touched.accountNumber && cleanQuickAcc.length === 0 && (
+                                                                <div className="text-[11px] font-semibold text-rose-500 mt-1 flex items-center gap-1">
+                                                                    <span>Mobile number is required</span>
+                                                                </div>
+                                                            )}
+                                                            {cleanQuickAcc.length > 0 && !cleanQuickAcc.startsWith('09') && (
+                                                                <div className="text-[11px] font-semibold text-rose-500 mt-1 flex items-center gap-1">
+                                                                    <span>Mobile number must start with 09</span>
+                                                                </div>
+                                                            )}
+                                                            {cleanQuickAcc.length > 0 && cleanQuickAcc.startsWith('09') && cleanQuickAcc.length !== 11 && (
+                                                                <div className="text-[11px] font-semibold text-rose-500 mt-1 flex items-center gap-1">
+                                                                    <span>Must be exactly 11 digits (currently {cleanQuickAcc.length}/11)</span>
+                                                                </div>
+                                                            )}
+                                                        </>
+                                                    )}
+                                                </div>
+                                            </div>
                                         )}
                                     </div>
                                 </div>

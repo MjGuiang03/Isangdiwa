@@ -6,7 +6,8 @@ import PageHeader from '../components/PageHeader';
 import useDebounce from '../../hooks/useDebounce';
 import API from '../../utils/api';
 import Pagination from '../../components/Pagination';
-import { Search, X, Users, PiggyBank, Banknote, AlertTriangle, ChevronRight, ChevronDown, ChevronUp, ArrowLeft, Loader2, History, Calendar, CheckCircle2, Clock } from 'lucide-react';
+import MemberReportModal from '../components/MemberReportModal';
+import { Search, X, Users, PiggyBank, Banknote, AlertTriangle, ChevronRight, ChevronDown, ChevronUp, ArrowLeft, Loader2, History, Calendar, CheckCircle2, Clock, FileDown } from 'lucide-react';
 
 const fmt = (n) =>
     n != null ? `₱${Number(n).toLocaleString('en-PH', { minimumFractionDigits: 2, maximumFractionDigits: 2 })}` : '₱0.00';
@@ -129,6 +130,7 @@ export default function LoanAdminUserManagement() {
     const [filter, setFilter] = useState('all');
     const [page, setPage] = useState(1);
     const [selectedUser, setSelectedUser] = useState(null);
+    const [reportEmail, setReportEmail] = useState(null);
     const [expandedLoanId, setExpandedLoanId] = useState(null);
     const [expandedPayments, setExpandedPayments] = useState([]);
     const [expandedLoading, setExpandedLoading] = useState(false);
@@ -425,18 +427,29 @@ export default function LoanAdminUserManagement() {
                         ) : (
                             <>
                                 <div className="bg-white dark:bg-[#1E2130] border border-slate-200/80 dark:border-white/10 rounded-2xl p-6 mb-6 shadow-sm">
-                                    <div className="flex items-center gap-4">
-                                        <div className="w-14 h-14 rounded-2xl bg-navy flex items-center justify-center text-white text-lg font-bold font-inter shrink-0">
-                                            {profileData?.user?.fullName?.slice(0, 2).toUpperCase() || '??'}
-                                        </div>
-                                        <div>
-                                            <h2 className="text-xl font-bold text-slate-900 dark:text-white font-inter m-0">{profileData?.user?.fullName || 'Unknown'}</h2>
-                                            <p className="text-sm text-slate-500 dark:text-slate-400 font-inter m-0 mt-0.5">{profileData?.user?.email || selectedUser}</p>
-                                            <div className="flex items-center gap-3 mt-1.5">
-                                                <span className="text-xs text-slate-400 dark:text-slate-500 font-inter">ID: {profileData?.user?.memberId || '—'}</span>
-                                                <span className="text-xs text-slate-400 dark:text-slate-500 font-inter">Branch: {profileData?.user?.branch || '—'}</span>
+                                    <div className="flex flex-col sm:flex-row sm:items-center gap-4">
+                                        <div className="flex items-center gap-4 flex-1 min-w-0">
+                                            <div className="w-14 h-14 rounded-2xl bg-navy flex items-center justify-center text-white text-lg font-bold font-inter shrink-0">
+                                                {profileData?.user?.fullName?.slice(0, 2).toUpperCase() || '??'}
+                                            </div>
+                                            <div className="min-w-0">
+                                                <h2 className="text-xl font-bold text-slate-900 dark:text-white font-inter m-0">{profileData?.user?.fullName || 'Unknown'}</h2>
+                                                <p className="text-sm text-slate-500 dark:text-slate-400 font-inter m-0 mt-0.5 truncate">{profileData?.user?.email || selectedUser}</p>
+                                                <div className="flex items-center gap-3 mt-1.5">
+                                                    <span className="text-xs text-slate-400 dark:text-slate-500 font-inter">ID: {profileData?.user?.memberId || '—'}</span>
+                                                    <span className="text-xs text-slate-400 dark:text-slate-500 font-inter">Branch: {profileData?.user?.branch || '—'}</span>
+                                                </div>
                                             </div>
                                         </div>
+                                        <button
+                                            type="button"
+                                            title="Generate member report"
+                                            onClick={() => setReportEmail(profileData?.user?.email || selectedUser)}
+                                            className="inline-flex items-center justify-center gap-2 h-10 px-4 rounded-xl text-sm font-semibold font-inter border-none bg-navy text-white hover:opacity-90 cursor-pointer transition-opacity shrink-0"
+                                        >
+                                            <FileDown size={16} />
+                                            Export Report
+                                        </button>
                                     </div>
                                 </div>
 
@@ -779,6 +792,9 @@ export default function LoanAdminUserManagement() {
                     </>
                 )}
             </div>
+            {reportEmail && (
+                <MemberReportModal email={reportEmail} onClose={() => setReportEmail(null)} />
+            )}
         </div>
     );
 }

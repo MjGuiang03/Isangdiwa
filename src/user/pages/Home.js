@@ -4,7 +4,7 @@ import { useNavigate } from 'react-router';
 import { useAuth } from '../../context/AuthContext';
 
 import API from '../../utils/api';
-import { ArrowRight, Banknote, CalendarDays, CheckCircle, ChevronRight, ChevronLeft, Clock, Heart, Landmark, MapPin, PiggyBank, Wallet, BookOpen, Target, X, Sparkles, HandHeart } from 'lucide-react';
+import { ArrowRight, Banknote, CalendarDays, CheckCircle, ChevronRight, ChevronLeft, Clock, Heart, Landmark, MapPin, PiggyBank, Wallet, BookOpen, Target, X, Sparkles, HandHeart, Quote } from 'lucide-react';
 import { isOfficerPosition } from '../../utils/officerPositions';
 
 
@@ -999,29 +999,37 @@ export default function Home() {
                   {currentDonors.map((donor, i) => (
                     <div
                       key={donor._id || `${donorPage}-${i}`}
-                      className="flex items-center justify-between py-1.5 px-2.5 rounded-xl bg-blue-50/40 dark:bg-blue-950/20 border border-blue-100/40 dark:border-white/5 animate-donor-stagger transition-transform hover:scale-[1.01]"
+                      className="flex items-center justify-between py-2 px-3 rounded-xl bg-blue-50/40 dark:bg-blue-950/20 border border-blue-100/50 dark:border-white/5 animate-donor-stagger transition-all hover:scale-[1.01] hover:bg-blue-50/70 dark:hover:bg-blue-950/35"
                       style={{ animationDelay: `${i * 0.4}s` }}
                     >
-                      <div className="flex items-center gap-2.5 min-w-0">
-                        {donor.photoUrl ? (
-                          <img
-                            src={donor.photoUrl}
-                            alt={donor.member || 'Donor'}
-                            className="w-7 h-7 rounded-full object-cover shrink-0 ring-1 ring-blue-200/60 dark:ring-white/10"
-                          />
-                        ) : (
-                          <div className="w-7 h-7 rounded-full bg-gradient-to-br from-blue-500 to-blue-600 flex items-center justify-center text-white text-[10px] font-bold shrink-0 shadow-xs">
-                            {donor.member ? donor.member.split(' ').map(w => w[0]).join('').slice(0, 2).toUpperCase() : '?'}
+                      <div className="flex items-center gap-2.5 min-w-0 pr-2">
+                        <div className="relative shrink-0">
+                          {donor.photoUrl ? (
+                            <img
+                              src={donor.photoUrl}
+                              alt={donor.member || 'Donor'}
+                              className="w-8 h-8 rounded-full object-cover ring-2 ring-blue-100 dark:ring-white/10"
+                            />
+                          ) : (
+                            <div className="w-8 h-8 rounded-full bg-gradient-to-br from-blue-500 to-indigo-600 flex items-center justify-center text-white text-[10px] font-bold shadow-xs">
+                              {donor.member ? donor.member.split(' ').map(w => w[0]).join('').slice(0, 2).toUpperCase() : '?'}
+                            </div>
+                          )}
+                          <div className="absolute -bottom-0.5 -right-0.5 w-3.5 h-3.5 rounded-full bg-rose-500 text-white flex items-center justify-center ring-2 ring-white dark:ring-[#1E2130]">
+                            <Heart size={8} className="fill-white text-white" />
                           </div>
-                        )}
+                        </div>
                         <div className="min-w-0 flex-1">
-                          <p className="text-xs font-bold text-slate-800 dark:text-slate-200 font-inter truncate m-0 leading-tight">{donor.member}</p>
-                          <p className="text-[10px] text-slate-500 dark:text-slate-400 font-inter m-0 truncate leading-tight">{donor.category}</p>
+                          <p className="text-xs font-bold text-slate-800 dark:text-slate-200 font-inter truncate m-0 leading-tight">
+                            {donor.member}
+                          </p>
+                          <p className="text-[10.5px] text-slate-500 dark:text-slate-400 font-inter m-0 truncate leading-tight mt-0.5">
+                            Supported <span className="font-semibold text-blue-600 dark:text-blue-400">{donor.category || 'Ministry'}</span>
+                          </p>
                         </div>
                       </div>
-                      <span className="text-xs font-extrabold text-emerald-600 dark:text-emerald-400 font-dm shrink-0 ml-2">
-                        ₱{Number(donor.amount || 0).toLocaleString('en-PH')}
-                      </span>
+
+                  
                     </div>
                   ))}
                 </div>
@@ -1058,19 +1066,39 @@ export default function Home() {
                 {prayers.length > 0 ? (
                   <div
                     onClick={() => setShowPrayerModal(true)}
-                    className={`flex flex-col justify-between p-3.5 rounded-xl bg-blue-50/50 dark:bg-blue-950/20 border border-blue-100/50 dark:border-white/5 transition-opacity duration-500 cursor-pointer hover:border-blue-300 dark:hover:border-blue-700/60 ${prayerFade ? 'opacity-100' : 'opacity-0'}`}
+                    className={`flex flex-col justify-between p-3.5 rounded-xl bg-slate-50 dark:bg-slate-800/80 border border-slate-200/90 dark:border-white/10 shadow-xs transition-all duration-500 cursor-pointer hover:border-blue-400 dark:hover:border-blue-500/60 hover:shadow-sm ${prayerFade ? 'opacity-100' : 'opacity-0'}`}
                   >
-                    <p className="text-[13px] text-slate-700 dark:text-slate-200 font-inter italic line-clamp-3 m-0 leading-relaxed">
-                      "{prayers[prayerIndex]?.text}"
-                    </p>
-                    <p className="text-xs font-bold text-blue-600 dark:text-blue-400 font-inter m-0 mt-2">
-                      — {prayers[prayerIndex]?.author}
-                    </p>
+                    <div>
+                      <div className="flex items-center justify-between mb-1.5">
+                        <Quote size={14} className="text-blue-600 dark:text-blue-400 shrink-0" />
+                        {prayers.length > 1 && (
+                          <span className="text-[10px] font-semibold text-slate-500 dark:text-slate-400 bg-slate-200/60 dark:bg-white/10 px-2 py-0.5 rounded-full">
+                            {prayerIndex + 1} of {prayers.length}
+                          </span>
+                        )}
+                      </div>
+                      <p className="text-[13px] font-medium text-slate-900 dark:text-slate-100 font-inter line-clamp-3 m-0 leading-relaxed">
+                        "{prayers[prayerIndex]?.text}"
+                      </p>
+                    </div>
+                    <div className="flex items-center justify-between pt-2.5 mt-2.5 border-t border-slate-200/80 dark:border-white/10">
+                      <div className="flex items-center gap-1.5 min-w-0">
+                        <div className="w-5 h-5 rounded-full bg-blue-100 dark:bg-blue-900/60 text-blue-700 dark:text-blue-300 flex items-center justify-center text-[10px] font-bold shrink-0">
+                          {prayers[prayerIndex]?.author ? prayers[prayerIndex].author.trim()[0].toUpperCase() : 'P'}
+                        </div>
+                        <span className="text-xs font-bold text-slate-800 dark:text-white truncate">
+                          {prayers[prayerIndex]?.author || 'Anonymous'}
+                        </span>
+                      </div>
+                      <span className="text-[10.5px] font-semibold text-blue-600 dark:text-blue-400 hover:underline shrink-0">
+                        Read more
+                      </span>
+                    </div>
                   </div>
                 ) : (
                   <div
                     onClick={() => setShowPrayerModal(true)}
-                    className="flex-1 flex flex-col items-center justify-center p-3 rounded-xl bg-blue-50/40 dark:bg-blue-950/15 border border-dashed border-blue-200 dark:border-blue-900/40 hover:border-blue-400 dark:hover:border-blue-700/60 hover:bg-blue-50/70 dark:hover:bg-blue-950/25 transition-all cursor-pointer group text-center"
+                    className="flex-1 flex flex-col items-center justify-center p-3 rounded-xl bg-slate-50/80 dark:bg-slate-800/40 border border-dashed border-slate-200 dark:border-white/10 hover:border-blue-400 dark:hover:border-blue-600/60 hover:bg-blue-50/40 dark:hover:bg-blue-950/20 transition-all cursor-pointer group text-center"
                   >
                     <div className="w-8 h-8 rounded-full bg-blue-100 dark:bg-blue-900/40 text-blue-600 dark:text-blue-400 flex items-center justify-center mb-1.5 group-hover:scale-110 group-hover:bg-[#1E3A8A] group-hover:text-white transition-all shadow-xs">
                       <Sparkles size={16} />
@@ -1399,10 +1427,15 @@ export default function Home() {
             </div>
             <div className="p-4 overflow-y-auto space-y-3 flex-1">
               {prayers.map((prayer) => (
-                <div key={prayer._id || prayer.id} className="p-3 rounded-xl bg-slate-50 dark:bg-white/5 border border-slate-100 dark:border-white/5">
-                  <p className="text-xs text-slate-700 dark:text-slate-200 font-inter italic mb-2">"{prayer.text}"</p>
-                  <div className="flex justify-between text-[11px] text-slate-400 dark:text-slate-500 font-inter">
-                    <span className="font-semibold">{prayer.author}</span>
+                <div key={prayer._id || prayer.id} className="p-3.5 rounded-xl bg-slate-50 dark:bg-slate-800/80 border border-slate-200/90 dark:border-white/10 shadow-xs">
+                  <p className="text-[13px] font-medium text-slate-900 dark:text-slate-100 font-inter mb-2 leading-relaxed">"{prayer.text}"</p>
+                  <div className="flex justify-between items-center text-[11px] text-slate-500 dark:text-slate-400 font-inter pt-2 border-t border-slate-200/70 dark:border-white/10">
+                    <span className="font-bold text-slate-800 dark:text-white flex items-center gap-1.5">
+                      <span className="w-4 h-4 rounded-full bg-blue-100 dark:bg-blue-900/60 text-blue-700 dark:text-blue-300 inline-flex items-center justify-center text-[9px] font-bold">
+                        {prayer.author ? prayer.author.trim()[0].toUpperCase() : 'P'}
+                      </span>
+                      {prayer.author}
+                    </span>
                     <span>{formatTimeAgo(prayer.createdAt || prayer.date)}</span>
                   </div>
                 </div>
